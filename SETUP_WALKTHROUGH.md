@@ -110,13 +110,13 @@ You can check the .gitignore file to confirm both folders are listed.
 **What happens:**
 ```
 Before:
-ChinmayaJyotish/
+ChinmayAstro/
 ├── .claude/          ← Stays exactly as is
 ├── tasks/            ← Stays exactly as is
 └── other files...    ← Stays exactly as is
 
 After git init:
-ChinmayaJyotish/
+ChinmayAstro/
 ├── .git/             ← NEW: Hidden folder for version control
 ├── .claude/          ← UNCHANGED
 ├── tasks/            ← UNCHANGED
@@ -178,8 +178,8 @@ ChinmayaJyotish/
 
 1. Open your browser and go to: https://github.com/new
 2. Fill in:
-   - **Repository name:** `chinmaya-jyotish`
-   - **Description:** `Chinmaya Jyotish - Astrology consultation web application`
+   - **Repository name:** `chinmay-astro`
+   - **Description:** `Chinmay Astro - Astrology consultation web application`
    - **Visibility:** Public (or Private if you prefer)
 3. **IMPORTANT - DO NOT CHECK:**
    - ❌ Add a README file
@@ -194,7 +194,7 @@ ChinmayaJyotish/
 Once you confirm, I'll run these commands:
 
 ```bash
-git remote add origin https://github.com/YOUR_USERNAME/chinmaya-jyotish.git
+git remote add origin https://github.com/YOUR_USERNAME/chinmay-astro.git
 git branch -M main
 git push -u origin main
 ```

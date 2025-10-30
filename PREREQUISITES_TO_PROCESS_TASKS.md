@@ -2,7 +2,7 @@
 
 **Document Version:** 1.0
 **Last Updated:** 2025-10-31
-**Project:** Chinmaya Jyotish Web Application
+**Project:** Chinmay Astro Web Application
 
 ---
 
@@ -319,7 +319,7 @@ git config --global core.editor "vim"
 **Navigate to your project directory:**
 
 ```bash
-cd /Users/prasadmujumdar/Downloads/ChinmayaJyotish
+cd /Users/prasadmujumdar/Downloads/ChinmayAstro
 
 # Check if git is already initialized
 git status
@@ -488,14 +488,14 @@ gh auth status
 
 ```bash
 # Navigate to project directory
-cd /Users/prasadmujumdar/Downloads/ChinmayaJyotish
+cd /Users/prasadmujumdar/Downloads/ChinmayAstro
 
 # Create repository
-gh repo create chinmaya-jyotish \
+gh repo create chinmay-astro \
   --public \
   --source=. \
   --remote=origin \
-  --description="Chinmaya Jyotish - Astrology consultation web application"
+  --description="Chinmay Astro - Astrology consultation web application"
 
 # Verify remote was added
 git remote -v
@@ -503,8 +503,8 @@ git remote -v
 
 **Expected Output:**
 ```
-origin  https://github.com/YOUR_USERNAME/chinmaya-jyotish.git (fetch)
-origin  https://github.com/YOUR_USERNAME/chinmaya-jyotish.git (push)
+origin  https://github.com/YOUR_USERNAME/chinmay-astro.git (fetch)
+origin  https://github.com/YOUR_USERNAME/chinmay-astro.git (push)
 ```
 
 **Method 2: Using GitHub Web UI**
@@ -512,8 +512,8 @@ origin  https://github.com/YOUR_USERNAME/chinmaya-jyotish.git (push)
 **Step 1: Create repository on GitHub.com**
 
 1. Go to [github.com/new](https://github.com/new)
-2. Repository name: `chinmaya-jyotish`
-3. Description: `Chinmaya Jyotish - Astrology consultation web application`
+2. Repository name: `chinmay-astro`
+3. Description: `Chinmay Astro - Astrology consultation web application`
 4. Visibility: **Public** (or Private if you prefer)
 5. **DO NOT** check:
    - ❌ Add a README file
@@ -525,10 +525,10 @@ origin  https://github.com/YOUR_USERNAME/chinmaya-jyotish.git (push)
 
 ```bash
 # Navigate to project directory
-cd /Users/prasadmujumdar/Downloads/ChinmayaJyotish
+cd /Users/prasadmujumdar/Downloads/ChinmayAstro
 
 # Add remote repository
-git remote add origin https://github.com/YOUR_USERNAME/chinmaya-jyotish.git
+git remote add origin https://github.com/YOUR_USERNAME/chinmay-astro.git
 
 # Verify remote
 git remote -v
@@ -563,7 +563,7 @@ git config --global credential.helper osxkeychain
 
 ### 5.5 Verify Repository on GitHub
 
-1. Go to `https://github.com/YOUR_USERNAME/chinmaya-jyotish`
+1. Go to `https://github.com/YOUR_USERNAME/chinmay-astro`
 2. You should see:
    - `tasks/` directory
    - `.gitignore` file
@@ -592,7 +592,7 @@ git config --global credential.helper osxkeychain
 **Step 1: Create Project**
 
 1. Click "Add project" or "Create a project"
-2. Project name: `chinmaya-jyotish` (or `chinmaya-jyotish-prod`)
+2. Project name: `chinmay-astro` (or `chinmay-astro-prod`)
 3. Click "Continue"
 4. Google Analytics: **Enable** (recommended)
 5. Select or create Analytics account
@@ -603,7 +603,7 @@ git config --global credential.helper osxkeychain
 **Step 2: Register Web App**
 
 1. In Firebase Console, click the **Web** icon (`</>`)
-2. App nickname: `Chinmaya Jyotish Web`
+2. App nickname: `Chinmay Astro Web`
 3. **DO NOT** check "Also set up Firebase Hosting"
 4. Click "Register app"
 5. **IMPORTANT:** Copy the `firebaseConfig` object shown
@@ -613,9 +613,9 @@ git config --global credential.helper osxkeychain
 ```javascript
 const firebaseConfig = {
   apiKey: "AIzaSyAbCdEfGhIjKlMnOpQrStUvWxYz1234567",
-  authDomain: "chinmaya-jyotish.firebaseapp.com",
-  projectId: "chinmaya-jyotish",
-  storageBucket: "chinmaya-jyotish.appspot.com",
+  authDomain: "chinmay-astro.firebaseapp.com",
+  projectId: "chinmay-astro",
+  storageBucket: "chinmay-astro.appspot.com",
   messagingSenderId: "123456789012",
   appId: "1:123456789012:web:abcdef1234567890abcdef"
 };
@@ -725,7 +725,7 @@ firebase projects:list
 **Expected Output:**
 ```
 ✔ Projects:
-│ chinmaya-jyotish (chinmaya-jyotish)
+│ chinmay-astro (chinmay-astro)
 ```
 
 ### 6.8 Initialize Firebase in Project (Optional Now)
@@ -735,7 +735,7 @@ firebase projects:list
 But if you want to set it up now:
 
 ```bash
-cd /Users/prasadmujumdar/Downloads/ChinmayaJyotish
+cd /Users/prasadmujumdar/Downloads/ChinmayAstro
 
 # Initialize Firebase
 firebase init
@@ -748,7 +748,7 @@ firebase init
 
 # Follow prompts:
 # - Select "Use an existing project"
-# - Choose "chinmaya-jyotish"
+# - Choose "chinmay-astro"
 # - Accept defaults for file names
 
 # Verify
@@ -774,7 +774,7 @@ ls -la
 **Navigate to project directory:**
 
 ```bash
-cd /Users/prasadmujumdar/Downloads/ChinmayaJyotish
+cd /Users/prasadmujumdar/Downloads/ChinmayAstro
 ```
 
 **Create `.env.local` file:**
@@ -798,14 +798,14 @@ nano .env.local
 # Replace the values with YOUR actual Firebase config
 
 NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyAbCdEfGhIjKlMnOpQrStUvWxYz1234567
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=chinmaya-jyotish.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=chinmaya-jyotish
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=chinmaya-jyotish.appspot.com
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=chinmay-astro.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=chinmay-astro
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=chinmay-astro.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789012
 NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789012:web:abcdef1234567890abcdef
 
 # Firebase Project ID (for Cloud Functions)
-FIREBASE_PROJECT_ID=chinmaya-jyotish
+FIREBASE_PROJECT_ID=chinmay-astro
 
 # Environment
 NODE_ENV=development
@@ -915,7 +915,7 @@ firebase projects:list
 ### 8.2 Verify Repository Setup
 
 ```bash
-cd /Users/prasadmujumdar/Downloads/ChinmayaJyotish
+cd /Users/prasadmujumdar/Downloads/ChinmayAstro
 
 # Check git status
 git status
@@ -938,7 +938,7 @@ firebase projects:list
 
 # Expected output:
 # ✔ Projects:
-# │ chinmaya-jyotish (chinmaya-jyotish)
+# │ chinmay-astro (chinmay-astro)
 ```
 
 ### 8.4 Verify Environment Variables
@@ -1016,16 +1016,16 @@ ls -la
 At this point, your project should look like this:
 
 ```
-ChinmayaJyotish/
+ChinmayAstro/
 ├── .git/                                      # Git repository
 ├── .gitignore                                 # Git ignore rules
 ├── .env.local                                 # Environment variables (not committed)
 ├── .env.local.example                         # Environment template (committed)
 ├── PREREQUISITES_TO_PROCESS_TASKS.md          # This document
 ├── tasks/
-│   ├── prd-chinmaya-jyotish-web-app.md       # Product requirements
-│   ├── tdd-chinmaya-jyotish-web-app.md       # Technical design
-│   └── tasks-chinmaya_jyotish-feature-1-authentication.md  # Feature 1 tasks
+│   ├── prd-chinmay-astro-web-app.md       # Product requirements
+│   ├── tdd-chinmay-astro-web-app.md       # Technical design
+│   └── tasks-chinmay_astro-feature-1-authentication.md  # Feature 1 tasks
 └── README.md (optional)
 
 # Not yet created (process-tasks will create):
@@ -1043,10 +1043,10 @@ ChinmayaJyotish/
 
 ```bash
 # Navigate to project directory
-cd /Users/prasadmujumdar/Downloads/ChinmayaJyotish
+cd /Users/prasadmujumdar/Downloads/ChinmayAstro
 
 # Run process-tasks agent (in Claude Code)
-/process-tasks tasks/tasks-chinmaya_jyotish-feature-1-authentication.md
+/process-tasks tasks/tasks-chinmay_astro-feature-1-authentication.md
 ```
 
 ### 9.3 What the Agent Will Do
@@ -1199,7 +1199,7 @@ pnpm install
 
 **Solution:**
 ```bash
-cd /Users/prasadmujumdar/Downloads/ChinmayaJyotish
+cd /Users/prasadmujumdar/Downloads/ChinmayAstro
 git init
 git add .
 git commit -m "Initial commit"
@@ -1313,7 +1313,7 @@ git remote -v
 
 # If wrong or missing, reset:
 git remote remove origin
-git remote add origin https://github.com/YOUR_USERNAME/chinmaya-jyotish.git
+git remote add origin https://github.com/YOUR_USERNAME/chinmay-astro.git
 
 # Verify
 git remote -v
@@ -1378,8 +1378,8 @@ If you encounter issues not covered here:
 ### 🚀 Next Command:
 
 ```bash
-cd /Users/prasadmujumdar/Downloads/ChinmayaJyotish
-/process-tasks tasks/tasks-chinmaya_jyotish-feature-1-authentication.md
+cd /Users/prasadmujumdar/Downloads/ChinmayAstro
+/process-tasks tasks/tasks-chinmay_astro-feature-1-authentication.md
 ```
 
 ---
