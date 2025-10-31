@@ -8,12 +8,14 @@ import {
 } from 'firebase/auth';
 import { firebaseApp } from './config';
 import { useAuthStore } from '@/stores/authStore';
+import { handleFirebaseAuthError } from '@/lib/utils/errors';
 
 // Initialize Firebase Auth
 export const auth: Auth = getAuth(firebaseApp);
 
 /**
  * Sign in with Google using popup
+ * @returns UserCredential on success
  * @throws Error with user-friendly message on failure
  */
 export async function signInWithGoogle(): Promise<UserCredential> {
@@ -22,23 +24,14 @@ export async function signInWithGoogle(): Promise<UserCredential> {
     const result = await signInWithPopup(auth, provider);
     return result;
   } catch (error: any) {
-    // Handle specific error cases
-    if (error.code === 'auth/popup-closed-by-user') {
-      throw new Error('Sign-in cancelled. Please try again.');
-    }
-    if (error.code === 'auth/popup-blocked') {
-      throw new Error('Popup blocked by browser. Please allow popups and try again.');
-    }
-    if (error.code === 'auth/network-request-failed') {
-      throw new Error('Network error. Please check your connection and try again.');
-    }
-    // Generic error
-    throw new Error(error.message || 'Failed to sign in with Google');
+    handleFirebaseAuthError(error);
   }
 }
 
 /**
  * Sign out the current user and clear auth state
+ * Clears both Firebase Auth session and Zustand store
+ * @throws Error if sign-out fails
  */
 export async function signOutUser(): Promise<void> {
   try {
