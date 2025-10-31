@@ -75,6 +75,10 @@ chinmay-astro/
 │       └── auth/
 │           └── onUserCreate.ts # User creation trigger
 ├── tasks/                      # Product requirements (PRD, TDD, task lists)
+│   ├── prd-chinmay-astro-web-app.md           # Product requirements
+│   ├── tdd-chinmay-astro-web-app.md           # Technical design
+│   ├── tasks-chinmay_astro-feature-1-*.md     # Feature 1-8 task lists
+│   └── tasks-chinmay_astro-feature-99-tech-debt.md  # Feature 99: Tech debt cleanup
 └── .claude/                    # Claude Code agent configurations
 ```
 
@@ -487,6 +491,38 @@ All interactive elements must have:
    - Initially tried v2 `onUserCreated` but had import issues
    - Reverted to v1 `functions.auth.user().onCreate()` - stable and well-documented
    - Works perfectly for auth triggers
+
+7. **Environment Variables (TEMP WORKAROUND)**
+   - Next.js 16 + Turbopack has `.env` loading bug in development
+   - **TEMPORARY:** Firebase config hardcoded in `lib/firebase/config.ts`
+   - **IMPORTANT:** Must fix before production - see Tech Debt Register (TD-001)
+   - ⚠️ Do not commit sensitive secrets using this pattern
+
+### Tech Debt Register (Feature 99)
+
+**Purpose:** Track deferred fixes, workarounds, and improvements that need to be addressed before production.
+
+**File:** [tasks-chinmay_astro-feature-99-tech-debt.md](tasks/tasks-chinmay_astro-feature-99-tech-debt.md)
+
+**When to add tech debt:**
+- Implemented a workaround instead of proper solution
+- Found issue but fixing would derail current feature
+- Deferred optimization or improvement
+- Missing test coverage or documentation
+
+**How agents should use it:**
+```bash
+# When encountering a tech debt item during development:
+# Add entry to tasks/tasks-chinmay_astro-feature-99-tech-debt.md
+# Follow the template format in the file
+# Include: Priority (P0-P3), Category, Affected Files, Fix Required, Validation
+
+# After all 8 features complete (or when P0/P1 items accumulate):
+/process-tasks tasks/tasks-chinmay_astro-feature-99-tech-debt.md
+```
+
+**Current Status:** 1 pending item (P1 - Environment Variables)
+**Process As:** Feature 99 (after Features 1-8 or when critical)
 
 ### Feature 1 Patterns Established
 
