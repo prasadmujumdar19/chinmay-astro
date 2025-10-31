@@ -1,0 +1,19 @@
+{
+	"name": "chinmay-astro",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"test": "vitest",
+		"test:run": "vitest run",
+		"test:watch": "vitest watch",
+		"test:coverage": "vitest run --coverage"
+	},
+	"devDependencies": {
+		"vitest": "^4.0.5",
+		"@testing-library/react": "^16.3.0",
+		"@testing-library/jest-dom": "^6.9.1",
+		"@testing-library/user-event": "^14.6.1",
+		"@vitejs/plugin-react": "^5.1.0",
+		"jsdom": "^27.1.0"
+	}
+}
