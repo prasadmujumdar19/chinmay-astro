@@ -4,7 +4,7 @@
 
 **Last Updated**: October 31, 2025
 **Project**: Chinmay Astro - Astrology Consultation Web Application
-**Status**: Initial Setup Complete, Authentication Feature In Progress
+**Status**: Feature 1 (Authentication) Complete ✅
 
 ---
 
@@ -477,9 +477,51 @@ All interactive elements must have:
    - Webhook handling via Firebase Cloud Function
    - Credit allocation after payment confirmation
 
+5. **Claude Code Sandbox PATH Requirements** (Feature 1 Learning)
+   - Homebrew's `/opt/homebrew/bin` NOT in default PATH
+   - Solution: Prefix commands with `export PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH" &&`
+   - Git commands require full path: `/usr/bin/git`
+   - Affects: node, npm, pnpm, git, grep, sort
+
+6. **Firebase Cloud Functions v2 API** (Feature 1 Learning)
+   - Initially tried v2 `onUserCreated` but had import issues
+   - Reverted to v1 `functions.auth.user().onCreate()` - stable and well-documented
+   - Works perfectly for auth triggers
+
+### Feature 1 Patterns Established
+
+**Authentication Patterns:**
+- `useAuthObserver` hook syncs Firebase Auth → Zustand store
+- Centralized error handling in `lib/utils/errors.ts`
+- Route constants in `lib/constants/routes.ts`
+- Protected routes use `ProtectedRoute` HOC with role-based access
+
+**State Management:**
+- Zustand store for auth state (user, loading)
+- Actions: `setUser`, `setLoading`, `clearAuth`
+- Store accessed via `useAuthStore` hook
+
+**Firebase Integration:**
+- Singleton pattern for Firebase app initialization
+- Environment variable validation in config
+- Firestore Timestamp → Date conversion in user operations
+- Cloud Function creates user profile + sessionCredits on signup
+
+**Component Patterns:**
+- 'use client' directive for hooks/interactivity
+- Loading states with spinner
+- Error messages displayed in UI
+- Accessibility: ARIA labels, semantic HTML
+
+**Testing Strategy:**
+- Unit tests with Vitest + React Testing Library
+- E2E tests with Playwright (login flow, protected routes, navigation)
+- Mocks in `__tests__/mocks/`, fixtures in `__tests__/fixtures/`
+- Test scripts: `pnpm test`, `pnpm test:e2e`
+
 ### Parked Issues
 
-(None yet - will be added as development progresses)
+(None - Feature 1 complete and working)
 
 ---
 
