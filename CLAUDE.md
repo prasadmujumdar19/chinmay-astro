@@ -335,20 +335,26 @@ Before committing:
 ### Initialization Pattern
 
 ```typescript
+// lib/firebase/client-config.ts
+export const firebaseClientConfig = {
+  apiKey: 'AIza...', // Your Firebase API key
+  authDomain: 'your-project.firebaseapp.com',
+  projectId: 'your-project-id',
+  storageBucket: 'your-project.appspot.com',
+  messagingSenderId: '1234567890',
+  appId: '1:1234567890:web:abc123',
+};
+
 // lib/firebase/config.ts
 import { initializeApp, getApps } from 'firebase/app';
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  // ... other config
-};
+import { firebaseClientConfig } from './client-config';
 
 // Singleton pattern
 export const firebaseApp =
-  getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  getApps().length === 0 ? initializeApp(firebaseClientConfig) : getApps()[0];
 ```
+
+**Note:** Firebase web config keys are meant to be public (browser-exposed). Security is enforced via Firestore Rules and Firebase Auth, not by hiding these values.
 
 ### Error Handling Pattern
 
@@ -492,11 +498,13 @@ All interactive elements must have:
    - Reverted to v1 `functions.auth.user().onCreate()` - stable and well-documented
    - Works perfectly for auth triggers
 
-7. **Environment Variables (TEMP WORKAROUND)**
-   - Next.js 16 + Turbopack has `.env` loading bug in development
-   - **TEMPORARY:** Firebase config hardcoded in `lib/firebase/config.ts`
-   - **IMPORTANT:** Must fix before production - see Tech Debt Register (TD-001)
-   - ⚠️ Do not commit sensitive secrets using this pattern
+7. **Firebase Configuration Pattern** (Feature 1 - Resolved)
+   - Firebase web config keys are public by design (browser-exposed)
+   - Using direct config import: `lib/firebase/client-config.ts`
+   - **Why not env vars?**: Next.js 15/16 has bugs loading `NEXT_PUBLIC_*` vars in dev mode
+   - **Security**: Protected by Firestore Rules + Firebase Auth, not by hiding config
+   - **Multiple environments**: If needed later, create `client-config.dev.ts`, `client-config.prod.ts` and import based on `process.env.NODE_ENV`
+   - See: https://firebase.google.com/docs/projects/learn-more#config-object-explained
 
 ### Tech Debt Register (Feature 99)
 
@@ -521,7 +529,7 @@ All interactive elements must have:
 /process-tasks tasks/tasks-chinmay_astro-feature-99-tech-debt.md
 ```
 
-**Current Status:** 1 pending item (P1 - Environment Variables)
+**Current Status:** 0 pending items
 **Process As:** Feature 99 (after Features 1-8 or when critical)
 
 ### Feature 1 Patterns Established
@@ -539,7 +547,8 @@ All interactive elements must have:
 
 **Firebase Integration:**
 - Singleton pattern for Firebase app initialization
-- Environment variable validation in config
+- Direct config import from `lib/firebase/client-config.ts` (no env vars needed)
+- Firebase web config keys are public by design (security via Firestore Rules)
 - Firestore Timestamp → Date conversion in user operations
 - Cloud Function creates user profile + sessionCredits on signup
 

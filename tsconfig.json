@@ -11,7 +11,7 @@
     "resolveJsonModule": true,
     "allowJs": true,
     "checkJs": false,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
