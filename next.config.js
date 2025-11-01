@@ -10,14 +10,16 @@ const nextConfig = {
     root: __dirname,
   },
   // Explicitly expose environment variables to the client
-  // Hardcoded for development due to .env file loading issues
+  // WORKAROUND: Next.js 16 + Turbopack has a bug loading .env.local automatically
+  // This env block reads from .env.local and exposes vars to the client
+  // When Turbopack is fixed, this block can be removed
   env: {
-    NEXT_PUBLIC_FIREBASE_API_KEY: 'AIzaSyC-IQNeWu8Fs_ktyxtQGLkAG_mjVA470_I',
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: 'chinmay-astro-c685b.firebaseapp.com',
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID: 'chinmay-astro-c685b',
-    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: 'chinmay-astro-c685b.firebasestorage.app',
-    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '300957221965',
-    NEXT_PUBLIC_FIREBASE_APP_ID: '1:300957221965:web:20545cb5811a4e37784804',
+    NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
   },
 };
 

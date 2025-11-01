@@ -36,17 +36,23 @@ After all 8 features are complete (or when priorit reaches P0/P1), use the `proc
 | Priority | Category | Count |
 |----------|----------|-------|
 | P0 (Critical) | - | 0 |
-| P1 (High) | Security | 1 |
+| P1 (High) | - | 0 |
 | P2 (Medium) | - | 0 |
 | P3 (Low) | - | 0 |
 
-**Total Pending:** 1
+**Total Pending:** 0
 
 ---
 
 ## Pending Tech Debt
 
-### TD-001: Environment Variables Hardcoded in Firebase Config [P1]
+_(No pending tech debt items)_
+
+---
+
+## Completed Tech Debt
+
+### TD-001: Environment Variables Hardcoded in Firebase Config [P1] ✅
 
 **Added:** November 1, 2025
 **Feature Context:** Feature 1 (Authentication)
@@ -157,11 +163,15 @@ Firebase configuration values are hardcoded directly in `lib/firebase/config.ts`
 
 **Estimated Effort:** 2-4 hours (depending on Next.js fix complexity)
 
----
-
-## Completed Tech Debt
-
-_(Items that have been resolved)_
+**Resolution:** November 2, 2025
+- ✅ Used `next.config.js` `env` block as official workaround for Turbopack bug
+- ✅ Reverted `lib/firebase/config.ts` to use `process.env.*` pattern
+- ✅ Added environment variable validation with helpful error messages
+- ✅ Removed hardcoded values from both files
+- ✅ Values now loaded from `.env.local` (gitignored)
+- ✅ Application code follows best practices
+- ✅ Dev server starts successfully, type checking passes
+**Solution:** The `next.config.js` `env` block acts as a bridge, reading from `.env.local` and exposing vars to the client-side code. This is a proper Next.js pattern and will work until Turbopack bug is fixed, at which point the `env` block can simply be removed without changing application code.
 
 ---
 
