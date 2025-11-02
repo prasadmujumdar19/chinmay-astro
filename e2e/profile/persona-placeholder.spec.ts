@@ -11,12 +11,8 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Persona Image Placeholder', () => {
-  test.skip(
-    () => !process.env.E2E_AUTH_ENABLED,
-    'E2E authentication not configured. Set E2E_AUTH_ENABLED=true after auth setup.'
-  );
-
   test.beforeEach(async ({ page }) => {
+    // Auth state is loaded automatically from .auth/user.json
     await page.goto('/profile');
   });
 
@@ -71,17 +67,16 @@ test.describe('Persona Image Placeholder', () => {
     await expect(personaSection.getByText(/updated:/i)).not.toBeVisible();
   });
 
-  test('should show persona image when available (not placeholder)', async ({ page }) => {
+  test.skip('should show persona image when available (not placeholder)', async ({ page }) => {
     /**
      * Prerequisite: Test user MUST have a persona image uploaded
      * - Use different test user with personaImageUrl set in Firestore
-     * - Or skip this test if current test user has no image
+     * - Or upload one via admin first
+     *
+     * TO ENABLE THIS TEST:
+     * 1. Run admin upload test first to upload a persona image
+     * 2. Remove .skip from this test
      */
-
-    test.skip(
-      () => !process.env.E2E_USER_HAS_PERSONA,
-      'Test user does not have persona image. Upload one via admin to enable this test.'
-    );
 
     const personaSection = page.getByText('Persona Image').locator('..');
     const image = personaSection.locator('img').first();

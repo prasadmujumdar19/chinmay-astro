@@ -29,15 +29,8 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Profile Viewing', () => {
-  // Skip tests if E2E auth not configured
-  test.skip(
-    () => !process.env.E2E_AUTH_ENABLED,
-    'E2E authentication not configured. Set E2E_AUTH_ENABLED=true after auth setup.'
-  );
-
   test.beforeEach(async ({ page }) => {
-    // TODO: Load authenticated state
-    // For now, these tests will be skipped until auth is configured
+    // Auth state is loaded automatically from .auth/user.json
     await page.goto('/profile');
   });
 

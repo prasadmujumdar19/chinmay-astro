@@ -16,12 +16,8 @@ import { test, expect } from '@playwright/test';
 import path from 'path';
 
 test.describe('Persona Image Upload (Admin)', () => {
-  test.skip(
-    () => !process.env.E2E_AUTH_ENABLED || !process.env.E2E_ADMIN_ENABLED,
-    'E2E admin authentication not configured. Set E2E_ADMIN_ENABLED=true after admin auth setup.'
-  );
-
   test.beforeEach(async ({ page }) => {
+    // Auth state is loaded automatically from .auth/admin.json (chromium-admin project)
     // Navigate to profile page as admin
     await page.goto('/profile');
   });

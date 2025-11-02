@@ -1,302 +1,283 @@
 # E2E Testing Setup Guide
 
-This guide explains how to set up and run E2E tests for Chinmay Astro using Playwright with real Firebase authentication.
+This guide walks you through setting up E2E tests for Chinmay Astro using Playwright.
+
+## Overview
+
+Our E2E tests use **manual Google OAuth authentication** with saved auth state. This approach:
+
+- ✅ Works with existing Google OAuth login flow
+- ✅ Saves auth state after first manual login
+- ✅ Reuses auth for subsequent test runs (fast!)
+- ✅ No need for Email/Password authentication setup
+
+---
 
 ## Prerequisites
 
-- Firebase project (already configured)
+- Firebase project configured (already done)
 - Node.js and pnpm installed
-- Playwright installed (`pnpm install` should handle this)
+- Playwright installed (`pnpm install` handles this)
+- Google account for testing
 
-## 1. Create Test Users in Firebase
+---
 
-### Regular Test User
+## Step 1: Create Test Fixtures
 
-1. Go to Firebase Console → Authentication → Users
-2. Click "Add User"
-3. Email: `test-user@chinmayastro.com` (or your preferred test email)
-4. Password: Create a strong password
-5. Click "Add User"
+Test fixtures are sample images used for testing profile image upload functionality.
 
-### Admin Test User
-
-1. Go to Firebase Console → Authentication → Users
-2. Click "Add User"
-3. Email: `admin-test@chinmayastro.com`
-4. Password: Create a strong password
-5. Click "Add User"
-6. Go to Firestore → `users` collection → find admin user document
-7. Set `role: "admin"`
-
-## 2. Configure Environment Variables
-
-Add these to `.env.local`:
+### Run the fixture creation script:
 
 ```bash
-# E2E Test Configuration
-E2E_AUTH_ENABLED=true
-E2E_ADMIN_ENABLED=true
-
-# Test User Credentials
-E2E_TEST_USER_EMAIL=test-user@chinmayastro.com
-E2E_TEST_USER_PASSWORD=your-test-user-password
-
-# Admin Test User Credentials
-E2E_TEST_ADMIN_EMAIL=admin-test@chinmayastro.com
-E2E_TEST_ADMIN_PASSWORD=your-admin-test-password
-
-# Optional: Set if test user has persona image
-E2E_USER_HAS_PERSONA=false
+bash e2e/create-test-fixtures.sh
 ```
 
-⚠️ **Security Note:** Never commit `.env.local` to git. It's already in `.gitignore`.
+This creates:
 
-## 3. Set Up Test User Profile Data
+- `e2e/fixtures/test-image.jpg` (500x500, ~22KB)
+- `e2e/fixtures/large-image-2000x2000.jpg` (2000x2000, ~175KB for compression tests)
+- `e2e/fixtures/test.txt` (invalid file for file type validation tests)
 
-### Option A: Manual Setup (Recommended for First Time)
+### Verify fixtures were created:
 
-1. Sign in to the app manually as test user
-2. Navigate to `/profile`
-3. Fill in birth details:
-   - Date of Birth: 1990-01-15
-   - Time of Birth: 14:30
-   - Place of Birth: Mumbai, India
-4. Save
+```bash
+ls -lh e2e/fixtures/
+```
 
-### Option B: Direct Firestore Edit
+---
 
-1. Go to Firestore Console
-2. Find `users/{test-user-uid}` document
-3. Add/update fields:
-   ```json
-   {
-     "dateOfBirth": "1990-01-15T00:00:00Z",
-     "timeOfBirth": "14:30",
-     "placeOfBirth": "Mumbai, India"
-   }
+## Step 2: Sign In Manually (One-Time Setup)
+
+Since our app uses Google OAuth, you'll need to sign in manually the first time to save your auth state.
+
+### Option A: Use Your Personal Google Account
+
+1. Start the dev server:
+
+   ```bash
+   pnpm dev
    ```
 
-## 4. Create Test Image Fixtures
+2. Open browser to `http://localhost:3000`
 
-Create these test images in `e2e/fixtures/`:
+3. Sign in with your Google account
 
-### Small Test Image (test-image.jpg)
+4. Navigate to `/profile` and fill in your birth details:
+   - Date of Birth: Any date
+   - Time of Birth: Any time
+   - Place of Birth: Any place
 
-- Size: < 1MB
-- Dimensions: Any (e.g., 500x500)
-- Format: JPEG
+5. Save the profile
 
-### Large Test Image (large-image-2000x2000.jpg)
+6. **Important:** Keep this browser session open or note your auth cookies
 
-- Size: 2-4 MB
-- Dimensions: 2000x2000 pixels
-- Format: JPEG
-- **Purpose:** Test image compression
+### Option B: Create a Dedicated Test Google Account (Recommended)
 
-### Invalid File (test.txt)
+1. Create a new Google account specifically for E2E testing (e.g., `chinmayastro.test@gmail.com`)
 
-- Create a simple text file for file type validation tests
+2. Follow steps from Option A with this test account
 
-**Quick way to create test images:**
+3. **Benefits:**
+   - Isolated test data
+   - Won't affect your personal Firebase data
+   - Can share credentials with team (if needed)
 
-```bash
-cd e2e/fixtures
+---
 
-# Create small test image (macOS with ImageMagick)
-convert -size 500x500 xc:blue test-image.jpg
+## Step 3: Run E2E Tests (First Time)
 
-# Create large test image
-convert -size 2000x2000 xc:red large-image-2000x2000.jpg
+The first time you run E2E tests, Playwright will use your browser's saved auth state.
 
-# Create text file
-echo "This is not an image" > test.txt
-```
-
-**Without ImageMagick:** Download sample images from https://picsum.photos/
-
-## 5. Playwright Authentication Setup
-
-### Option A: Automatic Auth State (Recommended)
-
-Create `playwright.config.ts` with auth project:
-
-```typescript
-import { defineConfig } from '@playwright/test';
-
-export default defineConfig({
-  // ... existing config
-
-  projects: [
-    // Setup project for authentication
-    {
-      name: 'setup',
-      testMatch: /auth\.setup\.ts/,
-    },
-    {
-      name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        // Use auth state from setup
-        storageState: '.auth/user.json',
-      },
-      dependencies: ['setup'],
-    },
-  ],
-});
-```
-
-Create `e2e/auth.setup.ts`:
-
-```typescript
-import { test as setup } from '@playwright/test';
-
-const authFile = '.auth/user.json';
-
-setup('authenticate as test user', async ({ page }) => {
-  // Navigate to login
-  await page.goto('/login');
-
-  // Sign in with Google
-  // Note: This requires manual intervention for Google OAuth
-  // OR implement email/password auth for E2E testing
-
-  // Wait for redirect to dashboard
-  await page.waitForURL('/dashboard');
-
-  // Save auth state
-  await page.context().storageState({ path: authFile });
-});
-```
-
-### Option B: Manual Auth State (Simpler for Now)
-
-1. Run Playwright in headed mode: `npx playwright test --headed`
-2. Manually sign in during first test
-3. Auth cookies will be saved automatically
-
-## 6. Running E2E Tests
-
-### Run All Profile Tests
-
-```bash
-pnpm exec playwright test e2e/profile/
-```
-
-### Run Specific Test File
-
-```bash
-pnpm exec playwright test e2e/profile/profile-view.spec.ts
-```
-
-### Run in Headed Mode (See Browser)
+### Run tests in headed mode (see the browser):
 
 ```bash
 pnpm exec playwright test --headed
 ```
 
-### Run with UI (Interactive)
+### What happens:
 
-```bash
-pnpm exec playwright test --ui
-```
-
-### Debug Mode
-
-```bash
-pnpm exec playwright test --debug
-```
-
-## 7. Test Coverage
-
-### Profile View (profile-view.spec.ts)
-
-- ✅ Profile page displays correctly
-- ✅ Basic information visible
-- ✅ Birth details visible
-- ✅ Edit button present
-- ✅ Persona image/placeholder visible
-- ✅ Redirects to login when not authenticated
-
-### Birth Details Edit (profile-edit.spec.ts)
-
-- ✅ Edit form opens/closes
-- ✅ Form validation (required fields, time format)
-- ✅ Save functionality
-- ✅ Data persistence
-- ✅ Loading states
-
-### Persona Upload (persona-upload.spec.ts)
-
-- ✅ Admin-only visibility
-- ✅ File type validation
-- ✅ File size validation
-- ✅ Upload progress indicator
-- ✅ Image compression (CRITICAL - validates unit test gap)
-- ✅ Cancel upload
-
-### Persona Placeholder (persona-placeholder.spec.ts)
-
-- ✅ Placeholder displays for users without persona
-- ✅ Persona image displays when available
-- ✅ Accessible alt text
-- ✅ Proper styling
-
-## 8. CI/CD Integration
-
-For GitHub Actions, you'll need to:
-
-1. Add Firebase test project credentials as GitHub Secrets
-2. Set up Playwright in CI
-3. Use Firebase Emulator Suite (recommended for CI)
-
-See `.github/workflows/e2e.yml` for configuration.
-
-## 9. Troubleshooting
-
-### Tests Skipped
-
-If tests show "skipped", check:
-
-- `E2E_AUTH_ENABLED=true` in `.env.local`
-- Environment variables are loaded correctly
-
-### Authentication Failures
-
-- Verify test user exists in Firebase Console
-- Check credentials in `.env.local`
-- Clear browser storage: `rm -rf .auth/`
-
-### Image Upload Tests Fail
-
-- Verify admin user has `role: "admin"` in Firestore
-- Check Firebase Storage rules allow admin uploads
-- Ensure test images exist in `e2e/fixtures/`
-
-### Rate Limiting (Google OAuth)
-
-If Google blocks automated sign-ins:
-
-- Use Playwright's `storageState` to persist auth between test runs
-- Consider implementing email/password auth for E2E tests only
-
-## 10. Best Practices
-
-1. **Isolated Test Data:** Use dedicated test users, don't test on production data
-2. **Clean Up:** Delete uploaded test images periodically from Firebase Storage
-3. **Stable Selectors:** Use `getByRole`, `getByLabel` over CSS selectors
-4. **Wait Strategies:** Use Playwright's auto-waiting, avoid fixed timeouts
-5. **Parallel Execution:** Keep tests independent so they can run in parallel
-
-## 11. Next Steps
-
-After E2E tests pass:
-
-1. ✅ Run full test suite: `pnpm exec playwright test`
-2. ✅ Generate HTML report: `pnpm exec playwright show-report`
-3. ✅ Update CLAUDE.md with E2E patterns learned
-4. ✅ Create PR for Feature 2
-5. ✅ Merge to develop → staging → main
+1. Playwright opens a browser window
+2. If you're already logged in (from Step 2), tests will proceed
+3. If not logged in, Playwright will pause - sign in manually with Google
+4. Playwright saves the auth state to `.auth/` directory (gitignored)
+5. Tests run using your authenticated session
 
 ---
 
-**Questions?** Check Playwright docs: https://playwright.dev/docs/intro
+## Step 4: Run E2E Tests (Subsequent Runs)
+
+After the first successful run with saved auth state, you can run tests in headless mode:
+
+### Run all E2E tests:
+
+```bash
+pnpm test:e2e
+```
+
+### Run specific test file:
+
+```bash
+pnpm exec playwright test e2e/profile/profile-view.spec.ts
+```
+
+### Run in headed mode (see browser):
+
+```bash
+pnpm exec playwright test --headed
+```
+
+### Run with UI mode (interactive debugging):
+
+```bash
+pnpm test:e2e:ui
+```
+
+---
+
+## Troubleshooting
+
+### Tests fail with "not authenticated" errors
+
+**Solution:** Delete saved auth state and re-run in headed mode:
+
+```bash
+rm -rf .auth/
+pnpm exec playwright test --headed
+```
+
+Then sign in manually with Google when the browser opens.
+
+---
+
+### Google OAuth popup blocked
+
+**Solution:** Run in headed mode first:
+
+```bash
+pnpm exec playwright test --headed --project=chromium
+```
+
+Allow popups in the browser if prompted.
+
+---
+
+### "Could not find fixtures" errors
+
+**Solution:** Re-run the fixture creation script:
+
+```bash
+bash e2e/create-test-fixtures.sh
+ls -lh e2e/fixtures/  # Verify files exist
+```
+
+---
+
+### Auth state expires
+
+Google auth tokens expire after some time. If tests fail with auth errors:
+
+**Solution:**
+
+```bash
+rm -rf .auth/
+pnpm exec playwright test --headed
+```
+
+Sign in again manually.
+
+---
+
+## File Structure
+
+```
+e2e/
+├── E2E_SETUP.md                    # This file
+├── create-test-fixtures.sh         # Script to create test images
+├── create-test-users.ts           # (DEPRECATED - not used with Google OAuth)
+├── fixtures/                       # Test image files
+│   ├── test-image.jpg             # Small image (500x500)
+│   ├── large-image-2000x2000.jpg  # Large image for compression tests
+│   └── test.txt                   # Invalid file for validation tests
+├── profile/                        # Profile feature E2E tests
+│   ├── profile-view.spec.ts       # Test: View profile
+│   ├── profile-edit.spec.ts       # Test: Edit profile
+│   └── profile-image.spec.ts      # Test: Upload/compress profile image
+└── auth/                          # Auth feature E2E tests
+    └── login.spec.ts              # Test: Google OAuth login flow
+```
+
+---
+
+## CI/CD Considerations
+
+### GitHub Actions E2E Workflow
+
+The E2E tests in CI will need to handle authentication differently:
+
+**Option 1:** Skip E2E tests in CI (run manually only)
+
+- Simplest approach for now
+- Good for MVP
+
+**Option 2:** Use saved auth state in CI
+
+- Save `.auth/user.json` as GitHub secret
+- Inject it before running tests
+- **Caution:** Auth tokens expire, needs periodic refresh
+
+**Option 3:** Mock authentication for E2E
+
+- Create mock auth provider for testing
+- Bypass real Google OAuth in test environment
+- More complex but fully automated
+
+**Current approach:** E2E tests run on PRs to `staging` and `main`, but may require manual intervention for auth.
+
+---
+
+## Quick Reference
+
+### Create fixtures:
+
+```bash
+bash e2e/create-test-fixtures.sh
+```
+
+### First-time E2E run (manual auth):
+
+```bash
+pnpm exec playwright test --headed
+```
+
+### Subsequent E2E runs:
+
+```bash
+pnpm test:e2e
+```
+
+### Debug tests:
+
+```bash
+pnpm test:e2e:ui
+```
+
+### Reset auth state:
+
+```bash
+rm -rf .auth/
+```
+
+---
+
+## Notes
+
+- ✅ Test fixtures are committed to git (they're just sample images)
+- ✅ `.auth/` directory is gitignored (contains sensitive auth tokens)
+- ✅ No need for Firebase Email/Password authentication
+- ✅ Uses existing Google OAuth flow
+- ✅ Auth state is saved and reused across test runs
+- ⚠️ `create-test-users.ts` is deprecated (was for Email/Password auth)
+
+---
+
+**Need help?** Check the troubleshooting section above or refer to [Playwright authentication docs](https://playwright.dev/docs/auth).

@@ -12,12 +12,8 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Birth Details Editing', () => {
-  test.skip(
-    () => !process.env.E2E_AUTH_ENABLED,
-    'E2E authentication not configured. Set E2E_AUTH_ENABLED=true after auth setup.'
-  );
-
   test.beforeEach(async ({ page }) => {
+    // Auth state is loaded automatically from .auth/user.json
     await page.goto('/profile');
   });
 
