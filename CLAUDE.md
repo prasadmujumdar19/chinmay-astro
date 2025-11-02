@@ -727,6 +727,21 @@ firebase deploy --only functions --token [your-token] --dry-run
    - **Multiple environments**: If needed later, create `client-config.dev.ts`, `client-config.prod.ts` and import based on `process.env.NODE_ENV`
    - See: https://firebase.google.com/docs/projects/learn-more#config-object-explained
 
+8. **Test Separation Strategy** (Feature 1 - Established)
+   - **Frontend Tests** (vitest): 51 tests for Next.js components, hooks, and utilities
+   - **E2E Tests** (Playwright): Excluded from vitest via `exclude: ['**/e2e/**']`, run separately via `.github/workflows/e2e.yml`
+   - **Functions Tests**: Excluded from vitest via `exclude: ['**/functions/**']` - Cloud Functions have separate environment with own `package.json` and dependencies
+   - **Why separate?**: Different test runners, different environments, different dependency trees
+   - **CI Strategy**: Unit tests run on all branches; E2E tests only on PRs to `staging` and `main` (see BRANCHING_STRATEGY.md)
+
+9. **Vitest Configuration Pattern** (Feature 1 - Established)
+   - Exclude patterns in `vitest.config.ts`:
+     - `**/e2e/**` - Playwright tests (different runner)
+     - `**/functions/**` - Cloud Functions (separate package.json, own tsconfig.json)
+     - `**/node_modules/**`, `**/dist/**` - Standard exclusions
+   - Coverage excludes: `__tests__/`, `**/*.config.*`, `**/*.d.ts`, `**/types/**`, `e2e/**`, `functions/**`
+   - Mirrors TypeScript and Prettier exclusion patterns for `functions/` directory (see commits af17005, 7484157)
+
 ### Tech Debt Register (Feature 99)
 
 **Purpose:** Track deferred fixes, workarounds, and improvements that need to be addressed before production.
