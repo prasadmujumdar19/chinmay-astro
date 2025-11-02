@@ -14,6 +14,11 @@
 import { chromium } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+// ES module equivalents for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function captureAuthState() {
   console.log('🚀 Manual Auth State Capture');
