@@ -9,22 +9,8 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import type { BirthDetails } from '@/types/user';
-
-// Validation schema
-const birthDetailsSchema = z.object({
-  dateOfBirth: z.date({
-    required_error: 'Date of birth is required',
-    invalid_type_error: 'Invalid date format',
-  }),
-  timeOfBirth: z
-    .string()
-    .regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Time must be in HH:mm format (24-hour)'),
-  placeOfBirth: z.string().min(1, 'Place of birth is required').max(100, 'Too long'),
-});
-
-type BirthDetailsFormData = z.infer<typeof birthDetailsSchema>;
+import { birthDetailsSchema, type BirthDetailsFormData } from '@/lib/validation/profile';
 
 interface BirthDetailsFormProps {
   initialData: BirthDetails;
