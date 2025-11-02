@@ -54,12 +54,12 @@ uname -a
 
 ### 1.2 Minimum Required Versions
 
-| Tool    | Minimum Version | Recommended Version | Your Version |
-| ------- | --------------- | ------------------- | ------------ |
-| Node.js | 18.0.0          | 20.x.x              | ****\_\_**** |
-| pnpm    | 8.0.0           | 9.x.x               | ****\_\_**** |
-| Git     | 2.30.0          | Latest              | ****\_\_**** |
-| macOS   | 11.0 (Big Sur)  | Latest              | ****\_\_**** |
+| Tool    | Minimum Version | Recommended Version | Your Version     |
+| ------- | --------------- | ------------------- | ---------------- |
+| Node.js | 18.0.0          | 20.x.x              | \***\*\_\_\*\*** |
+| pnpm    | 8.0.0           | 9.x.x               | \***\*\_\_\*\*** |
+| Git     | 2.30.0          | Latest              | \***\*\_\_\*\*** |
+| macOS   | 11.0 (Big Sur)  | Latest              | \***\*\_\_\*\*** |
 
 **Action Required:**
 
