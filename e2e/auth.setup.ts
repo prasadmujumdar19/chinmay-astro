@@ -30,9 +30,19 @@ const adminAuthFile = path.join(__dirname, '../.auth/admin.json');
  *
  * IMPORTANT: Use a dedicated test Gmail account, not your personal account
  */
-setup('authenticate as test user', async ({ page }) => {
+setup('authenticate as test user', async ({ browser }) => {
   console.log('🔐 Starting authentication setup for test user...');
   console.log('📝 You need to manually sign in with Google when the browser opens');
+
+  // Use persistent context to avoid Google blocking
+  // This makes the browser appear more like a real user browser
+  const context = await browser.newContext({
+    // Disable automation flags that Google detects
+    userAgent:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  });
+
+  const page = await context.newPage();
 
   // Navigate to login page
   await page.goto('/login');
@@ -61,10 +71,13 @@ setup('authenticate as test user', async ({ page }) => {
     });
 
   // Save signed-in state
-  await page.context().storageState({ path: authFile });
+  await context.storageState({ path: authFile });
 
   console.log('✅ Auth state saved successfully!');
   console.log('🎉 Setup complete! You can now run tests with: npx playwright test');
+
+  // Close the context
+  await context.close();
 });
 
 /**
