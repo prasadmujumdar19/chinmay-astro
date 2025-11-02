@@ -785,11 +785,16 @@ firebase deploy --only functions --token [your-token] --dry-run
 /process-tasks tasks/tasks-chinmay_astro-feature-99-tech-debt.md
 ```
 
-**Current Status:** 1 pending item
+**Current Status:** 5 pending items
 
 - TD-002: Firebase CI Authentication Using Deprecated login:ci Method [P2]
+- TD-003: E2E Testing Blocked by Google OAuth [P1]
+- TD-004: Unit Test Failures - Browser API Mocks [P2]
+- TD-005: TypeScript Errors in Test Files [P2]
+- TD-006: Authentication Flow Race Condition [P1]
 
 **Process As:** Feature 99 (after Features 1-8 or when critical)
+**Urgent Items:** TD-003, TD-006 (P1 priority - affects user experience)
 
 ### Feature 1 Patterns Established
 
@@ -828,9 +833,98 @@ firebase deploy --only functions --token [your-token] --dry-run
 - Mocks in `__tests__/mocks/`, fixtures in `__tests__/fixtures/`
 - Test scripts: `pnpm test`, `pnpm test:e2e`
 
-### Parked Issues
+### Feature 2 Patterns Established
 
-(None - Feature 1 complete and working)
+**Profile Management Patterns:**
+
+- Centralized Zod validation schemas in `lib/validation/profile.ts`
+- Custom hooks for data fetching (`hooks/useUserProfile.ts`)
+- Optimistic updates with automatic revert on error
+- Form handling with React Hook Form + Zod resolvers
+
+**Image Handling:**
+
+- Client-side compression using Canvas API (≤1024x1024, JPEG, 80% quality)
+- Firebase Storage integration with organized structure (`personas/{userId}/image.jpg`)
+- Placeholder fallback for missing images (`public/images/placeholder-persona.svg`)
+- File validation: size (≤5MB), type (JPEG/PNG/WebP only)
+
+**State Management:**
+
+- Loading/error states in custom hooks
+- Refetch mechanism for data synchronization
+- Form state managed by React Hook Form (not Zustand)
+
+**Testing Patterns:**
+
+- Browser API mocking limitations documented
+- E2E validation strategy for browser-dependent features
+- Test separation: unit tests (Vitest) vs E2E tests (Playwright)
+
+### Feature 2 Learnings & Tech Debt
+
+**Critical Learnings:**
+
+1. **Google OAuth E2E Testing Challenge**
+   - Google blocks ALL automated browsers (even real Chrome with user profiles)
+   - Error: "This browser or app may not be secure"
+   - Attempted solutions: Playwright auth setup, manual auth capture, Chrome profiles, DevTools approach
+   - **Decision**: E2E tests parked for Feature 2, to be revisited with alternative strategy
+
+2. **Browser API Testing in Node.js**
+   - Canvas API, Image, FileReader cannot be unit tested in Node.js/Vitest
+   - Mocking is complex and brittle
+   - **Solution**: Validate via E2E tests in real browser (Playwright)
+
+3. **Authentication Race Condition**
+   - Cloud Function creates user profile asynchronously
+   - Client-side auth check may run before profile exists
+   - **Symptom**: User signs in successfully but gets logged out immediately
+   - **Not Fixed**: Attempted retry mechanism but still failing (reverted changes)
+   - **Status**: Parked for investigation
+
+**Tech Debt Created (Feature 2):**
+
+1. **TD-003: E2E Testing Blocked by Google OAuth** [P1]
+   - **Category**: Testing Infrastructure
+   - **Issue**: Cannot run E2E tests requiring authentication
+   - **Impact**: 25 E2E tests created but not executable
+   - **Files**: `e2e/profile/*.spec.ts`, auth helper scripts
+   - **Fix Required**: Alternative auth strategy (email/password test accounts, Firebase Emulator, or auth bypass for tests)
+   - **Validation**: E2E test suite passes with >80% coverage
+
+2. **TD-004: Unit Test Failures - Browser API Mocks** [P2]
+   - **Category**: Testing
+   - **Issue**: 34 unit tests failing (10 image compression, 17 component, 6 API, 1 profile page)
+   - **Impact**: Test pass rate 68% (72/106 tests)
+   - **Files**: `__tests__/lib/utils/imageCompression.test.ts`, component tests
+   - **Fix Required**: Either (1) add jsdom environment + proper mocks, OR (2) skip browser-dependent unit tests, rely on E2E
+   - **Validation**: All unit tests pass OR documented skip strategy with E2E coverage
+
+3. **TD-005: TypeScript Errors in Test Files** [P2]
+   - **Category**: Type Safety
+   - **Issue**: 11 TypeScript compilation errors in test files (import patterns, mock typing)
+   - **Impact**: `pnpm type-check` fails, pre-push hook will block
+   - **Files**: Test files with default vs named export mismatches
+   - **Fix Required**: Align import patterns, fix mock types
+   - **Validation**: `pnpm type-check` passes with zero errors
+
+4. **TD-006: Authentication Flow Race Condition** [P1]
+   - **Category**: Authentication
+   - **Issue**: Users may get logged out immediately after successful Google sign-in
+   - **Impact**: Poor user experience, potential data loss
+   - **Files**: `hooks/useAuthObserver.ts`, `functions/src/auth/onUserCreate.ts`
+   - **Root Cause**: Client checks for profile before Cloud Function creates it
+   - **Fix Required**: Implement proper retry mechanism or client-side profile creation fallback
+   - **Validation**: User signs in successfully and stays logged in, profile loads correctly
+
+**Recommendation**: Process tech debt before production deployment (Feature 99 or dedicated sprint)
+
+### Parked Issues (Feature 2)
+
+1. **Google OAuth E2E Testing** - Blocking all profile E2E tests
+2. **Authentication Race Condition** - May cause immediate logout after sign-in
+3. **Unit Test Failures** - 34 tests failing (browser API mocks and imports)
 
 ---
 
@@ -892,9 +986,9 @@ When asking for help, provide:
 
 ---
 
-**Last Updated**: October 31, 2025
-**Version**: 1.0
-**Project Status**: Initial setup complete, starting Feature 1 (Authentication)
+**Last Updated**: November 2, 2025
+**Version**: 1.1
+**Project Status**: Feature 1 (Authentication) Complete ✅ | Feature 2 (User Profile) Partial ⚠️ (E2E Parked)
 
 ---
 
