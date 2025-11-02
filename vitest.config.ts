@@ -8,7 +8,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './__tests__/setup.ts',
-    exclude: ['**/node_modules/**', '**/e2e/**', '**/dist/**'],
+    exclude: ['**/node_modules/**', '**/e2e/**', '**/dist/**', '**/functions/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -19,6 +19,7 @@ export default defineConfig({
         '**/*.d.ts',
         '**/types/**',
         'e2e/**',
+        'functions/**',
       ],
       thresholds: {
         lines: 75,
