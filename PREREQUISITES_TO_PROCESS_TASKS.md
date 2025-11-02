@@ -1,7 +1,7 @@
 # Prerequisites to Running process-tasks Agent
 
-**Document Version:** 1.0
-**Last Updated:** 2025-10-31
+**Document Version:** 1.1
+**Last Updated:** 2025-11-02
 **Project:** Chinmay Astro Web Application
 
 ---
@@ -54,14 +54,15 @@ uname -a
 
 ### 1.2 Minimum Required Versions
 
-| Tool | Minimum Version | Recommended Version | Your Version |
-|------|----------------|---------------------|--------------|
-| Node.js | 18.0.0 | 20.x.x | __________ |
-| pnpm | 8.0.0 | 9.x.x | __________ |
-| Git | 2.30.0 | Latest | __________ |
-| macOS | 11.0 (Big Sur) | Latest | __________ |
+| Tool    | Minimum Version | Recommended Version | Your Version     |
+| ------- | --------------- | ------------------- | ---------------- |
+| Node.js | 18.0.0          | 20.x.x              | \***\*\_\_\*\*** |
+| pnpm    | 8.0.0           | 9.x.x               | \***\*\_\_\*\*** |
+| Git     | 2.30.0          | Latest              | \***\*\_\_\*\*** |
+| macOS   | 11.0 (Big Sur)  | Latest              | \***\*\_\_\*\*** |
 
 **Action Required:**
+
 - [ ] Note your current versions above
 - [ ] Proceed to installation sections if versions are outdated or missing
 
@@ -106,6 +107,7 @@ npm --version
 ```
 
 **Expected Output:**
+
 ```
 node --version: v20.x.x
 npm --version: 10.x.x
@@ -152,6 +154,7 @@ npm --version
 ```
 
 **Expected Output:**
+
 ```
 node --version: v20.x.x
 npm --version: 10.x.x
@@ -168,12 +171,14 @@ npm -v
 ```
 
 **Expected Output:**
+
 ```
 Node.js works!
 10.x.x
 ```
 
 **Action Required:**
+
 - [ ] Node.js installed successfully
 - [ ] Version is 18.x or higher
 - [ ] npm is working
@@ -185,6 +190,7 @@ Node.js works!
 ### 3.1 Why pnpm?
 
 **pnpm** is a fast, disk space-efficient package manager. Unlike Python's pip, Node.js has multiple package managers:
+
 - **npm** (default, comes with Node.js)
 - **yarn** (popular alternative)
 - **pnpm** (fastest, most efficient) ← **We're using this**
@@ -249,6 +255,7 @@ pnpm help
 ```
 
 **Action Required:**
+
 - [ ] pnpm installed successfully
 - [ ] Version is 8.x or higher
 - [ ] `pnpm --version` works
@@ -295,6 +302,7 @@ git config --global --list
 ```
 
 **Expected Output:**
+
 ```
 user.name=Your Full Name
 user.email=your.email@example.com
@@ -336,6 +344,7 @@ git status
 ```
 
 **Expected Output:**
+
 ```
 On branch main
 
@@ -422,11 +431,13 @@ git log --oneline
 ```
 
 **Expected Output:**
+
 ```
 a1b2c3d (HEAD -> main) docs: add PRD and Feature 1 task list
 ```
 
 **Action Required:**
+
 - [ ] Git installed and configured
 - [ ] Git identity set (name and email)
 - [ ] Local repository initialized
@@ -440,6 +451,7 @@ a1b2c3d (HEAD -> main) docs: add PRD and Feature 1 task list
 ### 5.1 Create GitHub Account (if needed)
 
 If you don't have a GitHub account:
+
 1. Go to [github.com](https://github.com)
 2. Click "Sign up"
 3. Follow the registration process
@@ -478,6 +490,7 @@ gh auth status
 ```
 
 **Expected Output:**
+
 ```
 ✓ Logged in to github.com as YOUR_USERNAME
 ```
@@ -502,6 +515,7 @@ git remote -v
 ```
 
 **Expected Output:**
+
 ```
 origin  https://github.com/YOUR_USERNAME/chinmay-astro.git (fetch)
 origin  https://github.com/YOUR_USERNAME/chinmay-astro.git (push)
@@ -570,6 +584,7 @@ git config --global credential.helper osxkeychain
    - Initial commit message
 
 **Action Required:**
+
 - [ ] GitHub account created/available
 - [ ] GitHub CLI installed and authenticated (optional)
 - [ ] Remote repository created
@@ -612,12 +627,12 @@ git config --global credential.helper osxkeychain
 
 ```javascript
 const firebaseConfig = {
-  apiKey: "AIzaSyAbCdEfGhIjKlMnOpQrStUvWxYz1234567",
-  authDomain: "chinmay-astro.firebaseapp.com",
-  projectId: "chinmay-astro",
-  storageBucket: "chinmay-astro.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef1234567890abcdef"
+  apiKey: 'AIzaSyAbCdEfGhIjKlMnOpQrStUvWxYz1234567',
+  authDomain: 'chinmay-astro.firebaseapp.com',
+  projectId: 'chinmay-astro',
+  storageBucket: 'chinmay-astro.appspot.com',
+  messagingSenderId: '123456789012',
+  appId: '1:123456789012:web:abcdef1234567890abcdef',
 };
 ```
 
@@ -641,6 +656,7 @@ const firebaseConfig = {
 5. Click "Save"
 
 **Verification:**
+
 - [ ] Google provider shows "Enabled" status
 
 ### 6.4 Create Firestore Database
@@ -660,6 +676,7 @@ const firebaseConfig = {
 5. Wait for database creation (30-60 seconds)
 
 **Verification:**
+
 - [ ] Firestore database created
 - [ ] You see the empty Data tab
 
@@ -679,6 +696,7 @@ const firebaseConfig = {
 4. Click "Done"
 
 **Verification:**
+
 - [ ] Cloud Storage created
 - [ ] Default bucket exists
 
@@ -723,6 +741,7 @@ firebase projects:list
 ```
 
 **Expected Output:**
+
 ```
 ✔ Projects:
 │ chinmay-astro (chinmay-astro)
@@ -757,6 +776,7 @@ ls -la
 ```
 
 **Action Required:**
+
 - [ ] Firebase project created
 - [ ] Web app registered
 - [ ] Firebase config values copied
@@ -868,10 +888,119 @@ git push origin main
 ```
 
 **Action Required:**
+
 - [ ] `.env.local` file created with actual Firebase values
 - [ ] `.env.local.example` file created
 - [ ] `.env.local` is in .gitignore
 - [ ] Example file committed and pushed
+
+---
+
+### 7.5 Install detect-secrets (Secret Scanner)
+
+**What it does:** Prevents accidentally committing secrets (API keys, passwords) to Git
+
+**Install Python tool for secret detection:**
+
+```bash
+# Install detect-secrets (requires Python 3.x)
+pip3 install detect-secrets
+
+# Verify installation
+detect-secrets --version
+```
+
+**Expected Output:** `1.x.x` or higher
+
+**Note:** macOS comes with Python 3 pre-installed. If not available:
+
+```bash
+brew install python3
+```
+
+**Create baseline (will be done by process-tasks agent):**
+
+The agent will run this command after initial setup:
+
+```bash
+# Scan existing files and create baseline
+detect-secrets scan > .secrets.baseline
+```
+
+**What this does:**
+
+- Scans all files in repository
+- Creates `.secrets.baseline` with known "secrets"
+- Firebase config in `lib/firebase/client-config.ts` will be recorded as known (public by design)
+- Future commits will only flag NEW secrets
+
+**Important:** This baseline prevents false positives for Firebase config keys, which are meant to be public (browser-exposed). Security is enforced via Firestore Rules, not by hiding these keys.
+
+**Action Required:**
+
+- [ ] detect-secrets installed via pip3
+- [ ] Version verified (1.x.x or higher)
+
+---
+
+### 7.6 Firebase CI Token Setup (For GitHub Actions)
+
+**What it does:** Allows GitHub Actions to deploy Firebase Functions automatically
+
+#### 7.6.1 Generate Firebase CI Token
+
+**Run this command in your terminal:**
+
+```bash
+# Login to Firebase and generate CI token
+firebase login:ci
+```
+
+**Expected Output:**
+
+```
+✔  Success! Use this token to login on a CI server:
+
+1//0abcd1234567890xyz...
+
+Example: firebase deploy --token "$FIREBASE_TOKEN"
+```
+
+**⚠️ IMPORTANT:** Copy this token somewhere safe - you'll need it in the next step.
+
+#### 7.6.2 Add Token to GitHub Secrets
+
+**Steps:**
+
+1. Go to your GitHub repository: `https://github.com/[your-username]/chinmay-astro`
+2. Navigate to **Settings** → **Secrets and variables** → **Actions**
+3. Click **"New repository secret"**
+4. Fill in:
+   - Name: `FIREBASE_TOKEN`
+   - Value: [paste the token from step 7.6.1]
+5. Click **"Add secret"**
+
+**Verify:**
+
+- You should see `FIREBASE_TOKEN` in the list of repository secrets
+- The value will be hidden (shows as `***`)
+
+#### 7.6.3 Test Token (Optional)
+
+**Verify the token works:**
+
+```bash
+# Test deployment with token (dry run - doesn't actually deploy)
+firebase deploy --only functions --token [your-token] --dry-run
+```
+
+**Expected Output:** Should show what would be deployed without errors.
+
+**Action Required:**
+
+- [ ] Firebase CI token generated
+- [ ] Token added to GitHub Secrets as `FIREBASE_TOKEN`
+- [ ] (Optional) Token tested with dry run
 
 ---
 
@@ -974,6 +1103,7 @@ ls -la
 **Print this checklist and verify each item:**
 
 **System Requirements:**
+
 - [ ] Node.js 18+ installed
 - [ ] pnpm 8+ installed
 - [ ] Git installed and configured
@@ -981,6 +1111,7 @@ ls -la
 - [ ] Firebase CLI installed
 
 **Git & GitHub:**
+
 - [ ] Local git repository initialized
 - [ ] .gitignore file created
 - [ ] Git identity configured (name, email)
@@ -989,6 +1120,7 @@ ls -la
 - [ ] Initial commit pushed successfully
 
 **Firebase:**
+
 - [ ] Firebase project created
 - [ ] Web app registered in Firebase
 - [ ] Google Sign-In enabled
@@ -998,11 +1130,13 @@ ls -la
 - [ ] Firebase config values copied
 
 **Environment:**
+
 - [ ] .env.local file created with actual values
 - [ ] .env.local.example file created and committed
 - [ ] .env.local is gitignored
 
 **Verification:**
+
 - [ ] All verification commands run successfully
 - [ ] No errors in git status
 - [ ] Firebase projects:list shows your project
@@ -1088,6 +1222,7 @@ The process-tasks agent will:
 ### 9.4 Expected Duration
 
 **Feature 1 (Authentication) implementation:**
+
 - Automated time: 20-30 minutes
 - Your review time: 10-15 minutes
 - Total: ~45 minutes
@@ -1095,12 +1230,14 @@ The process-tasks agent will:
 ### 9.5 During Execution
 
 **The agent will:**
+
 - ✅ Create commits after each phase
 - ✅ Push to GitHub after feature completion
 - ✅ Run tests continuously
 - ✅ Show progress updates
 
 **You should:**
+
 - ✅ Monitor the terminal output
 - ✅ Approve any interactive prompts
 - ✅ Review code after completion
@@ -1136,6 +1273,7 @@ pnpm dev
 **Problem:** `node: command not found`
 
 **Solution:**
+
 ```bash
 # Reinstall Node.js via Homebrew
 brew install node@20
@@ -1151,6 +1289,7 @@ nvm use 20
 **Problem:** Wrong Node.js version
 
 **Solution:**
+
 ```bash
 # If using NVM
 nvm use 20
@@ -1167,6 +1306,7 @@ brew link node@20
 **Problem:** `pnpm: command not found`
 
 **Solution:**
+
 ```bash
 # Reinstall pnpm
 npm install -g pnpm
@@ -1183,6 +1323,7 @@ pnpm --version
 **Problem:** pnpm is slow or hangs
 
 **Solution:**
+
 ```bash
 # Clear pnpm cache
 pnpm store prune
@@ -1198,6 +1339,7 @@ pnpm install
 **Problem:** `fatal: not a git repository`
 
 **Solution:**
+
 ```bash
 cd /Users/prasadmujumdar/Downloads/ChinmayAstro
 git init
@@ -1210,6 +1352,7 @@ git commit -m "Initial commit"
 **Problem:** Git push authentication fails
 
 **Solution:**
+
 ```bash
 # Use personal access token
 # 1. Go to https://github.com/settings/tokens
@@ -1230,6 +1373,7 @@ ssh-keygen -t ed25519 -C "your.email@example.com"
 **Problem:** `firebase: command not found`
 
 **Solution:**
+
 ```bash
 npm install -g firebase-tools
 source ~/.zshrc
@@ -1241,6 +1385,7 @@ firebase --version
 **Problem:** Firebase login fails
 
 **Solution:**
+
 ```bash
 # Logout and re-login
 firebase logout
@@ -1255,6 +1400,7 @@ firebase login --no-localhost
 **Problem:** Can't find Firebase project
 
 **Solution:**
+
 ```bash
 # List projects
 firebase projects:list
@@ -1270,6 +1416,7 @@ firebase projects:list
 **Problem:** `.env.local` values not loading
 
 **Solution:**
+
 ```bash
 # Verify file exists
 ls -la .env.local
@@ -1287,6 +1434,7 @@ pnpm dev
 **Problem:** Firebase config error
 
 **Solution:**
+
 ```bash
 # Verify all required variables are set
 grep "NEXT_PUBLIC_FIREBASE" .env.local
@@ -1307,6 +1455,7 @@ grep "NEXT_PUBLIC_FIREBASE" .env.local
 **Problem:** Remote repository connection fails
 
 **Solution:**
+
 ```bash
 # Check remote URL
 git remote -v
@@ -1324,6 +1473,7 @@ git remote -v
 **Problem:** Push rejected (non-fast-forward)
 
 **Solution:**
+
 ```bash
 # Pull first
 git pull origin main --rebase

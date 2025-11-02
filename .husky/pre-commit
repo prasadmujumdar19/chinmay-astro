@@ -1,0 +1,7 @@
+# Secret detection
+echo "🔍 Scanning for secrets..."
+detect-secrets-hook --baseline .secrets.baseline $(git diff --cached --name-only) || exit 1
+
+# Lint staged files
+echo "🧹 Linting and formatting staged files..."
+npx lint-staged

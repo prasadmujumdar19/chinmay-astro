@@ -96,6 +96,11 @@ functions/.env
 next-env.d.ts
 
 # ==========================================
+# Secret Detection
+# ==========================================
+# .secrets.baseline should be committed to repo for CI/CD
+
+# ==========================================
 # Miscellaneous
 # ==========================================
 .turbo

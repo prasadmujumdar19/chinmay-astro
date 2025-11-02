@@ -36,6 +36,7 @@ brew list | grep node
 ```
 
 **Expected Results:**
+
 - `node --version` should show: `v18.x.x` or `v20.x.x`
 - `npm --version` should show: `9.x.x` or `10.x.x`
 - `which node` should show: `/opt/homebrew/bin/node` or `/usr/local/bin/node`
@@ -94,6 +95,7 @@ git config --global init.defaultBranch main
 ## Step 4: Update .gitignore (I'll do this now in Claude)
 
 **What I'm doing:**
+
 - Adding `.claude/` folder to .gitignore
 - Adding `tasks/` folder to .gitignore
 - This ensures these folders stay local and don't get pushed to GitHub
@@ -108,6 +110,7 @@ You can check the .gitignore file to confirm both folders are listed.
 **IMPORTANT:** Git init is SAFE. It only creates a hidden `.git/` folder to track changes. It does NOT delete or modify any existing files.
 
 **What happens:**
+
 ```
 Before:
 ChinmayAstro/
@@ -130,12 +133,14 @@ ChinmayAstro/
 ## Step 6: Create Initial Commit (Preserving Everything)
 
 **What will be committed:**
+
 - `.gitignore` (with .claude/ and tasks/ excluded)
 - `PREREQUISITES_TO_PROCESS_TASKS.md`
 - `SETUP_WALKTHROUGH.md` (this file)
 - Any other documentation files
 
 **What will NOT be committed (because of .gitignore):**
+
 - `.claude/` folder
 - `tasks/` folder
 
@@ -158,6 +163,7 @@ ChinmayAstro/
 ### Step 7.2: Project Configuration
 
 **Once you're ready, I'll guide you through:**
+
 - Project name
 - Google Analytics setup
 - Web app registration
