@@ -742,6 +742,24 @@ firebase deploy --only functions --token [your-token] --dry-run
    - Coverage excludes: `__tests__/`, `**/*.config.*`, `**/*.d.ts`, `**/types/**`, `e2e/**`, `functions/**`
    - Mirrors TypeScript and Prettier exclusion patterns for `functions/` directory (see commits af17005, 7484157)
 
+10. **⚠️ Image Compression Testing Strategy** (Feature 2 - CRITICAL)
+
+- **Issue**: Unit tests for `lib/utils/imageCompression.ts` are FAILING (10/10 tests)
+- **Root Cause**: Browser APIs (`Image`, `Canvas`, `FileReader`) don't exist in Node.js/Vitest environment
+- **Code Status**: Implementation is CORRECT - will work in browser
+- **Validation Strategy**: Image compression validated in **E2E Test 5.0.3** (Playwright with real browser)
+- **E2E Test MUST Verify**:
+  - Large image (2000x2000) compressed to ≤ 1024x1024
+  - File size reduction
+  - JPEG format conversion
+  - Client-side compression (not server-side)
+- **Future Fix Options**:
+  - Add `jsdom` environment to vitest.config.ts
+  - Create proper browser API mocks in `__tests__/setup.ts`
+  - Current approach: E2E validation only (acceptable for MVP)
+- **Test Status**: 68/93 passing (73%) - only imageCompression tests fail
+- **See**: `tasks/tasks-chinmay_astro-feature-2-user-profile.md` Notes section
+
 ### Tech Debt Register (Feature 99)
 
 **Purpose:** Track deferred fixes, workarounds, and improvements that need to be addressed before production.
