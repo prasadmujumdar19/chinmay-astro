@@ -38,9 +38,7 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-gray-900">Welcome to Chinmay Astro</h1>
-          <p className="text-gray-600">
-            Your trusted astrology consultation platform
-          </p>
+          <p className="text-gray-600">Your trusted astrology consultation platform</p>
         </div>
 
         {/* Description */}
@@ -48,18 +46,16 @@ export default function LoginPage() {
           <p className="text-sm text-gray-500">
             Get personalized astrology consultations through chat, audio, or video sessions.
           </p>
-          <p className="text-sm text-gray-500">
-            Sign in to book your consultation today.
-          </p>
+          <p className="text-sm text-gray-500">Sign in to book your consultation today.</p>
         </div>
 
         {/* Sign In Button */}
         <div className="pt-4">
           <GoogleSignInButton
-            onSuccess={(user) => {
+            onSuccess={user => {
               console.log('Sign-in successful:', user.email);
             }}
-            onError={(error) => {
+            onError={error => {
               console.error('Sign-in error:', error);
             }}
           />

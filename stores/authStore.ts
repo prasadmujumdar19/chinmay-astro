@@ -9,18 +9,17 @@ interface AuthState {
   clearAuth: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>(set => ({
   user: null,
   loading: true,
 
-  setUser: (user) =>
+  setUser: user =>
     set({
       user,
       loading: false,
     }),
 
-  setLoading: (loading) =>
-    set({ loading }),
+  setLoading: loading => set({ loading }),
 
   clearAuth: () =>
     set({

@@ -23,9 +23,7 @@ export default function AdminPage() {
           <div className="bg-white rounded-lg shadow p-6 mb-6">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Admin Dashboard
-                </h1>
+                <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
                 <p className="text-gray-600 mt-1">Signed in as {user?.email}</p>
               </div>
               <button
@@ -40,39 +38,23 @@ export default function AdminPage() {
           {/* Content */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                User Management
-              </h2>
-              <p className="text-gray-600">
-                View and manage all registered users.
-              </p>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">User Management</h2>
+              <p className="text-gray-600">View and manage all registered users.</p>
             </div>
 
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Consultations
-              </h2>
-              <p className="text-gray-600">
-                View pending and completed consultations.
-              </p>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Consultations</h2>
+              <p className="text-gray-600">View pending and completed consultations.</p>
             </div>
 
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Notifications
-              </h2>
-              <p className="text-gray-600">
-                Manage notifications and alerts.
-              </p>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Notifications</h2>
+              <p className="text-gray-600">Manage notifications and alerts.</p>
             </div>
 
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Analytics
-              </h2>
-              <p className="text-gray-600">
-                View platform metrics and insights.
-              </p>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Analytics</h2>
+              <p className="text-gray-600">View platform metrics and insights.</p>
             </div>
           </div>
         </div>

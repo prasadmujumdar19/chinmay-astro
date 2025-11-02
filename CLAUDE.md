@@ -2,9 +2,9 @@
 
 > **Purpose**: This file provides essential context for AI assistants (Claude) working on Chinmay Astro feature development. Read this file at the start of each session to understand the project structure, conventions, and best practices.
 
-**Last Updated**: October 31, 2025
+**Last Updated**: November 2, 2025
 **Project**: Chinmay Astro - Astrology Consultation Web Application
-**Status**: Feature 1 (Authentication) Complete ✅
+**Status**: Feature 1 (Authentication) Complete ✅ | Quality Gates Implemented ✅
 
 ---
 
@@ -13,11 +13,13 @@
 **Chinmay Astro** is a web-based astrology consultation platform for a single-practitioner business model.
 
 **Core Purpose:**
+
 - Enable clients to purchase and consume fortune-telling consultations through chat, audio, or video sessions
 - Operate on a pay-per-session model with bundle discounts
 - Support small user base (few hundred users) primarily in India
 
 **Key Principles:**
+
 - 🏗️ **Simplicity First**: Budget-friendly architecture for small scale
 - 💬 **Relationship-Focused**: Asynchronous chat-first with natural back-and-forth dialogue
 - 🔄 **Flexible Credits**: 1 credit = 1 topic with full conversation flow
@@ -25,6 +27,7 @@
 - 🤖 **AI-Assisted**: Built using Claude Code with automated workflows
 
 **Business Model:**
+
 - Single fortune teller/jyotish consultant (not an aggregator platform)
 - Target market: India-based users with international payment acceptance
 - Scale: Few hundred users maximum
@@ -87,11 +90,13 @@ chinmay-astro/
 ## 🔑 Key Files to Reference
 
 ### Product & Design Documents (Read First!)
+
 - **[tasks/prd-chinmay-astro-web-app.md](tasks/prd-chinmay-astro-web-app.md)** - Core product vision and requirements
 - **[tasks/tdd-chinmay-astro-web-app.md](tasks/tdd-chinmay-astro-web-app.md)** - Technical architecture and design decisions
 - **[tasks/tasks-chinmay_astro-feature-1-authentication.md](tasks/tasks-chinmay_astro-feature-1-authentication.md)** - Current feature tasks
 
 ### Configuration Files
+
 - **[package.json](package.json)** - Dependencies and scripts (when created)
 - **[tsconfig.json](tsconfig.json)** - TypeScript strict mode configuration
 - **[vitest.config.ts](vitest.config.ts)** - Vitest test runner config
@@ -100,6 +105,7 @@ chinmay-astro/
 - **[.env.local.example](.env.local.example)** - Environment variables template
 
 ### Type Definitions (Always Use!)
+
 - **[types/auth.ts](types/auth.ts)** - Authentication types (when created)
 - **[lib/firebase/users.ts](lib/firebase/users.ts)** - UserProfile interface
 
@@ -108,6 +114,7 @@ chinmay-astro/
 ## 🛠️ Tech Stack & Tools
 
 ### Frontend
+
 - **Framework**: Next.js 14+ (App Router, static export)
 - **Language**: TypeScript 5.x (strict mode)
 - **Styling**: Tailwind CSS
@@ -116,6 +123,7 @@ chinmay-astro/
 - **UI Components**: Custom components with Tailwind
 
 ### Backend
+
 - **Platform**: Firebase
   - **Authentication**: Firebase Auth (Google OAuth 2.0)
   - **Database**: Firestore (NoSQL, real-time)
@@ -125,17 +133,113 @@ chinmay-astro/
 - **Payment**: Razorpay (UPI support for India)
 
 ### Development Tools
+
 - **Package Manager**: pnpm (faster than npm, more efficient)
 - **Testing**: Vitest + React Testing Library (unit/integration)
 - **E2E Testing**: Playwright (cross-browser)
-- **Linting**: ESLint with TypeScript support
-- **Formatting**: Prettier
-- **Git Hooks**: Husky + lint-staged
-- **CI/CD**: GitHub Actions
+- **Linting**: ESLint (next/core-web-vitals + Prettier integration)
+- **Formatting**: Prettier (standard web defaults)
+- **Git Hooks**: Husky + lint-staged (pre-commit & pre-push automation)
+- **Secret Detection**: detect-secrets (baseline scanner)
+- **CI/CD**: GitHub Actions (4 workflows: CI, E2E, Secret Scan, Firebase Deploy)
 
 ### Deployment
-- **Hosting**: Hostinger (static files from Next.js export)
-- **Backend**: Firebase (fully managed, serverless)
+
+- **Hosting**: Hostinger (static files from Next.js export) - Manual FTP/SFTP
+- **Backend**: Firebase Cloud Functions - Automated via GitHub Actions on `main` push
+
+---
+
+## 🔧 Development Quality Gates
+
+### Local Git Hooks (Husky)
+
+**Pre-commit Hook** (runs automatically before every commit):
+
+- 🔍 **Secret detection** via detect-secrets
+  - Scans staged files against `.secrets.baseline`
+  - Blocks commit if new secrets detected
+- 🧹 **Lint-staged** - Only processes staged files
+  - ESLint --fix on `.ts`, `.tsx`, `.js`, `.jsx` files
+  - Prettier --write on all files
+  - Auto-stages fixes
+
+**Pre-push Hook** (runs automatically before every push):
+
+- 🔎 **TypeScript type-check** (`pnpm type-check`)
+- 🧪 **Unit tests** (`pnpm test:run`)
+- Blocks push if either fails
+
+**Manual Commands:**
+
+```bash
+pnpm lint          # Run ESLint
+pnpm lint:fix      # Auto-fix ESLint issues
+pnpm format        # Auto-format with Prettier
+pnpm format:check  # Check formatting without changes
+pnpm type-check    # TypeScript validation
+pnpm test          # Run tests in watch mode
+pnpm test:run      # Run tests once
+pnpm test:coverage # Run tests with coverage report
+```
+
+### CI/CD Pipeline (GitHub Actions)
+
+**Workflow 1: ci.yml** (Runs on: all pushes/PRs to develop, staging, main)
+
+- Install dependencies (pnpm with caching)
+- Type-check (tsc --noEmit)
+- Lint (pnpm lint)
+- Format check (prettier --check)
+- Unit tests with coverage (75% threshold enforced)
+- Build Next.js (pnpm build)
+
+**Workflow 2: e2e.yml** (Runs on: PRs to staging, main only)
+
+- Install dependencies
+- Install Playwright browsers
+- Build Next.js app
+- Run Playwright E2E tests
+- Upload test results on failure (7-day retention)
+
+**Workflow 3: secret-scan.yml** (Runs on: all pushes/PRs)
+
+- Install detect-secrets
+- Scan for new secrets against baseline
+- Fail if new secrets detected
+
+**Workflow 4: deploy-firebase.yml** (Runs on: push to main only)
+
+- Install Firebase CLI
+- Install Functions dependencies
+- Deploy Firebase Functions to production
+- Requires `FIREBASE_TOKEN` GitHub secret
+
+### Branch Protection Rules
+
+**develop Branch:**
+
+- Require PR before merge
+- Require 1 approval
+- Require `lint-and-test` + `scan-secrets` to pass
+- Require conversation resolution
+
+**staging Branch:**
+
+- Require PR before merge
+- Require 1 approval
+- Require `lint-and-test` + `e2e-tests` + `scan-secrets` to pass
+- Require conversation resolution
+
+**main Branch (Production):**
+
+- Require PR before merge
+- Require 1 approval
+- Require `lint-and-test` + `e2e-tests` + `scan-secrets` to pass
+- Require conversation resolution
+- Require linear history
+
+For complete branching strategy, see [BRANCHING_STRATEGY.md](BRANCHING_STRATEGY.md)
 
 ---
 
@@ -145,6 +249,7 @@ chinmay-astro/
 
 1. **Always use strict mode** - Enabled in tsconfig.json
 2. **Define types for all props, state, and functions**:
+
    ```typescript
    // ✅ Good
    interface GoogleSignInButtonProps {
@@ -162,11 +267,13 @@ chinmay-astro/
    ```
 
 3. **Import types from centralized location**:
+
    ```typescript
    import type { UserProfile, UserRole } from '@/types/auth';
    ```
 
 4. **Use type inference where obvious**:
+
    ```typescript
    // ✅ Good - inferred
    const [isLoading, setIsLoading] = useState(false);
@@ -240,11 +347,13 @@ When creating new features:
 ### Firebase Security
 
 **Authentication:**
+
 - Use Firebase Auth tokens (1-hour expiry with auto-refresh)
 - Never store passwords (Google OAuth only)
 - Validate user roles server-side (Firestore rules + Cloud Functions)
 
 **Firestore Security Rules:**
+
 ```javascript
 // Development mode (will be tightened later)
 service cloud.firestore {
@@ -262,6 +371,7 @@ service cloud.firestore {
 ```
 
 **Environment Variables:**
+
 - ✅ Store Firebase config in `.env.local` (gitignored)
 - ✅ Use `NEXT_PUBLIC_*` prefix for client-side vars
 - ❌ Never commit `.env.local` to git
@@ -270,6 +380,7 @@ service cloud.firestore {
 ### Data Privacy
 
 **User Data:**
+
 - Store only essential fields: uid, email, name, birth details, role
 - Admin role stored in Firestore (not in Firebase Auth custom claims for simplicity)
 - Persona images stored in Cloud Storage with proper access rules
@@ -294,9 +405,20 @@ service cloud.firestore {
 ```bash
 pnpm test                # Run all tests
 pnpm test:watch          # TDD mode (auto-run on save)
-pnpm test:coverage       # Coverage report (target: 80%+)
+pnpm test:coverage       # Coverage report (enforced: 75% threshold)
 pnpm exec playwright test # E2E tests
 ```
+
+#### Coverage Requirements:
+
+**Enforced in CI:**
+
+- **Lines**: 75% minimum
+- **Functions**: 75% minimum
+- **Branches**: 75% minimum
+- **Statements**: 75% minimum
+
+CI will fail if coverage drops below these thresholds. Run `pnpm test:coverage` locally to check before pushing.
 
 #### Test Structure:
 
@@ -322,6 +444,7 @@ describe('Google Sign-In', () => {
 ### Testing Checklist
 
 Before committing:
+
 - [ ] All unit tests pass (`pnpm test`)
 - [ ] Coverage is 80%+ for new code
 - [ ] TypeScript compiles without errors (`pnpm type-check`)
@@ -380,11 +503,34 @@ try {
 ### Branching Strategy
 
 We use a **three-branch strategy**:
-- **`main`** - Production (protected, requires PR)
-- **`staging`** - Pre-production testing
-- **`develop`** - Active development (default branch for features)
+
+- **`develop`** - Active development (fast CI: lint, test, build)
+- **`staging`** - Pre-production testing (full CI: lint, test, E2E, build)
+- **`main`** - Production (full CI + Firebase deployment)
 
 **Merge Flow**: `feature/*` → `develop` → `staging` → `main`
+
+**For complete details, see [BRANCHING_STRATEGY.md](BRANCHING_STRATEGY.md)**
+
+### Local Development
+
+**Pre-commit hook (automatic):**
+
+- Secret detection (detect-secrets)
+- ESLint + Prettier on staged files
+
+**Pre-push hook (automatic):**
+
+- TypeScript type-check
+- Unit tests (Vitest)
+
+**Manual commands:**
+
+- `pnpm lint` - Run ESLint
+- `pnpm format` - Auto-format with Prettier
+- `pnpm type-check` - TypeScript validation
+- `pnpm test` - Run tests in watch mode
+- `pnpm test:run` - Run tests once
 
 ### Feature Development Workflow
 
@@ -401,32 +547,30 @@ git checkout -b feature/my-feature
 # - Implement code (GREEN)
 # - Refactor (REFACTOR)
 
-# 4. Before committing
-pnpm type-check
-pnpm lint
-pnpm test
-
-# 5. Commit (Husky will run pre-commit hooks)
+# 4. Commit (pre-commit hook runs automatically)
 git add .
 git commit -m "feat: add my feature
 
 🤖 Generated with Claude Code
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
+# Hook will run: detect-secrets + lint-staged
 
-# 6. Push and create PR to develop
+# 5. Push (pre-push hook runs automatically)
 git push origin feature/my-feature
-# Create PR on GitHub targeting 'develop' branch
+# Hook will run: type-check + tests
+
+# 6. Create PR to develop on GitHub
+# GitHub Actions will run: ci.yml + secret-scan.yml
 ```
 
 ### Quick Branch Reference
 
-| Branch | Purpose | Protection |
-|--------|---------|------------|
-| `main` | Production | Requires PR approval |
-| `staging` | Pre-production testing | Requires PR from develop |
-| `develop` | Active development | Default for feature branches |
-| `feature/*` | Individual features | Merges to develop |
+| Branch    | CI Actions                 | E2E Tests | Firebase Deploy |
+| --------- | -------------------------- | --------- | --------------- |
+| `develop` | ✅ Lint, Type, Test, Build | ❌ No     | ❌ No           |
+| `staging` | ✅ All from develop        | ✅ Yes    | ❌ No           |
+| `main`    | ✅ All from staging        | ✅ Yes    | ✅ Yes          |
 
 ---
 
@@ -456,10 +600,87 @@ git push origin feature/my-feature
 ### Accessibility
 
 All interactive elements must have:
+
 - `accessibilityLabel` or `aria-label`
 - Proper semantic HTML (`<button>`, `<nav>`, `<main>`)
 - Sufficient color contrast (4.5:1 minimum)
 - Keyboard navigation support
+
+---
+
+## 📦 Deployment
+
+### Frontend (Hostinger)
+
+**Method**: Manual FTP/SFTP upload
+
+**Build Command**:
+
+```bash
+pnpm build
+```
+
+**Output**: `out/` directory (Next.js static export)
+
+**Upload**:
+
+- Use FTP/SFTP client to upload `out/` contents to Hostinger
+- Ensure all files are uploaded to the correct directory
+
+**When to Deploy**:
+
+- After merging to `main` branch
+- After successful CI checks pass
+- After Firebase Functions are deployed
+
+---
+
+### Backend (Firebase Cloud Functions)
+
+**Method**: Automated via GitHub Actions
+
+**Trigger**: Push to `main` branch
+
+**Workflow**: `.github/workflows/deploy-firebase.yml`
+
+**What Gets Deployed**:
+
+- All functions in `/functions` directory
+- Currently: `onUserCreate` auth trigger
+
+**Manual Deployment** (if needed):
+
+```bash
+cd functions
+npm install
+cd ..
+firebase deploy --only functions
+```
+
+---
+
+### Firebase CI Token Setup (One-time)
+
+**Generate token for CI/CD**:
+
+```bash
+firebase login:ci
+```
+
+**Copy the token output**, then:
+
+1. Go to GitHub repository Settings → Secrets → Actions
+2. Click "New repository secret"
+3. Name: `FIREBASE_TOKEN`
+4. Value: [paste token from above]
+5. Click "Add secret"
+
+**Test deployment**:
+
+```bash
+# Dry run to verify token works
+firebase deploy --only functions --token [your-token] --dry-run
+```
 
 ---
 
@@ -513,12 +734,14 @@ All interactive elements must have:
 **File:** [tasks-chinmay_astro-feature-99-tech-debt.md](tasks/tasks-chinmay_astro-feature-99-tech-debt.md)
 
 **When to add tech debt:**
+
 - Implemented a workaround instead of proper solution
 - Found issue but fixing would derail current feature
 - Deferred optimization or improvement
 - Missing test coverage or documentation
 
 **How agents should use it:**
+
 ```bash
 # When encountering a tech debt item during development:
 # Add entry to tasks/tasks-chinmay_astro-feature-99-tech-debt.md
@@ -529,23 +752,29 @@ All interactive elements must have:
 /process-tasks tasks/tasks-chinmay_astro-feature-99-tech-debt.md
 ```
 
-**Current Status:** 0 pending items
+**Current Status:** 1 pending item
+
+- TD-002: Firebase CI Authentication Using Deprecated login:ci Method [P2]
+
 **Process As:** Feature 99 (after Features 1-8 or when critical)
 
 ### Feature 1 Patterns Established
 
 **Authentication Patterns:**
+
 - `useAuthObserver` hook syncs Firebase Auth → Zustand store
 - Centralized error handling in `lib/utils/errors.ts`
 - Route constants in `lib/constants/routes.ts`
 - Protected routes use `ProtectedRoute` HOC with role-based access
 
 **State Management:**
+
 - Zustand store for auth state (user, loading)
 - Actions: `setUser`, `setLoading`, `clearAuth`
 - Store accessed via `useAuthStore` hook
 
 **Firebase Integration:**
+
 - Singleton pattern for Firebase app initialization
 - Direct config import from `lib/firebase/client-config.ts` (no env vars needed)
 - Firebase web config keys are public by design (security via Firestore Rules)
@@ -553,12 +782,14 @@ All interactive elements must have:
 - Cloud Function creates user profile + sessionCredits on signup
 
 **Component Patterns:**
+
 - 'use client' directive for hooks/interactivity
 - Loading states with spinner
 - Error messages displayed in UI
 - Accessibility: ARIA labels, semantic HTML
 
 **Testing Strategy:**
+
 - Unit tests with Vitest + React Testing Library
 - E2E tests with Playwright (login flow, protected routes, navigation)
 - Mocks in `__tests__/mocks/`, fixtures in `__tests__/fixtures/`
@@ -573,17 +804,20 @@ All interactive elements must have:
 ## 🔍 Where to Find Answers
 
 ### Code Questions
+
 1. Check existing similar components first (when available)
 2. Refer to Next.js docs: https://nextjs.org/docs
 3. Check Firebase docs: https://firebase.google.com/docs
 4. Check React docs: https://react.dev
 
 ### Product Questions
+
 1. **Feature requirements**: Check PRD in `tasks/prd-chinmay-astro-web-app.md`
 2. **User flows**: See PRD User Stories section
 3. **Technical architecture**: See `tasks/tdd-chinmay-astro-web-app.md`
 
 ### Testing Questions
+
 1. **Unit testing**: Vitest docs: https://vitest.dev
 2. **Component testing**: React Testing Library: https://testing-library.com/react
 3. **E2E testing**: Playwright: https://playwright.dev
@@ -616,6 +850,7 @@ All interactive elements must have:
 ## 🚨 Need Help?
 
 When asking for help, provide:
+
 1. **Context**: What feature are you working on?
 2. **What you've tried**: Show your code attempts
 3. **Error messages**: Full error output
@@ -631,6 +866,7 @@ When asking for help, provide:
 ---
 
 **Quick Start for New Session:**
+
 1. Read this file (CLAUDE.md)
 2. Review relevant task file from `tasks/` directory
 3. Check PRD (`tasks/prd-chinmay-astro-web-app.md`) for feature requirements

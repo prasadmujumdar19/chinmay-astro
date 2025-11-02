@@ -11,4 +11,4 @@ export const ROUTES = {
 /**
  * Route type based on ROUTES constant
  */
-export type Route = typeof ROUTES[keyof typeof ROUTES];
+export type Route = (typeof ROUTES)[keyof typeof ROUTES];

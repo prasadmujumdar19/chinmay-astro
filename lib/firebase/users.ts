@@ -51,11 +51,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
  * @param name - User display name
  * @throws Error if user already exists
  */
-export async function createUserProfile(
-  uid: string,
-  email: string,
-  name: string
-): Promise<void> {
+export async function createUserProfile(uid: string, email: string, name: string): Promise<void> {
   try {
     const userRef = doc(db, 'users', uid);
 

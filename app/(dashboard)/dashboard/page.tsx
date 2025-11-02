@@ -23,9 +23,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6 mb-6">
             <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Welcome, {user?.name}!
-                </h1>
+                <h1 className="text-2xl font-bold text-gray-900">Welcome, {user?.name}!</h1>
                 <p className="text-gray-600 mt-1">User Dashboard</p>
               </div>
               <button
@@ -39,9 +37,7 @@ export default function DashboardPage() {
 
           {/* Content */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Dashboard Content
-            </h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Dashboard Content</h2>
             <p className="text-gray-600">
               This is a placeholder for the user dashboard. Future features will include:
             </p>
