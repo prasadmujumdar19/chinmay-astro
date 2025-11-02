@@ -83,7 +83,7 @@ describe('Login Page', () => {
   it('should redirect to role-based route after successful sign-in', async () => {
     // Start with no user
     const mockStore = {
-      user: null,
+      user: null as UserProfile | null,
       loading: false,
     };
 
