@@ -5,13 +5,13 @@ import { compressImage } from '@/lib/utils/imageCompression';
 const mockCanvas = {
   getContext: vi.fn(() => ({
     drawImage: vi.fn(),
-    canvas: {
-      toBlob: vi.fn(callback => {
-        const blob = new Blob(['compressed'], { type: 'image/jpeg' });
-        callback(blob);
-      }),
-    },
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: 'high',
   })),
+  toBlob: vi.fn((callback: BlobCallback) => {
+    const blob = new Blob(['compressed'], { type: 'image/jpeg' });
+    callback(blob);
+  }),
   width: 0,
   height: 0,
 };
@@ -25,7 +25,9 @@ const mockImage = {
 };
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  // Reset mock call counts but keep implementations
+  mockCanvas.getContext.mockClear();
+  mockCanvas.toBlob.mockClear();
 
   // Mock document.createElement for canvas
   global.document.createElement = vi.fn((tagName: string) => {
@@ -51,7 +53,10 @@ beforeEach(() => {
     }
   } as unknown as typeof Image;
 
-  // Mock URL.createObjectURL
+  // Mock URL methods (recreate each time to track calls)
+  if (!global.URL) {
+    global.URL = {} as typeof URL;
+  }
   global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
   global.URL.revokeObjectURL = vi.fn();
 });
@@ -78,12 +83,11 @@ describe('Image Compression', () => {
 
   it('should use quality 0.8 for compression', async () => {
     const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
-    const context = mockCanvas.getContext();
 
     await compressImage(file);
 
     // toBlob should be called with quality parameter
-    expect(context?.canvas.toBlob).toHaveBeenCalledWith(expect.any(Function), 'image/jpeg', 0.8);
+    expect(mockCanvas.toBlob).toHaveBeenCalledWith(expect.any(Function), 'image/jpeg', 0.8);
   });
 
   it('should handle images smaller than max dimensions', async () => {
