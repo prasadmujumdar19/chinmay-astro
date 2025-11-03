@@ -33,6 +33,7 @@ export async function getUserProfile(uid: string): Promise<User | null> {
     const data = userDoc.data() as DocumentData;
 
     // Convert Firestore Timestamps to Date objects
+    // Handle optional fields that may not exist in older user documents
     return {
       uid: data.uid,
       email: data.email,
@@ -48,11 +49,15 @@ export async function getUserProfile(uid: string): Promise<User | null> {
         : null,
       role: data.role || 'user',
       credits: data.credits || { chat: 0, audio: 0, video: 0 },
-      createdAt: (data.createdAt as Timestamp).toDate(),
-      updatedAt: (data.updatedAt as Timestamp).toDate(),
-      lastLoginAt: (data.lastLoginAt as Timestamp).toDate(),
-      agreedToTermsAt: (data.agreedToTermsAt as Timestamp).toDate(),
-      agreedToPrivacyAt: (data.agreedToPrivacyAt as Timestamp).toDate(),
+      createdAt: data.createdAt ? (data.createdAt as Timestamp).toDate() : new Date(),
+      updatedAt: data.updatedAt ? (data.updatedAt as Timestamp).toDate() : new Date(),
+      lastLoginAt: data.lastLoginAt ? (data.lastLoginAt as Timestamp).toDate() : new Date(),
+      agreedToTermsAt: data.agreedToTermsAt
+        ? (data.agreedToTermsAt as Timestamp).toDate()
+        : new Date(),
+      agreedToPrivacyAt: data.agreedToPrivacyAt
+        ? (data.agreedToPrivacyAt as Timestamp).toDate()
+        : new Date(),
     };
   } catch (error) {
     console.error('Error fetching user profile:', error);
