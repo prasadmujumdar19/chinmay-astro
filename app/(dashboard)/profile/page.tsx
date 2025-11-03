@@ -29,6 +29,11 @@ export default function ProfilePage() {
 
   // Fetch user profile on mount
   useEffect(() => {
+    // Wait for auth to complete before attempting profile fetch
+    if (authLoading) {
+      return;
+    }
+
     async function fetchProfile() {
       if (!authUser?.uid) {
         setLoading(false);
@@ -49,7 +54,7 @@ export default function ProfilePage() {
     }
 
     fetchProfile();
-  }, [authUser]);
+  }, [authUser, authLoading]);
 
   const handleBirthDetailsSubmit = async (data: BirthDetails) => {
     if (!profile) return;

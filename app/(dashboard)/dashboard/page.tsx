@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useAuthStore } from '@/stores/authStore';
 import { signOutUser } from '@/lib/firebase/auth';
@@ -26,12 +27,20 @@ export default function DashboardPage() {
                 <h1 className="text-2xl font-bold text-gray-900">Welcome, {user?.name}!</h1>
                 <p className="text-gray-600 mt-1">User Dashboard</p>
               </div>
-              <button
-                onClick={handleSignOut}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Sign Out
-              </button>
+              <div className="flex gap-3">
+                <Link
+                  href="/profile"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  My Profile
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
             </div>
           </div>
 
