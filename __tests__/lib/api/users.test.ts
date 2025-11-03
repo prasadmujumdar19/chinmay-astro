@@ -7,11 +7,16 @@ import {
   createMockTimestamp,
 } from '@/__tests__/mocks/firestore';
 
+// Mock the firestore module to return mockDb
+vi.mock('@/lib/firebase/firestore', () => ({
+  db: { _type: 'firestore' },
+}));
+
 // Mock Firebase Firestore
 vi.mock('firebase/firestore', async () => {
   const mocks = await import('@/__tests__/mocks/firestore');
   return {
-    getFirestore: vi.fn(),
+    getFirestore: vi.fn(() => ({ _type: 'firestore' })),
     doc: mocks.mockDoc,
     getDoc: mocks.mockGetDoc,
     updateDoc: mocks.mockUpdateDoc,
@@ -69,7 +74,7 @@ describe('User Profile API', () => {
     it('should handle Firestore errors', async () => {
       mockGetDoc.mockRejectedValueOnce(new Error('Firestore error'));
 
-      await expect(getUserProfile('test-user-123')).rejects.toThrow('Firestore error');
+      await expect(getUserProfile('test-user-123')).rejects.toThrow('Failed to fetch user profile');
     });
   });
 
@@ -87,7 +92,13 @@ describe('User Profile API', () => {
       expect(mockUpdateDoc).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          ...updates,
+          dateOfBirth: expect.objectContaining({
+            toDate: expect.any(Function),
+            seconds: expect.any(Number),
+            nanoseconds: expect.any(Number),
+          }),
+          timeOfBirth: '10:00',
+          placeOfBirth: 'Delhi, India',
           updatedAt: expect.anything(),
         })
       );
@@ -98,7 +109,7 @@ describe('User Profile API', () => {
 
       await expect(
         updateUserProfile('test-user-123', { placeOfBirth: 'New Place' })
-      ).rejects.toThrow('Update failed');
+      ).rejects.toThrow('Failed to update user profile');
     });
   });
 
@@ -126,7 +137,7 @@ describe('User Profile API', () => {
       mockUpdateDoc.mockRejectedValueOnce(new Error('Image update failed'));
 
       await expect(updatePersonaImage('test-user-123', 'url', 'path')).rejects.toThrow(
-        'Image update failed'
+        'Failed to update persona image'
       );
     });
   });

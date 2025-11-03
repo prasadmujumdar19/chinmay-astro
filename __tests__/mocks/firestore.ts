@@ -48,6 +48,8 @@ export const mockGetDoc = vi.fn(() =>
       createdAt: createMockTimestamp(new Date()),
       updatedAt: createMockTimestamp(new Date()),
       lastLoginAt: createMockTimestamp(new Date()),
+      agreedToTermsAt: createMockTimestamp(new Date()),
+      agreedToPrivacyAt: createMockTimestamp(new Date()),
     }),
     id: 'test-user-123',
     ref: mockDocRef,
