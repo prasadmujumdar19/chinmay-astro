@@ -36,10 +36,24 @@ describe('User Profile API', () => {
     it('should return null if user does not exist', async () => {
       mockGetDoc.mockResolvedValueOnce({
         exists: () => false,
-        data: () => undefined,
+        data: () => ({
+          uid: 'test-user-123',
+          email: 'testuser@example.com',
+          name: 'Test User',
+          dateOfBirth: new Date('1990-01-15'),
+          timeOfBirth: '14:30',
+          placeOfBirth: 'Mumbai, India',
+        }),
         id: 'test-user-123',
-        ref: {},
-      });
+        ref: {
+          id: 'test-user-123',
+          path: 'users/test-user-123',
+          parent: {
+            id: 'users',
+            path: 'users',
+          },
+        },
+      } as any);
 
       const profile = await getUserProfile('non-existent-user');
 

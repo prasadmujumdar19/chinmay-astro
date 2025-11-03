@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import PersonaImageUpload from '@/components/admin/PersonaImageUpload';
+import { PersonaImageUpload } from '@/components/admin/PersonaImageUpload';
 
 // Mock uploadPersonaImage function
 const mockUploadPersonaImage = vi.fn();
@@ -18,6 +18,7 @@ vi.mock('@/lib/api/users', () => ({
 describe('PersonaImageUpload', () => {
   const mockUserId = 'test-user-123';
   const mockOnUploadComplete = vi.fn();
+  const mockOnError = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -28,20 +29,41 @@ describe('PersonaImageUpload', () => {
   });
 
   it('should render file input', () => {
-    render(<PersonaImageUpload userId={mockUserId} onUploadComplete={mockOnUploadComplete} />);
+    render(
+      <PersonaImageUpload
+        userId={mockUserId}
+        currentImagePath={null}
+        onUploadComplete={mockOnUploadComplete}
+        onError={mockOnError}
+      />
+    );
 
     expect(screen.getByLabelText(/upload persona image/i)).toBeInTheDocument();
   });
 
   it('should accept only image files', () => {
-    render(<PersonaImageUpload userId={mockUserId} onUploadComplete={mockOnUploadComplete} />);
+    render(
+      <PersonaImageUpload
+        userId={mockUserId}
+        currentImagePath={null}
+        onUploadComplete={mockOnUploadComplete}
+        onError={mockOnError}
+      />
+    );
 
     const fileInput = screen.getByLabelText(/upload persona image/i) as HTMLInputElement;
     expect(fileInput.accept).toContain('image');
   });
 
   it('should show error for non-image files', async () => {
-    render(<PersonaImageUpload userId={mockUserId} onUploadComplete={mockOnUploadComplete} />);
+    render(
+      <PersonaImageUpload
+        userId={mockUserId}
+        currentImagePath={null}
+        onUploadComplete={mockOnUploadComplete}
+        onError={mockOnError}
+      />
+    );
 
     const file = new File(['content'], 'document.pdf', { type: 'application/pdf' });
     const fileInput = screen.getByLabelText(/upload persona image/i);
@@ -56,7 +78,14 @@ describe('PersonaImageUpload', () => {
   });
 
   it('should show error for files larger than 5MB', async () => {
-    render(<PersonaImageUpload userId={mockUserId} onUploadComplete={mockOnUploadComplete} />);
+    render(
+      <PersonaImageUpload
+        userId={mockUserId}
+        currentImagePath={null}
+        onUploadComplete={mockOnUploadComplete}
+        onError={mockOnError}
+      />
+    );
 
     // Create a mock file larger than 5MB
     const largeFile = new File(['x'.repeat(6 * 1024 * 1024)], 'large-image.jpg', {
@@ -74,7 +103,14 @@ describe('PersonaImageUpload', () => {
   });
 
   it('should upload valid image file', async () => {
-    render(<PersonaImageUpload userId={mockUserId} onUploadComplete={mockOnUploadComplete} />);
+    render(
+      <PersonaImageUpload
+        userId={mockUserId}
+        currentImagePath={null}
+        onUploadComplete={mockOnUploadComplete}
+        onError={mockOnError}
+      />
+    );
 
     const file = new File(['image content'], 'persona.jpg', { type: 'image/jpeg' });
     const fileInput = screen.getByLabelText(/upload persona image/i);
@@ -100,7 +136,14 @@ describe('PersonaImageUpload', () => {
       });
     });
 
-    render(<PersonaImageUpload userId={mockUserId} onUploadComplete={mockOnUploadComplete} />);
+    render(
+      <PersonaImageUpload
+        userId={mockUserId}
+        currentImagePath={null}
+        onUploadComplete={mockOnUploadComplete}
+        onError={mockOnError}
+      />
+    );
 
     const file = new File(['image content'], 'persona.jpg', { type: 'image/jpeg' });
     const fileInput = screen.getByLabelText(/upload persona image/i);
@@ -113,7 +156,14 @@ describe('PersonaImageUpload', () => {
   });
 
   it('should call onUploadComplete after successful upload', async () => {
-    render(<PersonaImageUpload userId={mockUserId} onUploadComplete={mockOnUploadComplete} />);
+    render(
+      <PersonaImageUpload
+        userId={mockUserId}
+        currentImagePath={null}
+        onUploadComplete={mockOnUploadComplete}
+        onError={mockOnError}
+      />
+    );
 
     const file = new File(['image content'], 'persona.jpg', { type: 'image/jpeg' });
     const fileInput = screen.getByLabelText(/upload persona image/i);
@@ -128,7 +178,14 @@ describe('PersonaImageUpload', () => {
   it('should show error message on upload failure', async () => {
     mockUploadPersonaImage.mockRejectedValueOnce(new Error('Upload failed'));
 
-    render(<PersonaImageUpload userId={mockUserId} onUploadComplete={mockOnUploadComplete} />);
+    render(
+      <PersonaImageUpload
+        userId={mockUserId}
+        currentImagePath={null}
+        onUploadComplete={mockOnUploadComplete}
+        onError={mockOnError}
+      />
+    );
 
     const file = new File(['image content'], 'persona.jpg', { type: 'image/jpeg' });
     const fileInput = screen.getByLabelText(/upload persona image/i);
@@ -157,7 +214,14 @@ describe('PersonaImageUpload', () => {
         })
     );
 
-    render(<PersonaImageUpload userId={mockUserId} onUploadComplete={mockOnUploadComplete} />);
+    render(
+      <PersonaImageUpload
+        userId={mockUserId}
+        currentImagePath={null}
+        onUploadComplete={mockOnUploadComplete}
+        onError={mockOnError}
+      />
+    );
 
     const file = new File(['image content'], 'persona.jpg', { type: 'image/jpeg' });
     const fileInput = screen.getByLabelText(/upload persona image/i);

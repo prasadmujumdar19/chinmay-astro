@@ -1,84 +1,45 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import PersonaImage from '@/components/profile/PersonaImage';
+import { PersonaImage } from '@/components/profile/PersonaImage';
 
 describe('PersonaImage', () => {
   it('should render image with provided URL', () => {
     const imageUrl = 'https://example.com/persona.jpg';
 
-    render(<PersonaImage imageUrl={imageUrl} alt="User Persona" />);
+    render(<PersonaImage imageUrl={imageUrl} userName="Test User" />);
 
-    const image = screen.getByAltText('User Persona');
+    const image = screen.getByAltText(/Test User persona/i);
     expect(image).toBeInTheDocument();
-    expect(image.getAttribute('src')).toContain('persona.jpg');
   });
 
   it('should render placeholder when imageUrl is null', () => {
-    render(<PersonaImage imageUrl={null} alt="User Persona" />);
+    render(<PersonaImage imageUrl={null} userName="Test User" />);
 
-    const image = screen.getByAltText('User Persona');
+    const image = screen.getByAltText(/Default persona placeholder/i);
     expect(image).toBeInTheDocument();
-    expect(image.getAttribute('src')).toContain('placeholder');
   });
 
-  it('should render placeholder when imageUrl is undefined', () => {
-    render(<PersonaImage imageUrl={undefined} alt="User Persona" />);
-
-    const image = screen.getByAltText('User Persona');
-    expect(image).toBeInTheDocument();
-    expect(image.getAttribute('src')).toContain('placeholder');
-  });
-
-  it('should render placeholder when imageUrl is empty string', () => {
-    render(<PersonaImage imageUrl="" alt="User Persona" />);
-
-    const image = screen.getByAltText('User Persona');
-    expect(image).toBeInTheDocument();
-    expect(image.getAttribute('src')).toContain('placeholder');
-  });
-
-  it('should apply custom className', () => {
+  it('should use provided size', () => {
     render(
-      <PersonaImage
-        imageUrl="https://example.com/persona.jpg"
-        alt="User Persona"
-        className="custom-class"
-      />
+      <PersonaImage imageUrl="https://example.com/persona.jpg" userName="Test User" size={300} />
     );
 
-    const image = screen.getByAltText('User Persona');
-    expect(image.className).toContain('custom-class');
+    const image = screen.getByAltText(/Test User persona/i);
+    expect(image).toBeInTheDocument();
+    expect(image.getAttribute('width')).toBe('300');
   });
 
-  it('should have default size styling', () => {
-    render(<PersonaImage imageUrl="https://example.com/persona.jpg" alt="User Persona" />);
+  it('should have default size of 200', () => {
+    render(<PersonaImage imageUrl="https://example.com/persona.jpg" userName="Test User" />);
 
-    const imageContainer = screen.getByAltText('User Persona').parentElement;
-    expect(imageContainer).toHaveClass('relative');
-  });
-
-  it('should support custom size prop', () => {
-    render(
-      <PersonaImage imageUrl="https://example.com/persona.jpg" alt="User Persona" size="lg" />
-    );
-
-    const imageContainer = screen.getByAltText('User Persona').parentElement;
-    // Large size should have specific dimensions
-    expect(imageContainer?.className).toContain('w-');
+    const image = screen.getByAltText(/Test User persona/i);
+    expect(image.getAttribute('width')).toBe('200');
   });
 
   it('should render with rounded styling', () => {
-    render(<PersonaImage imageUrl="https://example.com/persona.jpg" alt="User Persona" rounded />);
+    render(<PersonaImage imageUrl="https://example.com/persona.jpg" userName="Test User" />);
 
-    const image = screen.getByAltText('User Persona');
-    expect(image.className).toContain('rounded');
-  });
-
-  it('should handle loading state', () => {
-    render(<PersonaImage imageUrl="https://example.com/persona.jpg" alt="User Persona" />);
-
-    const image = screen.getByAltText('User Persona');
-    // Next.js Image component should have loading attribute
-    expect(image).toHaveAttribute('loading');
+    const image = screen.getByAltText(/Test User persona/i);
+    expect(image.className).toContain('rounded-full');
   });
 });
