@@ -3,14 +3,17 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { PersonaImageUpload } from '@/components/admin/PersonaImageUpload';
 
-// Mock uploadPersonaImage function
-const mockUploadPersonaImage = vi.fn();
+// Mock Firebase storage and API functions
 vi.mock('@/lib/firebase/storage', () => ({
-  uploadPersonaImage: mockUploadPersonaImage,
+  uploadPersonaImage: vi.fn(() =>
+    Promise.resolve({
+      url: 'https://example.com/image.jpg',
+      path: 'persona-images/test-user-123/image.jpg',
+    })
+  ),
   deletePersonaImage: vi.fn(() => Promise.resolve()),
 }));
 
-// Mock updatePersonaImage function
 vi.mock('@/lib/api/users', () => ({
   updatePersonaImage: vi.fn(() => Promise.resolve()),
 }));
@@ -20,8 +23,16 @@ describe('PersonaImageUpload', () => {
   const mockOnUploadComplete = vi.fn();
   const mockOnError = vi.fn();
 
-  beforeEach(() => {
+  // Get mocked functions
+  let mockUploadPersonaImage: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
+
+    // Import mocked function
+    const storage = await import('@/lib/firebase/storage');
+    mockUploadPersonaImage = storage.uploadPersonaImage as ReturnType<typeof vi.fn>;
+
     mockUploadPersonaImage.mockResolvedValue({
       url: 'https://example.com/image.jpg',
       path: 'persona-images/test-user-123/image.jpg',

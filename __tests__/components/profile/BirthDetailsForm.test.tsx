@@ -78,7 +78,7 @@ describe('BirthDetailsForm', () => {
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/invalid time format/i)).toBeInTheDocument();
+      expect(screen.getByText(/time must be in HH:mm format/i)).toBeInTheDocument();
     });
 
     expect(mockOnSubmit).not.toHaveBeenCalled();

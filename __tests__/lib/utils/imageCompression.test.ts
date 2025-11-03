@@ -35,16 +35,21 @@ beforeEach(() => {
     return {} as HTMLElement;
   });
 
-  // Mock Image constructor
+  // Mock Image constructor as a class
+  global.Image = class {
+    src = '';
+    width = mockImage.width;
+    height = mockImage.height;
+    onload: (() => void) | null = null;
+    onerror: ((error: Error) => void) | null = null;
 
-  global.Image = vi.fn().mockImplementation(() => {
-    const img = { ...mockImage };
-    // Simulate image load
-    setTimeout(() => {
-      if (img.onload) img.onload();
-    }, 0);
-    return img;
-  }) as any;
+    constructor() {
+      // Simulate image load
+      setTimeout(() => {
+        if (this.onload) this.onload();
+      }, 0);
+    }
+  } as unknown as typeof Image;
 
   // Mock URL.createObjectURL
   global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
@@ -120,13 +125,20 @@ describe('Image Compression', () => {
   });
 
   it('should reject on image load error', async () => {
-    global.Image = vi.fn().mockImplementation(() => {
-      const img = { ...mockImage };
-      setTimeout(() => {
-        if (img.onerror) img.onerror(new Error('Failed to load'));
-      }, 0);
-      return img;
-    }) as any;
+    global.Image = class {
+      src = '';
+      width = mockImage.width;
+      height = mockImage.height;
+      onload: (() => void) | null = null;
+      onerror: ((error: Error) => void) | null = null;
+
+      constructor() {
+        // Simulate image load error
+        setTimeout(() => {
+          if (this.onerror) this.onerror(new Error('Failed to load'));
+        }, 0);
+      }
+    } as unknown as typeof Image;
 
     const file = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
 
