@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getUserProfile, updateUserProfile, updatePersonaImage } from '@/lib/api/users';
-import { mockUpdateDoc, mockGetDoc, mockDoc } from '@/__tests__/mocks/firestore';
+import {
+  mockUpdateDoc,
+  mockGetDoc,
+  mockDoc,
+  createMockTimestamp,
+} from '@/__tests__/mocks/firestore';
 
 // Mock Firebase Firestore
 vi.mock('firebase/firestore', async () => {
@@ -11,9 +16,10 @@ vi.mock('firebase/firestore', async () => {
     getDoc: mocks.mockGetDoc,
     updateDoc: mocks.mockUpdateDoc,
     collection: vi.fn(),
+    serverTimestamp: () => mocks.createMockTimestamp(new Date()),
     Timestamp: {
-      now: () => ({ toDate: () => new Date() }),
-      fromDate: (date: Date) => ({ toDate: () => date }),
+      now: () => mocks.createMockTimestamp(new Date()),
+      fromDate: (date: Date) => mocks.createMockTimestamp(date),
     },
   };
 });
@@ -40,7 +46,7 @@ describe('User Profile API', () => {
           uid: 'test-user-123',
           email: 'testuser@example.com',
           name: 'Test User',
-          dateOfBirth: new Date('1990-01-15'),
+          dateOfBirth: createMockTimestamp(new Date('1990-01-15')),
           timeOfBirth: '14:30',
           placeOfBirth: 'Mumbai, India',
         }),

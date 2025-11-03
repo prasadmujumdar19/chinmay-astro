@@ -18,6 +18,15 @@ export const mockDocRef = {
 export const mockUpdateDoc = vi.fn(() => Promise.resolve());
 
 /**
+ * Mock Firestore Timestamp
+ */
+export const createMockTimestamp = (date: Date) => ({
+  toDate: () => date,
+  seconds: Math.floor(date.getTime() / 1000),
+  nanoseconds: 0,
+});
+
+/**
  * Mock Firestore getDoc function
  */
 export const mockGetDoc = vi.fn(() =>
@@ -27,9 +36,18 @@ export const mockGetDoc = vi.fn(() =>
       uid: 'test-user-123',
       email: 'testuser@example.com',
       name: 'Test User',
-      dateOfBirth: new Date('1990-01-15'),
+      dateOfBirth: createMockTimestamp(new Date('1990-01-15')),
       timeOfBirth: '14:30',
       placeOfBirth: 'Mumbai, India',
+      photoURL: null,
+      personaImageUrl: null,
+      personaImagePath: null,
+      personaUploadedAt: null,
+      role: 'user',
+      credits: { chat: 0, audio: 0, video: 0 },
+      createdAt: createMockTimestamp(new Date()),
+      updatedAt: createMockTimestamp(new Date()),
+      lastLoginAt: createMockTimestamp(new Date()),
     }),
     id: 'test-user-123',
     ref: mockDocRef,
