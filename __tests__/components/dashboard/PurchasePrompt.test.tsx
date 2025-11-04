@@ -44,9 +44,11 @@ describe('PurchasePrompt', () => {
   it('should display warning icon or indicator', () => {
     render(<PurchasePrompt credits={mockCreditsZero} />);
 
-    // Check for warning/alert styling or icon
-    const prompt = screen.getByText(/no credits available/i).closest('div');
-    expect(prompt).toHaveClass(/warning|alert|yellow|amber/i);
+    // Check for amber/yellow warning styling on the alert container
+    const prompt = screen.getByRole('alert');
+    const classNames = prompt.className || '';
+    const hasWarningStyle = classNames.includes('amber') || classNames.includes('yellow');
+    expect(hasWarningStyle).toBe(true);
   });
 
   it('should have proper accessibility attributes', () => {

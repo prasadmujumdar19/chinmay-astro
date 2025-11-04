@@ -4,9 +4,13 @@ import Link from 'next/link';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useAuthStore } from '@/stores/authStore';
 import { signOutUser } from '@/lib/firebase/auth';
+import { CreditsCard } from '@/components/dashboard/CreditsCard';
+import { PurchasePrompt } from '@/components/dashboard/PurchasePrompt';
+import { useCredits } from '@/hooks/useCredits';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const { credits, isLoading } = useCredits();
 
   const handleSignOut = async () => {
     try {
@@ -44,19 +48,51 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Session Credits */}
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Session Credits</h2>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent"></div>
+              </div>
+            ) : credits ? (
+              <>
+                <PurchasePrompt credits={credits} />
+                <div
+                  className={
+                    credits.chat === 0 && credits.audio === 0 && credits.video === 0 ? 'mt-4' : ''
+                  }
+                >
+                  <CreditsCard credits={credits} />
+                </div>
+              </>
+            ) : (
+              <p className="text-gray-600">Unable to load credits. Please refresh the page.</p>
+            )}
+          </div>
+
           {/* Content */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Dashboard Content</h2>
-            <p className="text-gray-600">
-              This is a placeholder for the user dashboard. Future features will include:
-            </p>
-            <ul className="list-disc list-inside mt-4 space-y-2 text-gray-600">
-              <li>View session credits balance</li>
-              <li>Purchase consultation bundles</li>
-              <li>Start chat consultations</li>
-              <li>Schedule audio/video sessions</li>
-              <li>View consultation history</li>
-              <li>Manage profile and birth details</li>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <li>
+                <Link
+                  href="/purchase"
+                  className="block rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50"
+                >
+                  <h3 className="font-medium text-gray-900">Purchase Credits</h3>
+                  <p className="mt-1 text-sm text-gray-600">Buy consultation bundles</p>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/consultations"
+                  className="block rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50"
+                >
+                  <h3 className="font-medium text-gray-900">Start Consultation</h3>
+                  <p className="mt-1 text-sm text-gray-600">Chat, audio, or video sessions</p>
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

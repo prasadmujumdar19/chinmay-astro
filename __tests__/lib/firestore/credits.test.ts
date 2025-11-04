@@ -21,6 +21,11 @@ vi.mock('firebase/firestore', () => ({
   onSnapshot: vi.fn(),
 }));
 
+// Mock Firebase config
+vi.mock('@/lib/firebase/config', () => ({
+  firebaseApp: {},
+}));
+
 describe('getUserCredits', () => {
   beforeEach(() => {
     vi.clearAllMocks();

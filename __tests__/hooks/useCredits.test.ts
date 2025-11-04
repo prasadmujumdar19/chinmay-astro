@@ -16,6 +16,11 @@ vi.mock('firebase/firestore', () => ({
   onSnapshot: vi.fn(),
 }));
 
+// Mock Firebase config
+vi.mock('@/lib/firebase/config', () => ({
+  firebaseApp: {},
+}));
+
 // Mock auth store
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: vi.fn(() => ({

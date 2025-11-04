@@ -26,9 +26,9 @@ describe('CreditsCard', () => {
   it('should render three credit types (chat, audio, video)', () => {
     render(<CreditsCard credits={mockCreditsAll} />);
 
-    expect(screen.getByText(/chat/i)).toBeInTheDocument();
-    expect(screen.getByText(/audio/i)).toBeInTheDocument();
-    expect(screen.getByText(/video/i)).toBeInTheDocument();
+    expect(screen.getByText('Chat')).toBeInTheDocument();
+    expect(screen.getByText('Audio')).toBeInTheDocument();
+    expect(screen.getByText('Video')).toBeInTheDocument();
   });
 
   it('should show correct credit counts', () => {
