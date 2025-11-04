@@ -69,7 +69,7 @@ describe('useCredits', () => {
 
     mockDoc.mockReturnValue({ path: 'users/test-user-id' } as any);
 
-    mockOnSnapshot.mockImplementation((docRef, callback: any) => {
+    mockOnSnapshot.mockImplementation((_docRef: any, callback: any) => {
       // Immediately call callback with data
       callback({
         exists: () => true,
@@ -98,7 +98,7 @@ describe('useCredits', () => {
 
     mockDoc.mockReturnValue({ path: 'users/test-user-id' } as any);
 
-    mockOnSnapshot.mockImplementation((docRef, callback: any) => {
+    mockOnSnapshot.mockImplementation((_docRef: any, callback: any) => {
       callback({
         exists: () => true,
         data: () => ({
@@ -125,7 +125,7 @@ describe('useCredits', () => {
 
     mockDoc.mockReturnValue({ path: 'users/test-user-id' } as any);
 
-    mockOnSnapshot.mockImplementation((docRef, callback: any, errorCallback: any) => {
+    mockOnSnapshot.mockImplementation((_docRef: any, callback: any, errorCallback: any) => {
       // Immediately call error callback
       errorCallback(new Error('Firestore listener error'));
       return vi.fn();
@@ -167,7 +167,7 @@ describe('useCredits', () => {
     mockDoc.mockReturnValue({ path: 'users/test-user-id' } as any);
 
     let snapshotCallback: any;
-    mockOnSnapshot.mockImplementation((docRef, callback: any) => {
+    mockOnSnapshot.mockImplementation((_docRef: any, callback: any) => {
       snapshotCallback = callback;
       // Initial data
       callback({

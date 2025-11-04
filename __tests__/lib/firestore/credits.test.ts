@@ -138,7 +138,7 @@ describe('subscribeToCredits', () => {
     mockDoc.mockReturnValue({ path: 'users/test-user-id' } as any);
 
     const callback = vi.fn();
-    mockOnSnapshot.mockImplementation((docRef, cb: any) => {
+    mockOnSnapshot.mockImplementation((_docRef: any, cb: any) => {
       // Simulate snapshot callback
       cb({
         exists: () => true,
@@ -163,7 +163,7 @@ describe('subscribeToCredits', () => {
     mockDoc.mockReturnValue({ path: 'users/test-user-id' } as any);
 
     const callback = vi.fn();
-    mockOnSnapshot.mockImplementation((docRef, cb: any) => {
+    mockOnSnapshot.mockImplementation((_docRef: any, cb: any) => {
       cb({
         exists: () => true,
         data: () => ({
