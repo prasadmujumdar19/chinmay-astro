@@ -15,12 +15,45 @@ export default defineConfig({
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    // Use Chrome channel to avoid Google OAuth blocking
+    channel: 'chrome',
   },
 
   projects: [
+    // Setup project for authentication
+    {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+      teardown: 'cleanup',
+    },
+
+    // Cleanup project (runs after setup)
+    {
+      name: 'cleanup',
+      testMatch: /global\.teardown\.ts/,
+    },
+
+    // Main test project (uses authenticated state)
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        // Use saved auth state for regular user tests
+        storageState: '.auth/user.json',
+      },
+      dependencies: ['setup'],
+    },
+
+    // Admin test project (uses admin auth state)
+    {
+      name: 'chromium-admin',
+      use: {
+        ...devices['Desktop Chrome'],
+        // Use saved admin auth state
+        storageState: '.auth/admin.json',
+      },
+      dependencies: ['setup'],
+      testMatch: /.*admin.*\.spec\.ts/, // Only run tests with 'admin' in filename
     },
   ],
 

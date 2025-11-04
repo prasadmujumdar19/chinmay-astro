@@ -1,12 +1,11 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Application Routing', () => {
-  test('should load homepage and show loading state', async ({ page }) => {
+  test('should load homepage and redirect to login', async ({ page }) => {
     await page.goto('/');
 
-    // Should show loading spinner initially
-    const spinner = page.locator('.animate-spin');
-    await expect(spinner).toBeVisible();
+    // Homepage should redirect to login for unauthenticated users
+    await expect(page).toHaveURL(/\/login/);
   });
 
   test('should navigate to login page directly', async ({ page }) => {

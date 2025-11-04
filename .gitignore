@@ -46,6 +46,7 @@ coverage/
 test-results/
 playwright-report/
 playwright/.cache/
+.auth/
 
 # ==========================================
 # IDE / Editor
@@ -89,11 +90,10 @@ functions/node_modules/
 functions/lib/
 functions/.env
 
-# Firebase service account keys (CRITICAL - NEVER COMMIT!)
-*firebase-adminsdk*.json
+# Firebase Service Account Keys (NEVER COMMIT!)
+firebase-service-account-key.json
+*-service-account-key.json
 *-firebase-adminsdk-*.json
-serviceAccountKey.json
-service-account-*.json
 
 # ==========================================
 # TypeScript

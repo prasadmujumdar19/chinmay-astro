@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules for Chinmay Astro
+// Reference: TDD section 10.2 "Firebase Storage Structure" (lines 8977-9030)
+//
+// Storage Structure:
+// - persona-images/{userId}/{fileName}
+//
+// Security Model:
+// - Only admins can upload/delete persona images
+// - Authenticated users can read their own persona images
+// - Admins can read all persona images
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Persona Images
+    match /persona-images/{userId}/{fileName} {
+
+      // Helper function: Check if user is admin
+      function isAdmin() {
+        return request.auth != null
+          && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      }
+
+      // Helper function: Check if user is owner
+      function isOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      // Helper function: Validate image file
+      function isValidImage() {
+        return request.resource.contentType.matches('image/.*')
+          && request.resource.size <= 5 * 1024 * 1024; // Max 5MB
+      }
+
+      // Read Rules:
+      // - Owner can read their own persona image
+      // - Admin can read all persona images
+      allow read: if request.auth != null
+        && (isOwner() || isAdmin());
+
+      // Write Rules (Upload/Update):
+      // - Only admin can upload persona images
+      // - Must be valid image file
+      allow write: if isAdmin() && isValidImage();
+
+      // Delete Rules:
+      // - Only admin can delete persona images
+      allow delete: if isAdmin();
+    }
+
+    // Deny all other storage access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

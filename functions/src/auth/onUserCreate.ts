@@ -11,18 +11,25 @@ export const onUserCreate = functions.auth.user().onCreate(async (user) => {
   try {
     const db = admin.firestore();
 
-    // Create user profile document
+    // Create user profile document with all required fields
     await db.collection('users').doc(uid).set({
       uid,
       email: email || '',
       name: displayName || email?.split('@')[0] || 'User',
+      photoURL: user.photoURL || null,
       dateOfBirth: null,
       timeOfBirth: null,
       placeOfBirth: null,
       personaImageUrl: null,
+      personaImagePath: null,
+      personaUploadedAt: null,
       role: 'user', // Default role
+      credits: { chat: 0, audio: 0, video: 0 },
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastLoginAt: admin.firestore.FieldValue.serverTimestamp(),
+      agreedToTermsAt: admin.firestore.FieldValue.serverTimestamp(),
+      agreedToPrivacyAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
     // Create session credits document with 0 credits
