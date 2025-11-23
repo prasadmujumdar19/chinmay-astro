@@ -1,7 +1,7 @@
 'use client';
 
 import type { Message } from '@/types/consultation';
-import { isToday, isYesterday, format } from 'date-fns';
+import { formatMessageTimestamp } from '@/lib/utils/chatUtils';
 
 interface MessageBubbleProps {
   message: Message;
@@ -19,17 +19,6 @@ interface MessageBubbleProps {
 export function MessageBubble({ message, currentUserRole }: MessageBubbleProps) {
   const isUserMessage = message.senderRole === 'user';
   const messageDate = message.timestamp.toDate();
-
-  // Format timestamp
-  const formatTimestamp = (date: Date): string => {
-    if (isToday(date)) {
-      return `Today, ${format(date, 'h:mm a')}`;
-    } else if (isYesterday(date)) {
-      return `Yesterday, ${format(date, 'h:mm a')}`;
-    } else {
-      return format(date, 'MMM d, h:mm a');
-    }
-  };
 
   // Determine read status
   const isRead = currentUserRole === 'admin' ? message.readByAdmin : message.readByUser;
@@ -91,7 +80,7 @@ export function MessageBubble({ message, currentUserRole }: MessageBubbleProps) 
             dateTime={messageDate.toISOString()}
             role="time"
           >
-            {formatTimestamp(messageDate)}
+            {formatMessageTimestamp(messageDate)}
           </time>
 
           {/* Read status indicator (only shown to message sender) */}

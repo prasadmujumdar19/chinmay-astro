@@ -1,6 +1,11 @@
 'use client';
 
 import { useState, useCallback, KeyboardEvent } from 'react';
+import {
+  MAX_MESSAGE_LENGTH,
+  isApproachingCharacterLimit,
+  truncateMessage,
+} from '@/lib/utils/chatUtils';
 
 interface MessageInputProps {
   onSend: (message: string) => void | Promise<void>;
@@ -18,7 +23,6 @@ interface MessageInputProps {
  */
 export function MessageInput({ onSend, disabled = false, isLoading = false }: MessageInputProps) {
   const [message, setMessage] = useState('');
-  const MAX_LENGTH = 2000;
 
   const handleSend = useCallback(async () => {
     const trimmedMessage = message.trim();
@@ -49,14 +53,12 @@ export function MessageInput({ onSend, disabled = false, isLoading = false }: Me
   );
 
   const handleChange = (value: string) => {
-    // Enforce max length
-    if (value.length <= MAX_LENGTH) {
-      setMessage(value);
-    }
+    // Enforce max length using utility
+    setMessage(truncateMessage(value));
   };
 
   const characterCount = message.length;
-  const isNearLimit = characterCount >= 1900;
+  const isNearLimit = isApproachingCharacterLimit(characterCount);
   const isSendDisabled = disabled || isLoading || message.trim().length === 0;
 
   return (
@@ -80,7 +82,7 @@ export function MessageInput({ onSend, disabled = false, isLoading = false }: Me
             className={`text-sm ${isNearLimit ? 'text-warning text-yellow-600' : 'text-gray-500'}`}
             aria-live="polite"
           >
-            {characterCount} / {MAX_LENGTH}
+            {characterCount} / {MAX_MESSAGE_LENGTH}
           </span>
 
           <button

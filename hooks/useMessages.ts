@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { firebaseApp } from '@/lib/firebase/config';
 import { useAuthStore } from '@/stores/authStore';
+import { validateMessage } from '@/lib/utils/chatUtils';
 import type { Consultation, Message } from '@/types/consultation';
 
 /**
@@ -121,20 +122,17 @@ export function useMessages(consultationId: string) {
    */
   const sendMessage = useCallback(
     async (text: string): Promise<void> => {
-      // Validation
-      const trimmedText = text.trim();
-
-      if (!trimmedText) {
-        throw new Error('Message cannot be empty');
-      }
-
-      if (trimmedText.length > 2000) {
-        throw new Error('Message too long. Maximum 2000 characters.');
+      // Validation using utility
+      const validationError = validateMessage(text);
+      if (validationError) {
+        throw new Error(validationError);
       }
 
       if (!user) {
         throw new Error('You must be signed in to send messages');
       }
+
+      const trimmedText = text.trim();
 
       const db = getFirestore(firebaseApp);
       const messagesRef = collection(db, 'consultations', consultationId, 'messages');
