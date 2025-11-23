@@ -70,6 +70,94 @@ export const mockCollection = vi.fn(() => ({
 }));
 
 /**
+ * Mock Firestore onSnapshot function for real-time listeners
+ */
+export const mockOnSnapshot = vi.fn((_, callback) => {
+  // Call the callback immediately with mock data
+  callback({
+    exists: () => true,
+    data: () => ({}),
+    id: 'test-doc-id',
+  });
+
+  // Return unsubscribe function
+  return vi.fn();
+});
+
+/**
+ * Mock Firestore query function
+ */
+export const mockQuery = vi.fn(() => ({
+  type: 'query',
+}));
+
+/**
+ * Mock Firestore where clause
+ */
+export const mockWhere = vi.fn((field, operator, value) => ({
+  type: 'where',
+  field,
+  operator,
+  value,
+}));
+
+/**
+ * Mock Firestore orderBy clause
+ */
+export const mockOrderBy = vi.fn((field, direction) => ({
+  type: 'orderBy',
+  field,
+  direction,
+}));
+
+/**
+ * Mock Firestore limit clause
+ */
+export const mockLimit = vi.fn(count => ({
+  type: 'limit',
+  count,
+}));
+
+/**
+ * Mock Firestore addDoc function
+ */
+export const mockAddDoc = vi.fn(() =>
+  Promise.resolve({
+    id: 'new-doc-id',
+    path: 'consultations/new-doc-id',
+  })
+);
+
+/**
+ * Mock Firestore getDocs function (for queries)
+ */
+export const mockGetDocs = vi.fn(() =>
+  Promise.resolve({
+    empty: false,
+    size: 0,
+    docs: [],
+    forEach: vi.fn(),
+  })
+);
+
+/**
+ * Mock Firestore runTransaction function
+ */
+export const mockRunTransaction = vi.fn(callback => {
+  const transaction = {
+    get: vi.fn(() =>
+      Promise.resolve({
+        exists: () => true,
+        data: () => ({ chat: 5, audio: 0, video: 0 }),
+      })
+    ),
+    update: vi.fn(),
+    set: vi.fn(),
+  };
+  return Promise.resolve(callback(transaction));
+});
+
+/**
  * Reset all Firestore mocks
  */
 export const resetFirestoreMocks = () => {
@@ -77,4 +165,12 @@ export const resetFirestoreMocks = () => {
   mockGetDoc.mockClear();
   mockDoc.mockClear();
   mockCollection.mockClear();
+  mockOnSnapshot.mockClear();
+  mockQuery.mockClear();
+  mockWhere.mockClear();
+  mockOrderBy.mockClear();
+  mockLimit.mockClear();
+  mockAddDoc.mockClear();
+  mockGetDocs.mockClear();
+  mockRunTransaction.mockClear();
 };
