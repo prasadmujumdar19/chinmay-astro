@@ -143,7 +143,7 @@ export function useMessages(consultationId: string) {
         consultationId,
         senderId: user.uid,
         senderRole: user.role,
-        senderName: user.displayName || 'Anonymous',
+        senderName: user.name || 'Anonymous',
         text: trimmedText,
         timestamp: Timestamp.now(),
         readByAdmin: !isUser, // If admin sends, mark as read by admin
