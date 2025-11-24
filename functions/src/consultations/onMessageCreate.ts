@@ -1,4 +1,4 @@
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v1';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 /**
@@ -29,7 +29,7 @@ export const onMessageCreate = functions.firestore
     const messageData = snapshot.data();
 
     try {
-      const { senderId, senderRole, senderName, text, timestamp } = messageData;
+      const { senderRole, senderName, text, timestamp } = messageData;
 
       // 1. Update consultation's lastActivityAt timestamp
       const consultationRef = db.collection('consultations').doc(consultationId);
