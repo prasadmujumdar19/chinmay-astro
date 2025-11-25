@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import SessionManagementPanel from '@/components/admin/SessionManagementPanel';
+import { SessionManagementPanel } from '@/components/admin/SessionManagementPanel';
 
 describe('SessionManagementPanel', () => {
   beforeEach(() => {

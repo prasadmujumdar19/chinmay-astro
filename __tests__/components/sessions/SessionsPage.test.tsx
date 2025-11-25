@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import SessionsPage from '@/app/(dashboard)/sessions/page';
+import { SessionsPage } from '@/components/sessions/SessionsPage';
 
 describe('SessionsPage', () => {
   beforeEach(() => {
@@ -16,7 +16,7 @@ describe('SessionsPage', () => {
 
   describe('Sessions List Rendering', () => {
     it('should render sessions list', async () => {
-      render(<SessionsPage />);
+      render(<SessionsPage userId="test-user-123" />);
 
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: /my sessions/i })).toBeInTheDocument();
@@ -24,7 +24,7 @@ describe('SessionsPage', () => {
     });
 
     it('should display session type badge (audio/video)', async () => {
-      render(<SessionsPage />);
+      render(<SessionsPage userId="test-user-123" />);
 
       await waitFor(() => {
         expect(screen.getByText(/audio/i)).toBeInTheDocument();
@@ -32,7 +32,7 @@ describe('SessionsPage', () => {
     });
 
     it('should display session status badge', async () => {
-      render(<SessionsPage />);
+      render(<SessionsPage userId="test-user-123" />);
 
       await waitFor(() => {
         expect(screen.getByText(/pending scheduling/i)).toBeInTheDocument();
@@ -40,7 +40,7 @@ describe('SessionsPage', () => {
     });
 
     it('should show purchase date for each session', async () => {
-      render(<SessionsPage />);
+      render(<SessionsPage userId="test-user-123" />);
 
       await waitFor(() => {
         expect(screen.getByText(/purchased/i)).toBeInTheDocument();
@@ -50,7 +50,7 @@ describe('SessionsPage', () => {
 
   describe('Status Display', () => {
     it('should show "Pending Scheduling" for pending_scheduling status', async () => {
-      render(<SessionsPage />);
+      render(<SessionsPage userId="test-user-123" />);
 
       await waitFor(() => {
         expect(screen.getByText(/pending scheduling/i)).toBeInTheDocument();
@@ -58,7 +58,7 @@ describe('SessionsPage', () => {
     });
 
     it('should show scheduled date/time for scheduled status', async () => {
-      render(<SessionsPage />);
+      render(<SessionsPage userId="test-user-123" />);
 
       await waitFor(() => {
         // Should display scheduled datetime
@@ -67,7 +67,7 @@ describe('SessionsPage', () => {
     });
 
     it('should show completion date for completed status', async () => {
-      render(<SessionsPage />);
+      render(<SessionsPage userId="test-user-123" />);
 
       await waitFor(() => {
         expect(screen.getByText(/completed/i)).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('SessionsPage', () => {
 
   describe('Empty State', () => {
     it('should show empty state when no sessions', async () => {
-      render(<SessionsPage />);
+      render(<SessionsPage userId="test-user-123" />);
 
       await waitFor(() => {
         expect(screen.getByText(/no sessions yet/i)).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe('SessionsPage', () => {
     });
 
     it('should show link to purchase page in empty state', async () => {
-      render(<SessionsPage />);
+      render(<SessionsPage userId="test-user-123" />);
 
       await waitFor(() => {
         const purchaseLink = screen.getByRole('link', { name: /purchase credits/i });
@@ -96,7 +96,7 @@ describe('SessionsPage', () => {
 
   describe('Loading State', () => {
     it('should show loading spinner while fetching sessions', async () => {
-      render(<SessionsPage />);
+      render(<SessionsPage userId="test-user-123" />);
 
       expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
     });

@@ -26,6 +26,7 @@ export function createMockTimestamp(date: Date = new Date()): Timestamp {
     toJSON: () => ({
       seconds: Math.floor(date.getTime() / 1000),
       nanoseconds: 0,
+      type: 'timestamp',
     }),
   };
 }

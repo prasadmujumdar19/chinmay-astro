@@ -15,7 +15,7 @@ const mockTimestamp = (date: Date): Timestamp => ({
   toMillis: () => date.getTime(),
   isEqual: () => false,
   valueOf: () => date.toISOString(),
-  toJSON: () => ({ seconds: Math.floor(date.getTime() / 1000), nanoseconds: 0 }),
+  toJSON: () => ({ seconds: Math.floor(date.getTime() / 1000), nanoseconds: 0, type: 'timestamp' }),
 });
 
 /**
