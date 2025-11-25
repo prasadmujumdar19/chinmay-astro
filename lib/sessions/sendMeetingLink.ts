@@ -11,7 +11,7 @@ import type { SendMeetingLinkParams, AudioVideoSession } from '@/types/sessions'
  * Validate meeting link format (Google Meet or Zoom)
  */
 function isValidMeetingLink(link: string): boolean {
-  const googleMeetPattern = /^https:\/\/meet\.google\.com\/[a-z]{3}-[a-z]{4}-[a-z]{3}$/;
+  const googleMeetPattern = /^https:\/\/meet\.google\.com\/[a-z0-9-]+$/;
   const zoomPattern = /^https:\/\/zoom\.us\/j\/\d{9,11}(\?pwd=.+)?$/;
 
   return googleMeetPattern.test(link) || zoomPattern.test(link);

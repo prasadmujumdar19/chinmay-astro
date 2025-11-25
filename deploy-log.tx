@@ -1,0 +1,86 @@
+[2025-11-15T05:58:16.673Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[2025-11-15T05:58:16.674Z] > authorizing via signed-in user (prasadmujumdar.aws@gmail.com)
+[2025-11-15T05:58:16.674Z] [iam] checking project chinmay-astro-c685b for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[2025-11-15T05:58:16.675Z] Checked if tokens are valid: false, expires at: 1763186852967
+[2025-11-15T05:58:16.675Z] Checked if tokens are valid: false, expires at: 1763186852967
+[2025-11-15T05:58:16.675Z] > refreshing access token with scopes: []
+[2025-11-15T05:58:16.676Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[2025-11-15T05:58:16.676Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[2025-11-15T05:58:17.051Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[2025-11-15T05:58:17.052Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[2025-11-15T05:58:17.066Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/chinmay-astro-c685b:testIamPermissions [none]
+[2025-11-15T05:58:17.066Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/chinmay-astro-c685b:testIamPermissions x-goog-quota-user=projects/chinmay-astro-c685b
+[2025-11-15T05:58:17.066Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/chinmay-astro-c685b:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[2025-11-15T05:58:17.388Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/chinmay-astro-c685b:testIamPermissions 200
+[2025-11-15T05:58:17.389Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/chinmay-astro-c685b:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[2025-11-15T05:58:17.389Z] Checked if tokens are valid: true, expires at: 1763189896052
+[2025-11-15T05:58:17.389Z] Checked if tokens are valid: true, expires at: 1763189896052
+[2025-11-15T05:58:17.389Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/chinmay-astro-c685b/serviceAccounts/chinmay-astro-c685b@appspot.gserviceaccount.com:testIamPermissions [none]
+[2025-11-15T05:58:17.389Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/chinmay-astro-c685b/serviceAccounts/chinmay-astro-c685b@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[2025-11-15T05:58:18.040Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/chinmay-astro-c685b/serviceAccounts/chinmay-astro-c685b@appspot.gserviceaccount.com:testIamPermissions 200
+[2025-11-15T05:58:18.041Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/chinmay-astro-c685b/serviceAccounts/chinmay-astro-c685b@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+
+=== Deploying to 'chinmay-astro-c685b'...
+
+i  deploying functions 
+Running command: npm --prefix "$RESOURCE_DIR" run build
+
+> functions@1.0.0 build
+> tsc
+
+✔  functions: Finished running predeploy script. 
+[2025-11-15T05:58:20.299Z] Checked if tokens are valid: true, expires at: 1763189896052
+[2025-11-15T05:58:20.299Z] Checked if tokens are valid: true, expires at: 1763189896052
+[2025-11-15T05:58:20.299Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/chinmay-astro-c685b [none]
+[2025-11-15T05:58:20.520Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/chinmay-astro-c685b 200
+[2025-11-15T05:58:20.520Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/chinmay-astro-c685b {"projectNumber":"300957221965","projectId":"chinmay-astro-c685b","lifecycleState":"ACTIVE","name":"chinmay-astro","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-10-30T23:40:29.464232Z"}
+i  functions: preparing codebase default for deployment 
+i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[2025-11-15T05:58:20.522Z] Checked if tokens are valid: true, expires at: 1763189896052
+[2025-11-15T05:58:20.522Z] Checked if tokens are valid: true, expires at: 1763189896052
+[2025-11-15T05:58:20.522Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/chinmay-astro-c685b/adminSdkConfig [none]
+[2025-11-15T05:58:21.477Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/chinmay-astro-c685b/adminSdkConfig 200
+[2025-11-15T05:58:21.477Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/chinmay-astro-c685b/adminSdkConfig {"projectId":"chinmay-astro-c685b","storageBucket":"chinmay-astro-c685b.firebasestorage.app"}
+[2025-11-15T05:58:21.477Z] Checked if tokens are valid: true, expires at: 1763189896052
+[2025-11-15T05:58:21.477Z] Checked if tokens are valid: true, expires at: 1763189896052
+[2025-11-15T05:58:21.477Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/chinmay-astro-c685b/configs [none]
+[2025-11-15T05:58:22.154Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/chinmay-astro-c685b/configs 200
+[2025-11-15T05:58:22.154Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/chinmay-astro-c685b/configs {}
+[2025-11-15T05:58:22.156Z] Validating nodejs source
+⚠  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+⚠  functions: Please note that there will be breaking changes when you upgrade. 
+[2025-11-15T05:58:22.756Z] > [functions] package.json contents: {
+  "name": "functions",
+  "version": "1.0.0",
+  "description": "Cloud Functions for Chinmay Astro",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.4.0",
+    "firebase-admin": "^13.5.0",
+    "firebase-functions": "^6.2.0",
+    "razorpay": "^2.9.6",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  },
+  "private": true
+}
+[2025-11-15T05:58:22.756Z] Building nodejs source
+i  functions: Loading and analyzing source code for codebase default to determine what to deploy 
+[2025-11-15T05:58:22.757Z] Could not find functions.yaml. Must use http discovery
+
+Error: Failed to find location of Firebase Functions SDK. Please file a bug on Github (https://github.com/firebase/firebase-tools/).
