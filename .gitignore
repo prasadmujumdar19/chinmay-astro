@@ -10,6 +10,7 @@ tasks/
 # Dependencies
 # ==========================================
 node_modules/
+node_modules.bak/
 .pnpm-store/
 .pnpm-debug.log
 npm-debug.log*
@@ -78,6 +79,8 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+deploy-log.*
+final-deploy.*
 
 # ==========================================
 # Firebase
@@ -89,6 +92,7 @@ ui-debug.log
 functions/node_modules/
 functions/lib/
 functions/.env
+functions/package-lock.json
 
 # Firebase Service Account Keys (NEVER COMMIT!)
 firebase-service-account-key.json
