@@ -5,3 +5,7 @@ admin.initializeApp();
 
 // Export Cloud Functions
 export { onUserCreate } from './auth/onUserCreate';
+export { createConsultation } from './consultations/createConsultation';
+export { closeConsultation } from './consultations/closeConsultation';
+export { onConsultationCreate } from './consultations/onConsultationCreate';
+export { onMessageCreate } from './consultations/onMessageCreate';
