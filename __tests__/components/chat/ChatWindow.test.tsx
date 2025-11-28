@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import {
   mockActiveConsultation,
@@ -275,7 +276,8 @@ describe('ChatWindow Component', () => {
 
       // Act
       // This will fail - component doesn't exist yet
-      const { user } = render(<ChatWindow consultationId={consultationId} />);
+      const user = userEvent.setup();
+      render(<ChatWindow consultationId={consultationId} />);
       const input = screen.getByPlaceholderText(/type your message/i);
       const sendButton = screen.getByRole('button', { name: /send/i });
 
