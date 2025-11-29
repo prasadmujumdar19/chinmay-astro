@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi, expect } from 'vitest';
 import type { DocumentSnapshot, QuerySnapshot } from 'firebase/firestore';
 
 /**
@@ -13,16 +13,20 @@ import type { DocumentSnapshot, QuerySnapshot } from 'firebase/firestore';
 export const createMockDocumentSnapshot = <T>(
   data: T | null,
   id = 'test-doc-id'
-): Partial<DocumentSnapshot<T>> => ({
-  exists: () => data !== null,
-  data: () => data as T,
-  id,
-  ref: {
+): Partial<DocumentSnapshot<T>> => {
+  const snapshot = {
+    exists: () => data !== null,
+    data: () => data as T,
     id,
-    path: `collection/${id}`,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any,
-});
+    ref: {
+      id,
+      path: `collection/${id}`,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any,
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return snapshot as any;
+};
 
 /**
  * Create a mock query snapshot

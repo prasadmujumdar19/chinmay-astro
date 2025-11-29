@@ -9,6 +9,11 @@ const mockTimestamp = (date: Date = new Date()): Timestamp => ({
   toMillis: () => date.getTime(),
   isEqual: () => false,
   valueOf: () => '',
+  toJSON: () => ({
+    seconds: Math.floor(date.getTime() / 1000),
+    nanoseconds: 0,
+    type: 'timestamp',
+  }),
 });
 
 // Base consultation fixture

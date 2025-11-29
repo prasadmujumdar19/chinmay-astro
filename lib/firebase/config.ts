@@ -1,4 +1,5 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { firebaseClientConfig } from './client-config';
 
@@ -11,6 +12,9 @@ const firebaseConfig = firebaseClientConfig;
 // Initialize Firebase app (singleton pattern)
 export const firebaseApp: FirebaseApp =
   getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+
+// Initialize Firestore
+export const db: Firestore = getFirestore(firebaseApp);
 
 // Initialize Firebase Storage
 export const storage: FirebaseStorage = getStorage(firebaseApp);

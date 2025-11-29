@@ -252,6 +252,11 @@ describe('MessageBubble Component', () => {
           nanoseconds: 0,
           isEqual: () => false,
           valueOf: () => '',
+          toJSON: () => ({
+            seconds: Math.floor(Date.now() / 1000),
+            nanoseconds: 0,
+            type: 'timestamp',
+          }),
         },
       };
 
@@ -276,6 +281,11 @@ describe('MessageBubble Component', () => {
           nanoseconds: 0,
           isEqual: () => false,
           valueOf: () => '',
+          toJSON: () => ({
+            seconds: Math.floor(yesterday.getTime() / 1000),
+            nanoseconds: 0,
+            type: 'timestamp',
+          }),
         },
       };
 
