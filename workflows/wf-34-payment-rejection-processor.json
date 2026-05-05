@@ -1,0 +1,219 @@
+{
+  "updatedAt": "2026-04-25T02:42:43.059Z",
+  "createdAt": "2026-01-21T07:56:57.924Z",
+  "id": "se82n3MUQ9xE5aEr",
+  "name": "WF-34 Payment Rejection Processor",
+  "description": null,
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "692ed812-83f8-4c06-8be8-06cf2367a8e2",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT u.*, p.id as payment_id\nFROM users u\nLEFT JOIN payments p ON p.user_id = u.id \n  AND p.status = 'pending_verification'\nWHERE u.phone_number = $1\nORDER BY p.created_at DESC\nLIMIT 1",
+        "options": {
+          "queryReplacement": "={{ $json.phoneNumber }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        0
+      ],
+      "id": "8dec2f29-5168-4d6c-aa6d-30d0102e3d44",
+      "name": "Load User by Phone",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payments\nSET status = 'rejected',\n    rejected_at = NOW(),\n    rejection_reason = COALESCE($2, 'Payment not verified')\nWHERE id = $1\nRETURNING *",
+        "options": {
+          "queryReplacement": "={{ $json.payment_id }}, {{ $json.rejectionReason || 'Payment not verified' }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        416,
+        0
+      ],
+      "id": "7fa84ef2-1bc1-4e89-8def-037ab064d9a7",
+      "name": "Update Payment Record",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const userData = $('Load User by Phone').item.json;\n\nreturn {\n  json: {\n    phoneNumber: userData.phone_number,\n    messageType: \"interactive\",\n    interactivePayload: {\n      type: \"button\",\n      body: {\n        text: \"We couldn't verify your payment. Please check the details and try again.\\n\\nPayment Instructions:\\nAmount: ₹500\\nUPI ID: payments@chinmay\\nReference: Your name\\n\\nAfter payment, click the button below.\"\n      },\n      action: {\n        buttons: [\n          {\n            type: \"reply\",\n            reply: {\n              id: \"payment_completed\",\n              title: \"Payment Completed\"\n            }\n          }\n        ]\n      }\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "de0f43ff-8ca7-4280-bb05-88f759309645",
+      "name": "Prepare Rejection Message"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "BUVun38WEKb12zg9",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/BUVun38WEKb12zg9",
+          "cachedResultName": "WF-50 Send WhatsApp"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        0
+      ],
+      "id": "ffbf2f49-4f41-492b-b21f-d5e7b6b858dc",
+      "name": "Call WF-50 WhatsApp Sender"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0A5B0ZE81E",
+          "mode": "list",
+          "cachedResultName": "chinmay-admin-commands"
+        },
+        "text": "=❌ Payment rejected for {{ $('Load User by Phone').item.json.name || 'User' }} (+{{ $('Load User by Phone').item.json.phone_number }})  User notified to retry payment.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "85b3e5a4-d22c-4e8c-96d5-17364a6f54b8",
+      "name": "Send a message",
+      "webhookId": "7b5bf343-0f25-4c33-9b6f-335b062387c7",
+      "credentials": {
+        "slackApi": {
+          "id": "WSds5JWe5b6N7myY",
+          "name": "Slack - Chinmay Astro"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Load User by Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load User by Phone": {
+      "main": [
+        [
+          {
+            "node": "Update Payment Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Payment Record": {
+      "main": [
+        [
+          {
+            "node": "Prepare Rejection Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Rejection Message": {
+      "main": [
+        [
+          {
+            "node": "Call WF-50 WhatsApp Sender",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call WF-50 WhatsApp Sender": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "commandType": "REJECT_PAYMENT",
+          "command": "REJECT",
+          "subCommand": "PAYMENT",
+          "phoneNumber": "61466927921",
+          "reason": "",
+          "originalMessage": "REJECT PAYMENT 61466927921",
+          "channelId": "C0A5B0ZE81E",
+          "channelName": "chinmay-admin-commands"
+        }
+      }
+    ]
+  },
+  "tags": []
+}

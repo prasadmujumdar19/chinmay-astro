@@ -1,0 +1,379 @@
+{
+  "updatedAt": "2026-04-25T02:42:42.710Z",
+  "createdAt": "2026-01-21T07:54:58.144Z",
+  "id": "NcHZedq9ycnAQ9SW",
+  "name": "WF-33 Payment Approval Processor",
+  "description": null,
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "156fd592-721c-4085-b679-8e810051d0ca",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input from WF-11 (Command Parser) will contain:\n// - command: \"APPROVE\"\n// - subCommand: \"PAYMENT\"\n// - phoneNumber: \"61466927921\"\n// - adminUserId: \"U0A4A6X857D\"\n\nconst input = $input.first().json;\n\nreturn [{\n  json: {\n    phoneNumber: input.phoneNumber,\n    adminUserId: input.channelId,\n    command: input.command,\n    subCommand: input.subCommand\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "34dea893-b91f-4e86-8fc4-2003d796a8e6",
+      "name": "Extract Command Data"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM users \nWHERE phone_number = $1\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.phoneNumber }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        448,
+        0
+      ],
+      "id": "8f928412-c625-414b-b117-89d6442605f3",
+      "name": "Load User by Phone",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payments \nSET \n  status = 'approved',\n  verified_at = NOW(),\n  verified_by = $1\nWHERE user_id = $2 \n  AND status = 'pending_verification'\nRETURNING id;",
+        "options": {
+          "queryReplacement": "={{ $('Extract Command Data').item.json.adminUserId }}, {{ $json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        656,
+        0
+      ],
+      "id": "1c4f325d-6512-4d88-99e9-2c3e7ef74c09",
+      "name": "Update Payment Status",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE users \nSET \n  status = 'consultation_active',\n  updated_at = NOW()\nWHERE id = $1\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ $('Load User by Phone').item.json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        848,
+        0
+      ],
+      "id": "3c52d3de-3e2b-4ebc-b097-4d51f1b32707",
+      "name": "Update User Status",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO consultations (\n  user_id,\n  payment_id,\n  status,\n  started_at\n)\nVALUES ($1, $2, 'active', NOW())\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ $('Load User by Phone').item.json.id }}, {{ $('Update Payment Status').item.json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1056,
+        0
+      ],
+      "id": "8a0a4e44-4be4-4516-adab-fe8276e5c049",
+      "name": "Create Consultation Record",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const user = $('Load User by Phone').first().json;\n\nreturn [{\n  json: {\n    userName: user.name,\n    phoneNumber: user.phone_number,\n    userId: user.id\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        0
+      ],
+      "id": "6778f2e3-fcb7-47f4-88d7-5efa22b2e974",
+      "name": "Prepare Channel Data"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "IO5BZLUxuVmjzk5I",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/IO5BZLUxuVmjzk5I",
+          "cachedResultName": "WF-52 Slack Channel Manager"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1504,
+        0
+      ],
+      "id": "24bbaf5c-2d82-4248-8d25-37f7b230a720",
+      "name": "Call WF-52 Create Channel"
+    },
+    {
+      "parameters": {
+        "jsCode": "const user = $('Load User by Phone').first().json;\n\nreturn [{\n  json: {\n    phoneNumber: user.phone_number,\n    messageType: \"text\",\n    messageContent: `🎉 Great news ${user.name}!\n\nYour payment has been verified and your consultation is now ACTIVE.\n\nYou can now chat directly with Dr. Chinmay Mujumdar. Please ask your question and he will respond as soon as possible.`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        0
+      ],
+      "id": "49610df1-8154-44ec-87f0-bb3b053b012b",
+      "name": "Prepare User Activation Message"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "BUVun38WEKb12zg9",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/BUVun38WEKb12zg9",
+          "cachedResultName": "WF-50 Send WhatsApp"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1920,
+        0
+      ],
+      "id": "23020136-be7a-4432-8d33-6e0d1b04bd4e",
+      "name": "Call WF-50 Notify User"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Call WF-52 Create Channel').item.json.channelId }}",
+          "mode": "name"
+        },
+        "text": "=✅ *Consultation Activated*  *User:* {{ $('Load User by Phone').item.json.name }} *Phone:* {{ $('Load User by Phone').item.json.phone_number }} *DOB:* {{ $('Load User by Phone').item.json.date_of_birth }} *TOB:* {{ $('Load User by Phone').item.json.time_of_birth }} *Place:* {{ $('Load User by Phone').item.json.place_of_birth }}  User has been notified. They can now send their questions.  To close consultation when done, type: `CLOSE CONSULTATION {{ $('Load User by Phone').item.json.phone_number }}`",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2128,
+        0
+      ],
+      "id": "89e7818f-40f0-4c8c-a9fa-13d0e0989d02",
+      "name": "Notify Admin in Channel",
+      "webhookId": "1b4978b7-9675-4b1a-b2a5-c661d08b0397",
+      "credentials": {
+        "slackApi": {
+          "id": "WSds5JWe5b6N7myY",
+          "name": "Slack - Chinmay Astro"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Extract Command Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Command Data": {
+      "main": [
+        [
+          {
+            "node": "Load User by Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load User by Phone": {
+      "main": [
+        [
+          {
+            "node": "Update Payment Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Payment Status": {
+      "main": [
+        [
+          {
+            "node": "Update User Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update User Status": {
+      "main": [
+        [
+          {
+            "node": "Create Consultation Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Consultation Record": {
+      "main": [
+        [
+          {
+            "node": "Prepare Channel Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Channel Data": {
+      "main": [
+        [
+          {
+            "node": "Call WF-52 Create Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call WF-52 Create Channel": {
+      "main": [
+        [
+          {
+            "node": "Prepare User Activation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare User Activation Message": {
+      "main": [
+        [
+          {
+            "node": "Call WF-50 Notify User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call WF-50 Notify User": {
+      "main": [
+        [
+          {
+            "node": "Notify Admin in Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "commandType": "APPROVE_PAYMENT",
+          "command": "APPROVE",
+          "subCommand": "PAYMENT",
+          "phoneNumber": "61466927921",
+          "reason": "",
+          "originalMessage": "APPROVE PAYMENT 61466927921",
+          "channelId": "C0A5B0ZE81E",
+          "channelName": "chinmay-admin-commands"
+        }
+      }
+    ]
+  },
+  "tags": []
+}

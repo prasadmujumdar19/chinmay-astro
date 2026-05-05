@@ -1,0 +1,323 @@
+{
+  "updatedAt": "2026-04-12T06:06:29.130Z",
+  "createdAt": "2026-04-12T06:06:29.130Z",
+  "id": "fdlIpl67amL2Ho6U",
+  "name": "BACKUP_20260412_WF-25 Post-Consultation Options (SUPERSEDED)",
+  "description": null,
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -624,
+        96
+      ],
+      "id": "64f931a2-1a23-4cb0-8f06-84f3450e49c9",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\n// The button ID will be in messageContent (from WF-01 processing)\nconst buttonId = input.messageContent; // 'provide_feedback' or 'book_another'\n\nreturn [{\n  json: {\n    ...input,\n    buttonId: buttonId,\n    phoneNumber: input.phoneNumber,\n    user: input.user\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        96
+      ],
+      "id": "a178edf8-5bc9-4b6d-a6fb-9a3e976197fa",
+      "name": "Detect Button Response"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.buttonId }}",
+                    "rightValue": "provide_feedback",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "2d48e0fd-44a8-4ddc-b4de-167c6c38acfd"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "provide_feedback"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4a30f138-264a-4b72-8783-e32694ce41bd",
+                    "leftValue": "={{ $json.buttonId }}",
+                    "rightValue": "book_another",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "book_another"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -208,
+        96
+      ],
+      "id": "494e9c55-8d4e-4633-b308-1f3cb8019037",
+      "name": "Route by Button"
+    },
+    {
+      "parameters": {
+        "jsCode": "const user = $('Route by Button').first().json.user;\n\nreturn [{\n  json: {\n    phoneNumber: user.phoneNumber,\n    messageType: \"text\",\n    messageContent: `Thank you for your willingness to provide feedback, ${user.name}!\\n\\nPlease share your experience with Dr. Chinmay's consultation:\\n\\n1. How would you rate the consultation? (Excellent/Good/Average/Poor)\\n2. Any comments or suggestions?\\n\\nJust reply with your feedback.`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "6510b58f-9f08-4443-8df0-3612f432772f",
+      "name": "Prepare Feedback Form"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "aJoquwuEUbz8bI1B",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/aJoquwuEUbz8bI1B",
+          "cachedResultName": "WF-50 Send WhatsApp"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "2cc4aab0-d9e9-444d-8509-b55db958026e",
+      "name": "Call WF-50 Send Feedback Request"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE users \nSET \n  status = 'payment_pending',\n  updated_at = NOW()\nWHERE id = $1\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ $json.user.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        192
+      ],
+      "id": "7d902029-e3c2-494e-bf50-ca7767825b3a",
+      "name": "Reset User to Payment Pending",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const user = $input.first().json;\n\nreturn [{\n  json: {\n    phoneNumber: user.phone_number,\n    messageType: \"interactive\",\n    interactivePayload: {\n      type: \"button\",\n      body: {\n        text: `Great to have you back, ${user.name}!\\n\\n*Payment Information:*\\nAmount: ₹500\\n\\nPay via GPay/PhonePe:\\nUPI ID: payments@chinmay\\n\\nReference: ${user.name}\\n\\nAfter payment, click the button below:`\n      },\n      action: {\n        buttons: [\n          {\n            type: \"reply\",\n            reply: {\n              id: \"payment_completed\",\n              title: \"Payment Completed\"\n            }\n          }\n        ]\n      }\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        192
+      ],
+      "id": "702792ec-2491-4651-931a-89660dbe29c9",
+      "name": "Prepare Payment Message"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "aJoquwuEUbz8bI1B",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/aJoquwuEUbz8bI1B",
+          "cachedResultName": "WF-50 Send WhatsApp"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        624,
+        192
+      ],
+      "id": "9662c2eb-952a-4203-8a14-e97f087d058c",
+      "name": "Call WF-50 Send Payment"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE users \nSET awaiting_feedback = TRUE\nWHERE id = $1\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ $json.user.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        0
+      ],
+      "id": "99259be2-7ec0-429b-85c4-6bb76877e2e0",
+      "name": "Set Awaiting Feedback Flag",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Detect Button Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Button Response": {
+      "main": [
+        [
+          {
+            "node": "Route by Button",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Button": {
+      "main": [
+        [
+          {
+            "node": "Set Awaiting Feedback Flag",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reset User to Payment Pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Feedback Form": {
+      "main": [
+        [
+          {
+            "node": "Call WF-50 Send Feedback Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reset User to Payment Pending": {
+      "main": [
+        [
+          {
+            "node": "Prepare Payment Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payment Message": {
+      "main": [
+        [
+          {
+            "node": "Call WF-50 Send Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Awaiting Feedback Flag": {
+      "main": [
+        [
+          {
+            "node": "Prepare Feedback Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "tags": []
+}

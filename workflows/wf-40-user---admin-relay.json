@@ -1,0 +1,144 @@
+{
+  "updatedAt": "2026-04-12T06:44:55.734Z",
+  "createdAt": "2026-04-12T00:34:27.403Z",
+  "id": "du32QBZbSQOjfESe",
+  "name": "WF-40 User -> Admin Relay",
+  "description": null,
+  "active": true,
+  "nodes": [
+    {
+      "id": "0bcbaea9-aaf0-4111-a14a-d1bfd52535c0",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -560,
+        -128
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "Load User Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -320,
+        -128
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, phone_number, slack_channel_id FROM users WHERE phone_number = '{{ $json.phoneNumber }}' LIMIT 1"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0002-0002-0002-000000000002",
+      "name": "Format Slack Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -80,
+        -128
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1",
+              "name": "channelId",
+              "value": "={{ $('Load User Record').item.json.slack_channel_id }}",
+              "type": "string"
+            },
+            {
+              "id": "f2",
+              "name": "messageText",
+              "value": "=📲 *{{ $('Load User Record').item.json.name }}:* {{ $('When Executed by Another Workflow').item.json.messageText }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0003-0003-0003-000000000003",
+      "name": "Call WF-51 (Post to Slack)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        160,
+        -128
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "wlZRK0YxnhP0b2RL",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "channelId": "={{ $json.channelId }}",
+            "messageText": "={{ $json.messageText }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Load User Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load User Record": {
+      "main": [
+        [
+          {
+            "node": "Format Slack Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Slack Message": {
+      "main": [
+        [
+          {
+            "node": "Call WF-51 (Post to Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "tags": []
+}

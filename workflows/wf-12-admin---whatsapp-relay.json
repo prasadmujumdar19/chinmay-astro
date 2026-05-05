@@ -1,0 +1,124 @@
+{
+  "updatedAt": "2026-04-12T08:09:52.483Z",
+  "createdAt": "2026-04-12T06:07:56.027Z",
+  "id": "RjwHs9Dx5cK8Q5wD",
+  "name": "WF-12 Admin -> WhatsApp Relay",
+  "description": null,
+  "active": true,
+  "nodes": [
+    {
+      "id": "trigger-wf12",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "filter-wf12",
+      "name": "Skip Bots and Commands",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        420,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.botMessage }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "leftValue": "={{ $json.messageText }}",
+              "rightValue": "/",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith",
+                "singleValue": true
+              },
+              "not": true
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "send-wa-wf12",
+      "name": "Call WF-50 Send WhatsApp",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "BUVun38WEKb12zg9",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phoneNumber": "={{ $('When Executed by Another Workflow').item.json.phoneNumber }}",
+            "messageBody": "={{ $('When Executed by Another Workflow').item.json.messageText }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Skip Bots and Commands",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip Bots and Commands": {
+      "main": [
+        [
+          {
+            "node": "Call WF-50 Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "tags": []
+}

@@ -1,0 +1,298 @@
+{
+  "updatedAt": "2026-04-25T02:42:42.370Z",
+  "createdAt": "2026-01-21T07:54:22.814Z",
+  "id": "emUOLWVZiNVxcOe3",
+  "name": "WF-32 Payment Confirmation Receiver",
+  "description": null,
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "bc9e7f47-4ceb-40b7-b4c3-12b163ca5316",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO chinmay_astro.payments (\n  user_id,\n  amount,\n  currency,\n  status,\n  payment_method\n)\nVALUES ($1, $2, $3, $4, $5 )\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ $json.user.id }}, {{ 500 }}, {{ \"INR\" }}, {{ \"pending_verification\" }}, {{ \"gpay\" }}",
+          "largeNumbersOutput": "text"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        224,
+        0
+      ],
+      "id": "b2e91fbf-a6a5-4a07-ac6d-f92c9e123b87",
+      "name": "Create Payment Record",
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE chinmay_astro.users \nSET \n  status = 'payment_submitted',\n  updated_at = NOW(),\n  last_message_at = NOW()\nWHERE id = $1\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ $('When Executed by Another Workflow').item.json.user.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        448,
+        0
+      ],
+      "id": "611502f0-a1a5-408b-b684-38ec6e7a8938",
+      "name": "Update User Status",
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const user = $('Update User Status').first().json;\n\nreturn [{\n  json: {\n    phoneNumber: user.phone_number,\n    messageType: \"text\",\n    messageContent: `Thank you ${user.name}! \n\nYour payment confirmation has been received. \n\nWe'll verify your payment and activate your consultation within 24 hours.\n\nYou'll receive a confirmation message once approved.`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "id": "1833fc52-8c4a-4d11-973e-b9ca23604d81",
+      "name": "Prepare User Confirmation"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "BUVun38WEKb12zg9",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/BUVun38WEKb12zg9",
+          "cachedResultName": "WF-50 Send WhatsApp"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "f4f9c54a-b286-43e4-b8fc-59aef45e612a",
+      "name": "Call WF-50 (Send Payment Confirmation Received Message)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        928,
+        0
+      ]
+    },
+    {
+      "id": "new-call-wf52",
+      "name": "Call WF-52 (Get/Create User Channel)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        340
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "IO5BZLUxuVmjzk5I",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "userId": "={{ $('Update User Status').item.json.id }}",
+            "userName": "={{ $('Update User Status').item.json.name }}",
+            "action": "create"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "new-call-wf51",
+      "name": "Call WF-51 (Notify Admin)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        340
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "wlZRK0YxnhP0b2RL",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "channelId": "={{ $('Call WF-52 (Get/Create User Channel)').item.json.channelId }}",
+            "messageText": "={{ '🔔 *New Payment Submission*\n\n*User:* ' + $('Update User Status').item.json.name + '\n*Phone:* ' + $('Update User Status').item.json.phone_number + '\n*Amount:* ₹500\n*Payment ID:* ' + $('Create Payment Record').item.json.id + '\n\nPlease verify payment and run:\n`APPROVE CHAT CONSULT ' + $('Update User Status').item.json.phone_number + '`' }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Create Payment Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Payment Record": {
+      "main": [
+        [
+          {
+            "node": "Update User Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update User Status": {
+      "main": [
+        [
+          {
+            "node": "Prepare User Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare User Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Call WF-50 (Send Payment Confirmation Received Message)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call WF-50 (Send Payment Confirmation Received Message)": {
+      "main": [
+        [
+          {
+            "node": "Call WF-52 (Get/Create User Channel)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call WF-52 (Get/Create User Channel)": {
+      "main": [
+        [
+          {
+            "node": "Call WF-51 (Notify Admin)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "messageId": "wamid.HBgLNjE0NjY5Mjc5MjEVAgASGBQzQUJGOEMwNTNEQjk0QzMxQTI3MAA=",
+          "phoneNumber": "61466927921",
+          "phoneNumberFormatted": "+61466927921",
+          "contactName": "Prasad Mujumdar",
+          "messageType": "interactive",
+          "messageContent": "payment_completed",
+          "messageContentUpper": "PAYMENT_COMPLETED",
+          "rawMessage": {
+            "context": {
+              "from": "918329183425",
+              "id": "wamid.HBgLNjE0NjY5Mjc5MjEVAgARGBIxMTdBRTlDNDVDQjUwRDFFNUMA"
+            },
+            "from": "61466927921",
+            "id": "wamid.HBgLNjE0NjY5Mjc5MjEVAgASGBQzQUJGOEMwNTNEQjk0QzMxQTI3MAA=",
+            "timestamp": "1766043523",
+            "type": "interactive",
+            "interactive": {
+              "type": "button_reply",
+              "button_reply": {
+                "id": "payment_completed",
+                "title": "Payment Completed"
+              }
+            }
+          },
+          "timestamp": "1766043523",
+          "metadata": {
+            "phoneNumberId": "940973869088653",
+            "displayPhoneNumber": "918329183425"
+          },
+          "userExists": 21,
+          "isNewUser": false,
+          "user": {
+            "id": 21,
+            "phoneNumber": "61466927921",
+            "name": "Prasad",
+            "status": "payment_pending",
+            "context": {},
+            "createdAt": "2025-12-18T07:08:32.584Z",
+            "lastMessageAt": "2025-12-18T07:08:32.584Z"
+          },
+          "route": "PAYMENT_CONFIRM",
+          "routeReason": "Payment confirmation button clicked"
+        }
+      }
+    ]
+  },
+  "tags": []
+}

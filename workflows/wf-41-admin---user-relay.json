@@ -1,0 +1,324 @@
+{
+  "updatedAt": "2026-04-12T06:46:38.222Z",
+  "createdAt": "2026-01-21T07:55:31.581Z",
+  "id": "6PzJRZsF7k2d9hV7",
+  "name": "WF-41 Admin -> User Relay",
+  "description": null,
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -576,
+        96
+      ],
+      "id": "5a04d94e-e24f-47e3-91af-841d1ee197e6",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\n// Check if this is WhatsApp inbound (has phoneNumber) or Slack inbound (has channelId but no phoneNumber)\nconst isFromWhatsApp = !!input.phoneNumber;\nconst isFromSlack = !!input.channelId && !input.phoneNumber;\n\nreturn [{\n  json: {\n    ...input,\n    direction: isFromWhatsApp ? 'whatsapp_to_slack' : 'slack_to_whatsapp',\n    isFromWhatsApp: isFromWhatsApp,\n    isFromSlack: isFromSlack\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        96
+      ],
+      "id": "3b0837aa-9179-4161-b423-ccdd8ad221ec",
+      "name": "Detect Direction"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.direction }}",
+                    "rightValue": "whatsapp_to_slack",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "24204dd6-3d02-4d89-9f9a-32d870bbb23a"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp_to_slack"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5335bef3-7439-46d5-aced-01a3fc8309d4",
+                    "leftValue": "={{ $json.direction }}",
+                    "rightValue": "slack_to_whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "slack_to_whatsapp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -208,
+        96
+      ],
+      "id": "b7e1468b-bc46-4b53-ba15-cfe6522f3346",
+      "name": "Route by Direction"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst userName = input.user?.name || 'user';\nconst phoneNumber = input.phoneNumber;\n\n// Clean username - same logic as WF-52\nconst cleanName = userName\n  .toLowerCase()\n  .replace(/[^a-z0-9]/g, '-')\n  .replace(/-+/g, '-')\n  .substring(0, 20);\n\n// Channel name format: consult-username-phonenumber\nconst channelName = `consult-${cleanName}-${phoneNumber}`;\n\nreturn [{\n  json: {\n    ...input,\n    channelName: channelName,\n    messageText: input.messageContent\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7cebd1ae-05ef-43f6-9e44-cdc4da4b2da3",
+      "name": "Prepare Channel Lookup"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "=#{{ $('Prepare Channel Lookup').item.json.channelName }}",
+          "mode": "name"
+        },
+        "text": "=*{{ $('Prepare Channel Lookup').item.json.user.name }}:* {{ $('Prepare Channel Lookup').item.json.messageText }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        240,
+        0
+      ],
+      "id": "3887a2c2-4292-4643-aafa-494052ab9365",
+      "name": "Post to Slack Channel",
+      "webhookId": "859062ec-a545-41d9-a78f-e1b74af52a7e",
+      "credentials": {
+        "slackApi": {
+          "id": "WSds5JWe5b6N7myY",
+          "name": "Slack - Chinmay Astro"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst channelName = input.channelName; // e.g., \"consult-prasad-61466927921\"\n\n// Extract phone number from channel name (everything after last dash + username)\nconst parts = channelName.split('-');\nconst phoneNumber = parts[parts.length - 1]; // \"61466927921\"\n\nreturn [{\n  json: {\n    ...input,\n    phoneNumber: phoneNumber,\n    adminMessage: input.messageText\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        192
+      ],
+      "id": "dac77fd7-cd25-4a75-9935-32171f9c64c9",
+      "name": "Extract Phone from Channel"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM users \nWHERE phone_number = $1\n  AND status = 'consultation_active'\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.phoneNumber }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        192
+      ],
+      "id": "404f5766-91ea-4219-83d9-52afe84f4ea8",
+      "name": "Load User by Phone",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const user = $input.first().json;\nconst adminMessage = $('Detect Direction').first().json.messageText;\n\nreturn [{\n  json: {\n    phoneNumber: user.phone_number,\n    messageType: \"text\",\n    messageContent: adminMessage\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        192
+      ],
+      "id": "c04558c3-ff17-413b-ac0e-25872ec27ba9",
+      "name": "Prepare WhatsApp Message"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "BUVun38WEKb12zg9",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        624,
+        192
+      ],
+      "id": "f24bf4c5-b4ef-4480-9581-41fe8cadd397",
+      "name": "WF-50 (Send WhatsApp)"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Detect Direction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Direction": {
+      "main": [
+        [
+          {
+            "node": "Route by Direction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Direction": {
+      "main": [
+        [
+          {
+            "node": "Prepare Channel Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Phone from Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Channel Lookup": {
+      "main": [
+        [
+          {
+            "node": "Post to Slack Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Phone from Channel": {
+      "main": [
+        [
+          {
+            "node": "Load User by Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load User by Phone": {
+      "main": [
+        [
+          {
+            "node": "Prepare WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare WhatsApp Message": {
+      "main": [
+        [
+          {
+            "node": "WF-50 (Send WhatsApp)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "messageText": "1st response",
+          "channelId": "C0A4T44CYGN",
+          "channelName": "consult-prasad-61466927921",
+          "isCommand": false
+        }
+      }
+    ]
+  },
+  "tags": []
+}

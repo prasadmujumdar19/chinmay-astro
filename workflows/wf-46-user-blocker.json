@@ -1,0 +1,160 @@
+{
+  "updatedAt": "2026-04-12T06:07:42.220Z",
+  "createdAt": "2026-01-21T07:57:01.500Z",
+  "id": "UV62An60fzflU0uD",
+  "name": "WF-46 User Blocker",
+  "description": null,
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5a3c8551-c07b-4111-9837-ad30e476469f",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM users \nWHERE phone_number = $1\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.phoneNumber }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        0
+      ],
+      "id": "5945706a-dd90-4608-a807-c21877aee4be",
+      "name": "Load User by Phone",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE users\nSET status = 'blocked',\n    blocked_at = NOW(),\n    blocked_by = 'admin',\n    blocked_reason = 'Blocked by admin',\n    updated_at = NOW()\nWHERE id = $1\nRETURNING *",
+        "options": {
+          "queryReplacement": "={{ $('Load User by Phone').item.json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        416,
+        0
+      ],
+      "id": "399ee240-2881-4b0d-a752-8c2c12c7cdeb",
+      "name": "Update User to Blocked Status",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0A5B0ZE81E",
+          "mode": "list",
+          "cachedResultName": "chinmay-admin-commands"
+        },
+        "text": "=Name: {{ $('Load User by Phone').item.json.name || 'Unknown' }} Phone: +{{ $('Load User by Phone').item.json.phone_number }} Reason: {{ $json.blockReason || 'Blocked by admin' }} Blocked by: {{ $json.adminUserId }}  This user will no longer be able to send messages.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "e74ab67e-2540-4d69-8009-f343c115e265",
+      "name": "Send a message",
+      "webhookId": "c2c8827b-f1bd-42b1-82db-1754113da789",
+      "credentials": {
+        "slackApi": {
+          "id": "WSds5JWe5b6N7myY",
+          "name": "Slack - Chinmay Astro"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Load User by Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load User by Phone": {
+      "main": [
+        [
+          {
+            "node": "Update User to Blocked Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update User to Blocked Status": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "commandType": "BLOCK_USER",
+          "command": "BLOCK",
+          "subCommand": "61466927921",
+          "phoneNumber": "61466927921",
+          "reason": "BEHAVIOR",
+          "originalMessage": "BLOCK 61466927921 SPAM BEHAVIOR",
+          "channelId": "C0A5B0ZE81E",
+          "channelName": "chinmay-admin-commands"
+        }
+      }
+    ]
+  },
+  "tags": []
+}

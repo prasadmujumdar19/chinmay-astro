@@ -1,0 +1,314 @@
+{
+  "updatedAt": "2026-02-26T09:02:27.681Z",
+  "createdAt": "2026-01-21T07:54:43.998Z",
+  "id": "IO5BZLUxuVmjzk5I",
+  "name": "WF-52 Slack Channel Manager",
+  "description": null,
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -672,
+        96
+      ],
+      "id": "3c7828b6-d5a1-48cf-ac5d-2ecae29f73d5",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst userName = input.userName || 'user';\nconst phoneNumber = input.phoneNumber || '';\n\n// Clean username - remove spaces, special chars, lowercase\nconst cleanName = userName\n  .toLowerCase()\n  .replace(/[^a-z0-9]/g, '-')\n  .replace(/-+/g, '-')\n  .substring(0, 20); // Max 20 chars\n\n// Channel name format: consult-username-phonenumber\nconst channelName = `consult-${cleanName}-${phoneNumber}`;\n\nreturn [{\n  json: {\n    channelName: channelName,\n    userName: userName,\n    phoneNumber: phoneNumber,\n    userId: input.userId\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        96
+      ],
+      "id": "52129fd8-7963-42ce-87d8-1c3258785d41",
+      "name": "Prepare Channel Name"
+    },
+    {
+      "parameters": {
+        "resource": "channel",
+        "channelId": "={{ $json.channelName }}",
+        "channelVisibility": "private"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -224,
+        96
+      ],
+      "id": "0cce69cd-ee81-4f4a-82fb-8ac178ffb9c9",
+      "name": "Create Slack Channel",
+      "webhookId": "1492247b-3698-45c4-bd55-5841dbc6ba04",
+      "credentials": {
+        "slackApi": {
+          "id": "WSds5JWe5b6N7myY",
+          "name": "Slack - Chinmay Astro"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "channel",
+        "operation": "invite",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "userIds": [
+          "U0A4175DJ5D"
+        ]
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0a332190-cb6d-4543-b8c1-31fd09fbd971",
+      "name": "Invite Admin to Channel",
+      "webhookId": "b4a58b5a-32a6-4b48-8c6b-fedc1323ecb2",
+      "credentials": {
+        "slackApi": {
+          "id": "WSds5JWe5b6N7myY",
+          "name": "Slack - Chinmay Astro"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "12eed871-8da6-476d-9c1f-d141c05ca66c",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "name_taken",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        400
+      ],
+      "id": "87aea1e5-c0f0-49fe-b642-ba8c33091f07",
+      "name": "Check if Name Taken Error"
+    },
+    {
+      "parameters": {
+        "jsCode": "const channelData = $('Create Slack Channel').first().json;\n\nreturn [{\n  json: {\n    success: true,\n    channelId: channelData.id,\n    channelName: channelData.name,\n    channelUrl: `https://app.slack.com/client/${channelData.context_team_id}/${channelData.id}`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "c190396e-f25a-4ef3-b8e1-241521646ad5",
+      "name": "Return Channel Info - New"
+    },
+    {
+      "parameters": {
+        "jsCode": "const channelData = $input.first().json;\n\nreturn [{\n  json: {\n    success: true,\n    channelId: channelData.id,\n    channelName: channelData.name,\n    channelUrl: `https://app.slack.com/client/${channelData.context_team_id}/${channelData.id}`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        192
+      ],
+      "id": "50340138-1ec4-4c68-ba6c-d3f6b504537d",
+      "name": "Return Channel Info - Existing"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "95cbb205-ed15-45b3-bbf7-3deb48bfde2d",
+              "leftValue": "={{ $('Prepare Channel Name').item.json.channelName }}",
+              "rightValue": "={{ $json.name }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        192
+      ],
+      "id": "fbd5511d-ff0e-4262-9758-06900feb8052",
+      "name": "Filter - Existing User Channel"
+    },
+    {
+      "parameters": {
+        "resource": "channel",
+        "operation": "getAll",
+        "returnAll": true,
+        "filters": {
+          "types": [
+            "private_channel"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        192
+      ],
+      "id": "38644f7d-9b11-4aba-a557-cf447832002d",
+      "name": "Get All Private Channels",
+      "webhookId": "bac3724a-de13-4e3d-a109-498ea33d42b3",
+      "credentials": {
+        "slackApi": {
+          "id": "WSds5JWe5b6N7myY",
+          "name": "Slack - Chinmay Astro"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Prepare Channel Name",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Channel Name": {
+      "main": [
+        [
+          {
+            "node": "Create Slack Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Slack Channel": {
+      "main": [
+        [
+          {
+            "node": "Invite Admin to Channel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check if Name Taken Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invite Admin to Channel": {
+      "main": [
+        [
+          {
+            "node": "Return Channel Info - New",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Name Taken Error": {
+      "main": [
+        [
+          {
+            "node": "Get All Private Channels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Private Channels": {
+      "main": [
+        [
+          {
+            "node": "Filter - Existing User Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter - Existing User Channel": {
+      "main": [
+        [
+          {
+            "node": "Return Channel Info - Existing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "userName": "Prasad",
+          "phoneNumber": "61466927921",
+          "userId": 21
+        }
+      }
+    ]
+  },
+  "tags": []
+}
