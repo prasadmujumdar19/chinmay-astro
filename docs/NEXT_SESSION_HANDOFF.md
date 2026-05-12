@@ -103,7 +103,7 @@ Document and fix failures as they're found.
 | WhatsApp Flow ID | `1408011897720771` |
 | WhatsApp Flow CTA | `"Fill Details"` |
 | Payment UPI | +91-9653240263 (Chinmay Mujumdar) |
-| Gemini API Key | AIzaSyCuPRGGl9VmCTFU0d0RBfH-BvCbCOm06Vc |
+| Gemini API Key | see n8n credential "Gemini API Key (Query Auth)" — never commit real keys to git |
 | Gemini model | gemini-2.0-flash-lite |
 
 ---
