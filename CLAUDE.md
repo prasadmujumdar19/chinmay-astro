@@ -1,0 +1,250 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What Is This Project
+
+WhatsApp-based Vedic astrology consultation service. Users message a WhatsApp bot, complete onboarding via a WhatsApp Flow form, pay ₹500 via UPI, and have a live text consultation with the astrologer (Chinmay). Chinmay operates entirely from Slack.
+
+**No custom backend code.** Everything runs through n8n workflows on a Linode VPS.
+
+## Document Map — Read These First
+
+| Document | When to Read |
+|----------|-------------|
+| `docs/CONTEXT.md` | Every session — lean entry point with architecture, DB schema, admin commands, entry points |
+| `docs/workflow-registry.md` | Before touching any workflow — WF-XX master list, current status, WIP action list, all n8n IDs |
+| `docs/NEXT_SESSION_HANDOFF.md` | Start of each session — what was done last, what's next, key reference values (credential IDs, workflow IDs) |
+| `docs/INFRA.md` | When working on infrastructure — CF Tunnel setup, firewall, SSH, Docker, DB backup plan |
+| `docs/STATUS.md` | When checking what's working/broken — infra status per component, tech debt items |
+
+## Folder Structure
+
+**Project root contains `CLAUDE.md` only.** All other files have a designated home:
+
+| File type | Location |
+|-----------|----------|
+| Session/intermediate scripts, scratch files | `/tmp/claude-scratch/` — deleted at session end |
+| Operational scripts (export, backup, DB migrations) | `scripts/` — committed to GitHub |
+| Project documentation | `docs/` |
+| Implementation plans | `docs/superpowers/plans/` |
+| Design specs | `docs/superpowers/specs/` |
+| Reference material (journey maps, integration guides) | `docs/reference/` |
+| Generated artifacts (`dependency-map.md`) | `docs/` |
+| Superseded/archived items | `archive/` — use dated filenames |
+
+**Session cleanup:** A Stop hook checks these boundaries at session end. Address any warnings before ending the session.
+
+## Infrastructure
+
+```
+Linode Mumbai VPS (45.79.125.184) — Ubuntu 24.04
+  └── systemd: cloudflared (outbound CF Tunnel — NOT in Docker)
+  └── Docker (n8n-network)
+       ├── n8n            :5678 (127.0.0.1 only)
+       ├── postgres       :5432 (127.0.0.1 only — exposed for SSH tunnel)
+       ├── pgadmin        :5050 (127.0.0.1 only)
+       └── encryption-svc (WhatsApp Flows IV flipping, internal only)
+```
+
+**Production n8n URL:** `https://chinmayastro-n8n.friendlydealfinder.com.au`
+(Hosted under the `friendlydealfinder.com.au` Cloudflare account — not `chinmaymujumdar.com`, which uses GoDaddy Website Builder and has no IP.)
+
+**CF Access policy:**
+- `/*` → Email OTP gate (admin UI)
+- `/webhook*` → Bypass (Meta + Slack webhooks reach n8n unauthenticated)
+
+**Docker Compose location on VPS:** `/mnt/chinmay-astro-data/docker-compose.yml`
+(Use `docker-compose` v1 is installed but buggy with newer Docker — stop/rm container manually, then `docker-compose up -d <service>` to recreate.)
+
+**Admin SSH tunnel (opens n8n + pgAdmin + Postgres locally):**
+```bash
+ssh -L 5678:localhost:5678 -L 5050:localhost:5050 -L 5432:localhost:5432 root@45.79.125.184
+# http://localhost:5678 = n8n | http://localhost:5050 = pgAdmin | localhost:5432 = Postgres (for MCP)
+```
+
+## Accessing n8n
+
+n8n is accessed directly via the **n8n MCP server** (`mcp__n8n__*` tools). The SSRF flag is
+disabled, so MCP reaches n8n directly using the stored API key — no browser workaround needed.
+
+- **n8n API base:** `http://localhost:5678/api/v1` (via SSH tunnel already open)
+- **Use PUT (not PATCH) for workflow updates.** PATCH returns 405.
+- **Always back up a workflow before modifying it** (export JSON first via `mcp__n8n__n8n_get_workflow`).
+- n8n API key is stored in memory under "Chinmay Astro — n8n API Key".
+
+## Accessing Slack
+
+Slack is accessed via the **Slack MCP server** (`mcp__slack__*` tools), configured at user scope.
+The bot token reuses the same Slack app credential already used by n8n (`WSds5JWe5b6N7myY`).
+
+**Available tools:** `slack_list_channels`, `slack_get_channel_history`, `slack_get_thread_replies`,
+`slack_get_users`, `slack_get_user_profile`, `slack_post_message`, `slack_reply_to_thread`,
+`slack_add_reaction`
+
+**Use cases:** Debugging — look up users by name, inspect consultation channel membership/history, investigate why a user or channel wasn't found.
+
+**Known limitations:**
+- `slack_list_channels` only returns **public** channels — private channels don't appear even with `groups:read` scope.
+- For private channels, use the channel ID directly (e.g. pass it to `slack_get_channel_history`).
+- Consultation channels (user ↔ Chinmay): bot is already a member — n8n's WF-52 invites it when the channel is created after payment approval.
+- `chinmay-admin-commands` (C0A5B0ZE81E) is Chinmay's command channel handled entirely by n8n — Claude Code has no reason to access it.
+
+## Accessing Postgres
+
+Postgres is accessed via the **Postgres MCP server** (`mcp__postgres__query` tool), configured at user scope.
+Requires the SSH tunnel to be open with port 5432 forwarded (see tunnel command above).
+
+**Available tools:** `mcp__postgres__query` — runs any SQL query (SELECT, INSERT, UPDATE, DELETE). The `n8n` DB user has full privileges.
+
+**Use cases:** Inspect user state, debug data issues, verify workflow writes, and fix stuck/corrupted user state directly via SQL.
+
+**Key tables:**
+- `data_table_user_gZCekRseitJEAX1g` — the custom n8n data table holding user state (wa_id, state, name, etc.)
+- `execution_entity` / `execution_data` — n8n workflow execution history
+
+**Write caution:** Direct SQL writes bypass n8n business logic (Slack channel creation, WA messages, etc.) — only write directly when a user is stuck in a state that n8n workflows can't recover from. For normal state transitions, prefer n8n workflows.
+
+## Token & Context Efficiency
+
+**Core rule: Orchestrate, Don't Load.** Claude writes scripts and runs them via the Bash tool;
+data moves locally to disk or git without the payload ever entering Claude's context.
+
+### Bulk n8n Operations (Export/Import)
+
+Never use `mcp__n8n__*` tools to read or write multiple workflows in sequence — every response
+payload lands in context and burns tokens fast. Instead, Claude writes and runs a local bash
+script via the Bash tool:
+
+```bash
+#!/bin/bash
+# Claude runs this directly via Bash tool — workflow JSONs go to disk, not into context
+API_KEY="<key-from-memory>"
+BASE="http://localhost:5678/api/v1"
+mkdir -p workflows
+for id in $(curl -s -H "X-N8N-API-KEY: $API_KEY" "$BASE/workflows" | jq -r '.data[].id'); do
+  curl -s -H "X-N8N-API-KEY: $API_KEY" "$BASE/workflows/$id" > "workflows/$id.json"
+done
+git add workflows/ && git commit -m "export: n8n workflows $(date +%Y-%m-%d)"
+```
+
+`localhost:5678` is accessible locally via the SSH tunnel — the same endpoint n8n MCP uses.
+Only the short exit status enters Claude's context, not the workflow payloads.
+
+Use `mcp__n8n__*` tools only for: reading a single workflow to reason about it, targeted single-
+workflow updates, or small lookups where the response is needed for active reasoning.
+
+### When to Compact vs Clear
+
+| Signal | Action |
+|--------|--------|
+| Context >60% full | `/compact` — summarizes and preserves decisions |
+| Large output consumed context but decisions are captured | `/compact` |
+| Task complete, starting unrelated work | `/clear` — full reset |
+| Debugging session flooded with error output | `/clear` after resolving |
+
+Compact proactively at 60%. Claude degrades noticeably at 80%+.
+
+### MCP/Tool Output Discipline
+
+- **Targeted over bulk:** Always use IDs and filters to fetch only what's needed.
+- **Don't iterate in Claude:** If you need to process N items, write and run a Bash script — not N tool calls.
+- **Generated code goes to disk immediately:** Use the `Write` tool right after generating a large script instead of leaving it in context.
+- **One workflow at a time:** When reviewing multiple workflows, `/compact` between each.
+- **Partial updates:** Use `mcp__n8n__n8n_update_partial_workflow` for small changes — never load a full workflow JSON just to change one node.
+
+### Subagent Delegation
+
+Spawn an `Explore` subagent (via `Agent` tool) when a task requires many reads or tool calls
+whose intermediate output isn't needed in the main context. Only the summary returns.
+
+Triggers:
+- Auditing all workflows for a pattern
+- Cross-document search across multiple files
+- Any task producing >500 lines of intermediate output before a conclusion
+
+### General Rules
+
+- **Prefer Bash scripts over MCP calls for bulk work.** If an operation touches multiple items, write and run a script — responses go to disk, not context.
+- **Compact before starting a new major task** within the same session.
+- **Never summarize large tool outputs inline** — extract only the fields needed for the next step.
+- **Clean up all temporary and intermediate files before ending a session.** This includes: scripts written to `/tmp/`, local clones in `/tmp/`, any scratch files written to the working directory. If a task is interrupted mid-session, clean up at the start of the next session before continuing.
+
+## n8n Expression Gotchas
+
+| Problem | Wrong | Correct |
+|---------|-------|---------|
+| Expression syntax | `={{ $json.field }}` | `{{ $json.field }}` — the `=` prefix breaks base64 encoding |
+| Slack webhook payload | `$json.challenge` | `$json.body.challenge` — Slack wraps payload in `body` |
+| Postgres null from JS | `null` → stored as string `"null"` | `NULLIF({{ $json.field }}, 'null')::integer` |
+| Bot loop prevention | — | Compare `$json.body.authorizations[0].user_id` ≠ `$json.body.event.user` |
+| WhatsApp Flows decryption | Native n8n Code node | Must use `encryption-svc` Docker container (IV flipping required) |
+| WF-50 interactive payload | Nested structure | Flat structure with camelCase `flowId`/`flowCta` — no nesting |
+
+## Workflow Architecture
+
+All workflows follow the WF-XX naming convention. The `workflow-registry.md` is the single source of truth for IDs and status.
+
+| Range | Domain |
+|-------|--------|
+| WF-0x | Infrastructure — entry, routing, security |
+| WF-1x | Admin — Slack-side command handling |
+| WF-2x | Onboarding — new user, consent, form |
+| WF-3x | Payment — confirmation, approval, rejection |
+| WF-4x | Consultation — relay, close, post-consult, rebook |
+| WF-5x | Messaging utilities — WA sender (WF-50), Slack sender (WF-51), channel manager (WF-52) |
+| WF-6x | Data — message logging (WF-60), audit |
+| WF-7x | Background jobs — post go-live only |
+
+**Critical path:** WF-00 → WF-01 → WF-02 → state-specific WF → WF-50/WF-51
+
+**Shared sub-workflows (called by many others):**
+- **WF-25** (Intent Classifier): Gemini 2.0 Flash Lite, temp=0. All free-form text states must pass through this before acting. ID: `eTV1lUcYrXBg2q2T`
+- **WF-50** (Send WhatsApp): All outbound WhatsApp messages. Calls WF-60 to log. ID: `BUVun38WEKb12zg9`
+- **WF-51** (Send Slack Message): All outbound Slack posts. ID: `wlZRK0YxnhP0b2RL`
+
+## Design Rules — Do Not Deviate
+
+1. **No DB write before form submission.** First DB write = WF-22 (form callback). WF-21 sends welcome + form with no DB write.
+2. **Slack channel created at form submission (WF-22), not at "Payment Completed".** WF-22 calls WF-52 immediately after the DB write and stores `slack_channel_id`. WF-32 reads the existing channel ID from DB — it does NOT call WF-52. Do not revert this.
+3. **Admin sends `APPROVE PAYMENT <phone>` in the user's consult channel.** Not in `chinmay-admin-commands`. WF-10 captures all workspace events so commands work from any channel.
+4. **`opted_out` ≠ `blocked`.** STOP keyword → `opted_out` (user-initiated, re-engages automatically). Admin BLOCK → `blocked` (admin/system action, requires UNBLOCK). WF-01 routes them differently.
+5. **WF-20 intercepts keywords (STOP/HELP/REBOOK) before the intent classifier runs.** Exact match, no LLM.
+6. **Every state accepting free-form text must run WF-25 first.** No state should blindly process user text without intent classification.
+7. **First message = combined response.** Policy URL + WhatsApp Flow form in ONE message (no YES/NO consent step). Submitting the form = implicit consent.
+8. **Payment is manual UPI.** No Razorpay (Phase 2). UPI: +91-9653240263 (Chinmay Mujumdar), ₹500.
+9. **CloudFlared runs as systemd on the host, not in Docker.** Running it in Docker causes `localhost` inside the container to not resolve to the host — breaking n8n connectivity.
+
+## User State Machine
+
+```
+[no record] →(form submitted)→ payment_pending →(tap "Payment Completed")→ payment_submitted
+    →(admin APPROVE)→ consultation_active →(admin CLOSE)→ consultation_closed
+    →(REBOOK or rebook_intent)→ payment_pending [loop]
+
+any state →(admin BLOCK)→ blocked
+payment_submitted →(admin REJECT)→ payment_pending
+any state →(user sends STOP)→ opted_out
+opted_out →(user messages again)→ [treat as new user, route to WF-21]
+```
+
+## Key Credential IDs (n8n)
+
+| Item | ID |
+|------|----|
+| Postgres credential | `Zomqv5wsowQAhdGl` |
+| Slack credential | `WSds5JWe5b6N7myY` |
+| Slack admin channel | `C0A5B0ZE81E` (chinmay-admin-commands) |
+| WhatsApp Flow ID | `1408011897720771` |
+| WhatsApp Flow CTA | `"Fill Details"` |
+| Gemini model | `gemini-2.0-flash-lite` |
+
+## Methodology
+
+This project uses the n8n-whatsapp-methodology plugin (Phase 0).
+- Plugin: `~/.claude/plugins/cache/prasadmujumdar19/n8n-whatsapp-methodology/0.1.0/`
+- Credentials: `.env` in project root
+- Dependency map: `docs/dependency-map.md` (generated by scripts/build-dependency-map.sh when available)
+- Workflow exports: `workflows/*.json` (generated by scripts/export-all-workflows.sh)
+- Pre-modification: always run `~/.claude/plugins/cache/prasadmujumdar19/n8n-whatsapp-methodology/0.1.0/scripts/backup-workflow.sh <WF-ID> .` before touching a workflow
+- Session startup: verify tunnel open, then check `.methodology/initialized`
