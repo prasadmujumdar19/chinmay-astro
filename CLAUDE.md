@@ -35,6 +35,19 @@ WhatsApp-based Vedic astrology consultation service. Users message a WhatsApp bo
 
 **Session cleanup:** A Stop hook checks these boundaries at session end. Address any warnings before ending the session.
 
+## Security Rules — Credentials
+
+**Never commit real API keys, passwords, or tokens to GitHub.** This applies to all files including docs and workflow exports.
+
+| What | Rule |
+|------|------|
+| Docs committed to GitHub (`docs/NEXT_SESSION_HANDOFF.md`, etc.) | Use placeholder text — "see n8n credential X" or "see .env" — never paste real values |
+| Workflow JSON exports | n8n HTTP Request nodes must use named n8n credentials, not inline `?key=` URL params. Before committing any workflow JSON, `grep -i 'api_key\|apikey\|?key=\|access_token\|secret'` and fix any hits |
+| `.env` file | Never committed — only `.env.example` goes to GitHub |
+| Session handoff notes, reference tables | Credential IDs (like `ZkLShpFmp8Mi1gZl`) are safe; credential values (like `AIzaSy...`) are not |
+
+**Before every `git commit` or GitHub push:** run `grep -rn 'AIzaSy\|sk-\|xoxb-\|AKIA' <files>` and verify zero hits.
+
 ## Infrastructure
 
 ```
