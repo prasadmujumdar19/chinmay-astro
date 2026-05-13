@@ -4,71 +4,6 @@
 
 ---
 
-## ⚠️ SESSION 7 CHANGES (24 Apr 2026)
-
-1. **CF Tunnel + URL changed:** n8n is now at `https://chinmayastro-n8n.friendlydealfinder.com.au` (NOT `astro.chinmaymujumdar.com`). Tunnel configured under friendlydealfinder.com.au Cloudflare account. See INFRA.md for full explanation.
-2. **n8n API key in memory** still valid — same instance, same key.
-3. **WF-02 fully rebuilt:** All 6 disabled/stale call nodes replaced with correct WF IDs. Detect Route logic fixed for proper `messageType`/`interactive.type` handling. "Payment Completed" button now correctly routes to WF-32.
-4. **Smoke test status:** Steps 1–4 confirmed working. Step 5 ("Payment Completed" → Slack channel) blocked by WF-02 issue, now fixed. Resume smoke test from step 5.
-5. **Chrome MCP access:** Use `chinmayastro-n8n.friendlydealfinder.com.au` (new URL). API key in memory unchanged.
-
----
-
-## ⚠️ CRITICAL CONTEXT FOR NEXT SESSION
-
-Before touching any workflow, read this entire file. Key decisions made in Apr 2026 sessions:
-
-1. **First message design (CHANGED):** When a new user messages for the first time, we send ONE combined free-form message: policy URL + WhatsApp Flow form. No YES/NO consent step. Submitting the form = implicit consent = first DB write. The old two-step approach (Welcome → wait for YES → send form) is **wrong and must not be used**.
-
-2. **DB write timing:** The FIRST DB write happens only when the user submits the WhatsApp Flow form (handled by WF-22). No DB record is created earlier.
-
-3. **WF-30 old "New User Onboarding" — DEACTIVATED (12 Apr 2026):** Created DB record before consent — wrong design. Now renamed to "WF-30 New User Onboarding (WRONG - DEACTIVATED)" in n8n and deactivated. WF-21 handles new users correctly.
-
-4. **n8n names now match registry names (12 Apr 2026):** All workflows renamed to match registry WF-XX naming. Old name ≠ registry name issue is resolved. See n8n Inventory section for current IDs.
-
-5. **OutboundMessage type:** First-message response is a **free-form message** (not a Meta template) — valid because user initiated the conversation (24hr window is open). The WhatsApp Flow form is sent as an interactive message within that same response.
-
-6. **Intent filters:** Every state where user can send free-form text must have a Gemini intent filter via WF-25. No state should blindly process user text without classification first.
-
-7. **WF-51 (Send Slack Message)** — built + activated (session 2). WF-40 now calls it.
-
-8. **WF-40 (User→Admin Relay)** — implemented + activated (session 3). consultation_active WhatsApp → DB lookup for slackChannelId → WF-51.
-
-9. **WF-41 (Admin→User Relay)** — fixed + activated (session 3). Added postgres + Slack credentials, corrected WF-50 ID. WF-10 now calls WF-41 (was pointing to old WF-35 ID).
-
-10. **WF-02 routing** — fixed (session 3). RELAY branch now calls WF-40 (was old WF-35).
-
-11. **STOP = opted_out (NOT blocked) — session 4:** User-initiated STOP keyword sets `status = opted_out`. This is DISTINCT from `blocked` (admin/system action). WF-01 must handle opted_out differently from blocked. Requires DB migration: new `opted_out` status value. WF-47 (Unsubscribe Handler) is the new workflow that processes STOP. MVP Day 1 requirement for Meta compliance.
-
-12. **WF-20 STOP branch — WRONG (session 4):** Current WF-20 built in session 4 placeholder has incorrect STOP handling (sends confirmation but no DB update). Must be fixed to call WF-47 instead.
-
-13. **Payment message wording (session 4):** "Please send ₹500 via GPay / PhonePe / any UPI app to: +91-9653240263 (Chinmay Mujumdar). Once done, tap the button below." — applies to BOTH initial booking (WF-22) and rebook (WF-45). WF-22 and WF-45 must be updated.
-
-14. **Intent Classifier = WF-25 (session 4):** Shared sub-workflow, modelled on FDF WF-05. Gemini 2.5 Flash Lite, temp=0. Intents: wants_consultation, general_enquiry, rebook_intent, feedback_intent, garbage, malicious_abusive, inappropriate. garbage → warn + Slack notify. malicious_abusive/inappropriate → warn + auto-BLOCK via WF-46. WF-25 does NOT yet exist in n8n — must be created.
-
-15. **UNBLOCK admin command (session 4):** New command `UNBLOCK <phone>` to be added to WF-11 (Command Parser). Sets blocked user → consultation_closed. Only works on `blocked` users — not `opted_out` (those re-engage themselves).
-
-16. **WF-12 / WF-20 / WF-45 — built and activated (session 4):** All three pushed to n8n and activated as placeholders-turned-implementations. WF-20 STOP branch still has partial logic — needs WF-47 call fix. WF-45 payment message needs UPI wording update.
-
----
-
-## ⚠️ DB SCHEMA CHANGE REQUIRED
-
-The `users` table `status` column must be updated to allow a new value: **`opted_out`**.
-
-```sql
--- If using a PostgreSQL ENUM for status, add the new value:
-ALTER TYPE user_status ADD VALUE 'opted_out';
--- If using a VARCHAR CHECK constraint:
-ALTER TABLE users DROP CONSTRAINT users_status_check;
-ALTER TABLE users ADD CONSTRAINT users_status_check 
-  CHECK (status IN ('new','payment_pending','payment_submitted','consultation_active','consultation_closed','blocked','opted_out'));
-```
-
-WF-01 routing must also be updated to handle opted_out: route to WF-21 (brand new welcome flow) — same as null/no-record. Do NOT silently drop like blocked.
-
----
-
 ## Status Key
 
 | Status | Meaning |
@@ -125,9 +60,9 @@ payment_submitted →(admin REJECT)→ payment_pending [retry]
 
 | WF | Name | Registry Status | Priority | n8n Actual | Notes |
 |---|---|---|---|---|---|
-| WF-00 | Webhook Receiver | 🟢 Active | 🔴 P1 | n8n: "WF-00 Webhook Receiver" (JQu1MkK5vgtUCeNO) | Entry point for all inbound WhatsApp messages. Meta webhook verification, deduplication, filters non-text (images/audio/reactions → ignore). Routes valid text messages to WF-01. |
+| WF-00 | Webhook Receiver | 🟢 Active | 🔴 P1 | n8n: "WF-00 Webhook Receiver" (JQu1MkK5vgtUCeNO) | Entry point for all inbound WhatsApp messages. Meta webhook verification, deduplication, bot echo filter (TD-030), whitespace-only message guard (TD-034 May 2026). Filters non-text (images/audio/reactions → ignore). Routes valid text messages to WF-01. |
 | WF-01 | Message Router | 🟢 Active | 🔴 P1 | n8n: "WF-01 Message Router" (hYGNM97sXvdo1WmI) | Security filters: country check, blocked-user check. Loads user + pendingUser records from DB. Routes: no record→WF-21, pendingUser→WF-22, existing user→WF-02. Updated Apr 2026 to pass pendingUser to WF-02. |
-| WF-02 | User State Router | 🟢 Active | 🔴 P1 | n8n: "WF-02 User State Router" (PubCsNTOspF3xqXZ) | Routes by messageType + user status. **Rebuilt session 7 (24 Apr 2026):** all 6 disabled/stale call nodes replaced. Detect Route now inspects `messageType` ('text'/'interactive') + `rawMessage.interactive.type` ('button_reply'→PAYMENT_CONFIRM, 'nfm_reply'→DETAILS_FORM). Routes: NEW_USER→WF-21, PRE_FORM_TEXT→WF-23, DETAILS_FORM→WF-22, PAYMENT_CONFIRM→WF-32, PAYMENT_PENDING_TEXT→WF-30, PAYMENT_SUBMITTED_TEXT→WF-31, RELAY→WF-40, POST_CONSULT_TEXT→WF-43. |
+| WF-02 | User State Router | 🟢 Active | 🔴 P1 | n8n: "WF-02 User State Router" (PubCsNTOspF3xqXZ) | Routes by messageType + user status. button_reply routing: consultation_closed → POST_CONSULT_TEXT (WF-43, TD-024 May 2026); all others → PAYMENT_CONFIRM (WF-32). Routes: NEW_USER→WF-21, PRE_FORM_TEXT→WF-23, DETAILS_FORM→WF-22, POST_CONSULT_TEXT→WF-43, PAYMENT_CONFIRM→WF-32, PAYMENT_PENDING_TEXT→WF-30, PAYMENT_SUBMITTED_TEXT→WF-31, RELAY→WF-40. |
 
 ---
 
@@ -135,8 +70,8 @@ payment_submitted →(admin REJECT)→ payment_pending [retry]
 
 | WF | Name | Registry Status | Priority | n8n Actual | Notes |
 |---|---|---|---|---|---|
-| WF-10 | Slack Admin Handler | 🟢 Active | 🔴 P1 | n8n: "WF-10 Slack Admin Handler" (wMh0oBRtJbvhLgOf) | Entry point for Slack events. Filters bot messages to prevent loops. Routes admin commands to WF-11. |
-| WF-11 | Command Parser | 🔨 Rebuild Required | 🔴 P1 | n8n: "WF-11 Command Parser" (GoTYo0GS2y8qjjkw) | Parses APPROVE CHAT CONSULT→WF-33, REJECT→WF-34, CLOSE→WF-42, BLOCK→WF-46. **Needs new UNBLOCK branch → set status=consultation_closed for blocked user.** Returns error if unrecognised. |
+| WF-10 | Slack Admin Handler | 🟢 Active | 🔴 P1 | n8n: "WF-10 Slack Admin Handler" (wMh0oBRtJbvhLgOf) | Entry point for Slack events. Filters bot messages. Routes commands to WF-11. Admin text in user channels relays to WF-41 only if user is consultation_active (TD-023 May 2026 — status guard added). |
+| WF-11 | Command Parser | 🟢 Active | 🔴 P1 | n8n: "WF-11 Command Parser" (GoTYo0GS2y8qjjkw) | Parses APPROVE PAYMENT→WF-33, REJECT→WF-34, CLOSE→WF-42, BLOCK→WF-46, UNBLOCK→unblock flow. All confirmation and stats nodes re-enabled (TD-005 May 2026). WIP: UNBLOCK command and state guard pending (TD-010, TD-026 Batch 9). |
 | WF-12 | Admin → WhatsApp Relay | 🟢 Active | 🟠 P2 | n8n: "WF-12 Admin -> WhatsApp Relay" (RjwHs9Dx5cK8Q5wD) | Relays plain-text messages typed by admin in user's Slack channel → WhatsApp during consultation_active. Distinct from command handling. Calls WF-50. Built + activated session 4. |
 
 ---
@@ -158,9 +93,9 @@ payment_submitted →(admin REJECT)→ payment_pending [retry]
 | WF | Name | Registry Status | Priority | n8n Actual | Notes |
 |---|---|---|---|---|---|
 | WF-30 | Payment Pending Intent Filter | 🔵 Placeholder | 🟡 P3 | n8n: "WF-30 Payment Pending Intent Filter" (gGJBY5fJha0Let8I) | Handles free-form messages from payment_pending users. Gemini intent filter → general enquiry: answer + re-prompt payment; wants_consultation: resend GPay + button; HELP/STOP intercepted upstream. No state change. |
-| WF-31 | Payment Submitted Handler | 🔨 Rebuild Required | 🟡 P3 | n8n: "WF-31 Payment Submitted Handler" (HB8nXudAtk9iXz7C) — was "WF-27 Payment Review Handler" | Handles free-form messages from payment_submitted users while awaiting admin approval. Verify existing logic: should run Gemini intent filter → acknowledge under review, give wait time estimate. No state change. |
+| WF-31 | Payment Submitted Handler | 🟢 Active | 🟡 P3 | n8n: "WF-31 Payment Submitted Handler" (HB8nXudAtk9iXz7C) — was "WF-27 Payment Review Handler" | Handles free-form messages from payment_submitted users. Calls WF-25 intent classifier → if pass-through: sends "under review" ack via WF-50. Also relays all messages to user's Slack consultation channel via WF-51 (TD-016 May 2026) so admin can see user is active. |
 | WF-32 | Payment Confirmation Receiver | 🟢 Active | 🔴 P1 | n8n: "WF-32 Payment Confirmation Receiver" (emUOLWVZiNVxcOe3) — was "WF-24 Payment Confirmation Handler" | User taps "Payment Completed" button. Updates status=payment_submitted. Loads existing slack_channel_id from DB (channel was already created in WF-22). Posts payment notification to user's consult channel. Admin reads notification and types `APPROVE PAYMENT <phone>` in that same channel. Updated May 2026: WF-52 call removed — channel is pre-created at form submission. |
-| WF-33 | Payment Approval Processor | 🟢 Active | 🔴 P1 | n8n: "WF-33 Payment Approval Processor" (NcHZedq9ycnAQ9SW) — was "WF-40 Payment Approval Processor" | Admin issues APPROVE CHAT CONSULT <phone> in Slack. Updates status=consultation_active. Notifies user on WhatsApp that consultation has begun. |
+| WF-33 | Payment Approval Processor | 🟢 Active | 🔴 P1 | n8n: "WF-33 Payment Approval Processor" (NcHZedq9ycnAQ9SW) — was "WF-40 Payment Approval Processor" | Admin issues APPROVE PAYMENT <phone> in Slack. State guard added (TD-021 May 2026): only proceeds if user is in payment_submitted state; otherwise posts error to consultation channel. Updates status=consultation_active. Notifies user on WhatsApp that consultation has begun. |
 | WF-34 | Payment Rejection Processor | 🟢 Active | 🔴 P1 | n8n: "WF-34 Payment Rejection Processor" (se82n3MUQ9xE5aEr) — was "WF-41 Payment Rejection Processor" | Admin issues REJECT in Slack. Updates status=payment_pending. Sends rejection reason to user with retry instructions. |
 
 ---
@@ -171,8 +106,8 @@ payment_submitted →(admin REJECT)→ payment_pending [retry]
 |---|---|---|---|---|---|
 | WF-40 | User → Admin Relay | 🟢 Active | 🔴 P1 | n8n: "WF-40 User -> Admin Relay" (du32QBZbSQOjfESe) | Handles inbound WhatsApp messages during consultation_active. Loads user from DB (gets slackChannelId + name), formats message, calls WF-51. Implemented + activated session 3. |
 | WF-41 | Admin → User Relay | 🟢 Active | 🔴 P1 | n8n: "WF-41 Admin -> User Relay" (6PzJRZsF7k2d9hV7) | Admin types in user's Slack channel → WF-50 → WhatsApp. Fixed session 3: added postgres + Slack credentials, corrected WF-50 ID (BUVun38WEKb12zg9). WF-10 now routes here. |
-| WF-42 | Consultation Closer | 🟢 Active | 🔴 P1 | n8n: "WF-42 Consultation Closer" (fx70vqyJtRdF2DgR) | Admin issues CLOSE in consult channel. Updates status=consultation_closed. Sends closing message + feedback request to user. Archives Slack channel via WF-52. |
-| WF-43 | Post-Consultation Handler | 🔨 Rebuild Required | 🟠 P2 | n8n: "WF-43 Post-Consultation Handler" (3va0M06kijgyLejf) — was "WF-28 Post-Consultation Text Handler" | Handles free-form messages from consultation_closed users. Gemini intent filter → rebook_intent: route to WF-45; general_enquiry: Gemini response; feedback_intent: route to WF-44. Verify intent filter is implemented before activating. |
+| WF-42 | Consultation Closer | 🟢 Active | 🔴 P1 | n8n: "WF-42 Consultation Closer" (fx70vqyJtRdF2DgR) | Admin issues CLOSE in consult channel. State guard added (TD-022 May 2026): only proceeds if user is consultation_active. Sends interactive button message with btn_feedback / btn_rebook (TD-015 May 2026 — replaces unapproved template). Updates status=consultation_closed. |
+| WF-43 | Post-Consultation Handler | 🟢 Active | 🟠 P2 | n8n: "WF-43 Post-Consultation Handler" (3va0M06kijgyLejf) — was "WF-28 Post-Consultation Text Handler" | Handles consultation_closed users. Button_reply routing added (TD-024 May 2026): btn_rebook → WF-45 directly; btn_feedback → sends feedback prompt via WF-50. Text messages: WF-25 intent classifier → rebook_intent→WF-45, feedback_intent→WF-44, general→Gemini response. |
 | WF-44 | Feedback Recorder | 🔨 Rebuild Required | 🟡 P3 | n8n: "WF-44 Feedback Recorder" (Du2CJ3OTohRFZYoA) — was "WF-26 Feedback Recorder" | Captures user feedback text. Records to DB feedback field. Sends acknowledgement. Clears awaiting_feedback stage flag. Verify before activating. |
 | WF-45 | Rebook Handler | 🔵 Placeholder | 🟠 P2 | n8n: "WF-45 Rebook Handler" (MUG7rPgSHc7UtAE9) | Handles REBOOK keyword or rebook_intent. Birth details already on file — skip re-onboarding. Send GPay payment instructions + "Payment Completed" button directly. Update status=payment_pending. |
 | WF-46 | User Blocker | 🟢 Active | 🟠 P2 | n8n: "WF-46 User Blocker" (UV62An60fzflU0uD) — was "WF-43 User Blocker" | Admin issues BLOCK. Updates status=blocked. Silent — no notification to user. Logs reason. Also called by WF-25 on malicious_abusive/inappropriate intent. |
@@ -194,9 +129,9 @@ payment_submitted →(admin REJECT)→ payment_pending [retry]
 
 | WF | Name | Registry Status | Priority | n8n Actual | Notes |
 |---|---|---|---|---|---|
-| WF-50 | Send WhatsApp | 🟢 Active | 🔴 P1 | n8n: "WF-50 Send WhatsApp" (BUVun38WEKb12zg9) | Sends outbound WhatsApp message via Meta Cloud API. Accepts phoneNumber + message body. Calls WF-60 to log. Used by all workflows that send to user. |
+| WF-50 | Send WhatsApp | 🟢 Active | 🔴 P1 | n8n: "WF-50 Send WhatsApp" (BUVun38WEKb12zg9) | Sends outbound WhatsApp message via Meta Cloud API. Accepts phoneNumber + message body. Null/empty body guard added (TD-033 May 2026) — exits gracefully if text message body is empty, prevents Meta API 400. Calls WF-60 to log. Used by all workflows that send to user. |
 | WF-51 | Send Slack Message | 🟢 Active | 🔴 P1 | n8n: "WF-51 Send Slack Message" (wlZRK0YxnhP0b2RL) | Posts a message to a specified Slack channel. Accepts channelId + messageText. Credentials: Slack - Chinmay Astro. Activated 12 Apr 2026. Required by WF-40 and WF-12. |
-| WF-52 | Slack Channel Manager | 🟢 Active | 🟠 P2 | n8n: "WF-52 Slack Channel Manager" (IO5BZLUxuVmjzk5I) | Creates, retrieves, or archives Slack channels per user. Called by WF-32 (on payment submission) and WF-42 (on consultation close). |
+| WF-52 | Slack Channel Manager | 🟢 Active | 🟠 P2 | n8n: "WF-52 Slack Channel Manager" (IO5BZLUxuVmjzk5I) | **Idempotent:** checks for existing `consult-{phone}` channel before creating — returns existing channel if found. Returns `{ channelId, channelName, isNew }`. Safe to call multiple times. **Inputs:** `phoneNumber` (string), `userName` (string); optional: `userId` (integer). Called only by WF-22 (at form submission — TD-007/TD-008 May 2026). WF-32 and WF-42 do NOT call WF-52. |
 
 ---
 
@@ -204,7 +139,7 @@ payment_submitted →(admin REJECT)→ payment_pending [retry]
 
 | WF | Name | Registry Status | Priority | n8n Actual | Notes |
 |---|---|---|---|---|---|
-| WF-60 | Message Logger | 🟢 Active | 🔴 P1 | Active as "WF-60 Message Logger" | Logs all inbound and outbound messages to message_log table. Records direction, content, userId, timestamp (IST), inboundMessageId for deduplication. Called by WF-00 (inbound) and WF-50 (outbound). |
+| WF-60 | Message Logger | 🟢 Active | 🔴 P1 | Active as "WF-60 Message Logger" (6H75p935FpBVBQtV) | Logs all inbound and outbound messages. All nodes re-enabled (TD-004 May 2026). Main path: Trigger → Extract Message Data → Log to Messages Table → Done. Schema prefix fixed (TD-001). Called by WF-50. |
 
 ---
 
