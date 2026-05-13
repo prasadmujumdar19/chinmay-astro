@@ -138,6 +138,17 @@ mkdir -p workflows
 for id in $(curl -s -H "X-N8N-API-KEY: $API_KEY" "$BASE/workflows" | jq -r '.data[].id'); do
   curl -s -H "X-N8N-API-KEY: $API_KEY" "$BASE/workflows/$id" > "workflows/$id.json"
 done
+
+# Secrets scan — MANDATORY before any commit
+# n8n exports credential references (name+ID), never the actual key value.
+# Any ?key= hit means a workflow is using an inline key instead of an n8n credential — fix it first.
+HITS=$(grep -rl '?key=\|"api_key"\|"apikey"' workflows/ 2>/dev/null)
+if [ -n "$HITS" ]; then
+  echo "ERROR: inline API key found in: $HITS"
+  echo "Fix: update the workflow in n8n to use a named credential, then re-export."
+  exit 1
+fi
+
 git add workflows/ && git commit -m "export: n8n workflows $(date +%Y-%m-%d)"
 ```
 
@@ -157,6 +168,22 @@ workflow updates, or small lookups where the response is needed for active reaso
 | Debugging session flooded with error output | `/clear` after resolving |
 
 Compact proactively at 60%. Claude degrades noticeably at 80%+.
+
+### Surgical Operations — The Universal Rule
+
+**Locate, then edit. Never load to look around.**
+
+Applies to every type of artifact — files, n8n workflows, database rows, GitHub blobs:
+
+| Task | Wrong | Right |
+|------|-------|-------|
+| Edit one field in a large file | `Read` the whole file, find the line, `Edit` | `grep -n` to confirm the exact string, then `Edit` with `old_string`/`new_string` |
+| Change one node in a workflow | `mcp__n8n__n8n_get_workflow` full + reason + re-upload | `mcp__n8n__n8n_update_partial_workflow` with `patchNodeField`/`updateNode` directly |
+| Scan N items for a pattern | N `mcp__n8n__*` calls in sequence | Bash script: fetch each to `/tmp/claude-scratch/`, `grep`, report only hits |
+| Fix a specific DB row | `SELECT *` to inspect, then `UPDATE` | `SELECT` with exact `WHERE` + `LIMIT 1`, then `UPDATE` |
+| Push a file edit to GitHub | Read file → push full content via API | `gh api` blob + tree — content stays on disk |
+
+The pattern: **grep/search to locate → edit only the target → verify with a second grep**. No full reads unless you genuinely need to reason about the whole artifact.
 
 ### MCP/Tool Output Discipline
 
