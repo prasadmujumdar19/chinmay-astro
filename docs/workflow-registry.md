@@ -71,7 +71,7 @@ payment_submitted →(admin REJECT)→ payment_pending [retry]
 | WF | Name | Registry Status | Priority | n8n Actual | Notes |
 |---|---|---|---|---|---|
 | WF-10 | Slack Admin Handler | 🟢 Active | 🔴 P1 | n8n: "WF-10 Slack Admin Handler" (wMh0oBRtJbvhLgOf) | Entry point for Slack events. Filters bot messages. Routes commands to WF-11. Admin text in user channels relays to WF-41 only if user is consultation_active (TD-023 May 2026 — status guard added). |
-| WF-11 | Command Parser | 🟢 Active | 🔴 P1 | n8n: "WF-11 Command Parser" (GoTYo0GS2y8qjjkw) | Parses APPROVE PAYMENT→WF-33, REJECT→WF-34, CLOSE→WF-42, BLOCK→WF-46, UNBLOCK→unblock flow. All confirmation and stats nodes re-enabled (TD-005 May 2026). WIP: UNBLOCK command and state guard pending (TD-010, TD-026 Batch 9). |
+| WF-11 | Command Parser | 🟢 Active | 🔴 P1 | n8n: "WF-11 Command Parser" (GoTYo0GS2y8qjjkw) | Parses APPROVE PAYMENT→WF-33, REJECT→WF-34, CLOSE→WF-42, BLOCK→WF-46, UNBLOCK→WF-11 unblock flow (Lookup Blocked User → Unblock User / No Blocked User Found). All nodes active (TD-005 May 2026). UNBLOCK guard: SELECT status=blocked — opted_out users not affected. |
 | WF-12 | Admin → WhatsApp Relay | 🟢 Active | 🟠 P2 | n8n: "WF-12 Admin -> WhatsApp Relay" (RjwHs9Dx5cK8Q5wD) | Relays plain-text messages typed by admin in user's Slack channel → WhatsApp during consultation_active. Distinct from command handling. Calls WF-50. Built + activated session 4. |
 
 ---
