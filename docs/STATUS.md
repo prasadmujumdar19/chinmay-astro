@@ -159,6 +159,7 @@ The Sydney VPS (Friendly Deal Finder) underwent an exhaustive security hardening
 | 12 | Build WF-70 through WF-74 (maintenance workflows) | 🟡 Medium |
 | 13 | Set up Cloudflare Tunnel (fresh CF account under Chinmay's email) | 🔴 Critical — in progress |
 | 14 | Create Prod/Dev folders in n8n on Mumbai; move all current workflows to Prod | 🔴 Critical — in progress |
+| 15 | Non-text messages (images, voice notes, video) sent by users during `consultation_active` are silently dropped — they reach WF-00 and are parsed but WF-41 only relays text. Chinmay will not see these in Slack. Accepted limitation for go-live; forward non-text payloads in a Phase 2 relay upgrade. | 🟡 Medium |
 
 ### Phase 2 (Future)
 
