@@ -76,10 +76,10 @@ Source: `docs/Tech_Debt_2026-05-14.md` (read-only — status tracked here)
 > **Status:** ⏳ Pending
 
 ### TD-NEW-016 · No retry/timeout on WF-50, WF-22 enc call, WF-43
-> **Status:** ⏳ Pending
+> **Status:** ✅ Done — 2026-05-14 | WF-50 (3 nodes) + WF-43 (Gemini) — retryOnFail=true, maxTries=3, timeout=10000. WF-22 enc portion obsolete (node deleted in Batch 3).
 
 ### TD-NEW-018 · messages.created_at is timestamp without time zone
-> **Status:** ⏳ Pending
+> **Status:** ✅ Done — 2026-05-14 | ALTER TABLE … TYPE timestamptz via docker exec postgres-prod. No workflow change needed (NOW() returns timestamptz).
 
 ### TD-NEW-020 · No HMAC verification on WF-00 (Meta) or WF-10 (Slack)
 > **Status:** ⏳ Pending

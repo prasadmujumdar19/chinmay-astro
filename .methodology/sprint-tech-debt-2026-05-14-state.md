@@ -5,7 +5,7 @@ input_hash: 84d4a1cf4223269c25845ce68367e3b3b110660ea09648bdd820efb7bc5a3816
 source_file_update: false
 working_copy_path: .methodology/sprint-tech-debt-2026-05-14-working.md
 started: 2026-05-14T00:00:00Z
-last_updated: 2026-05-14T02:00:00Z
+last_updated: 2026-05-14T15:18:00Z
 planning_complete: true
 dependency_conflicts_found:
   - "STATUS-TD-01 (Critical/P0-infra) and STATUS-TD-02 (High/P0-infra) require VPS SSH access — cannot batch with n8n workflow items; included as needs-decision in Batch 1"
@@ -225,9 +225,10 @@ items:
   - id: TD-NEW-016
     description: No retry/timeout on external HTTP nodes in WF-50, WF-22 encryption call, WF-43
     priority: P2
-    status: pending
+    status: done
     batch: 4
-    completed: null
+    completed: 2026-05-14T15:15:00Z
+    note: "Applied retryOnFail=true, maxTries=3, parameters.options.timeout=10000 to 4 nodes: WF-50 'Send Text Message' (whatsApp), 'Send Interactive Message' (httpRequest), 'Send Template Message' (httpRequest), and WF-43 'Gemini General Response' (httpRequest). WF-22 encryption-svc HTTP node portion of this item is obsolete — that node was removed in Batch 3 (TD-NEW-014); decryption now happens upstream of WF-22."
     depends_on:
       - id: TD-NEW-009
         type: soft
@@ -239,9 +240,10 @@ items:
   - id: TD-NEW-018
     description: messages.created_at is timestamp without time zone — should be timestamptz
     priority: P2
-    status: pending
+    status: done
     batch: 4
-    completed: null
+    completed: 2026-05-14T15:18:00Z
+    note: "ALTER TABLE chinmay_astro.messages ALTER COLUMN created_at TYPE timestamptz USING created_at AT TIME ZONE 'UTC' executed via docker exec postgres-prod (Postgres MCP wrapper is read-only). Verified: pg_typeof = timestamp with time zone. WF-60 SQL uses NOW() (returns timestamptz) — no workflow node change required. Table was empty (0 rows) so USING clause had no effect."
     depends_on: []
 
   - id: TD-NEW-020
