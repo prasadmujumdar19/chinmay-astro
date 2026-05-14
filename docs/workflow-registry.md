@@ -119,7 +119,7 @@ payment_submitted →(admin REJECT)→ payment_pending [retry]
 
 | WF | Name | Registry Status | Priority | n8n Actual | Notes |
 |---|---|---|---|---|---|
-| WF-25 | Intent Classifier | 🟢 Active | 🟠 P2 | n8n: "WF-25 Intent Classifier" (eTV1lUcYrXBg2q2T) | Shared Gemini 2.0 Flash Lite intent classifier. Input: phoneNumber, userId, messageText, userStatus, userStage. Output: intentResult (wants_consultation / general_enquiry / rebook_intent / feedback_intent / stop_intent / garbage / malicious_abusive / inappropriate). Gemini error → falls back to general_enquiry (TD-029 May 2026). Called by WF-23, WF-30, WF-31, WF-43, WF-44. |
+| WF-25 | Intent Classifier | 🟢 Active | 🟠 P2 | n8n: "WF-25 Intent Classifier" (eTV1lUcYrXBg2q2T) | Shared Gemini 2.0 Flash Lite intent classifier. Input: phoneNumber, userId, messageText, userStatus, userStage. Output: intentResult (wants_consultation / general_enquiry / rebook_intent / feedback_intent / stop_intent / garbage / malicious_abusive / inappropriate). Gemini error → falls back to general_enquiry (TD-029 May 2026). Fixed May 2026 (TD-NEW-003): stop_intent added to Gemini prompt, VALID whitelist, and Route by Intent Switch. Called by WF-23, WF-30, WF-31, WF-43, WF-44. |
 
 ---
 
