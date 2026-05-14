@@ -164,17 +164,19 @@ items:
   - id: TD-NEW-013
     description: WF-60 writes orphan rows with fake userId=9, consultationId=2 as fallbacks
     priority: P2
-    status: pending
+    status: done
     batch: 3
-    completed: null
+    completed: 2026-05-14T14:31:00Z
+    note: "Surgical patchNodeField on 'Log to Messages Table' queryReplacement — removed `|| 9` and `|| 2` fallbacks. user_id NOT NULL constraint surfaces missing-userId errors in n8n executions (no orphan rows). consultation_id is nullable so NULL stores cleanly. Disconnected legacy chain in WF-60 logged as followup."
     depends_on: []
 
   - id: TD-NEW-014
     description: WF-22 has 7 disabled stale nodes including schema-prefix regression hazard
     priority: P2
-    status: pending
+    status: done
     batch: 3
-    completed: null
+    completed: 2026-05-14T14:36:00Z
+    note: "Removed 7 disabled nodes via removeNode partial-update: Webhook: Form (Meta Flow), Encryption Service (Local Docker Hosted), Format Response, Respond to Webhook: Meta Flow Response, Sticky Note, Log: Webhook Call, Update User in DB. All were on a disconnected sub-chain. WF-22 now 10 nodes (was 17), 0 disabled. Schema-prefix regression hazard eliminated."
     depends_on:
       - id: TD-NEW-009
         type: soft
@@ -183,9 +185,10 @@ items:
   - id: TD-NEW-015
     description: WF-00 has 7 disabled nodes on active webhook path
     priority: P2
-    status: pending
+    status: done
     batch: 3
-    completed: null
+    completed: 2026-05-14T14:42:00Z
+    note: "Removed 7 disabled nodes via removeNode partial-update: Webhook Verification, Handle Verification, Return Challenge, Webhook, Code in JavaScript, Respond to Webhook, Sticky Note1. (Source said 6; live count was 7 incl. Sticky Note1.) WF-00 now 12 nodes, 0 disabled, single webhook trigger (WhatsApp Webhook). Activation ambiguity risk eliminated."
     depends_on:
       - id: TD-NEW-020
         type: soft
@@ -194,16 +197,18 @@ items:
   - id: TD-NEW-019
     description: n8n execution history grows indefinitely — no pruning configured
     priority: P2
-    status: pending
+    status: blocked
     batch: 3
+    blocked_reason: "User deferred 2026-05-14 mid-Batch-3 — park alongside encryption-svc work. Requires VPS SSH session to edit /mnt/chinmay-astro-data/.env.production (where n8n env vars live) and recreate n8n container. Bundle with STATUS-TD-01/02/05 in a dedicated infra session."
     completed: null
     depends_on: []
 
   - id: STATUS-TD-05
     description: Encryption service container monitoring (health check, restart policy)
     priority: P2
-    status: pending
+    status: blocked
     batch: 3
+    blocked_reason: "User deferred 2026-05-14 mid-Batch-3. Discovered encryption-svc is NOT in /mnt/chinmay-astro-data/docker-compose.yml — needs investigation of where it actually runs before scoping the fix. Bundle with STATUS-TD-01/02 and TD-NEW-019 in a dedicated infra session."
     completed: null
     depends_on: []
 
@@ -303,6 +308,20 @@ items:
     decision_required: "WF-73 does not yet exist — this is a new workflow to build (personal data compliance). Decide: (A) scope and build now as part of P3, (B) defer to Phase 2 post-go-live (recommended — no users yet)."
     completed: null
     depends_on: []
+
+  # ── Sprint-additions (discovered during batch regression) ────────────────────
+
+  - id: TD-NEW-026
+    description: WF-50→WF-60 logging wiring passes empty workflowInputs — all message logging failed silently pre-Batch-3 (masked by userId=9 fallback), would fail loudly post-Batch-3
+    priority: P2
+    status: done
+    batch: 3
+    completed: 2026-05-14T14:50:00Z
+    note: "Surfaced by TD-NEW-013 post-batch regression. messages table had 0 rows confirming no successful logging ever. Three-part fix: (1) WF-50 Call WF-60 now defines workflowInputs explicitly (userId, phoneNumber, messageType, messageContent, messageId, direction='outbound', success, error). (2) WF-60 Extract Message Data accepts flat shape (input.userId || input.user?.id) and reads direction from input (default 'inbound'). (3) Added 'Has userId?' IF + 'Skip Log (no userId)' Code node between Extract and Log — callers without userId (e.g., WF-21 pre-DB welcome) skip the log cleanly instead of failing the execution. WF-60 now 11 nodes (was 9)."
+    depends_on:
+      - id: TD-NEW-013
+        type: hard
+        reason: "surfaced by TD-NEW-013 — the || 9 fallback masked this wiring bug; both changes together produce correct end-to-end behavior"
 
   # ── Obsolete ─────────────────────────────────────────────────────────────────
 
