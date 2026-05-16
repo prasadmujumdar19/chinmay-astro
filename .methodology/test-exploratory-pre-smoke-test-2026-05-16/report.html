@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Test Report — test-exploratory-pre-smoke-test-2026-05-16</title>
+<style>
+:root {
+  --bg: #0d1117; --bg-card: #161b22; --bg-card-2: #1c2128;
+  --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --border: #30363d;
+  --critical: #ff4d4f; --major: #ff9f43; --minor: #f1c40f; --ok: #27ae60;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--bg); color: var(--fg); }
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+nav { background: #010409; border-right: 1px solid var(--border); padding: 20px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; font-size: 13px; }
+nav h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 20px 0 6px; font-weight: 600; }
+nav h2:first-child { margin-top: 0; }
+nav a { display: block; color: var(--fg); text-decoration: none; padding: 5px 8px; border-radius: 4px; margin: 1px 0; }
+nav a:hover { background: var(--bg-card); color: var(--accent); }
+nav a.depth-1 { padding-left: 18px; color: var(--muted); }
+main { padding: 28px 40px 80px; max-width: 1100px; }
+header.page { border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 28px; }
+header.page h1 { margin: 0 0 4px; font-size: 22px; }
+header.page .meta { color: var(--muted); font-size: 13px; }
+section.layer { margin: 40px 0; }
+section.layer > h1 { font-size: 24px; margin: 0 0 4px; padding-bottom: 10px; border-bottom: 2px solid var(--accent); }
+section.layer > .layer-blurb { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+h2 { margin-top: 28px; font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+h3 { margin-top: 22px; font-size: 15.5px; color: var(--accent); }
+h4 { margin-top: 16px; font-size: 14px; }
+code { background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+pre { background: var(--bg-card); padding: 14px 16px; border-radius: 6px; overflow-x: auto; border: 1px solid var(--border); }
+pre code { background: transparent; padding: 0; font-size: 13px; }
+table { border-collapse: collapse; margin: 14px 0; width: 100%; font-size: 13.5px; }
+th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--bg-card); font-weight: 600; }
+tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+ul, ol { padding-left: 22px; }
+li { margin: 4px 0; }
+/* Story cards — each h3 in story section starts a card */
+#story h3 {
+  background: var(--bg-card-2); margin-top: 20px; padding: 12px 16px; border-radius: 6px 6px 0 0;
+  border: 1px solid var(--border); border-bottom: none; color: var(--fg); font-size: 15px;
+}
+#story h3 + p, #story h3 + p + p, #story h3 + p + p + p,
+#story h3 ~ p, #story h3 ~ pre, #story h3 ~ ul, #story h3 ~ ol {
+  /* default rendering — wrap will come from JS */
+}
+.story-card { background: var(--bg-card); border: 1px solid var(--border); border-top: none; padding: 14px 18px 4px; margin-bottom: 18px; border-radius: 0 0 6px 6px; }
+.story-card p:first-child { margin-top: 0; }
+/* Appendix collapsibles */
+details.appendix-item, details.appendix-section { border: 1px solid var(--border); border-radius: 6px; margin: 12px 0; background: var(--bg-card); }
+details summary { padding: 12px 16px; cursor: pointer; font-weight: 600; user-select: none; }
+details summary:hover { background: var(--bg-card-2); }
+details[open] summary { border-bottom: 1px solid var(--border); }
+details > *:not(summary) { padding: 0 18px; }
+details summary .src { color: var(--muted); font-weight: normal; font-size: 12px; margin-left: 6px; }
+/* Severity chips (applied via JS) */
+.sev-chip { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #0d1117; margin: 0 2px; }
+.status-ok { color: var(--ok); }
+.status-warn { color: var(--major); }
+</style>
+</head><body>
+<div class="layout">
+  <nav>
+    <h2>Report layers</h2>
+    <a href="#tldr">1. TL;DR</a>
+    <a href="#story">2. The Story</a>
+    <a href="#appendix">3. Appendix</a>
+    <h2>Story scenarios</h2>
+    <div id="nav-scenarios"></div>
+    <h2>Appendix</h2>
+    <a href="#appendix-session" class="depth-1">session.md</a>
+    <a href="#appendix-followups-relay-fix" class="depth-1">followups-relay-fix.md</a><a href="#appendix-followups-wf11-channel-routing" class="depth-1">followups-wf11-channel-routing.md</a>
+  </nav>
+  <main>
+    <header class="page">
+      <h1>Test Report — test-exploratory-pre-smoke-test-2026-05-16</h1>
+      <div class="meta">Generated 2026-05-16T10:11:29+00:00 · Folder <code>.methodology/test-exploratory-pre-smoke-test-2026-05-16/</code></div>
+    </header>
+
+    <section class="layer" id="tldr">
+      <h1>1. TL;DR</h1>
+      <div class="layer-blurb">Verdict, bugs at a glance, scope, and tomorrow's queue. Skim this; the rest is detail.</div>
+      <p><strong>Verdict:</strong> ✅ All 7 attempted happy paths green by end of session. <strong>3 critical/major bugs found and fixed in-session</strong> — no unresolved blockers. WF-11 channel-routing cleanup partially done (3 of 5 nodes). Remaining items are non-blocking polish + scenarios not yet exercised.</p>
+<h2>Bugs at a glance</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Sev</th>
+<th>Workflow</th>
+<th>What broke</th>
+<th>Fix applied</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>BUG-01</strong></td>
+<td><code>[critical]</code></td>
+<td>WF-22</td>
+<td><code>Save Slack Channel ID</code> expression referenced a renamed predecessor node (<code>Call WF-52 (Create User Channel)</code> no longer exists; node was renamed to <code>Ensure Slack Channel Exists (WF-52)</code>). <code>slack_channel_id</code> never saved → payment instructions never sent → 100% failure on every new-user form submission.</td>
+<td>Updated <code>queryReplacement</code> to reference the new node name. Backfill ran cleanly against existing user row.</td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td><strong>BUG-02</strong></td>
+<td><code>[major]</code></td>
+<td>WF-33</td>
+<td>New <code>Update User Consultation Id</code> node had duplicate <code>$1</code> placeholder (both <code>current_consultation_id =</code> and <code>WHERE id =</code> used <code>$1</code>). UPDATE silently matched zero rows; <code>users.current_consultation_id</code> stayed NULL.</td>
+<td>Split into <code>$1</code> (consultation id) and <code>$2</code> (user id) with two-param <code>queryReplacement</code>.</td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td><strong>BUG-03</strong></td>
+<td><code>[major]</code></td>
+<td>WF-10 → WF-41</td>
+<td>Admin→user relay: <code>Load User Status</code> query returned only <code>{status}</code>, dropping <code>channelName</code> + <code>messageText</code> upstream. <code>Call WF-41</code> passthrough forwarded just <code>{status}</code> → WF-41's <code>Extract Phone from Channel</code> got <code>undefined.replace()</code> → TypeError.</td>
+<td>Operator rewrote <code>Load User Status</code> SQL to smuggle channel + message via SELECT literals; WF-41 code updated to lowercase column name. <strong>Caveats logged for cleanup</strong> — see followups-relay-fix.md.</td>
+<td>✅ Fixed (with tech debt)</td>
+</tr>
+<tr>
+<td>WF-11 UNKNOWN</td>
+<td><code>[minor]</code> UX</td>
+<td>WF-11</td>
+<td>Posted unknown-command response to hardcoded admin channel instead of originating channel</td>
+<td>Switched to <code>={{ $json.channelName }}</code></td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td>WF-11 HELP/LIST/STATS</td>
+<td><code>[minor]</code> UX</td>
+<td>WF-11</td>
+<td>Three nodes hardcoded admin channel; HELP responder misnamed <code>Send Stats To Admin1</code> (operator was editing wrong node, thinking workflow "reverted")</td>
+<td>Renamed misleading node + switched all three to dynamic <code>channelName</code>. Two more nodes still hardcoded — see followup.</td>
+<td>🔧 Partial</td>
+</tr>
+</tbody>
+</table>
+<h2>Test scope</h2>
+<ul>
+<li><strong>Phone:</strong> <code>61466927921</code> (Australia +61 — confirmed allowed by WF-01 country gate)</li>
+<li><strong>Scenarios exercised:</strong> TC-0101, TC-0104, TC-0201, TC-0301, TC-0401, TC-0311, TC-0305</li>
+<li><strong>Scenarios deferred to next session:</strong> Feedback (TC-0501/02), REBOOK (TC-0504/05), STOP from consultation_closed (TC-0606), Re-engagement (TC-0607), BLOCK/UNBLOCK (TC-0306/07)</li>
+</ul>
+<h2>Tomorrow's queue</h2>
+<ol>
+<li>TC-0501 / TC-0502 — Feedback path (validates F-01 <code>stage</code> column)</li>
+<li>TC-0504 / TC-0505 — REBOOK (Design Rule #10: reuse <code>C0B3SA9JALX</code>, no new channel)</li>
+<li>TC-0606 — STOP from <code>consultation_closed</code> (validates F-02 WF-47 fix)</li>
+<li>TC-0607 — Re-engagement after opt-out</li>
+<li>TC-0306 / TC-0307 — BLOCK / UNBLOCK admin commands</li>
+<li>Finish FU-WF11-03 (last 2 hardcoded admin-channel refs)</li>
+<li>Reconcile registry docs (TD-004 status, Design Rule #1 wording, <code>ended_at</code> vs <code>closed_at</code>)</li>
+</ol>
+<h2>State carry-forward</h2>
+<p>User row 27 ends the session in <code>consultation_closed</code>, <code>slack_channel_id=C0B3SA9JALX</code> preserved (Design Rule #10), <code>consultations.id=8</code> closed, awaiting next-day exercise of post-consult interactive buttons.</p>
+    </section>
+
+    <section class="layer" id="story">
+      <h1>2. The Story</h1>
+      <div class="layer-blurb">Each scenario as a card with narrative + fix snippets. Tells you what happened without making you read raw logs.</div>
+      <p>Chronological narrative of what happened, each scenario as a self-contained card. For raw chronological ticks, expand the appendix.</p>
+<hr />
+<h3>TC-0101 — Brand-new user sends "Hi"  ✅</h3>
+<p>Started with the DB reset clean (user, payment, consultation, pending_user all deleted; Slack channel <code>C0B2QNWLHSB</code> manually deleted). Operator sent "Hi" from <code>61466927921</code>. Chain <code>WF-00 → WF-01 → WF-02 → WF-20 (no keyword) → WF-21 → WF-50 → WF-60</code> ran in ~2.4s, all green. Welcome + WhatsApp Flow form delivered. A row appeared in <code>pending_users</code> — initially flagged as a Design Rule #1 violation, but operator clarified pre-form <code>pending_users</code> writes are intentional. CLAUDE.md wording captured for update; saved to memory so it doesn't get re-flagged.</p>
+<hr />
+<h3>TC-0104 — Form submission  ❌ → ✅ (after BUG-01)</h3>
+<p>Operator filled and submitted the Flow. WF-22 fired, WF-52 created Slack channel <code>C0B3SA9JALX</code>, user row 27 was created with all birth details… and then <strong>WF-22 errored at <code>Save Slack Channel ID</code></strong> with <code>Referenced node doesn't exist</code>. The expression was pointing at <code>Call WF-52 (Create User Channel)</code> — a name that had been renamed to <code>Ensure Slack Channel Exists (WF-52)</code>. The channel ID never landed in the DB, payment instructions never went out.</p>
+<pre><code class="language-diff">- queryReplacement: ={{ $('Call WF-52 (Create User Channel)').item.json.channelId }}, ...
++ queryReplacement: ={{ $('Ensure Slack Channel Exists (WF-52)').item.json.channelId }}, {{ $now }}, {{ $('User Created?').item.json.id }}
+</code></pre>
+<p>Operator patched via n8n UI. WF-22 re-ran against the existing user 27 (no reset needed), <code>slack_channel_id</code> filled, payment instructions delivered. <strong>This is a 100% reproducible class — node renames silently break downstream expressions.</strong> Flagged as plugin-lint candidate (resolve <code>$('node-name')</code> against actual nodes).</p>
+<hr />
+<h3>TC-0201 — User taps "Payment Completed"  ✅</h3>
+<p>Tap → <code>WF-00 → WF-01 → WF-02 → WF-32 → WF-50 + WF-51 → WF-60</code>, ~2s. User status: <code>payment_pending</code> → <code>payment_submitted</code>. Payment row id=9 created (<code>status=pending_verification</code>, <code>amount=500</code>, <code>method=gpay</code>). Slack notification "🔔 New Payment Submission … <code>APPROVE PAYMENT 61466927921</code>" landed in <code>C0B3SA9JALX</code>. Most importantly: <strong>WF-32 did NOT re-invoke WF-52</strong> — Design Rule #2 (read existing <code>slack_channel_id</code> from DB) confirmed live.</p>
+<hr />
+<h3>TC-0301 — Admin sends APPROVE PAYMENT  ❌ → ✅ (after BUG-02)</h3>
+<p><code>APPROVE PAYMENT 61466927921</code> from Slack triggered <code>WF-10 → WF-11 → WF-33 → WF-50</code>, all green. User → <code>consultation_active</code>, payment → <code>approved</code>, consultations row id=8 created. <strong>But</strong> <code>users.current_consultation_id</code> was NULL despite consultation 8 existing — flagged as a data-integrity observation. Operator added a new <code>Update User Consultation Id</code> node to WF-33; first attempt had both placeholders as <code>$1</code>:</p>
+<pre><code class="language-diff">- WHERE id = $1   -- both placeholders the same; matched user 8 (doesn't exist), not user 27
++ WHERE id = $2
+- queryReplacement: ={{ $('Create Consultation Record').item.json.id }}
++ queryReplacement: ={{ $('Create Consultation Record').item.json.id }}, {{ $('Create Consultation Record').item.json.user_id }}
+</code></pre>
+<p>Second attempt sourced both consultation id and user_id from the same upstream node (cleaner than my suggestion). Verified — <code>current_consultation_id = 8</code> on user 27.</p>
+<hr />
+<h3>TC-0401 — User → admin relay  ✅</h3>
+<p>User sent "What does my birth chart say about career this year?" from WhatsApp. Chain <code>WF-00 → WF-01 → WF-02 → WF-20 (no keyword) → WF-40 → WF-51</code>, ~3s, all green. Pure passthrough — no LLM. Message landed in <code>C0B3SA9JALX</code>. Bot-loop guard confirmed (subsequent WF-10 event for the bot's own post didn't recurse).</p>
+<hr />
+<h3>TC-0311 — Admin → user relay  ❌ → ✅ (after BUG-03)</h3>
+<p>Operator replied from Slack. <strong>Failed:</strong> WF-41 <code>Extract Phone from Channel</code> threw <code>TypeError: Cannot read properties of undefined (reading 'replace')</code>. Root cause: WF-10's <code>Load User Status</code> ran <code>SELECT status FROM users WHERE slack_channel_id=$1</code> — returning only <code>{status}</code> — and <code>Call WF-41</code> used <code>mappingMode: passthrough</code>. Every other field (<code>channelName</code>, <code>messageText</code>) from upstream Slack-event extraction was dropped because the Postgres node terminated the data chain.</p>
+<p>Operator's fix took the pragmatic-but-hacky route — extended <code>Load User Status</code> SQL to smuggle the missing fields through the DB:</p>
+<pre><code class="language-sql">SELECT status, $2 as channelName, $3 as messageText
+FROM chinmay_astro.users WHERE slack_channel_id = $1 LIMIT 1
+</code></pre>
+<p>Plus changed WF-41's JS from <code>input.channelName</code> → <code>input.channelname</code> (Postgres lowercases unquoted aliases). Live webhook-mode re-test (exec 993–999) confirmed green, ~1.4s end-to-end. <strong>3 caveats logged in <code>followups-relay-fix.md</code></strong> — preferred long-term fix is <code>mappingMode: defineBelow</code> on the caller side, not SELECT-smuggling.</p>
+<hr />
+<h3>TC-0305 — Admin closes consultation  ✅ (with side-findings)</h3>
+<p><code>CLOSE CHAT CONSULT 61466927921</code> triggered <code>WF-10 → WF-11 → WF-42 → WF-50</code>, all green. User → <code>consultation_closed</code>, <code>current_consultation_id</code> cleared to NULL, <code>consultations.id=8</code> → <code>closed</code> with <code>ended_at</code> populated. <strong><code>slack_channel_id</code> preserved</strong> per Design Rule #10 — channel intentionally reused on rebook, NOT archived. User received the post-consult interactive buttons (Provide Feedback / Book Another / I'm done).</p>
+<p>But the exploration around this scenario surfaced a tangled set of WF-11 issues. Operator first sent a malformed CLOSE command, which fell into WF-11's UNKNOWN-command branch — and that response posted to the wrong channel (hardcoded to admin). Fixed that, then realized HELP had the same issue. Tried to fix HELP, but "saves kept reverting." That's because the HELP responder node was misleadingly named <code>Send Stats To Admin1</code>, sitting right next to a real <code>Send Stats To Admin</code> — the operator was editing the wrong node. Rename + fix landed. LIST and STATS got the same treatment in the same iteration.</p>
+<p>Two hardcoded admin-channel refs remain in <code>Confirm User Unblocked</code> and <code>No Blocked User Found</code> — captured in <code>followups-wf11-channel-routing.md</code> as FU-WF11-03 (partial). Not blocking — UNBLOCK wasn't exercised this session.</p>
+<hr />
+<h3>Where we ended the session</h3>
+<p>Test phone 27 sits in <code>consultation_closed</code> with <code>slack_channel_id=C0B3SA9JALX</code> preserved, ready for the post-consult interactive buttons to be exercised next session (feedback, rebook, done). All happy paths attempted today work end-to-end via the live webhook chain. Heavy iteration logs in the appendix can be skimmed past — the cards above are the actual story.</p>
+    </section>
+
+    <section class="layer" id="appendix">
+      <h1>3. Appendix</h1>
+      <div class="layer-blurb">Full raw artefacts. Click to expand. The session log is verbatim — use it to grep, re-trace, or audit.</div>
+      <details class="appendix-item" id="appendix-session">
+        <summary>Session log <span class="src">(session.md — raw chronological)</span></summary>
+        <h1>Test Session — exploratory / pre-smoke-test</h1>
+<ul>
+<li><strong>Date:</strong> 2026-05-16</li>
+<li><strong>Operator:</strong> prasadmujumdar</li>
+<li><strong>Test phone:</strong> <code>61466927921</code> (Australia +61 — confirmed allowed by WF-01 <code>Layer 1: Country Filter</code>)</li>
+<li><strong>Design docs:</strong> <code>docs/reference/user_journey_map.html</code>, <code>docs/superpowers/FunctionalTestCases.md</code></li>
+<li><strong>Latency threshold:</strong> 5000 ms</li>
+</ul>
+<h2>Watch surface</h2>
+<ul>
+<li><strong>n8n:</strong> all active workflows (executions polled via <code>/api/v1/executions</code>)</li>
+<li><strong>Postgres tables:</strong> <code>users</code> (updated_at), <code>admin_actions</code> (created_at), <code>payments</code> (created_at), <code>messages</code> (created_at), <code>consultations</code> (created_at), <code>pending_users</code> (created_at). Note: <code>message_log</code> does not exist in this schema — using <code>messages</code> instead.</li>
+<li><strong>Slack channels:</strong> <code>C0A5B0ZE81E</code> (chinmay-admin-commands) + any <code>consult-*</code> created during run.</li>
+</ul>
+<h2>Baselines (captured 2026-05-16T05:23:05Z)</h2>
+<ul>
+<li><strong>Last n8n execution id:</strong> 876</li>
+<li><strong>Time cursor:</strong> 2026-05-16T05:23:05Z</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Rows</th>
+<th>Max ts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>users</td>
+<td>1</td>
+<td>2026-05-12 10:56:28+05:30</td>
+</tr>
+<tr>
+<td>admin_actions</td>
+<td>0</td>
+<td>—</td>
+</tr>
+<tr>
+<td>payments</td>
+<td>1</td>
+<td>2026-05-12 09:06:37</td>
+</tr>
+<tr>
+<td>messages</td>
+<td>0</td>
+<td>—</td>
+</tr>
+<tr>
+<td>consultations</td>
+<td>1</td>
+<td>2026-05-12 09:07:16</td>
+</tr>
+<tr>
+<td>pending_users</td>
+<td>2</td>
+<td>2026-05-12 08:30:04+05:30</td>
+</tr>
+</tbody>
+</table>
+<h2>Pre-test state of test phone</h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>phone_number</td>
+<td>61466927921</td>
+</tr>
+<tr>
+<td>name</td>
+<td>Pq</td>
+</tr>
+<tr>
+<td>status</td>
+<td><strong>consultation_closed</strong></td>
+</tr>
+<tr>
+<td>stage</td>
+<td>null</td>
+</tr>
+<tr>
+<td>updated_at</td>
+<td>2026-05-12T05:26:28Z</td>
+</tr>
+</tbody>
+</table>
+<p>⚠ <strong>Implication for test plan:</strong> This number is NOT a clean new-user state. First inbound text will route via WF-43 (POST_CONSULT_TEXT) per WF-02 routing. To test the onboarding path (TC-0101 → TC-0104), either:
+- Reset this user's row (delete or set status back to a new state), OR
+- Test from a different unused phone number, OR
+- Start the test from the <code>consultation_closed</code> state and exercise rebook (TC-0504/TC-0505), feedback (TC-0501/TC-0502), STOP (TC-0606), and keyword paths.</p>
+<hr />
+<h3>Action — 2026-05-16T05:35:00Z</h3>
+<p><strong>Sent:</strong> "Hi" from 61466927921 (brand-new user — DB clean, no prior record)
+<strong>Expected (TC-0101):</strong>
+1. WF-00 receives webhook, dedupes by <code>inboundMessageId</code>
+2. WF-01 country check passes (+61 allowed); blacklist check passes; user not found in DB
+3. WF-01 routes to WF-21
+4. WF-21 sends single combined message: policy URL + service description + ₹500 fee + WhatsApp Flow form (Flow ID <code>1408011897720771</code>, CTA "Fill Details")
+5. <strong>No DB record created</strong> (no row in <code>users</code> or <code>pending_users</code>)
+6. WF-22 NOT invoked, WF-52 NOT invoked, no Slack channel created yet</p>
+<h3>Tick — 2026-05-16T05:33:00Z (after action 05:35:00Z above — clock-skew, harmless)</h3>
+<p><strong>Trigger:</strong> user said "check"
+<strong>New executions:</strong> 10 (10 ok, 0 failed, 0 slow) — exec id 877 → 886</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>workflow</th>
+<th>status</th>
+<th>duration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>877</td>
+<td>WF-00 Webhook Receiver</td>
+<td>✅</td>
+<td>2.4s</td>
+</tr>
+<tr>
+<td>878</td>
+<td>WF-01 Message Router</td>
+<td>✅</td>
+<td>2.2s</td>
+</tr>
+<tr>
+<td>879</td>
+<td>WF-02 User State Router</td>
+<td>✅</td>
+<td>2.0s</td>
+</tr>
+<tr>
+<td>880</td>
+<td>WF-20 Keyword Handler</td>
+<td>✅</td>
+<td>0.1s</td>
+</tr>
+<tr>
+<td>881</td>
+<td>WF-21 New User Welcome + Form</td>
+<td>✅</td>
+<td>1.9s</td>
+</tr>
+<tr>
+<td>882</td>
+<td>WF-50 Send WhatsApp</td>
+<td>✅</td>
+<td>1.8s</td>
+</tr>
+<tr>
+<td>883</td>
+<td>WF-60 Message Logger</td>
+<td>✅</td>
+<td>0.04s</td>
+</tr>
+<tr>
+<td>884</td>
+<td>WF-00 Webhook Receiver</td>
+<td>✅</td>
+<td>0.02s</td>
+</tr>
+<tr>
+<td>885</td>
+<td>WF-00 Webhook Receiver</td>
+<td>✅</td>
+<td>0.02s</td>
+</tr>
+<tr>
+<td>886</td>
+<td>WF-00 Webhook Receiver</td>
+<td>✅</td>
+<td>0.02s</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Chain reconstructed:</strong> WF-00 → WF-01 → WF-02 → WF-20 (no keyword match, fast pass-through) → WF-21 → WF-50 → WF-60. The trailing 3 WF-00 executions are Meta delivery-status webhooks (sent / delivered / read) — expected.</p>
+<p><strong>DB deltas:</strong>
+- <code>users</code>: 0 rows for 61466927921 ✅
+- <code>pending_users</code>: <strong>1 new row</strong> for 61466927921 at 05:29:34 (created by WF-01's <code>Load Pending User</code> or downstream).
+- <code>messages</code>: 0 rows ← WF-60 ran successfully but wrote nothing (consistent with prior <strong>TD-004</strong> — WF-60 core nodes still disabled). Audit trail is still broken.</p>
+<p><strong>Slack:</strong> no new channels expected for new-user path; not checked.</p>
+<p><strong>Cross-check vs expected (TC-0101):</strong>
+- ✅ WF-00, WF-01, WF-21, WF-50 all triggered
+- ✅ No row in <code>users</code>
+- ✅ No Slack channel created
+- ⚪ <strong>Doc gap (not a bug):</strong> <code>pending_users</code> row was created — per operator, this is intentional. Design Rule #1 in CLAUDE.md should be updated from "no DB write before form submission" to "<strong>no DB write except logging to <code>pending_users</code> table</strong> before form submission." Logged for doc update; non-blocker for smoke.
+- ⚪ <strong>Deferred by choice (not a bug):</strong> WF-60 fires but writes nothing to <code>messages</code>. Per operator, message logging is a conscious deferral. <strong>However</strong>, <code>docs/workflow-registry.md</code> claims "All nodes re-enabled (TD-004 May 2026)" — registry needs to be reconciled with current reality (either re-disable claim, or fix WF-60). Non-blocker for smoke.</p>
+<h3>Action — 2026-05-16T05:38:00Z</h3>
+<p><strong>Sent:</strong> Filled-out WhatsApp Flow form (Name, DOB, TOB, Place) from 61466927921
+<strong>Expected (TC-0104):</strong>
+1. WF-00 receives <code>nfm_reply</code> interactive webhook
+2. WF-02 detects <code>messageType=interactive</code>, <code>interactive.type=nfm_reply</code> → DETAILS_FORM route → WF-22
+3. WF-22 calls encryption-svc Docker container to decrypt payload
+4. WF-22 creates DB row in <code>chinmay_astro.users</code>: <code>status=payment_pending</code>, stores name/DOB/TOB/birth_place
+5. WF-22 calls WF-52 → creates <code>consult-61466927921</code> Slack channel → stores <code>slack_channel_id</code> on the user row
+6. WF-22 sends UPI payment instructions (₹500 to +91-9653240263) + "Payment Completed ✓" interactive button via WF-50
+7. (Acceptable) <code>pending_users</code> row may be cleared/updated</p>
+<h3>Tick — 2026-05-16T05:42:00Z</h3>
+<p><strong>Trigger:</strong> user reported "nothing came back, n8n UI shows execution failures"
+<strong>New executions:</strong> 7 — exec 887→893 (4 failed, 3 ok)</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>workflow</th>
+<th>status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>887</td>
+<td>WF-00 Webhook Receiver</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>888</td>
+<td>WF-01 Message Router</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>889</td>
+<td>WF-02 User State Router</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>890</td>
+<td>WF-22 Form Response Handler</td>
+<td>❌ — <code>Save Slack Channel ID</code></td>
+</tr>
+<tr>
+<td>891</td>
+<td>WF-52 Slack Channel Manager</td>
+<td>✅ (created <code>C0B3SA9JALX</code>)</td>
+</tr>
+<tr>
+<td>892, 893</td>
+<td>WF-10 Slack Admin Handler</td>
+<td>✅ (admin-side echo of WF-52's channel creation event)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Failure root cause</strong> — <code>ExpressionError: Referenced node doesn't exist</code> in WF-22 <code>Save Slack Channel ID</code> node:
+- The Postgres node's <code>queryReplacement</code> expression references <code>$('Call WF-52 (Create User Channel)').item.json.channelId</code>
+- The actual upstream node is named <code>Ensure Slack Channel Exists (WF-52)</code> — node was renamed but the downstream expression was never updated
+- Cascades up the chain: WF-22 fails → WF-02 / WF-01 / WF-00 all marked errored</p>
+<p><strong>DB deltas:</strong>
+- <code>users</code>: 1 new row id=27 — <code>name=Abcd</code>, <code>dob=1986-05-15</code>, <code>tob=11:30:00</code>, <code>place=Mumbai</code>, <code>status=payment_pending</code>, <strong><code>slack_channel_id=NULL</code> ← critical: should be <code>C0B3SA9JALX</code></strong></p>
+<p><strong>Slack:</strong> channel <code>C0B3SA9JALX</code> (<code>consult-61466927921</code>) created and admin invited — channel exists but orphaned (no DB linkage).</p>
+<p><strong>Cross-check vs expected (TC-0104):</strong>
+- ✅ WF-22 invoked; user row created with all birth details; status=payment_pending
+- ✅ WF-52 invoked; Slack channel created; admin invited
+- ❌ <code>slack_channel_id</code> NOT saved to user row (NULL)
+- ❌ Payment instructions NOT sent to user
+- ❌ "Payment Completed ✓" button NOT delivered</p>
+<h2>Issues found</h2>
+<h3>[critical] BUG-01 — WF-22 expression references renamed WF-52 caller node</h3>
+<ul>
+<li><strong>Workflow:</strong> WF-22 Form Response Handler (<code>dr8QM0m92Ml8MvIh</code>)</li>
+<li><strong>Node:</strong> <code>Save Slack Channel ID</code> (postgres executeQuery)</li>
+<li><strong>Field:</strong> <code>parameters.options.queryReplacement</code></li>
+<li><strong>Current:</strong> <code>={{ $('Call WF-52 (Create User Channel)').item.json.channelId }}, {{ $('Create User Record').item.json.id }}</code></li>
+<li><strong>Should be:</strong> <code>={{ $('Ensure Slack Channel Exists (WF-52)').item.json.channelId }}, {{ $('Create User Record').item.json.id }}</code></li>
+<li><strong>Impact:</strong> 100% failure on every new-user form submission. Breaks downstream payment flow (WF-32 reads <code>slack_channel_id</code> from DB). Orphans a Slack channel per attempt. <strong>Hard go-live blocker.</strong></li>
+<li><strong>Detection gap:</strong> Plugin v1.7.0 lint hook does not check that <code>$('node-name')</code> references resolve to an actual node in the workflow. <strong>Candidate for a new lint rule</strong> — flush to plugin after fix.</li>
+<li><strong>Fix applied (via n8n UI by operator, 2026-05-16 ~05:44Z):</strong></li>
+<li>Query rewrite: <code>SET slack_channel_id=$1, updated_at=$2 WHERE id=$3 RETURNING id, slack_channel_id;</code></li>
+<li>queryReplacement: <code>={{ $('Ensure Slack Channel Exists (WF-52)').item.json.channelId }}, {{ $now }}, {{ $('User Created?').item.json.id }}</code></li>
+<li><strong>Backfill:</strong> WF-22 re-ran successfully against user 27 (no need to reset row); <code>slack_channel_id=C0B3SA9JALX</code>, <code>updated_at=2026-05-16 11:14:42+05:30</code>. Operator received payment instructions on WhatsApp.</li>
+</ul>
+<h3>Action — 2026-05-16T05:48:00Z</h3>
+<p><strong>About to send:</strong> tap "Payment Completed ✓" interactive button from 61466927921
+<strong>Expected (TC-0201):</strong>
+1. WF-00 receives interactive webhook (button_reply)
+2. WF-02 detects <code>interactive.type=button_reply</code> → PAYMENT_CONFIRM → WF-32
+3. WF-32 creates row in <code>chinmay_astro.payments</code> with <code>status=submitted</code>
+4. WF-32 updates <code>users.status = payment_submitted</code> for user 27
+5. WF-32 reads <code>slack_channel_id=C0B3SA9JALX</code> from DB (does NOT call WF-52 again per Design Rule #2)
+6. WF-32 posts birth details + "APPROVE PAYMENT 61466927921" instruction to channel C0B3SA9JALX via WF-51
+7. WF-32 sends confirmation to user via WF-50: "Got it! Chinmay will review your payment..."</p>
+<h3>Tick — 2026-05-16T05:50:00Z (Payment Completed tap)</h3>
+<p><strong>Trigger:</strong> user tapped "Payment Completed ✓"
+<strong>Executions:</strong> 908–918 (11 total, all ✅) — chain: WF-00 → WF-01 → WF-02 → WF-32 → WF-50 + WF-51 → WF-60 + trailing Meta status webhooks. ~2s end-to-end.
+<strong>DB deltas:</strong> users 27 status → <code>payment_submitted</code>; payments row id=9 created (<code>amount=500</code>, <code>status=pending_verification</code>, <code>method=gpay</code>).
+<strong>Slack:</strong> WF-51 posted "🔔 New Payment Submission" with canonical <code>APPROVE PAYMENT 61466927921</code> instruction to <code>C0B3SA9JALX</code>.
+<strong>Cross-check (TC-0201):</strong> ✅ all 6 expectations met. WF-52 NOT re-invoked (Design Rule #2 honored).</p>
+<h3>Action — 2026-05-16T05:55:00Z (APPROVE PAYMENT)</h3>
+<p><strong>Sent:</strong> <code>APPROVE PAYMENT 61466927921</code> from operator in Slack
+<strong>Expected (TC-0301):</strong> WF-10 → WF-11 (APPROVE parse) → WF-33 → payment.status=approved, user.status=consultation_active, consultation row created, user notified via WF-50.</p>
+<h3>Tick — 2026-05-16T05:56:00Z (APPROVE)</h3>
+<p><strong>Trigger:</strong> user reports confirmation on both Slack + WhatsApp
+<strong>Executions:</strong> 919–927 (9 total, all ✅) — chain: WF-10 → WF-11 → WF-33 → WF-50 → WF-60 + trailing Slack/Meta webhooks. ~2.5s end-to-end.
+<strong>DB deltas:</strong>
+- users 27: <code>payment_submitted</code> → <strong><code>consultation_active</code></strong> ✅
+- payments id=9: <code>pending_verification</code> → <strong><code>approved</code></strong> ✅
+- consultations id=8 created: <code>status=active</code>, <code>started_at=2026-05-16 11:25:37 IST</code> ✅</p>
+<p><strong>Observation (non-blocking at this point):</strong> <code>users.current_consultation_id</code> is NULL despite <code>consultations.id=8</code> existing for user 27. Reported to operator → operator added a new node <code>Update User Consultation Id</code> to WF-33 to fix this. See BUG-02 below.</p>
+<h3>[major] BUG-02 — WF-33 <code>Update User Consultation Id</code> node has duplicate <code>$1</code> placeholder</h3>
+<ul>
+<li><strong>Workflow:</strong> WF-33 Payment Approval Processor (<code>NcHZedq9ycnAQ9SW</code>)</li>
+<li><strong>Node:</strong> <code>Update User Consultation Id</code> (postgres executeQuery) — added by operator 2026-05-16 to address the <code>current_consultation_id=NULL</code> observation above</li>
+<li><strong>Current query:</strong>
+  <code>sql
+  UPDATE chinmay_astro.users SET current_consultation_id = $1, updated_at = NOW()
+  WHERE id = $1 RETURNING *;</code></li>
+<li><strong>Current queryReplacement:</strong> <code>={{ $('Create Consultation Record').item.json.id }}</code></li>
+<li><strong>Bug:</strong> Both placeholders are <code>$1</code> and only the consultation id is passed → the UPDATE attempts to match a user whose <code>id</code> equals the consultation id (user id 8, which doesn't exist), so zero rows are updated. user 27's <code>current_consultation_id</code> is still NULL after the fix.</li>
+<li><strong>Correct query:</strong>
+  <code>sql
+  UPDATE chinmay_astro.users SET current_consultation_id = $1, updated_at = NOW()
+  WHERE id = $2 RETURNING *;</code></li>
+<li><strong>Correct queryReplacement:</strong> <code>={{ $('Create Consultation Record').item.json.id }}, {{ $('Load User by Phone').item.json.id }}</code></li>
+<li><strong>Impact:</strong> Whether this blocks relay depends on whether WF-40 / WF-42 read <code>current_consultation_id</code>. If they read by <code>user_id</code> from <code>consultations</code> table directly, relay will still work. Recommend fixing before continuing.</li>
+</ul>
+<p><strong>Cross-check (TC-0301):</strong> ✅ all expectations met.</p>
+<h3>Action — 2026-05-16T05:58:00Z (Relay test — TC-0401 + TC-0311)</h3>
+<p><strong>About to send:</strong>
+1. Free-form text from user WhatsApp 61466927921 — e.g. "What does my birth chart say about career this year?"
+2. Then free-form reply from operator in Slack channel C0B3SA9JALX — e.g. astrology guidance</p>
+<p><strong>Expected:</strong>
+- TC-0401 (user → admin): WF-00 → WF-01 → WF-02 (RELAY) → WF-40 → WF-51 → posts to C0B3SA9JALX. No LLM. ⚠ Note: TD-004 still open so WF-60 will fire but not write to <code>messages</code>.
+- TC-0311 (admin → user): WF-10 detects non-command in consult channel → WF-12 (or WF-41) → WF-50 → user WhatsApp. Bot-loop guard (<code>authorizations[0].user_id ≠ event.user</code>) must prevent infinite loop.</p>
+<h3>Tick — 2026-05-16T06:11:00Z (Relay)</h3>
+<p><strong>Trigger:</strong> user said "user→admin worked, admin→user failed"
+<strong>Executions:</strong> 948–956</p>
+<p><strong>User → admin (TC-0401):</strong> 948–954 all ✅
+- WF-00 (948) → WF-01 (949) → WF-02 (950) → WF-20 keyword pass-through (951) → WF-40 User→Admin Relay (952) → WF-51 Send Slack (953) → WF-10 echo of bot's own post (954, bot-loop-guard passed). ~3s.</p>
+<p><strong>Admin → user (TC-0311):</strong> 955 + 956 ❌
+- 955 WF-10 — failed at <code>Call WF-41 (Admin-&gt;User Relay)</code> propagated from child
+- 956 WF-41 — failed at <code>Extract Phone from Channel</code>: <code>TypeError: Cannot read properties of undefined (reading 'replace') [line 5]</code></p>
+<h3>Tick — 2026-05-16T06:38:00Z (Admin→user relay re-test, live)</h3>
+<p><strong>Trigger:</strong> user sent fresh Slack message in C0B3SA9JALX after fixing WF-10 + WF-41
+<strong>Executions:</strong> 993–999 (7 total, all ✅, ~1.4s end-to-end)
+- 993 WF-10 mode=<code>webhook</code> (live Slack event, NOT manual) ✅
+- 994 WF-41 ✅
+- 995 WF-50 ✅
+- 996 WF-60 ✅
+- 997-999 trailing Meta delivery webhooks ✅</p>
+<p><strong>Cross-check (TC-0311):</strong> ✅ Admin→user relay confirmed working end-to-end via live webhook path. Operator received message on WhatsApp.</p>
+<p><strong>Operator's fix summary (review):</strong>
+1. WF-10 <code>Load User Status</code> SQL rewritten to smuggle channel name + message text as SELECT literals: <code>SELECT status, $2 as channelName, $3 as messageText FROM users WHERE slack_channel_id=$1 LIMIT 1</code> with queryReplacement <code>={{ $json.channelId }}, {{ $('Find Channel').item.json.name }}, {{ $json.messageText }}</code>
+2. WF-41 <code>Extract Phone from Channel</code> updated <code>input.channelName</code> → <code>input.channelname</code> (lowercase, matching Postgres column-name lowercasing default)
+3. <code>Call WF-41</code> node still <code>mappingMode: passthrough</code> — fix relied on upstream data, not caller mapping</p>
+<h3>Action — 2026-05-16T06:50:00Z (CLOSE)</h3>
+<p><strong>Sent:</strong> <code>CLOSE CHAT CONSULT 61466927921</code> from operator in Slack
+<strong>Expected (TC-0305):</strong>
+1. WF-10 captures Slack event → WF-11 parses CLOSE → WF-42
+2. WF-42 disables relay mode
+3. Updates <code>consultations.id=8</code>: <code>status=closed</code>, <code>closed_at=now()</code>
+4. Updates <code>users.id=27</code>: <code>status=consultation_closed</code>
+5. <strong>Per Design Rule #10: channel <code>C0B3SA9JALX</code> intentionally NOT archived</strong> (reused on rebook). WF-52 archive should NOT be invoked.
+6. WF-42 sends user interactive button message via WF-50: "Provide Feedback" / "Book Another Consultation" / "I'm done, thank you"
+7. Admin receives Slack confirmation in C0B3SA9JALX</p>
+<p>⚠ Known prior risks (per handoff): TD-014 (WF-42 UPDATE used non-existent users columns) and TD-015 (WF-42 unconfirmed Meta template instead of interactive buttons) — both supposedly closed. If either is regressed, expect failure here.</p>
+<h3>Tick — 2026-05-16T07:03:00Z (CLOSE — final happy path)</h3>
+<p><strong>Trigger:</strong> operator reported "happy path works" after fixing UNKNOWN command channel-target side issue
+<strong>Executions:</strong> 1000–1044 (45 entries — heavy debug noise from operator's manual fixes between 1000–1034). <strong>Final live happy-path chain:</strong>
+- 1035 WF-10 webhook ✅
+- 1036 WF-11 ✅ (CLOSE parsed)
+- 1037 WF-42 Consultation Closer ✅
+- 1038 WF-50 Send WhatsApp ✅
+- 1039 WF-60 Logger ✅
+- 1040–1044 trailing Slack/Meta status webhooks ✅</p>
+<p><strong>DB deltas:</strong>
+- <code>users.id=27</code>: <code>consultation_active</code> → <strong><code>consultation_closed</code></strong> ✅
+- <code>users.current_consultation_id</code>: 8 → NULL ✅
+- <code>users.slack_channel_id</code>: <code>C0B3SA9JALX</code> preserved ✅ (Design Rule #10 — channel reused on rebook, NOT archived)
+- <code>consultations.id=8</code>: <code>active</code> → <strong><code>closed</code></strong> ✅, <code>ended_at</code> set</p>
+<p><strong>Cross-check (TC-0305):</strong> ✅ Happy path met. Channel preservation per Design Rule #10 confirmed.</p>
+<p><strong>Side-findings from operator's exploration (captured separately):</strong>
+- WF-11 <code>Unknown Command Response</code> was routing to admin channel — operator fixed in-session
+- WF-11 HELP responder had same channel-target issue; operator tried to fix but n8n editor kept reverting their changes
+- Root cause identified: HELP responder node was misleadingly named <code>Send Stats To Admin1</code> (not <code>Send HELP Response</code>) → easy to edit the wrong node
+- <strong>In-session resolution:</strong> operator renamed <code>Send Stats To Admin1</code> → <code>Send Help To Admin</code> AND switched <code>Send List To Admin</code> + <code>Send Stats To Admin</code> from hardcoded <code>C0A5B0ZE81E</code> to <code>={{ $json.channelName }}</code>. Verified via API export (exec 1057–1061 all ✅ on live &amp; manual runs).
+- Two hardcoded references remain: <code>Confirm User Unblocked</code>, <code>No Blocked User Found</code> — see <code>followups-wf11-channel-routing.md</code> items FU-WF11-03 (partial).
+- Full audit + remediation plan: <code>followups-wf11-channel-routing.md</code></p>
+<h2>Summary</h2>
+<h3>What worked end-to-end (live webhook mode, all happy paths verified)</h3>
+<ul>
+<li>✅ TC-0101 — New-user "Hi" → WF-21 sends policy + Flow form</li>
+<li>✅ TC-0104 — Form submission → user row + Slack channel created + payment instructions sent (after BUG-01 fix)</li>
+<li>✅ TC-0201 — "Payment Completed" tap → payment row, Slack notification, user confirmation (full chain ~2s)</li>
+<li>✅ TC-0301 — APPROVE PAYMENT → user → <code>consultation_active</code>, payment → approved, consultations row created (after BUG-02 fix)</li>
+<li>✅ TC-0401 — User→admin relay (consultation_active text passes through to Slack channel)</li>
+<li>✅ TC-0311 — Admin→user relay (after BUG-03 fix; live webhook-mode verified exec 993–999)</li>
+<li>✅ TC-0305 — CLOSE CHAT CONSULT → user → <code>consultation_closed</code>, consultation → closed, <code>slack_channel_id</code> preserved per Design Rule #10</li>
+</ul>
+<h3>Issues found &amp; fixed in-session</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Severity</th>
+<th>What</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUG-01</td>
+<td>🔴 critical</td>
+<td>WF-22 expression referenced renamed WF-52 caller node → <code>slack_channel_id</code> never saved, payment instructions never sent</td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td>BUG-02</td>
+<td>🟠 major</td>
+<td>WF-33 <code>Update User Consultation Id</code> had duplicate <code>$1</code> placeholder → <code>current_consultation_id</code> always NULL</td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td>BUG-03</td>
+<td>🟠 major</td>
+<td>Admin→user relay dropped <code>channelName</code>+<code>messageText</code> before calling WF-41 → TypeError on undefined.replace</td>
+<td>✅ Fixed (with caveats in followups-relay-fix.md)</td>
+</tr>
+<tr>
+<td>WF-11 UNKNOWN</td>
+<td>🟡 major (UX)</td>
+<td>Routed to admin channel instead of originating</td>
+<td>✅ Fixed in-session</td>
+</tr>
+<tr>
+<td>WF-11 HELP/LIST/STATS</td>
+<td>🟡 major (UX)</td>
+<td>Hardcoded admin channel + misnamed HELP node</td>
+<td>✅ Fixed in-session (3 of 5 nodes)</td>
+</tr>
+</tbody>
+</table>
+<h3>Open observations (non-blocking)</h3>
+<ul>
+<li>⚪ Doc gap: CLAUDE.md Design Rule #1 wording should explicitly allow <code>pending_users</code> writes pre-form (saved to memory)</li>
+<li>⚪ WF-60 fires but writes nothing to <code>messages</code> — per operator, message logging is a conscious deferral. Workflow registry still claims TD-004 closed; needs reconciliation.</li>
+<li>⚪ <code>chinmay_astro.consultations.ended_at</code> was used as the close-timestamp column (registry says <code>closed_at</code> — but <code>closed_at</code> doesn't exist; only <code>ended_at</code> does)</li>
+</ul>
+<h3>Open follow-ups (carried to dedicated files in this folder)</h3>
+<ul>
+<li><code>followups-relay-fix.md</code> — FU-RELAY-01..03 (passthrough mapping audit, channelName casing, SELECT-smuggling pattern)</li>
+<li><code>followups-wf11-channel-routing.md</code> — FU-WF11-01..04 (remaining 2 hardcoded admin-channel refs in <code>Confirm User Unblocked</code> + <code>No Blocked User Found</code>; revert-on-save diagnostic)</li>
+</ul>
+<h2>Next session — when smoke testing resumes</h2>
+<p>Test phone <code>61466927921</code> is currently in state <code>consultation_closed</code> with <code>slack_channel_id=C0B3SA9JALX</code> preserved. Recommended sequence:</p>
+<ol>
+<li><strong>TC-0501 / TC-0502 — Feedback path</strong></li>
+<li>Tap "Provide Feedback" button on the post-consult interactive message (still pending in user's inbox)</li>
+<li>Send feedback text; verify <code>users.feedback</code> column populated and <code>awaiting_feedback</code> flag cleared</li>
+<li>
+<p>Validates F-01 (<code>stage</code> column) end-to-end</p>
+</li>
+<li>
+<p><strong>TC-0504 / TC-0505 — REBOOK path</strong></p>
+</li>
+<li>Tap "Book Another Consultation" button OR send "REBOOK" keyword</li>
+<li>Verify WF-45 sets <code>users.status = payment_pending</code> AND reuses the existing <code>C0B3SA9JALX</code> channel (Design Rule #10 — do NOT create a new channel)</li>
+<li>
+<p>Validates F-03 fixes on WF-45's executeWorkflow nodes</p>
+</li>
+<li>
+<p><strong>TC-0606 — STOP from consultation_closed</strong></p>
+</li>
+<li>Send "STOP" — verify WF-47 → <code>users.status = opted_out</code> + <code>admin_actions</code> row inserted with <code>action_type='opted_out'</code></li>
+<li>
+<p>Validates F-02 fix on WF-47</p>
+</li>
+<li>
+<p><strong>TC-0607 — Re-engagement after opt-out</strong></p>
+</li>
+<li>
+<p>Send any message — verify WF-01 routes opted_out user to WF-21 (treat as new user)</p>
+</li>
+<li>
+<p><strong>TC-0306 / TC-0307 — BLOCK and UNBLOCK admin commands</strong> (requires resetting user first, or using a second test phone)</p>
+</li>
+<li>
+<p>Validates F-02 fix on WF-11 UNBLOCK flow</p>
+</li>
+<li>
+<p><strong>WF-11 remaining cleanup before go-live</strong></p>
+</li>
+<li>Apply FU-WF11-03 (last 2 hardcoded admin-channel refs)</li>
+<li>
+<p>Audit per FU-RELAY-03 for other <code>mappingMode: passthrough</code> calls that may silently drop fields</p>
+</li>
+<li>
+<p><strong>Reconcile <code>docs/workflow-registry.md</code> with reality</strong></p>
+</li>
+<li>TD-004 (WF-60 disabled nodes) — re-mark as deferred/conscious choice</li>
+<li>CLAUDE.md Design Rule #1 — update wording to allow pending_users</li>
+<li>WF-42 column naming (<code>ended_at</code> not <code>closed_at</code>)</li>
+</ol>
+<h3>Test surface state at session end (carry-forward for tomorrow)</h3>
+<ul>
+<li><code>users.id=27</code> / <code>phone=61466927921</code> / <code>status=consultation_closed</code> / <code>current_consultation_id=null</code> / <code>slack_channel_id=C0B3SA9JALX</code></li>
+<li><code>payments.id=9</code> / <code>status=approved</code></li>
+<li><code>consultations.id=8</code> / <code>status=closed</code> / <code>ended_at</code> set</li>
+<li>Slack channel <code>C0B3SA9JALX</code> (<code>consult-61466927921</code>) — open, NOT archived</li>
+<li>Cursors stored in <code>.cursors/</code> — last exec id 1061, time <code>&lt;final ts&gt;</code> — a resumed session should rebaseline since several hours will likely elapse.</li>
+</ul>
+<h3>[major] BUG-03 — Admin→user relay drops channelName + messageText before calling WF-41</h3>
+<ul>
+<li><strong>Workflows:</strong> WF-10 Slack Admin Handler (<code>wMh0oBRtJbvhLgOf</code>) + WF-41 Admin -&gt; User Relay (<code>6PzJRZsF7k2d9hV7</code>)</li>
+<li><strong>Failing node:</strong> WF-41 <code>Extract Phone from Channel</code> — calls <code>channelName.replace(/^consult-/, '')</code> but <code>input.channelName</code> is undefined</li>
+<li><strong>Caller node:</strong> WF-10 <code>Call WF-41 (Admin-&gt;User Relay)</code> — <code>mappingMode: passthrough</code> with empty <code>value: {}</code></li>
+<li><strong>Upstream connection:</strong> <code>User Consultation Active? → Call WF-41</code>. Direct ancestor providing data is <code>Load User Status</code> whose query is <code>SELECT status FROM chinmay_astro.users WHERE slack_channel_id = $1 LIMIT 1</code> — returns ONLY <code>{status: "consultation_active"}</code>. <code>channelName</code>, <code>messageText</code>, etc. from earlier nodes (<code>Find Channel</code>, <code>Extract Required Fields</code>) are dropped because the Postgres node breaks the data chain.</li>
+<li><strong>Verified payload received by WF-41:</strong> <code>{status: "consultation_active"}</code> (from exec 956 input)</li>
+<li><strong>Fix options:</strong></li>
+<li><strong>Preferred:</strong> Change WF-10 <code>Call WF-41</code> node from <code>mappingMode: passthrough</code> to <code>defineBelow</code> and explicitly map:<ul>
+<li><code>channelName</code> ← <code>={{ $('Find Channel').item.json.channel.name }}</code> (or wherever channel name is held)</li>
+<li><code>messageText</code> ← <code>={{ $('Extract Required Fields').item.json.text }}</code> (or equivalent)</li>
+<li>any other fields WF-41 reads (<code>adminMessage</code> etc.)</li>
+</ul>
+</li>
+<li>Alternative: insert a Merge node combining <code>Load User Status</code> output with <code>Extract Required Fields</code> output before <code>Call WF-41</code>, then passthrough.</li>
+<li>Worst: have WF-41 do a Slack <code>conversations.info</code> lookup using <code>slack_channel_id</code> (would require also passing channelId + messageText, defeating the simplicity argument).</li>
+<li><strong>Detection gap:</strong> Same lint-rule candidate as BUG-01 (resolve <code>$('node-name')</code> references), plus a separate rule: when caller uses <code>mappingMode: passthrough</code>, validate the upstream Postgres SELECT returns all fields the callee's first node reads. Add to <code>flush-plugin-improvements</code> discussion.</li>
+</ul>
+      </details>
+      <div id="appendix-followups-relay-fix"><details class="appendix-item"><summary>Followup — Relay Fix <span class="src">(followups-relay-fix.md)</span></summary><h1>Follow-ups — Relay Fix (2026-05-16)</h1>
+<p>Three non-blocking caveats from BUG-03 fix verification. <strong>Smoke-test passes; these are tech debt to address post-smoke / pre-go-live polish.</strong></p>
+<p>Source: <code>.methodology/test-exploratory-pre-smoke-test-2026-05-16.md</code> (exec 993–999 confirmed live webhook-mode admin→user relay works).</p>
+<hr />
+<h2>FU-RELAY-01 — Replace SELECT-smuggling with proper data merge or explicit mapping</h2>
+<p><strong>Workflow:</strong> WF-10 Slack Admin Handler (<code>wMh0oBRtJbvhLgOf</code>), node <code>Load User Status</code>
+<strong>Current pattern:</strong></p>
+<pre><code class="language-sql">SELECT status, $2 as channelName, $3 as messageText
+FROM chinmay_astro.users WHERE slack_channel_id = $1 LIMIT 1
+</code></pre>
+<p>queryReplacement: <code>={{ $json.channelId }}, {{ $('Find Channel').item.json.name }}, {{ $json.messageText }}</code></p>
+<p><strong>Why it's hacky:</strong>
+- Postgres is being used as a passthrough pipeline for runtime data that never lived in the DB
+- Future readers will be confused about what's "real" data vs SELECT-literal smuggling
+- Adds a DB round-trip every time even though only one column (<code>status</code>) needs the DB</p>
+<p><strong>Preferred fix (pick one):</strong></p>
+<ol>
+<li><strong>Caller-side explicit mapping (cleanest):</strong> Change WF-10 <code>Call WF-41 (Admin-&gt;User Relay)</code> from <code>mappingMode: passthrough</code> to <code>defineBelow</code> with explicit schema mapping:</li>
+<li><code>channelName</code> ← <code>={{ $('Find Channel').item.json.name }}</code></li>
+<li><code>messageText</code> ← <code>={{ $('Extract Required Fields').item.json.text }}</code> (or wherever the body is held)</li>
+<li><code>status</code> ← <code>={{ $('Load User Status').item.json.status }}</code></li>
+<li>
+<p><code>channelId</code> ← <code>={{ $('Extract Required Fields').item.json.channelId }}</code>
+   Then revert <code>Load User Status</code> to <code>SELECT status FROM users WHERE slack_channel_id = $1 LIMIT 1</code>.</p>
+</li>
+<li>
+<p><strong>Merge node (if mapping-by-node is preferred):</strong> Insert a Merge node combining <code>Load User Status</code> output with <code>Find Channel</code> + <code>Extract Required Fields</code> outputs, then <code>Call WF-41</code> with passthrough.</p>
+</li>
+</ol>
+<p><strong>Effort:</strong> ~10 min. Test by sending one live Slack message and confirming exec runs green.</p>
+<hr />
+<h2>FU-RELAY-02 — Make <code>channelName</code> casing robust (or rename)</h2>
+<p><strong>Workflow:</strong> WF-41 Admin -&gt; User Relay (<code>6PzJRZsF7k2d9hV7</code>), node <code>Extract Phone from Channel</code>
+<strong>Current:</strong></p>
+<pre><code class="language-js">const channelName = input.channelname; // lowercase — relies on Postgres lowercasing
+</code></pre>
+<p><strong>Problem:</strong> The SQL alias is written as <code>channelName</code> (camelCase) but Postgres returns it lowercase because the alias isn't double-quoted. The JS reads <code>channelname</code>. Two fragile assumptions:
+- Anyone editing the SQL might add quotes around the alias → JS breaks
+- Anyone editing the JS to camelCase → silently breaks (undefined)</p>
+<p><strong>Fix (pick one):</strong></p>
+<ol>
+<li>Double-quote the SQL alias: <code>SELECT status, $2 as "channelName", ...</code> AND change JS back to <code>input.channelName</code>.</li>
+<li>Or rename SQL alias to lowercase: <code>SELECT status, $2 as channel_name, ...</code> AND change JS to <code>input.channel_name</code> (snake_case is unambiguous; nothing to lowercase).</li>
+<li>Or — if FU-RELAY-01 is done — neither matters because the field arrives via n8n mapping, not Postgres.</li>
+</ol>
+<p><strong>Effort:</strong> Trivial. Often resolved automatically by FU-RELAY-01.</p>
+<hr />
+<h2>FU-RELAY-03 — Verify other <code>mappingMode: passthrough</code> calls don't drop fields</h2>
+<p><strong>Scope:</strong> All workflows that call sub-workflows via <code>executeWorkflow</code> nodes with <code>mappingMode: passthrough</code>. BUG-03's class of failure (upstream node strips fields the callee needs) is invisible without runtime exercise.</p>
+<p><strong>Action:</strong>
+1. Enumerate every <code>executeWorkflow</code> node with <code>mappingMode: passthrough</code> across all 28 workflows
+2. For each, identify the direct ancestor node and what shape it produces
+3. Compare against the first node of the callee — does it read fields the ancestor doesn't provide?</p>
+<p><strong>Candidate for plugin lint rule</strong> — see <code>## Plugin improvement candidates</code> in <code>.methodology/test-exploratory-pre-smoke-test-2026-05-16.md</code>. If a static check is feasible, this becomes a build-time guard.</p>
+<p><strong>Effort:</strong> 30–60 min audit. Worth running before go-live to catch any other silent-data-loss cases.</p>
+<hr />
+<h2>Status</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Severity</th>
+<th>Blocks smoke?</th>
+<th>Owner</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FU-RELAY-01</td>
+<td>minor (tech debt)</td>
+<td>No</td>
+<td>TBD</td>
+<td>Open</td>
+</tr>
+<tr>
+<td>FU-RELAY-02</td>
+<td>minor (fragility)</td>
+<td>No</td>
+<td>TBD</td>
+<td>Open</td>
+</tr>
+<tr>
+<td>FU-RELAY-03</td>
+<td>minor (audit)</td>
+<td>No</td>
+<td>TBD</td>
+<td>Open</td>
+</tr>
+</tbody>
+</table></details></div><div id="appendix-followups-wf11-channel-routing"><details class="appendix-item"><summary>Followup — Wf11 Channel Routing <span class="src">(followups-wf11-channel-routing.md)</span></summary><h1>Follow-ups — WF-11 Slack channel routing (2026-05-16)</h1>
+<p>Side-finding from CLOSE smoke test. Happy path (CLOSE / APPROVE / BLOCK) works, but several WF-11 Slack-post nodes route to the wrong channel — either hardcoded to <code>chinmay-admin-commands</code> (C0A5B0ZE81E) when they should reply in the originating channel, or relying on inconsistent field references.</p>
+<p><strong>Severity:</strong> 🟡 major (UX correctness, not data integrity). Commands work; admin sees responses in the wrong place.</p>
+<p>Per <code>CLAUDE.md</code>: <em>"Admin sends <code>APPROVE PAYMENT &lt;phone&gt;</code> in the user's consult channel. Not in chinmay-admin-commands. WF-10 captures all workspace events so commands work from any channel."</em> — every WF-11 Slack response should land in the channel the command was issued from.</p>
+<hr />
+<h2>State of every Slack-post node in WF-11 (<code>GoTYo0GS2y8qjjkw</code>)</h2>
+<table>
+<thead>
+<tr>
+<th>Node</th>
+<th>Channel target</th>
+<th>Mode</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Confirm Consultation Closure</code></td>
+<td><code>={{ $('Parse Command').item.json.channelId }}</code></td>
+<td><code>name</code></td>
+<td>⚠ ID stored, mode says name — fragile; n8n may auto-resolve. Functionally works.</td>
+</tr>
+<tr>
+<td><code>Confirm User Blocked</code></td>
+<td><code>={{ $('Parse Command').item.json.channelId }}</code></td>
+<td><code>name</code></td>
+<td>⚠ same as above</td>
+</tr>
+<tr>
+<td><code>Send List To Admin</code></td>
+<td><code>C0A5B0ZE81E</code> (hardcoded)</td>
+<td><code>list</code></td>
+<td>❌ wrong if LIST issued from a consult channel</td>
+</tr>
+<tr>
+<td><code>Send Stats To Admin</code></td>
+<td><code>C0A5B0ZE81E</code> (hardcoded)</td>
+<td><code>list</code></td>
+<td>❌ wrong if STATS issued from a consult channel — also a possible <strong>dead node</strong> (see Switch routing)</td>
+</tr>
+<tr>
+<td><code>Send Stats To Admin1</code></td>
+<td><code>={{ $json.channelName }}</code></td>
+<td><code>name</code></td>
+<td>✅ Note: this is actually the <strong>HELP responder</strong> — misleadingly named. See bug below.</td>
+</tr>
+<tr>
+<td><code>Unknown Command Response</code></td>
+<td><code>={{ $json.channelName }}</code></td>
+<td><code>name</code></td>
+<td>✅ Fixed by operator this session</td>
+</tr>
+<tr>
+<td><code>Confirm User Unblocked</code></td>
+<td><code>C0A5B0ZE81E</code> (hardcoded)</td>
+<td><code>list</code></td>
+<td>❌ wrong if UNBLOCK issued from a consult channel</td>
+</tr>
+<tr>
+<td><code>No Blocked User Found</code></td>
+<td><code>C0A5B0ZE81E</code> (hardcoded)</td>
+<td><code>list</code></td>
+<td>❌ wrong if UNBLOCK issued from a consult channel</td>
+</tr>
+</tbody>
+</table>
+<h2>Root cause for "HELP keeps reverting / failing"</h2>
+<p>The HELP responder node is misnamed: <code>Prepare HELP Text → Send Stats To Admin1</code>. Two issues conflate:</p>
+<ol>
+<li><strong>Misleading name:</strong> Editing "Send Stats To Admin1" feels wrong when you're trying to fix HELP — you may have been editing a different <code>Send Stats To Admin</code> (the actual stats one) and not realizing it doesn't connect to HELP. That explains the "workflow reverts to its original state" feeling — saves go to the wrong node.</li>
+<li><strong><code>channelName</code> field source:</strong> <code>Prepare HELP Text</code> reads <code>$input.first().json.channelName</code>. If <code>Parse Command</code> (or the Switch in between) doesn't pass <code>channelName</code> through, <code>Send Stats To Admin1</code> gets <code>channel = undefined</code> and the Slack post fails (or returns 400, marking the exec error).</li>
+</ol>
+<p><strong>Recommended fix (post-smoke):</strong></p>
+<ol>
+<li><strong>Rename <code>Send Stats To Admin1</code> → <code>Send HELP Response</code></strong>. Disambiguates the editor and stops the wrong-node-save loop.</li>
+<li><strong>Verify <code>Parse Command</code> output includes <code>channelName</code></strong> (or <code>channelId</code>) as a top-level field that survives the Switch node. If not, add to its Code body:
+   <code>js
+   return [{json: {...$input.first().json, channelName: $input.first().json.channel?.name, channelId: $input.first().json.channel?.id}}];</code></li>
+<li><strong>Pick one canonical channel reference and use it everywhere.</strong> Recommend <code>channelId</code> (Slack IDs are stable; names can be renamed). Then every Slack-post node uses:</li>
+<li><code>select: "channel"</code>, <code>channelId: { __rl: true, value: "={{ $('Parse Command').item.json.channelId }}", mode: "id" }</code></li>
+<li><strong>Replace the four hardcoded <code>C0A5B0ZE81E</code> references</strong> in <code>Send List To Admin</code>, <code>Send Stats To Admin</code>, <code>Confirm User Unblocked</code>, <code>No Blocked User Found</code> with the same originating-channel pattern.</li>
+<li><strong>Optional cleanup:</strong> if <code>Send Stats To Admin</code> is truly the stats responder and <code>Send Stats To Admin1</code> is HELP, there are two nodes named almost identically — easy to grab the wrong one. Rename or delete the unused one.</li>
+</ol>
+<h2>"Workflow reverts to original state" symptom — separate diagnostic</h2>
+<p>If after fix #1+#2 above you still see saves not sticking, it's not a code issue — it's an n8n editor behavior. Things to check:</p>
+<ul>
+<li>After clicking <strong>Save</strong>, did you also <strong>Publish/Activate</strong>? n8n separates these.</li>
+<li>Are you editing the workflow at <code>https://chinmayastro-n8n.friendlydealfinder.com.au/workflow/GoTYo0GS2y8qjjkw</code> directly (live) or a different version? Look at the URL — no <code>version</code> query param = the live published workflow.</li>
+<li>Browser tab may have stale state. After save, hard refresh (Cmd-Shift-R) and re-open the node.</li>
+<li>If running with <code>N8N_DISABLE_WORKFLOW_LOCK=false</code>, two browser tabs editing the same workflow can clobber each other.</li>
+</ul>
+<h2>Status</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Severity</th>
+<th>Blocks smoke?</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FU-WF11-01</td>
+<td>major (UX)</td>
+<td>No — happy paths work</td>
+<td>Open</td>
+</tr>
+<tr>
+<td>FU-WF11-02 (rename <code>Send Stats To Admin1</code> → <code>Send HELP Response</code>)</td>
+<td>minor</td>
+<td>No</td>
+<td>Open</td>
+</tr>
+<tr>
+<td>FU-WF11-03 (4 hardcoded admin-channel refs)</td>
+<td>major</td>
+<td>No (unless LIST/STATS/UNBLOCK used outside admin channel during smoke)</td>
+<td>Open</td>
+</tr>
+<tr>
+<td>FU-WF11-04 (revert-on-save diagnostic)</td>
+<td>unknown</td>
+<td>No</td>
+<td>Investigate next session</td>
+</tr>
+</tbody>
+</table></details></div>
+    </section>
+
+  </main>
+</div>
+<script>
+// 1) Severity chip styling for [critical] / [major] / [minor]
+const sevColors = { critical: "#ff4d4f", major: "#ff9f43", minor: "#f1c40f", slow: "#e67e22" };
+function chipifySeverity(root) {
+  root.querySelectorAll("td, p, li, h3, h4").forEach(el => {
+    const html = el.innerHTML;
+    const newHtml = html.replace(/`?\[(critical|major|minor|slow)\]`?/gi, (s, k) => {
+      const key = k.toLowerCase();
+      return `<span class="sev-chip" style="background:${sevColors[key]}">${k}</span>`;
+    });
+    if (newHtml !== html) el.innerHTML = newHtml;
+  });
+}
+chipifySeverity(document);
+
+// 2) Wrap story h3 + following content into card containers
+(function wrapStoryCards() {
+  const story = document.getElementById("story");
+  if (!story) return;
+  const h3s = Array.from(story.querySelectorAll("h3"));
+  h3s.forEach(h3 => {
+    const card = document.createElement("div");
+    card.className = "story-card";
+    let next = h3.nextSibling;
+    while (next && !(next.nodeType === 1 && (next.tagName === "H3" || next.tagName === "HR" || next.tagName === "H2"))) {
+      const cur = next;
+      next = next.nextSibling;
+      card.appendChild(cur);
+    }
+    h3.after(card);
+  });
+  // remove <hr> separators since cards already provide separation
+  story.querySelectorAll("hr").forEach(hr => hr.remove());
+})();
+
+// 3) Build scenario nav from h3s in story section
+(function buildScenarioNav() {
+  const nav = document.getElementById("nav-scenarios");
+  if (!nav) return;
+  document.querySelectorAll("#story h3").forEach((h3, i) => {
+    const id = "scenario-" + (h3.textContent.match(/TC-\d+/)?.[0] || ("sc" + i)).toLowerCase();
+    h3.id = id;
+    const a = document.createElement("a");
+    a.href = "#" + id;
+    a.className = "depth-1";
+    a.textContent = h3.textContent.replace(/\s*[✅❌→].*/g, "").trim();
+    nav.appendChild(a);
+  });
+})();
+
+// 4) Color ✅ / ❌ in story headings
+document.querySelectorAll("#story h3").forEach(h3 => {
+  h3.innerHTML = h3.innerHTML
+    .replace(/✅/g, '<span class="status-ok">✅</span>')
+    .replace(/❌/g, '<span class="status-warn">❌</span>');
+});
+</script>
+</body></html>
