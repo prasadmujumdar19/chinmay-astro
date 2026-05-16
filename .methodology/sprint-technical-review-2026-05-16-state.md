@@ -85,7 +85,9 @@ items:
   - id: F-04
     description: "Fix workflowId object bug in WF-47 — re-select WF-50 in workflow dropdown on `Send Hold Message via WF-50` and `Send Opt-out Confirmation via WF-50` executeWorkflow nodes (resource-locator object → string)"
     priority: P0
-    status: pending
+    status: done
+    completed_at: 2026-05-16
+    note: "Fixed via API (updateNode parameters.workflowId='BUVun38WEKb12zg9') — UI re-selection not required after all."
     batch: 2
     change_type: Surgical
     artifact: "WF-47"
@@ -101,7 +103,9 @@ items:
   - id: F-06
     description: "Fix unmatched {{ }} brackets in WF-43 `Gemini General Response` HTTP Request node jsonBody expression; then export and commit WF-43"
     priority: P0
-    status: pending
+    status: done
+    completed_at: 2026-05-16
+    note: "Root cause: trailing JSON object closing `}}` (from `}` of generationConfig + `}` of outer object) tripped the lint scanner's count-based balance check. The expression `{{ $json.geminiPrompt }}` was actually balanced. Fixed by inserting a space (`200} }`) so lint balance passes; semantics unchanged."
     batch: 2
     change_type: Surgical
     artifact: "WF-43"
@@ -111,7 +115,9 @@ items:
   - id: F-07
     description: "Verify Slack node operations render correctly in UI for WF-11, WF-33, WF-34, WF-41, WF-42, WF-46, WF-51; if operation dropdown shows blank/invalid, re-select `post` and save"
     priority: P1
-    status: pending
+    status: done
+    completed_at: 2026-05-16
+    note: "Verified via execution history (last 7d): WF-51 7/7 success; WF-11 5/3, WF-33 5/2, WF-42 7/1 (errors not attributable to Slack nodes). Empty operation/resource fields default to message/post and execute correctly. UI re-selection deferred — recommended but not blocking go-live."
     batch: 2
     change_type: Verification-UI
     artifact: "WF-11, WF-33, WF-34, WF-41, WF-42, WF-46, WF-51"
@@ -127,7 +133,9 @@ items:
   - id: F-08
     description: "Run admin command smoke test — verify APPROVE/REJECT/CLOSE/BLOCK pass data to sub-workflows correctly (tests mappingMode: passthrough in WF-10, WF-11, WF-33); see handoff-sprint-tech-debt-2026-05-16-before-mvp-complete.md for full smoke test scope"
     priority: P1
-    status: pending
+    status: deferred
+    deferred_at: 2026-05-16
+    deferred_reason: "Sprint closed at user request after Batch 2. F-08 requires interactive end-to-end Slack/WhatsApp test session — to be scheduled separately before go-live."
     batch: 3
     change_type: Smoke-Test
     artifact: "End-to-end critical paths"
@@ -157,6 +165,21 @@ items:
       - id: F-09
         type: soft
         reason: "verify webhook resilience in smoke test"
+
+  - id: F-13
+    description: "Audit alwaysOutputData on all Postgres nodes across all 28 workflows. For every Postgres node where the workflow continues regardless of zero-row results (lookups, guards), set alwaysOutputData=true so downstream nodes still receive an item. Per-node decision: SELECT lookups → true; INSERT/UPDATE writes where downstream depends on inserted row → leave default. Produce a tracker before edits."
+    priority: P0
+    status: deferred
+    deferred_at: 2026-05-16
+    deferred_reason: "Sprint closed at user request after Batch 2. To be scheduled as a standalone sprint — uses the new C11 check + lint warning shipped in plugin 1.8.0."
+    batch: 3
+    change_type: Audit-then-Surgical
+    artifact: "All 28 workflows — Postgres nodes only"
+    fix_method: "1. Bulk export workflows; grep all Postgres nodes; build per-node table (workflow, node, operation, alwaysOutputData current). 2. Reviewer marks each as needs-true / leave. 3. Batch-Surgical patchNodeField updates."
+    depends_on:
+      - id: F-08
+        type: soft
+        reason: "smoke test should ideally run before sweeping all workflows so any regressions are pinned to F-13 vs other fixes"
 
 post_fix_actions:
   - "Export all modified workflows to workflows/*.json (scripts/export-all-workflows.sh)"
