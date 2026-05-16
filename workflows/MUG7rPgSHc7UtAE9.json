@@ -78,7 +78,7 @@
           "value": {
             "phoneNumber": "={{ $('When Executed by Another Workflow').item.json.phoneNumber }}",
             "messageType": "interactive",
-            "interactivePayload": "={{ { type: 'button', body: { text: 'Welcome back, ' + ($('When Executed by Another Workflow').item.json.name || $('Load User Record').item.json.name) + '! \ud83d\ude4f\\n\\nYour birth details are already on file, so we can get started right away.\\n\\n*Payment Information:*\\nAmount: \u20b9500\\n\\nPlease send \u20b9500 via GPay / PhonePe / any UPI app to: +91-9653240263 (Chinmay Mujumdar). Once done, tap the button below:' }, action: { buttons: [ { type: 'reply', reply: { id: 'payment_completed', title: 'Payment Completed' } } ] } } }}"
+            "interactivePayload": "={{ { type: 'button', body: { text: 'Welcome back, ' + ($('When Executed by Another Workflow').item.json.name || $('Load User Record').item.json.name) + '! 🙏\\n\\nYour birth details are already on file, so we can get started right away.\\n\\n*Payment Information:*\\nAmount: ₹500\\n\\nPlease send ₹500 via GPay / PhonePe / any UPI app to: +91-9653240263 (Chinmay Mujumdar). Once done, tap the button below:' }, action: { buttons: [ { type: 'reply', reply: { id: 'payment_completed', title: 'Payment Completed' } } ] } } }}"
           },
           "schema": [],
           "attemptToConvertTypes": false,
@@ -274,7 +274,7 @@
             "value": {
               "phoneNumber": "={{ $('When Executed by Another Workflow').item.json.phoneNumber }}",
               "messageType": "interactive",
-              "interactivePayload": "={{ { type: 'button', body: { text: 'Welcome back, ' + ($('When Executed by Another Workflow').item.json.name || $('Load User Record').item.json.name) + '! \ud83d\ude4f\\n\\nYour birth details are already on file, so we can get started right away.\\n\\n*Payment Information:*\\nAmount: \u20b9500\\n\\nPlease send \u20b9500 via GPay / PhonePe / any UPI app to: +91-9653240263 (Chinmay Mujumdar). Once done, tap the button below:' }, action: { buttons: [ { type: 'reply', reply: { id: 'payment_completed', title: 'Payment Completed' } } ] } } }}"
+              "interactivePayload": "={{ { type: 'button', body: { text: 'Welcome back, ' + ($('When Executed by Another Workflow').item.json.name || $('Load User Record').item.json.name) + '! 🙏\\n\\nYour birth details are already on file, so we can get started right away.\\n\\n*Payment Information:*\\nAmount: ₹500\\n\\nPlease send ₹500 via GPay / PhonePe / any UPI app to: +91-9653240263 (Chinmay Mujumdar). Once done, tap the button below:' }, action: { buttons: [ { type: 'reply', reply: { id: 'payment_completed', title: 'Payment Completed' } } ] } } }}"
             },
             "schema": [],
             "attemptToConvertTypes": false,

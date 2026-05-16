@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-05-16T03:18:23.836Z",
+  "updatedAt": "2026-05-16T03:57:41.413Z",
   "createdAt": "2026-01-21T07:54:33.528Z",
   "id": "wMh0oBRtJbvhLgOf",
   "name": "WF-10 Slack Admin Handler",
@@ -549,14 +549,6 @@
       ]
     },
     {
-      "id": "d188d85e-d87a-40ca-a516-0b7b34a11d5e",
-      "name": "Load User Status",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        1050,
-        500
-      ],
       "parameters": {
         "operation": "executeQuery",
         "query": "SELECT status FROM chinmay_astro.users WHERE slack_channel_id = $1 LIMIT 1",
@@ -564,6 +556,15 @@
           "queryReplacement": "={{ $json.channelId }}"
         }
       },
+      "id": "d188d85e-d87a-40ca-a516-0b7b34a11d5e",
+      "name": "Load User Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1056,
+        512
+      ],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "Zomqv5wsowQAhdGl",
@@ -572,14 +573,6 @@
       }
     },
     {
-      "id": "cdf07f5d-fdc8-443a-8f96-61b986208908",
-      "name": "User Consultation Active?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        1264,
-        500
-      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -599,8 +592,17 @@
             }
           ],
           "combinator": "and"
-        }
-      }
+        },
+        "options": {}
+      },
+      "id": "cdf07f5d-fdc8-443a-8f96-61b986208908",
+      "name": "User Consultation Active?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        512
+      ]
     }
   ],
   "connections": {
@@ -802,9 +804,9 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "ad3f21c8-079e-4c82-b088-b8705dcf2f22",
-  "activeVersionId": "ad3f21c8-079e-4c82-b088-b8705dcf2f22",
-  "versionCounter": 57,
+  "versionId": "65adee76-099a-4fdc-b365-89617bc3f4ae",
+  "activeVersionId": "65adee76-099a-4fdc-b365-89617bc3f4ae",
+  "versionCounter": 60,
   "triggerCount": 1,
   "shared": [
     {
@@ -869,9 +871,9 @@
   ],
   "tags": [],
   "activeVersion": {
-    "updatedAt": "2026-05-16T03:18:23.838Z",
-    "createdAt": "2026-05-16T03:18:23.838Z",
-    "versionId": "ad3f21c8-079e-4c82-b088-b8705dcf2f22",
+    "updatedAt": "2026-05-16T03:57:44.051Z",
+    "createdAt": "2026-05-16T03:57:41.416Z",
+    "versionId": "65adee76-099a-4fdc-b365-89617bc3f4ae",
     "workflowId": "wMh0oBRtJbvhLgOf",
     "nodes": [
       {
@@ -1416,14 +1418,6 @@
         ]
       },
       {
-        "id": "d188d85e-d87a-40ca-a516-0b7b34a11d5e",
-        "name": "Load User Status",
-        "type": "n8n-nodes-base.postgres",
-        "typeVersion": 2.5,
-        "position": [
-          1050,
-          500
-        ],
         "parameters": {
           "operation": "executeQuery",
           "query": "SELECT status FROM chinmay_astro.users WHERE slack_channel_id = $1 LIMIT 1",
@@ -1431,6 +1425,15 @@
             "queryReplacement": "={{ $json.channelId }}"
           }
         },
+        "id": "d188d85e-d87a-40ca-a516-0b7b34a11d5e",
+        "name": "Load User Status",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          1056,
+          512
+        ],
+        "alwaysOutputData": true,
         "credentials": {
           "postgres": {
             "id": "Zomqv5wsowQAhdGl",
@@ -1439,14 +1442,6 @@
         }
       },
       {
-        "id": "cdf07f5d-fdc8-443a-8f96-61b986208908",
-        "name": "User Consultation Active?",
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 2,
-        "position": [
-          1264,
-          500
-        ],
         "parameters": {
           "conditions": {
             "options": {
@@ -1466,8 +1461,17 @@
               }
             ],
             "combinator": "and"
-          }
-        }
+          },
+          "options": {}
+        },
+        "id": "cdf07f5d-fdc8-443a-8f96-61b986208908",
+        "name": "User Consultation Active?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1264,
+          512
+        ]
       }
     ],
     "connections": {
@@ -1660,15 +1664,15 @@
       }
     },
     "authors": "Chinmay Mujumdar",
-    "name": null,
-    "description": null,
+    "name": "Version 65adee76",
+    "description": "",
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-05-16T03:18:23.932Z",
-        "id": 230,
+        "createdAt": "2026-05-16T03:57:44.048Z",
+        "id": 235,
         "workflowId": "wMh0oBRtJbvhLgOf",
-        "versionId": "ad3f21c8-079e-4c82-b088-b8705dcf2f22",
+        "versionId": "65adee76-099a-4fdc-b365-89617bc3f4ae",
         "event": "activated",
         "userId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7"
       }

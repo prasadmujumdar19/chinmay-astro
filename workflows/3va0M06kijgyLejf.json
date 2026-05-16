@@ -330,7 +330,7 @@
         -200
       ],
       "parameters": {
-        "jsCode": "return [{\n  json: {\n    phoneNumber: $json.phoneNumber,\n    messageType: 'text',\n    messageContent: '\u270d\ufe0f Thanks for choosing to share your feedback! Please type your thoughts about the consultation and send them \u2014 we appreciate every word!'\n  }\n}];"
+        "jsCode": "return [{\n  json: {\n    phoneNumber: $json.phoneNumber,\n    messageType: 'text',\n    messageContent: '✍️ Thanks for choosing to share your feedback! Please type your thoughts about the consultation and send them — we appreciate every word!'\n  }\n}];"
       }
     },
     {
@@ -1026,7 +1026,7 @@
           -200
         ],
         "parameters": {
-          "jsCode": "return [{\n  json: {\n    phoneNumber: $json.phoneNumber,\n    messageType: 'text',\n    messageContent: '\u270d\ufe0f Thanks for choosing to share your feedback! Please type your thoughts about the consultation and send them \u2014 we appreciate every word!'\n  }\n}];"
+          "jsCode": "return [{\n  json: {\n    phoneNumber: $json.phoneNumber,\n    messageType: 'text',\n    messageContent: '✍️ Thanks for choosing to share your feedback! Please type your thoughts about the consultation and send them — we appreciate every word!'\n  }\n}];"
         }
       },
       {

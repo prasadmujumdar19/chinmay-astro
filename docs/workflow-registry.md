@@ -155,6 +155,25 @@ payment_submitted →(admin REJECT)→ payment_pending [retry]
 
 ## 🔨 WORK IN PROGRESS — Next Session Action List
 
+**Technical-review sprint completed 2026-05-16** (commits `a741d0b`, `bf21bc2`):
+- ✅ F-01 — `users.stage` column added (fixes WF-44, WF-45 runtime errors)
+- ✅ F-02 — `admin_actions` column names fixed (WF-11, WF-47): `action`→`action_type`, `reason`→`notes`
+- ✅ F-03 — executeWorkflow nodes downgraded v2→v1 (WF-20, WF-45, WF-12)
+- ✅ F-04 — WF-47 workflowId resource-locator → string (UI re-select)
+- ✅ F-05 — Postgres `=` prefix on expression queries (WF-45, WF-11, WF-40, WF-46, WF-47)
+- ✅ F-06 — WF-43 Gemini `jsonBody` bracket balance
+- ✅ F-07 — Slack node operations verified via execution history (WF-11, WF-33, WF-34, WF-41, WF-42, WF-46, WF-51)
+- ✅ F-09 — `onError: continueRegularOutput` on webhook nodes (WF-00, WF-10)
+
+**Post-sprint AOD audit 2026-05-16:**
+- ✅ F-13 — `alwaysOutputData: true` added to two Postgres SELECT→IF guards: WF-11 `Lookup Blocked User`, WF-10 `Load User Status`. Audit of all 28 workflows showed no other gaps.
+
+**Deferred to next sessions:**
+- F-08 — admin command smoke test (APPROVE/REJECT/CLOSE/BLOCK) — user-driven interactive
+- F-10/F-11/F-12 — post-MVP (UI cosmetic, n8n upgrade, WF-60 message-logging fix)
+
+---
+
 **n8n housekeeping completed 12 Apr 2026:**
 - ✅ WF-30 (old New User Onboarding) deactivated — backed up as yIZwO3CZk6bOBAXl
 - ✅ WF-25 (Post-Consultation Options) deleted — superseded, backed up as fdlIpl67amL2Ho6U

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-05-16T03:17:29.719Z",
+  "updatedAt": "2026-05-16T03:57:18.438Z",
   "createdAt": "2026-01-21T07:55:15.516Z",
   "id": "GoTYo0GS2y8qjjkw",
   "name": "WF-11 Command Parser",
@@ -306,7 +306,7 @@
           "value": "={{ $('Parse Command').item.json.channelId }}",
           "mode": "name"
         },
-        "text": "=\u2705 Consultation closed for {{ $('Parse Command').item.json.phoneNumber }}",
+        "text": "=✅ Consultation closed for {{ $('Parse Command').item.json.phoneNumber }}",
         "otherOptions": {}
       },
       "type": "n8n-nodes-base.slack",
@@ -323,8 +323,7 @@
           "id": "WSds5JWe5b6N7myY",
           "name": "Slack - Chinmay Astro"
         }
-      },
-      "disabled": false
+      }
     },
     {
       "parameters": {
@@ -334,7 +333,7 @@
           "value": "={{ $('Parse Command').item.json.channelId }}",
           "mode": "name"
         },
-        "text": "=\ud83d\udeab User {{ $('Parse Command').item.json.phoneNumber }} has been blocked. Reason: {{ $('Parse Command').item.json.reason || 'No reason provided' }}",
+        "text": "=🚫 User {{ $('Parse Command').item.json.phoneNumber }} has been blocked. Reason: {{ $('Parse Command').item.json.reason || 'No reason provided' }}",
         "otherOptions": {}
       },
       "type": "n8n-nodes-base.slack",
@@ -351,8 +350,7 @@
           "id": "WSds5JWe5b6N7myY",
           "name": "Slack - Chinmay Astro"
         }
-      },
-      "disabled": false
+      }
     },
     {
       "parameters": {
@@ -369,11 +367,16 @@
       "id": "754478c5-b10f-4f54-992b-367c41ccc2b6",
       "name": "Get Active Users",
       "alwaysOutputData": true,
-      "disabled": false
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const users = $input.all().map(item => item.json);\n\nif (users.length === 0) {\n  return [{\n    json: {\n      message: \"\ud83d\udccb *System Status*\\n\\nNo pending payments or active consultations.\"\n    }\n  }];\n}\n\nlet message = \"\ud83d\udccb *System Status*\\n\\n\";\n\nconst pending = users.filter(u => u.status === 'payment_submitted');\nconst active = users.filter(u => u.status === 'consultation_active');\n\nif (pending.length > 0) {\n  message += \"*Pending Payment Verifications:*\\n\";\n  pending.forEach(u => {\n    message += `\u2022 ${u.name} (${u.phone_number})\\n`;\n  });\n  message += \"\\n\";\n}\n\nif (active.length > 0) {\n  message += \"*Active Consultations:*\\n\";\n  active.forEach(u => {\n    const hours = Math.round(u.hours_active * 10) / 10;\n    message += `\u2022 ${u.name} (${u.phone_number}) - ${hours}hrs\\n`;\n  });\n}\n\nreturn [{\n  json: {\n    message: message\n  }\n}];"
+        "jsCode": "const users = $input.all().map(item => item.json);\n\nif (users.length === 0) {\n  return [{\n    json: {\n      message: \"📋 *System Status*\\n\\nNo pending payments or active consultations.\"\n    }\n  }];\n}\n\nlet message = \"📋 *System Status*\\n\\n\";\n\nconst pending = users.filter(u => u.status === 'payment_submitted');\nconst active = users.filter(u => u.status === 'consultation_active');\n\nif (pending.length > 0) {\n  message += \"*Pending Payment Verifications:*\\n\";\n  pending.forEach(u => {\n    message += `• ${u.name} (${u.phone_number})\\n`;\n  });\n  message += \"\\n\";\n}\n\nif (active.length > 0) {\n  message += \"*Active Consultations:*\\n\";\n  active.forEach(u => {\n    const hours = Math.round(u.hours_active * 10) / 10;\n    message += `• ${u.name} (${u.phone_number}) - ${hours}hrs\\n`;\n  });\n}\n\nreturn [{\n  json: {\n    message: message\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -382,8 +385,7 @@
         592
       ],
       "id": "123cdd74-555d-4b7a-8778-36ba5f26f735",
-      "name": "Format List",
-      "disabled": false
+      "name": "Format List"
     },
     {
       "parameters": {
@@ -411,8 +413,7 @@
           "id": "WSds5JWe5b6N7myY",
           "name": "Slack - Chinmay Astro"
         }
-      },
-      "disabled": false
+      }
     },
     {
       "parameters": {
@@ -429,11 +430,16 @@
       "id": "0ffb8350-eae8-4f5c-8488-a16cf4112faf",
       "name": "Get Stats",
       "alwaysOutputData": true,
-      "disabled": false
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const stats = $input.first().json;\n\nconst message = `\ud83d\udcc8 *Today's Statistics*\n\n*Users:*\n- Total Users: ${stats.total_users}\n- Active Consultations: ${stats.active_consultations}\n- Pending Payments: ${stats.pending_payments}\n- Blocked: ${stats.blocked_users}\n\n*Today's Activity:*\n- Completed: ${stats.completed_today}\n- Revenue: \u20b9${stats.revenue_today}`;\n\nreturn [{\n  json: {\n    message: message\n  }\n}];"
+        "jsCode": "const stats = $input.first().json;\n\nconst message = `📈 *Today's Statistics*\n\n*Users:*\n- Total Users: ${stats.total_users}\n- Active Consultations: ${stats.active_consultations}\n- Pending Payments: ${stats.pending_payments}\n- Blocked: ${stats.blocked_users}\n\n*Today's Activity:*\n- Completed: ${stats.completed_today}\n- Revenue: ₹${stats.revenue_today}`;\n\nreturn [{\n  json: {\n    message: message\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -442,8 +448,7 @@
         800
       ],
       "id": "3c5abb8e-846b-44c6-8447-16139d1be870",
-      "name": "Format Stats",
-      "disabled": false
+      "name": "Format Stats"
     },
     {
       "parameters": {
@@ -471,12 +476,11 @@
           "id": "WSds5JWe5b6N7myY",
           "name": "Slack - Chinmay Astro"
         }
-      },
-      "disabled": false
+      }
     },
     {
       "parameters": {
-        "jsCode": "const helpText = `\ud83d\udcd6 *Available Commands*\n\n*Payment Management:*\n\\`APPROVE PAYMENT <phone>\\` - Approve payment and activate consultation\n\\`REJECT PAYMENT <phone>\\` - Reject payment (user can resubmit)\n\n*Consultation Management:*\n\\`CLOSE CONSULTATION <phone>\\` - End consultation and send feedback form\n\\`BLOCK <phone> [reason]\\` - Block user permanently\n\n*Information:*\n\\`LIST\\` - Show pending payments and active consultations\n\\`STATS\\` - Show today's statistics\n\\`HELP\\` - Show this help message\n\n*Examples:*\n\\`APPROVE PAYMENT 61466927921\\`\n\\`CLOSE CONSULTATION 61466927921\\`\n\\`BLOCK 61466927921 spam behavior\\``;\n\nreturn [{\n  json: {\n    message: helpText\n  }\n}];"
+        "jsCode": "const helpText = `📖 *Available Commands*\n\n*Payment Management:*\n\\`APPROVE PAYMENT <phone>\\` - Approve payment and activate consultation\n\\`REJECT PAYMENT <phone>\\` - Reject payment (user can resubmit)\n\n*Consultation Management:*\n\\`CLOSE CONSULTATION <phone>\\` - End consultation and send feedback form\n\\`BLOCK <phone> [reason]\\` - Block user permanently\n\n*Information:*\n\\`LIST\\` - Show pending payments and active consultations\n\\`STATS\\` - Show today's statistics\n\\`HELP\\` - Show this help message\n\n*Examples:*\n\\`APPROVE PAYMENT 61466927921\\`\n\\`CLOSE CONSULTATION 61466927921\\`\n\\`BLOCK 61466927921 spam behavior\\``;\n\nreturn [{\n  json: {\n    message: helpText\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -524,7 +528,7 @@
           "mode": "list",
           "cachedResultName": "chinmay-admin-commands"
         },
-        "text": "=\u2753 Unknown command: `{{ $('Parse Command').item.json.originalMessage }}`  Type `HELP` to see available commands.",
+        "text": "=❓ Unknown command: `{{ $('Parse Command').item.json.originalMessage }}`  Type `HELP` to see available commands.",
         "otherOptions": {}
       },
       "type": "n8n-nodes-base.slack",
@@ -541,8 +545,7 @@
           "id": "WSds5JWe5b6N7myY",
           "name": "Slack - Chinmay Astro"
         }
-      },
-      "disabled": false
+      }
     },
     {
       "parameters": {
@@ -597,18 +600,20 @@
       "name": "Call WF-46 User Blocker"
     },
     {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=SELECT id, name, phone_number, status FROM chinmay_astro.users WHERE phone_number = '{{ $('Parse Command').item.json.targetPhone }}' AND status = 'blocked' LIMIT 1",
+        "options": {}
+      },
       "id": "lookup-blocked-wf11",
       "name": "Lookup Blocked User",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        200,
-        1400
+        208,
+        1408
       ],
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "=SELECT id, name, phone_number, status FROM chinmay_astro.users WHERE phone_number = '{{ $('Parse Command').item.json.targetPhone }}' AND status = 'blocked' LIMIT 1"
-      },
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "Zomqv5wsowQAhdGl",
@@ -617,14 +622,6 @@
       }
     },
     {
-      "id": "found-blocked-wf11",
-      "name": "Blocked User Found?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        420,
-        1400
-      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -648,21 +645,31 @@
           "combinator": "and"
         },
         "options": {}
-      }
+      },
+      "id": "found-blocked-wf11",
+      "name": "Blocked User Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        432,
+        1408
+      ]
     },
     {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=UPDATE chinmay_astro.users SET status = 'consultation_closed', updated_at = NOW() WHERE phone_number = '{{ $('Parse Command').item.json.targetPhone }}'; INSERT INTO chinmay_astro.admin_actions (user_id, action_type, notes, created_at) VALUES ('{{ $('Lookup Blocked User').item.json.id }}', 'unblocked', 'Admin UNBLOCK command', NOW())",
+        "options": {}
+      },
       "id": "unblock-user-wf11",
       "name": "Unblock User",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
         640,
-        1300
+        1312
       ],
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "=UPDATE chinmay_astro.users SET status = 'consultation_closed', updated_at = NOW() WHERE phone_number = '{{ $('Parse Command').item.json.targetPhone }}'; INSERT INTO chinmay_astro.admin_actions (user_id, action_type, notes, created_at) VALUES ('{{ $('Lookup Blocked User').item.json.id }}', 'unblocked', 'Admin UNBLOCK command', NOW())"
-      },
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "Zomqv5wsowQAhdGl",
@@ -671,25 +678,26 @@
       }
     },
     {
-      "id": "confirm-unblock-wf11",
-      "name": "Confirm User Unblocked",
-      "type": "n8n-nodes-base.slack",
-      "typeVersion": 2.3,
-      "position": [
-        860,
-        1300
-      ],
       "parameters": {
+        "select": "channel",
         "channelId": {
           "__rl": true,
           "cachedResultName": "chinmay-admin-commands",
           "mode": "list",
           "value": "C0A5B0ZE81E"
         },
-        "otherOptions": {},
-        "select": "channel",
-        "text": "=\u2705 User {{ $('Lookup Blocked User').item.json.name }} ({{ $('Parse Command').item.json.targetPhone }}) has been unblocked. Status is now consultation_closed. They can REBOOK when ready."
+        "text": "=✅ User {{ $('Lookup Blocked User').item.json.name }} ({{ $('Parse Command').item.json.targetPhone }}) has been unblocked. Status is now consultation_closed. They can REBOOK when ready.",
+        "otherOptions": {}
       },
+      "id": "confirm-unblock-wf11",
+      "name": "Confirm User Unblocked",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        864,
+        1312
+      ],
+      "webhookId": "9fe2c564-cb4a-40aa-8aa3-c2b8c0698c43",
       "credentials": {
         "slackApi": {
           "id": "WSds5JWe5b6N7myY",
@@ -698,25 +706,26 @@
       }
     },
     {
-      "id": "not-found-blocked-wf11",
-      "name": "No Blocked User Found",
-      "type": "n8n-nodes-base.slack",
-      "typeVersion": 2.3,
-      "position": [
-        640,
-        1500
-      ],
       "parameters": {
+        "select": "channel",
         "channelId": {
           "__rl": true,
           "cachedResultName": "chinmay-admin-commands",
           "mode": "list",
           "value": "C0A5B0ZE81E"
         },
-        "otherOptions": {},
-        "select": "channel",
-        "text": "=\u274c No blocked user found with number {{ $('Parse Command').item.json.targetPhone }}"
+        "text": "=❌ No blocked user found with number {{ $('Parse Command').item.json.targetPhone }}",
+        "otherOptions": {}
       },
+      "id": "not-found-blocked-wf11",
+      "name": "No Blocked User Found",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        640,
+        1504
+      ],
+      "webhookId": "8049a98f-7397-4294-b6cd-2a4119f03bc1",
       "credentials": {
         "slackApi": {
           "id": "WSds5JWe5b6N7myY",
@@ -939,7 +948,9 @@
     "callerPolicy": "workflowsFromSameOwner"
   },
   "staticData": null,
-  "meta": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
   "pinData": {
     "When Executed by Another Workflow": [
       {
@@ -952,9 +963,9 @@
       }
     ]
   },
-  "versionId": "e465d67b-afde-4716-a062-95f99a689772",
-  "activeVersionId": "e465d67b-afde-4716-a062-95f99a689772",
-  "versionCounter": 36,
+  "versionId": "1f8d2fa2-e0f0-4d97-944a-439cc1580a1d",
+  "activeVersionId": "1f8d2fa2-e0f0-4d97-944a-439cc1580a1d",
+  "versionCounter": 42,
   "triggerCount": 0,
   "shared": [
     {
@@ -1019,9 +1030,9 @@
   ],
   "tags": [],
   "activeVersion": {
-    "updatedAt": "2026-05-16T03:17:29.720Z",
-    "createdAt": "2026-05-16T03:17:29.720Z",
-    "versionId": "e465d67b-afde-4716-a062-95f99a689772",
+    "updatedAt": "2026-05-16T03:57:20.749Z",
+    "createdAt": "2026-05-16T03:57:18.443Z",
+    "versionId": "1f8d2fa2-e0f0-4d97-944a-439cc1580a1d",
     "workflowId": "GoTYo0GS2y8qjjkw",
     "nodes": [
       {
@@ -1323,7 +1334,7 @@
             "value": "={{ $('Parse Command').item.json.channelId }}",
             "mode": "name"
           },
-          "text": "=\u2705 Consultation closed for {{ $('Parse Command').item.json.phoneNumber }}",
+          "text": "=✅ Consultation closed for {{ $('Parse Command').item.json.phoneNumber }}",
           "otherOptions": {}
         },
         "type": "n8n-nodes-base.slack",
@@ -1340,8 +1351,7 @@
             "id": "WSds5JWe5b6N7myY",
             "name": "Slack - Chinmay Astro"
           }
-        },
-        "disabled": false
+        }
       },
       {
         "parameters": {
@@ -1351,7 +1361,7 @@
             "value": "={{ $('Parse Command').item.json.channelId }}",
             "mode": "name"
           },
-          "text": "=\ud83d\udeab User {{ $('Parse Command').item.json.phoneNumber }} has been blocked. Reason: {{ $('Parse Command').item.json.reason || 'No reason provided' }}",
+          "text": "=🚫 User {{ $('Parse Command').item.json.phoneNumber }} has been blocked. Reason: {{ $('Parse Command').item.json.reason || 'No reason provided' }}",
           "otherOptions": {}
         },
         "type": "n8n-nodes-base.slack",
@@ -1368,8 +1378,7 @@
             "id": "WSds5JWe5b6N7myY",
             "name": "Slack - Chinmay Astro"
           }
-        },
-        "disabled": false
+        }
       },
       {
         "parameters": {
@@ -1386,11 +1395,16 @@
         "id": "754478c5-b10f-4f54-992b-367c41ccc2b6",
         "name": "Get Active Users",
         "alwaysOutputData": true,
-        "disabled": false
+        "credentials": {
+          "postgres": {
+            "id": "Zomqv5wsowQAhdGl",
+            "name": "PostgreSQL - Chinmay Astro Production"
+          }
+        }
       },
       {
         "parameters": {
-          "jsCode": "const users = $input.all().map(item => item.json);\n\nif (users.length === 0) {\n  return [{\n    json: {\n      message: \"\ud83d\udccb *System Status*\\n\\nNo pending payments or active consultations.\"\n    }\n  }];\n}\n\nlet message = \"\ud83d\udccb *System Status*\\n\\n\";\n\nconst pending = users.filter(u => u.status === 'payment_submitted');\nconst active = users.filter(u => u.status === 'consultation_active');\n\nif (pending.length > 0) {\n  message += \"*Pending Payment Verifications:*\\n\";\n  pending.forEach(u => {\n    message += `\u2022 ${u.name} (${u.phone_number})\\n`;\n  });\n  message += \"\\n\";\n}\n\nif (active.length > 0) {\n  message += \"*Active Consultations:*\\n\";\n  active.forEach(u => {\n    const hours = Math.round(u.hours_active * 10) / 10;\n    message += `\u2022 ${u.name} (${u.phone_number}) - ${hours}hrs\\n`;\n  });\n}\n\nreturn [{\n  json: {\n    message: message\n  }\n}];"
+          "jsCode": "const users = $input.all().map(item => item.json);\n\nif (users.length === 0) {\n  return [{\n    json: {\n      message: \"📋 *System Status*\\n\\nNo pending payments or active consultations.\"\n    }\n  }];\n}\n\nlet message = \"📋 *System Status*\\n\\n\";\n\nconst pending = users.filter(u => u.status === 'payment_submitted');\nconst active = users.filter(u => u.status === 'consultation_active');\n\nif (pending.length > 0) {\n  message += \"*Pending Payment Verifications:*\\n\";\n  pending.forEach(u => {\n    message += `• ${u.name} (${u.phone_number})\\n`;\n  });\n  message += \"\\n\";\n}\n\nif (active.length > 0) {\n  message += \"*Active Consultations:*\\n\";\n  active.forEach(u => {\n    const hours = Math.round(u.hours_active * 10) / 10;\n    message += `• ${u.name} (${u.phone_number}) - ${hours}hrs\\n`;\n  });\n}\n\nreturn [{\n  json: {\n    message: message\n  }\n}];"
         },
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
@@ -1399,8 +1413,7 @@
           592
         ],
         "id": "123cdd74-555d-4b7a-8778-36ba5f26f735",
-        "name": "Format List",
-        "disabled": false
+        "name": "Format List"
       },
       {
         "parameters": {
@@ -1428,8 +1441,7 @@
             "id": "WSds5JWe5b6N7myY",
             "name": "Slack - Chinmay Astro"
           }
-        },
-        "disabled": false
+        }
       },
       {
         "parameters": {
@@ -1446,11 +1458,16 @@
         "id": "0ffb8350-eae8-4f5c-8488-a16cf4112faf",
         "name": "Get Stats",
         "alwaysOutputData": true,
-        "disabled": false
+        "credentials": {
+          "postgres": {
+            "id": "Zomqv5wsowQAhdGl",
+            "name": "PostgreSQL - Chinmay Astro Production"
+          }
+        }
       },
       {
         "parameters": {
-          "jsCode": "const stats = $input.first().json;\n\nconst message = `\ud83d\udcc8 *Today's Statistics*\n\n*Users:*\n- Total Users: ${stats.total_users}\n- Active Consultations: ${stats.active_consultations}\n- Pending Payments: ${stats.pending_payments}\n- Blocked: ${stats.blocked_users}\n\n*Today's Activity:*\n- Completed: ${stats.completed_today}\n- Revenue: \u20b9${stats.revenue_today}`;\n\nreturn [{\n  json: {\n    message: message\n  }\n}];"
+          "jsCode": "const stats = $input.first().json;\n\nconst message = `📈 *Today's Statistics*\n\n*Users:*\n- Total Users: ${stats.total_users}\n- Active Consultations: ${stats.active_consultations}\n- Pending Payments: ${stats.pending_payments}\n- Blocked: ${stats.blocked_users}\n\n*Today's Activity:*\n- Completed: ${stats.completed_today}\n- Revenue: ₹${stats.revenue_today}`;\n\nreturn [{\n  json: {\n    message: message\n  }\n}];"
         },
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
@@ -1459,8 +1476,7 @@
           800
         ],
         "id": "3c5abb8e-846b-44c6-8447-16139d1be870",
-        "name": "Format Stats",
-        "disabled": false
+        "name": "Format Stats"
       },
       {
         "parameters": {
@@ -1488,12 +1504,11 @@
             "id": "WSds5JWe5b6N7myY",
             "name": "Slack - Chinmay Astro"
           }
-        },
-        "disabled": false
+        }
       },
       {
         "parameters": {
-          "jsCode": "const helpText = `\ud83d\udcd6 *Available Commands*\n\n*Payment Management:*\n\\`APPROVE PAYMENT <phone>\\` - Approve payment and activate consultation\n\\`REJECT PAYMENT <phone>\\` - Reject payment (user can resubmit)\n\n*Consultation Management:*\n\\`CLOSE CONSULTATION <phone>\\` - End consultation and send feedback form\n\\`BLOCK <phone> [reason]\\` - Block user permanently\n\n*Information:*\n\\`LIST\\` - Show pending payments and active consultations\n\\`STATS\\` - Show today's statistics\n\\`HELP\\` - Show this help message\n\n*Examples:*\n\\`APPROVE PAYMENT 61466927921\\`\n\\`CLOSE CONSULTATION 61466927921\\`\n\\`BLOCK 61466927921 spam behavior\\``;\n\nreturn [{\n  json: {\n    message: helpText\n  }\n}];"
+          "jsCode": "const helpText = `📖 *Available Commands*\n\n*Payment Management:*\n\\`APPROVE PAYMENT <phone>\\` - Approve payment and activate consultation\n\\`REJECT PAYMENT <phone>\\` - Reject payment (user can resubmit)\n\n*Consultation Management:*\n\\`CLOSE CONSULTATION <phone>\\` - End consultation and send feedback form\n\\`BLOCK <phone> [reason]\\` - Block user permanently\n\n*Information:*\n\\`LIST\\` - Show pending payments and active consultations\n\\`STATS\\` - Show today's statistics\n\\`HELP\\` - Show this help message\n\n*Examples:*\n\\`APPROVE PAYMENT 61466927921\\`\n\\`CLOSE CONSULTATION 61466927921\\`\n\\`BLOCK 61466927921 spam behavior\\``;\n\nreturn [{\n  json: {\n    message: helpText\n  }\n}];"
         },
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
@@ -1541,7 +1556,7 @@
             "mode": "list",
             "cachedResultName": "chinmay-admin-commands"
           },
-          "text": "=\u2753 Unknown command: `{{ $('Parse Command').item.json.originalMessage }}`  Type `HELP` to see available commands.",
+          "text": "=❓ Unknown command: `{{ $('Parse Command').item.json.originalMessage }}`  Type `HELP` to see available commands.",
           "otherOptions": {}
         },
         "type": "n8n-nodes-base.slack",
@@ -1558,8 +1573,7 @@
             "id": "WSds5JWe5b6N7myY",
             "name": "Slack - Chinmay Astro"
           }
-        },
-        "disabled": false
+        }
       },
       {
         "parameters": {
@@ -1614,18 +1628,20 @@
         "name": "Call WF-46 User Blocker"
       },
       {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "=SELECT id, name, phone_number, status FROM chinmay_astro.users WHERE phone_number = '{{ $('Parse Command').item.json.targetPhone }}' AND status = 'blocked' LIMIT 1",
+          "options": {}
+        },
         "id": "lookup-blocked-wf11",
         "name": "Lookup Blocked User",
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
-          200,
-          1400
+          208,
+          1408
         ],
-        "parameters": {
-          "operation": "executeQuery",
-          "query": "=SELECT id, name, phone_number, status FROM chinmay_astro.users WHERE phone_number = '{{ $('Parse Command').item.json.targetPhone }}' AND status = 'blocked' LIMIT 1"
-        },
+        "alwaysOutputData": true,
         "credentials": {
           "postgres": {
             "id": "Zomqv5wsowQAhdGl",
@@ -1634,14 +1650,6 @@
         }
       },
       {
-        "id": "found-blocked-wf11",
-        "name": "Blocked User Found?",
-        "type": "n8n-nodes-base.if",
-        "typeVersion": 2.2,
-        "position": [
-          420,
-          1400
-        ],
         "parameters": {
           "conditions": {
             "options": {
@@ -1665,21 +1673,31 @@
             "combinator": "and"
           },
           "options": {}
-        }
+        },
+        "id": "found-blocked-wf11",
+        "name": "Blocked User Found?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          432,
+          1408
+        ]
       },
       {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "=UPDATE chinmay_astro.users SET status = 'consultation_closed', updated_at = NOW() WHERE phone_number = '{{ $('Parse Command').item.json.targetPhone }}'; INSERT INTO chinmay_astro.admin_actions (user_id, action_type, notes, created_at) VALUES ('{{ $('Lookup Blocked User').item.json.id }}', 'unblocked', 'Admin UNBLOCK command', NOW())",
+          "options": {}
+        },
         "id": "unblock-user-wf11",
         "name": "Unblock User",
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.5,
         "position": [
           640,
-          1300
+          1312
         ],
-        "parameters": {
-          "operation": "executeQuery",
-          "query": "=UPDATE chinmay_astro.users SET status = 'consultation_closed', updated_at = NOW() WHERE phone_number = '{{ $('Parse Command').item.json.targetPhone }}'; INSERT INTO chinmay_astro.admin_actions (user_id, action_type, notes, created_at) VALUES ('{{ $('Lookup Blocked User').item.json.id }}', 'unblocked', 'Admin UNBLOCK command', NOW())"
-        },
+        "alwaysOutputData": true,
         "credentials": {
           "postgres": {
             "id": "Zomqv5wsowQAhdGl",
@@ -1688,25 +1706,26 @@
         }
       },
       {
-        "id": "confirm-unblock-wf11",
-        "name": "Confirm User Unblocked",
-        "type": "n8n-nodes-base.slack",
-        "typeVersion": 2.3,
-        "position": [
-          860,
-          1300
-        ],
         "parameters": {
+          "select": "channel",
           "channelId": {
             "__rl": true,
             "cachedResultName": "chinmay-admin-commands",
             "mode": "list",
             "value": "C0A5B0ZE81E"
           },
-          "otherOptions": {},
-          "select": "channel",
-          "text": "=\u2705 User {{ $('Lookup Blocked User').item.json.name }} ({{ $('Parse Command').item.json.targetPhone }}) has been unblocked. Status is now consultation_closed. They can REBOOK when ready."
+          "text": "=✅ User {{ $('Lookup Blocked User').item.json.name }} ({{ $('Parse Command').item.json.targetPhone }}) has been unblocked. Status is now consultation_closed. They can REBOOK when ready.",
+          "otherOptions": {}
         },
+        "id": "confirm-unblock-wf11",
+        "name": "Confirm User Unblocked",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.3,
+        "position": [
+          864,
+          1312
+        ],
+        "webhookId": "9fe2c564-cb4a-40aa-8aa3-c2b8c0698c43",
         "credentials": {
           "slackApi": {
             "id": "WSds5JWe5b6N7myY",
@@ -1715,25 +1734,26 @@
         }
       },
       {
-        "id": "not-found-blocked-wf11",
-        "name": "No Blocked User Found",
-        "type": "n8n-nodes-base.slack",
-        "typeVersion": 2.3,
-        "position": [
-          640,
-          1500
-        ],
         "parameters": {
+          "select": "channel",
           "channelId": {
             "__rl": true,
             "cachedResultName": "chinmay-admin-commands",
             "mode": "list",
             "value": "C0A5B0ZE81E"
           },
-          "otherOptions": {},
-          "select": "channel",
-          "text": "=\u274c No blocked user found with number {{ $('Parse Command').item.json.targetPhone }}"
+          "text": "=❌ No blocked user found with number {{ $('Parse Command').item.json.targetPhone }}",
+          "otherOptions": {}
         },
+        "id": "not-found-blocked-wf11",
+        "name": "No Blocked User Found",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.3,
+        "position": [
+          640,
+          1504
+        ],
+        "webhookId": "8049a98f-7397-4294-b6cd-2a4119f03bc1",
         "credentials": {
           "slackApi": {
             "id": "WSds5JWe5b6N7myY",
@@ -1951,15 +1971,15 @@
       }
     },
     "authors": "Chinmay Mujumdar",
-    "name": null,
-    "description": null,
+    "name": "Version 1f8d2fa2",
+    "description": "",
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-05-16T03:17:29.792Z",
-        "id": 225,
+        "createdAt": "2026-05-16T03:57:20.747Z",
+        "id": 234,
         "workflowId": "GoTYo0GS2y8qjjkw",
-        "versionId": "e465d67b-afde-4716-a062-95f99a689772",
+        "versionId": "1f8d2fa2-e0f0-4d97-944a-439cc1580a1d",
         "event": "activated",
         "userId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7"
       }

@@ -1,1 +1,764 @@
-{"updatedAt":"2026-05-16T01:56:33.807Z","createdAt":"2026-01-21T07:56:05.656Z","id":"Du2CJ3OTohRFZYoA","name":"WF-44 Feedback Recorder","description":null,"active":true,"isArchived":false,"nodes":[{"parameters":{},"id":"wf44-n01","name":"When Executed by Another Workflow","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1,"position":[-600,0]},{"parameters":{"workflowId":{"__rl":true,"value":"eTV1lUcYrXBg2q2T","mode":"id"},"workflowInputs":{"mappingMode":"defineBelow","value":{"phoneNumber":"={{ $json.phoneNumber }}","messageText":"={{ $json.messageText }}","userId":"={{ $json.userId }}","userStatus":"={{ $json.userStatus }}"},"schema":[],"attemptToConvertTypes":false,"convertFieldsToString":false}},"id":"wf44-n05","name":"Call WF-25 Intent Classifier","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[-380,-160]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"c1","leftValue":"={{ $json.intentResult }}","rightValue":"rebook_intent","operator":{"type":"string","operation":"equals"}}],"combinator":"and"},"options":{}},"id":"wf44-n06","name":"Is Rebook Intent?","type":"n8n-nodes-base.if","typeVersion":2,"position":[-160,-160]},{"parameters":{"workflowId":{"__rl":true,"value":"MUG7rPgSHc7UtAE9","mode":"id"},"workflowInputs":{"mappingMode":"defineBelow","value":{"phoneNumber":"={{ $('When Executed by Another Workflow').item.json.phoneNumber }}","userId":"={{ $('When Executed by Another Workflow').item.json.userId }}","userStatus":"={{ $('When Executed by Another Workflow').item.json.userStatus }}"},"schema":[],"attemptToConvertTypes":false,"convertFieldsToString":false}},"id":"wf44-n07","name":"Call WF-45 Rebook","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[60,-160]},{"parameters":{"operation":"executeQuery","query":"UPDATE chinmay_astro.users SET feedback = $1, stage = NULL, updated_at = NOW() WHERE id = $2","additionalFields":{"queryParams":"={{ [$json.messageText, $json.userId] }}"}},"id":"wf44-n02","name":"Save Feedback to DB","type":"n8n-nodes-base.postgres","typeVersion":2.5,"position":[-380,0],"credentials":{"postgres":{"id":"Zomqv5wsowQAhdGl","name":"PostgreSQL - Chinmay Astro Production"}}},{"parameters":{"jsCode":"const d = $('When Executed by Another Workflow').first().json;\nreturn [{ json: {\n  phoneNumber: d.phoneNumber,\n  message: \"🙏 Thank you for your feedback! We really appreciate you taking the time to share your experience with Chinmay's consultation service. Your input helps us improve.\"\n} }];"},"id":"wf44-n03","name":"Prepare Ack Message","type":"n8n-nodes-base.code","typeVersion":2,"position":[-160,0]},{"parameters":{"workflowId":{"__rl":true,"value":"BUVun38WEKb12zg9","mode":"id"},"workflowInputs":{"mappingMode":"defineBelow","value":{"phoneNumber":"={{ $json.phoneNumber }}","message":"={{ $json.message }}"},"schema":[],"attemptToConvertTypes":false,"convertFieldsToString":false}},"id":"wf44-n04","name":"Send Ack via WF-50","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[60,0]},{"id":"c05932e9-240f-48a5-a435-e1fb0a51f5d0","name":"Is Stop Intent?","type":"n8n-nodes-base.if","typeVersion":2.2,"position":[-160,80],"parameters":{"conditions":{"options":{"version":2,"leftValue":"","caseSensitive":true,"typeValidation":"strict"},"conditions":[{"id":"s1","leftValue":"={{ $json.intentResult }}","rightValue":"stop_intent","operator":{"type":"string","operation":"equals"}}],"combinator":"and"},"options":{}}},{"id":"8fc54980-2ba0-46fa-b78e-aa86584e5c4b","name":"Call WF-47 Unsubscribe","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[80,80],"parameters":{"workflowId":{"__rl":true,"value":"2U7mxHMyqA41ROKX","mode":"id"},"workflowInputs":{"mappingMode":"defineBelow","value":{"phoneNumber":"={{ $json.phoneNumber }}","userId":"={{ $json.userId }}","userStatus":"={{ $json.userStatus }}"},"matchingColumns":[],"schema":[],"attemptToConvertTypes":false,"convertFieldsToString":true},"options":{}}}],"connections":{"When Executed by Another Workflow":{"main":[[{"node":"Call WF-25 Intent Classifier","type":"main","index":0}]]},"Call WF-25 Intent Classifier":{"main":[[{"node":"Is Rebook Intent?","type":"main","index":0}]]},"Is Rebook Intent?":{"main":[[{"node":"Call WF-45 Rebook","type":"main","index":0}],[{"node":"Is Stop Intent?","type":"main","index":0}]]},"Save Feedback to DB":{"main":[[{"node":"Prepare Ack Message","type":"main","index":0}]]},"Prepare Ack Message":{"main":[[{"node":"Send Ack via WF-50","type":"main","index":0}]]},"Is Stop Intent?":{"main":[[{"node":"Call WF-47 Unsubscribe","type":"main","index":0}],[{"node":"Save Feedback to DB","type":"main","index":0}]]}},"settings":{"executionOrder":"v1","availableInMCP":false,"callerPolicy":"workflowsFromSameOwner"},"staticData":null,"meta":null,"pinData":{"When Executed by Another Workflow":[{"json":{"messageId":"wamid.HBgLNjE0NjY5Mjc5MjEVAgASGBQzQThBOUNENTk0RjBDM0U1MjE2OQA=","phoneNumber":"61466927921","phoneNumberFormatted":"+61466927921","contactName":"Prasad Mujumdar","messageType":"text","messageContent":"Amazing consultation","messageContentUpper":"AMAZING CONSULTATION","rawMessage":{"from":"61466927921","id":"wamid.HBgLNjE0NjY5Mjc5MjEVAgASGBQzQThBOUNENTk0RjBDM0U1MjE2OQA=","timestamp":"1766294607","text":{"body":"Amazing consultation"},"type":"text"},"timestamp":"1766294607","metadata":{"phoneNumberId":"940973869088653","displayPhoneNumber":"918329183425"},"userExists":21,"isNewUser":false,"user":{"id":21,"phoneNumber":"61466927921","name":"Prasad","status":"consultation_closed","context":{},"createdAt":"2025-12-18T07:08:32.584Z","lastMessageAt":"2025-12-21T04:20:27.938Z"},"route":"FEEDBACK_TEXT","routeReason":"User submitted text feedback"}}]},"versionId":"f859db97-c7a7-4a66-8992-1fc888998f35","activeVersionId":"f859db97-c7a7-4a66-8992-1fc888998f35","versionCounter":21,"triggerCount":0,"shared":[{"updatedAt":"2026-01-21T07:56:05.656Z","createdAt":"2026-01-21T07:56:05.656Z","role":"workflow:owner","workflowId":"Du2CJ3OTohRFZYoA","projectId":"SpcBYo3r6YMWLf30","project":{"updatedAt":"2025-12-26T03:43:50.268Z","createdAt":"2025-12-25T04:02:13.984Z","id":"SpcBYo3r6YMWLf30","name":"Chinmay Mujumdar <chinya1989mujumdar@gmail.com>","type":"personal","icon":null,"description":null,"creatorId":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7","projectRelations":[{"updatedAt":"2025-12-25T04:02:13.984Z","createdAt":"2025-12-25T04:02:13.984Z","userId":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7","projectId":"SpcBYo3r6YMWLf30","user":{"updatedAt":"2026-05-16T00:34:09.583Z","createdAt":"2025-12-25T04:02:12.721Z","id":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7","email":"chinya1989mujumdar@gmail.com","firstName":"Chinmay","lastName":"Mujumdar","personalizationAnswers":{"version":"v4","personalization_survey_submitted_at":"2025-12-26T03:46:19.986Z","personalization_survey_n8n_version":"2.1.4","companyIndustryExtended":["other"],"otherCompanyIndustryExtended":"Astrology","companySize":"<20","companyType":"other","role":"business-owner","reportedSource":"friend"},"settings":{"userActivated":true,"firstSuccessfulWorkflowId":"wMh0oBRtJbvhLgOf","userActivatedAt":1772092088194,"npsSurvey":{"responded":true,"lastShownAt":1776950036941}},"disabled":false,"mfaEnabled":true,"lastActiveAt":"2026-05-16","isPending":false}}]}}],"tags":[],"activeVersion":{"updatedAt":"2026-05-16T01:56:33.808Z","createdAt":"2026-05-16T01:56:33.808Z","versionId":"f859db97-c7a7-4a66-8992-1fc888998f35","workflowId":"Du2CJ3OTohRFZYoA","nodes":[{"parameters":{},"id":"wf44-n01","name":"When Executed by Another Workflow","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1,"position":[-600,0]},{"parameters":{"workflowId":{"__rl":true,"value":"eTV1lUcYrXBg2q2T","mode":"id"},"workflowInputs":{"mappingMode":"defineBelow","value":{"phoneNumber":"={{ $json.phoneNumber }}","messageText":"={{ $json.messageText }}","userId":"={{ $json.userId }}","userStatus":"={{ $json.userStatus }}"},"schema":[],"attemptToConvertTypes":false,"convertFieldsToString":false}},"id":"wf44-n05","name":"Call WF-25 Intent Classifier","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[-380,-160]},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"c1","leftValue":"={{ $json.intentResult }}","rightValue":"rebook_intent","operator":{"type":"string","operation":"equals"}}],"combinator":"and"},"options":{}},"id":"wf44-n06","name":"Is Rebook Intent?","type":"n8n-nodes-base.if","typeVersion":2,"position":[-160,-160]},{"parameters":{"workflowId":{"__rl":true,"value":"MUG7rPgSHc7UtAE9","mode":"id"},"workflowInputs":{"mappingMode":"defineBelow","value":{"phoneNumber":"={{ $('When Executed by Another Workflow').item.json.phoneNumber }}","userId":"={{ $('When Executed by Another Workflow').item.json.userId }}","userStatus":"={{ $('When Executed by Another Workflow').item.json.userStatus }}"},"schema":[],"attemptToConvertTypes":false,"convertFieldsToString":false}},"id":"wf44-n07","name":"Call WF-45 Rebook","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[60,-160]},{"parameters":{"operation":"executeQuery","query":"UPDATE chinmay_astro.users SET feedback = $1, stage = NULL, updated_at = NOW() WHERE id = $2","additionalFields":{"queryParams":"={{ [$json.messageText, $json.userId] }}"}},"id":"wf44-n02","name":"Save Feedback to DB","type":"n8n-nodes-base.postgres","typeVersion":2.5,"position":[-380,0],"credentials":{"postgres":{"id":"Zomqv5wsowQAhdGl","name":"PostgreSQL - Chinmay Astro Production"}}},{"parameters":{"jsCode":"const d = $('When Executed by Another Workflow').first().json;\nreturn [{ json: {\n  phoneNumber: d.phoneNumber,\n  message: \"🙏 Thank you for your feedback! We really appreciate you taking the time to share your experience with Chinmay's consultation service. Your input helps us improve.\"\n} }];"},"id":"wf44-n03","name":"Prepare Ack Message","type":"n8n-nodes-base.code","typeVersion":2,"position":[-160,0]},{"parameters":{"workflowId":{"__rl":true,"value":"BUVun38WEKb12zg9","mode":"id"},"workflowInputs":{"mappingMode":"defineBelow","value":{"phoneNumber":"={{ $json.phoneNumber }}","message":"={{ $json.message }}"},"schema":[],"attemptToConvertTypes":false,"convertFieldsToString":false}},"id":"wf44-n04","name":"Send Ack via WF-50","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[60,0]},{"id":"c05932e9-240f-48a5-a435-e1fb0a51f5d0","name":"Is Stop Intent?","type":"n8n-nodes-base.if","typeVersion":2.2,"position":[-160,80],"parameters":{"conditions":{"options":{"version":2,"leftValue":"","caseSensitive":true,"typeValidation":"strict"},"conditions":[{"id":"s1","leftValue":"={{ $json.intentResult }}","rightValue":"stop_intent","operator":{"type":"string","operation":"equals"}}],"combinator":"and"},"options":{}}},{"id":"8fc54980-2ba0-46fa-b78e-aa86584e5c4b","name":"Call WF-47 Unsubscribe","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[80,80],"parameters":{"workflowId":{"__rl":true,"value":"2U7mxHMyqA41ROKX","mode":"id"},"workflowInputs":{"mappingMode":"defineBelow","value":{"phoneNumber":"={{ $json.phoneNumber }}","userId":"={{ $json.userId }}","userStatus":"={{ $json.userStatus }}"},"matchingColumns":[],"schema":[],"attemptToConvertTypes":false,"convertFieldsToString":true},"options":{}}}],"connections":{"When Executed by Another Workflow":{"main":[[{"node":"Call WF-25 Intent Classifier","type":"main","index":0}]]},"Call WF-25 Intent Classifier":{"main":[[{"node":"Is Rebook Intent?","type":"main","index":0}]]},"Is Rebook Intent?":{"main":[[{"node":"Call WF-45 Rebook","type":"main","index":0}],[{"node":"Is Stop Intent?","type":"main","index":0}]]},"Save Feedback to DB":{"main":[[{"node":"Prepare Ack Message","type":"main","index":0}]]},"Prepare Ack Message":{"main":[[{"node":"Send Ack via WF-50","type":"main","index":0}]]},"Is Stop Intent?":{"main":[[{"node":"Call WF-47 Unsubscribe","type":"main","index":0}],[{"node":"Save Feedback to DB","type":"main","index":0}]]}},"authors":"Chinmay Mujumdar","name":null,"description":null,"autosaved":false,"workflowPublishHistory":[{"createdAt":"2026-05-16T01:56:33.878Z","id":218,"workflowId":"Du2CJ3OTohRFZYoA","versionId":"f859db97-c7a7-4a66-8992-1fc888998f35","event":"activated","userId":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7"}]}}
+{
+  "updatedAt": "2026-05-16T01:56:33.807Z",
+  "createdAt": "2026-01-21T07:56:05.656Z",
+  "id": "Du2CJ3OTohRFZYoA",
+  "name": "WF-44 Feedback Recorder",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "wf44-n01",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "eTV1lUcYrXBg2q2T",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phoneNumber": "={{ $json.phoneNumber }}",
+            "messageText": "={{ $json.messageText }}",
+            "userId": "={{ $json.userId }}",
+            "userStatus": "={{ $json.userStatus }}"
+          },
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "wf44-n05",
+      "name": "Call WF-25 Intent Classifier",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        -380,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.intentResult }}",
+              "rightValue": "rebook_intent",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "wf44-n06",
+      "name": "Is Rebook Intent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "MUG7rPgSHc7UtAE9",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phoneNumber": "={{ $('When Executed by Another Workflow').item.json.phoneNumber }}",
+            "userId": "={{ $('When Executed by Another Workflow').item.json.userId }}",
+            "userStatus": "={{ $('When Executed by Another Workflow').item.json.userStatus }}"
+          },
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "wf44-n07",
+      "name": "Call WF-45 Rebook",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        60,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE chinmay_astro.users SET feedback = $1, stage = NULL, updated_at = NOW() WHERE id = $2",
+        "additionalFields": {
+          "queryParams": "={{ [$json.messageText, $json.userId] }}"
+        }
+      },
+      "id": "wf44-n02",
+      "name": "Save Feedback to DB",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -380,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $('When Executed by Another Workflow').first().json;\nreturn [{ json: {\n  phoneNumber: d.phoneNumber,\n  message: \"🙏 Thank you for your feedback! We really appreciate you taking the time to share your experience with Chinmay's consultation service. Your input helps us improve.\"\n} }];"
+      },
+      "id": "wf44-n03",
+      "name": "Prepare Ack Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "BUVun38WEKb12zg9",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phoneNumber": "={{ $json.phoneNumber }}",
+            "message": "={{ $json.message }}"
+          },
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "wf44-n04",
+      "name": "Send Ack via WF-50",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        60,
+        0
+      ]
+    },
+    {
+      "id": "c05932e9-240f-48a5-a435-e1fb0a51f5d0",
+      "name": "Is Stop Intent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        80
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "s1",
+              "leftValue": "={{ $json.intentResult }}",
+              "rightValue": "stop_intent",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8fc54980-2ba0-46fa-b78e-aa86584e5c4b",
+      "name": "Call WF-47 Unsubscribe",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        80
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "2U7mxHMyqA41ROKX",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phoneNumber": "={{ $json.phoneNumber }}",
+            "userId": "={{ $json.userId }}",
+            "userStatus": "={{ $json.userStatus }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Call WF-25 Intent Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call WF-25 Intent Classifier": {
+      "main": [
+        [
+          {
+            "node": "Is Rebook Intent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Rebook Intent?": {
+      "main": [
+        [
+          {
+            "node": "Call WF-45 Rebook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Stop Intent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Feedback to DB": {
+      "main": [
+        [
+          {
+            "node": "Prepare Ack Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Ack Message": {
+      "main": [
+        [
+          {
+            "node": "Send Ack via WF-50",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Stop Intent?": {
+      "main": [
+        [
+          {
+            "node": "Call WF-47 Unsubscribe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save Feedback to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "messageId": "wamid.HBgLNjE0NjY5Mjc5MjEVAgASGBQzQThBOUNENTk0RjBDM0U1MjE2OQA=",
+          "phoneNumber": "61466927921",
+          "phoneNumberFormatted": "+61466927921",
+          "contactName": "Prasad Mujumdar",
+          "messageType": "text",
+          "messageContent": "Amazing consultation",
+          "messageContentUpper": "AMAZING CONSULTATION",
+          "rawMessage": {
+            "from": "61466927921",
+            "id": "wamid.HBgLNjE0NjY5Mjc5MjEVAgASGBQzQThBOUNENTk0RjBDM0U1MjE2OQA=",
+            "timestamp": "1766294607",
+            "text": {
+              "body": "Amazing consultation"
+            },
+            "type": "text"
+          },
+          "timestamp": "1766294607",
+          "metadata": {
+            "phoneNumberId": "940973869088653",
+            "displayPhoneNumber": "918329183425"
+          },
+          "userExists": 21,
+          "isNewUser": false,
+          "user": {
+            "id": 21,
+            "phoneNumber": "61466927921",
+            "name": "Prasad",
+            "status": "consultation_closed",
+            "context": {},
+            "createdAt": "2025-12-18T07:08:32.584Z",
+            "lastMessageAt": "2025-12-21T04:20:27.938Z"
+          },
+          "route": "FEEDBACK_TEXT",
+          "routeReason": "User submitted text feedback"
+        }
+      }
+    ]
+  },
+  "versionId": "f859db97-c7a7-4a66-8992-1fc888998f35",
+  "activeVersionId": "f859db97-c7a7-4a66-8992-1fc888998f35",
+  "versionCounter": 21,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-01-21T07:56:05.656Z",
+      "createdAt": "2026-01-21T07:56:05.656Z",
+      "role": "workflow:owner",
+      "workflowId": "Du2CJ3OTohRFZYoA",
+      "projectId": "SpcBYo3r6YMWLf30",
+      "project": {
+        "updatedAt": "2025-12-26T03:43:50.268Z",
+        "createdAt": "2025-12-25T04:02:13.984Z",
+        "id": "SpcBYo3r6YMWLf30",
+        "name": "Chinmay Mujumdar <chinya1989mujumdar@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+        "projectRelations": [
+          {
+            "updatedAt": "2025-12-25T04:02:13.984Z",
+            "createdAt": "2025-12-25T04:02:13.984Z",
+            "userId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+            "projectId": "SpcBYo3r6YMWLf30",
+            "user": {
+              "updatedAt": "2026-05-16T00:34:09.583Z",
+              "createdAt": "2025-12-25T04:02:12.721Z",
+              "id": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+              "email": "chinya1989mujumdar@gmail.com",
+              "firstName": "Chinmay",
+              "lastName": "Mujumdar",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-12-26T03:46:19.986Z",
+                "personalization_survey_n8n_version": "2.1.4",
+                "companyIndustryExtended": [
+                  "other"
+                ],
+                "otherCompanyIndustryExtended": "Astrology",
+                "companySize": "<20",
+                "companyType": "other",
+                "role": "business-owner",
+                "reportedSource": "friend"
+              },
+              "settings": {
+                "userActivated": true,
+                "firstSuccessfulWorkflowId": "wMh0oBRtJbvhLgOf",
+                "userActivatedAt": 1772092088194,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1776950036941
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": true,
+              "lastActiveAt": "2026-05-16",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-05-16T01:56:33.808Z",
+    "createdAt": "2026-05-16T01:56:33.808Z",
+    "versionId": "f859db97-c7a7-4a66-8992-1fc888998f35",
+    "workflowId": "Du2CJ3OTohRFZYoA",
+    "nodes": [
+      {
+        "parameters": {},
+        "id": "wf44-n01",
+        "name": "When Executed by Another Workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1,
+        "position": [
+          -600,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "eTV1lUcYrXBg2q2T",
+            "mode": "id"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "phoneNumber": "={{ $json.phoneNumber }}",
+              "messageText": "={{ $json.messageText }}",
+              "userId": "={{ $json.userId }}",
+              "userStatus": "={{ $json.userStatus }}"
+            },
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "wf44-n05",
+        "name": "Call WF-25 Intent Classifier",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.1,
+        "position": [
+          -380,
+          -160
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "c1",
+                "leftValue": "={{ $json.intentResult }}",
+                "rightValue": "rebook_intent",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "wf44-n06",
+        "name": "Is Rebook Intent?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          -160,
+          -160
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "MUG7rPgSHc7UtAE9",
+            "mode": "id"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "phoneNumber": "={{ $('When Executed by Another Workflow').item.json.phoneNumber }}",
+              "userId": "={{ $('When Executed by Another Workflow').item.json.userId }}",
+              "userStatus": "={{ $('When Executed by Another Workflow').item.json.userStatus }}"
+            },
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "wf44-n07",
+        "name": "Call WF-45 Rebook",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.1,
+        "position": [
+          60,
+          -160
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "UPDATE chinmay_astro.users SET feedback = $1, stage = NULL, updated_at = NOW() WHERE id = $2",
+          "additionalFields": {
+            "queryParams": "={{ [$json.messageText, $json.userId] }}"
+          }
+        },
+        "id": "wf44-n02",
+        "name": "Save Feedback to DB",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          -380,
+          0
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "Zomqv5wsowQAhdGl",
+            "name": "PostgreSQL - Chinmay Astro Production"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const d = $('When Executed by Another Workflow').first().json;\nreturn [{ json: {\n  phoneNumber: d.phoneNumber,\n  message: \"🙏 Thank you for your feedback! We really appreciate you taking the time to share your experience with Chinmay's consultation service. Your input helps us improve.\"\n} }];"
+        },
+        "id": "wf44-n03",
+        "name": "Prepare Ack Message",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -160,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "BUVun38WEKb12zg9",
+            "mode": "id"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "phoneNumber": "={{ $json.phoneNumber }}",
+              "message": "={{ $json.message }}"
+            },
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "wf44-n04",
+        "name": "Send Ack via WF-50",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.1,
+        "position": [
+          60,
+          0
+        ]
+      },
+      {
+        "id": "c05932e9-240f-48a5-a435-e1fb0a51f5d0",
+        "name": "Is Stop Intent?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -160,
+          80
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "s1",
+                "leftValue": "={{ $json.intentResult }}",
+                "rightValue": "stop_intent",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "8fc54980-2ba0-46fa-b78e-aa86584e5c4b",
+        "name": "Call WF-47 Unsubscribe",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.1,
+        "position": [
+          80,
+          80
+        ],
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "2U7mxHMyqA41ROKX",
+            "mode": "id"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "phoneNumber": "={{ $json.phoneNumber }}",
+              "userId": "={{ $json.userId }}",
+              "userStatus": "={{ $json.userStatus }}"
+            },
+            "matchingColumns": [],
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": true
+          },
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "When Executed by Another Workflow": {
+        "main": [
+          [
+            {
+              "node": "Call WF-25 Intent Classifier",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Call WF-25 Intent Classifier": {
+        "main": [
+          [
+            {
+              "node": "Is Rebook Intent?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is Rebook Intent?": {
+        "main": [
+          [
+            {
+              "node": "Call WF-45 Rebook",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Is Stop Intent?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Save Feedback to DB": {
+        "main": [
+          [
+            {
+              "node": "Prepare Ack Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Ack Message": {
+        "main": [
+          [
+            {
+              "node": "Send Ack via WF-50",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is Stop Intent?": {
+        "main": [
+          [
+            {
+              "node": "Call WF-47 Unsubscribe",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Save Feedback to DB",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Chinmay Mujumdar",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-16T01:56:33.878Z",
+        "id": 218,
+        "workflowId": "Du2CJ3OTohRFZYoA",
+        "versionId": "f859db97-c7a7-4a66-8992-1fc888998f35",
+        "event": "activated",
+        "userId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7"
+      }
+    ]
+  }
+}

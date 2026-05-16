@@ -1,1 +1,1404 @@
-{"updatedAt":"2026-05-14T02:32:58.694Z","createdAt":"2025-12-31T05:41:24.418Z","id":"PubCsNTOspF3xqXZ","name":"WF-02 User State Router","description":null,"active":true,"isArchived":false,"nodes":[{"parameters":{"inputSource":"passthrough"},"id":"aac60b95-eac4-4d09-8529-1412ec167004","name":"When Executed by Another Workflow","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.1,"position":[-1360,848]},{"parameters":{"jsCode":"// WF-02: Detect Route\n// Determines which sub-workflow to call based on user status + message type\n// messageType from WF-01: 'text' or 'interactive'\n// rawMessage.interactive.type: 'button_reply' (button tap) or 'nfm_reply' (flow form)\n\nconst input = $input.first().json;\n\nconst userStatus = input.user?.status || null;\nconst messageType = input.messageType || 'text';\nconst interactiveType = input.rawMessage?.interactive?.type || null;\nconst pendingUser = input.pendingUser || null;\n\nlet route;\n\n// WhatsApp Flow form submission\nif (messageType === 'interactive' && interactiveType === 'nfm_reply') {\n  route = 'DETAILS_FORM';\n\n// Post-consultation button tap (btn_feedback / btn_rebook) for consultation_closed users\n} else if (messageType === 'interactive' && interactiveType === 'button_reply' && userStatus === 'consultation_closed') {\n  route = 'POST_CONSULT_TEXT'; // WF-43 handles button_reply and text for consultation_closed\n\n// Button tap (e.g. \"Payment Completed\")\n} else if (messageType === 'interactive' && interactiveType === 'button_reply') {\n  route = 'PAYMENT_CONFIRM';\n\n// No user record at all AND no pendingUser\n} else if (!userStatus && !pendingUser) {\n  route = 'NEW_USER';\n\n// pendingUser exists (received form, not yet submitted) — free text\n} else if (!userStatus && pendingUser) {\n  route = 'PRE_FORM_TEXT';\n\n// Text messages by status\n} else if (userStatus === 'payment_pending') {\n  route = 'PAYMENT_PENDING_TEXT';\n\n} else if (userStatus === 'payment_submitted') {\n  route = 'PAYMENT_SUBMITTED_TEXT';\n\n} else if (userStatus === 'consultation_active') {\n  route = 'RELAY';\n\n} else if (userStatus === 'consultation_closed') {\n  route = 'POST_CONSULT_TEXT';\n\n} else {\n  // blocked / opted_out / unknown — should not reach here (WF-01 filters these)\n  route = 'UNHANDLED';\n}\n\nreturn [{ json: { ...input, route } }];"},"id":"a2986c76-8972-4167-bfae-849f6ec6d186","name":"Detect Route","type":"n8n-nodes-base.code","typeVersion":2,"position":[-1152,848]},{"parameters":{"rules":{"values":[{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"NEW_USER","operator":{"type":"string","operation":"equals"},"id":"r-001-new-user"}],"combinator":"and"},"renameOutput":true,"outputKey":"NEW_USER"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"PRE_FORM_TEXT","operator":{"type":"string","operation":"equals"},"id":"r-002-pre-form"}],"combinator":"and"},"renameOutput":true,"outputKey":"PRE_FORM_TEXT"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"DETAILS_FORM","operator":{"type":"string","operation":"equals"},"id":"r-003-details-form"}],"combinator":"and"},"renameOutput":true,"outputKey":"DETAILS_FORM"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"PAYMENT_CONFIRM","operator":{"type":"string","operation":"equals"},"id":"r-004-payment-confirm"}],"combinator":"and"},"renameOutput":true,"outputKey":"PAYMENT_CONFIRM"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"PAYMENT_PENDING_TEXT","operator":{"type":"string","operation":"equals"},"id":"r-005-payment-pending"}],"combinator":"and"},"renameOutput":true,"outputKey":"PAYMENT_PENDING_TEXT"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"PAYMENT_SUBMITTED_TEXT","operator":{"type":"string","operation":"equals"},"id":"r-006-payment-submitted"}],"combinator":"and"},"renameOutput":true,"outputKey":"PAYMENT_SUBMITTED_TEXT"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"RELAY","operator":{"type":"string","operation":"equals"},"id":"r-007-relay"}],"combinator":"and"},"renameOutput":true,"outputKey":"RELAY"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"POST_CONSULT_TEXT","operator":{"type":"string","operation":"equals"},"id":"r-008-post-consult"}],"combinator":"and"},"renameOutput":true,"outputKey":"POST_CONSULT_TEXT"}]},"options":{}},"id":"6dba11e7-1a7d-4c2b-8783-eca6b19934a2","name":"Route Switch","type":"n8n-nodes-base.switch","typeVersion":3.2,"position":[-960,848]},{"parameters":{"content":"## WF-02: User State Router\n\nRoutes by status + message type:\n- NEW_USER → WF-21\n- PRE_FORM_TEXT → WF-23\n- DETAILS_FORM → WF-22\n- PAYMENT_CONFIRM → WF-32\n- PAYMENT_PENDING_TEXT → WF-30\n- PAYMENT_SUBMITTED_TEXT → WF-31\n- RELAY → WF-40\n- POST_CONSULT_TEXT → WF-43","height":340,"width":300},"id":"95eff215-82e7-4e88-8cb5-7324b9199f9e","name":"Sticky Note","type":"n8n-nodes-base.stickyNote","typeVersion":1,"position":[-1568,752]},{"parameters":{"workflowId":{"__rl":true,"value":"zM8WbxSdt9nXRoLZ","mode":"id"},"options":{}},"id":"1d2bca11-e466-4f90-b831-e63e58e2c295","name":"Call WF-21 (New User Welcome + Form)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,0]},{"parameters":{"workflowId":{"__rl":true,"value":"VpCER0Vqq3NYJGpI","mode":"id"},"options":{}},"id":"node-wf23-preform","name":"Call WF-23 (Pre-Form Intent Filter)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,240]},{"parameters":{"workflowId":{"__rl":true,"value":"dr8QM0m92Ml8MvIh","mode":"id"},"options":{}},"id":"fe14d5fd-57b7-4275-b62b-6b08737fe16f","name":"Call WF-22 (Details Form Processor)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,480]},{"parameters":{"workflowId":{"__rl":true,"value":"emUOLWVZiNVxcOe3","mode":"id"},"options":{}},"id":"node-wf32-payconfirm","name":"Call WF-32 (Payment Confirmation Receiver)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,720]},{"parameters":{"workflowId":{"__rl":true,"value":"gGJBY5fJha0Let8I","mode":"id"},"options":{}},"id":"node-wf30-paypending","name":"Call WF-30 (Payment Pending Intent Filter)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,960]},{"parameters":{"workflowId":{"__rl":true,"value":"HB8nXudAtk9iXz7C","mode":"id"},"options":{}},"id":"node-wf31-paysubmitted","name":"Call WF-31 (Payment Submitted Handler)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,1200]},{"parameters":{"workflowId":{"__rl":true,"value":"du32QBZbSQOjfESe","mode":"id"},"options":{}},"id":"f1cf996f-b3aa-4063-9410-b9fae665abd5","name":"Call WF-40 (User → Admin Relay)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,1440]},{"parameters":{"workflowId":{"__rl":true,"value":"3va0M06kijgyLejf","mode":"id"},"options":{}},"id":"node-wf43-postconsult","name":"Call WF-43 (Post-Consultation Handler)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,1680]},{"id":"0dbffb68-5c0b-4c35-91cf-22db800e3348","name":"Is Text Message?","type":"n8n-nodes-base.if","typeVersion":2,"position":[-1100,848],"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"text-check","leftValue":"={{ $json.messageType }}","operator":{"type":"string","operation":"equals"},"rightValue":"text"}],"combinator":"and"}}},{"id":"2259cd51-705a-4493-b327-771046c4526c","name":"Call WF-20 (Keyword Handler)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[-960,680],"parameters":{"workflowId":{"__rl":true,"value":"LgIDj1v4ZbCPlX25","mode":"id"},"options":{}}},{"id":"366bdc83-2e0a-4d87-a434-9fe8fa091660","name":"Keyword Passthrough?","type":"n8n-nodes-base.if","typeVersion":2,"position":[-760,680],"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"passthrough-check","leftValue":"={{ $json.action }}","operator":{"type":"string","operation":"equals"},"rightValue":"passthrough"}],"combinator":"and"}}},{"id":"a83e47a9-5d89-4282-8603-bf9de797e862","name":"Restore Route Data","type":"n8n-nodes-base.code","typeVersion":2,"position":[-760,540],"parameters":{"jsCode":"return [$('Detect Route').first().json];"}}],"connections":{"When Executed by Another Workflow":{"main":[[{"node":"Detect Route","type":"main","index":0}]]},"Detect Route":{"main":[[{"node":"Is Text Message?","type":"main","index":0}]]},"Route Switch":{"main":[[{"node":"Call WF-21 (New User Welcome + Form)","type":"main","index":0}],[{"node":"Call WF-23 (Pre-Form Intent Filter)","type":"main","index":0}],[{"node":"Call WF-22 (Details Form Processor)","type":"main","index":0}],[{"node":"Call WF-32 (Payment Confirmation Receiver)","type":"main","index":0}],[{"node":"Call WF-30 (Payment Pending Intent Filter)","type":"main","index":0}],[{"node":"Call WF-31 (Payment Submitted Handler)","type":"main","index":0}],[{"node":"Call WF-40 (User → Admin Relay)","type":"main","index":0}],[{"node":"Call WF-43 (Post-Consultation Handler)","type":"main","index":0}]]},"Is Text Message?":{"main":[[{"node":"Call WF-20 (Keyword Handler)","type":"main","index":0}],[{"node":"Route Switch","type":"main","index":0}]]},"Call WF-20 (Keyword Handler)":{"main":[[{"node":"Keyword Passthrough?","type":"main","index":0}]]},"Keyword Passthrough?":{"main":[[{"node":"Restore Route Data","type":"main","index":0}],[]]},"Restore Route Data":{"main":[[{"node":"Route Switch","type":"main","index":0}]]}},"settings":{"executionOrder":"v1","availableInMCP":false,"callerPolicy":"workflowsFromSameOwner"},"staticData":null,"meta":null,"pinData":{"When Executed by Another Workflow":[{"json":{"messageId":"wamid.HBgLNjE0NjY5Mjc5MjEVAgASGBQzQTIzOTMyMjdDNEM4MDMwREJGOAA=","phoneNumber":"61466927921","phoneNumberFormatted":"+61466927921","contactName":"Prasad Mujumdar","messageType":"interactive","messageContent":"","messageContentUpper":"","rawMessage":{"context":{"from":"919653240263","id":"wamid.HBgLNjE0NjY5Mjc5MjEVAgARGBI5RUQ1MzM4RDA1OTNFNTBFNDcA"},"from":"61466927921","id":"wamid.HBgLNjE0NjY5Mjc5MjEVAgASGBQzQTIzOTMyMjdDNEM4MDMwREJGOAA=","timestamp":"1775960720","type":"interactive","interactive":{"type":"nfm_reply","nfm_reply":{"response_json":"{\"flow_token\":\"1775959480422\",\"place_of_birth\":\"Mumbai\",\"date_of_birth\":\"1982-04-12\",\"consent\":[\"agree\"],\"time_of_birth\":\"11:30\",\"full_name\":\"Hahdb\"}","body":"Sent","name":"flow"}}},"timestamp":"1775960720","metadata":{"phoneNumberId":"1104226366097236","displayPhoneNumber":"919653240263"},"isNewUser":false,"user":null,"pendingUser":{"phoneNumber":"61466927921","contactName":"Prasad Mujumdar","createdAt":"2026-04-12T02:04:40.384Z"}},"pairedItem":{"item":0}}]},"versionId":"9daeeb86-1371-41cc-bd79-c298b1d3ac38","activeVersionId":"9daeeb86-1371-41cc-bd79-c298b1d3ac38","versionCounter":50,"triggerCount":0,"shared":[{"updatedAt":"2025-12-31T05:41:24.418Z","createdAt":"2025-12-31T05:41:24.418Z","role":"workflow:owner","workflowId":"PubCsNTOspF3xqXZ","projectId":"SpcBYo3r6YMWLf30","project":{"updatedAt":"2025-12-26T03:43:50.268Z","createdAt":"2025-12-25T04:02:13.984Z","id":"SpcBYo3r6YMWLf30","name":"Chinmay Mujumdar <chinya1989mujumdar@gmail.com>","type":"personal","icon":null,"description":null,"creatorId":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7","projectRelations":[{"updatedAt":"2025-12-25T04:02:13.984Z","createdAt":"2025-12-25T04:02:13.984Z","userId":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7","projectId":"SpcBYo3r6YMWLf30","user":{"updatedAt":"2026-05-13T23:33:16.015Z","createdAt":"2025-12-25T04:02:12.721Z","id":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7","email":"chinya1989mujumdar@gmail.com","firstName":"Chinmay","lastName":"Mujumdar","personalizationAnswers":{"version":"v4","personalization_survey_submitted_at":"2025-12-26T03:46:19.986Z","personalization_survey_n8n_version":"2.1.4","companyIndustryExtended":["other"],"otherCompanyIndustryExtended":"Astrology","companySize":"<20","companyType":"other","role":"business-owner","reportedSource":"friend"},"settings":{"userActivated":true,"firstSuccessfulWorkflowId":"wMh0oBRtJbvhLgOf","userActivatedAt":1772092088194,"npsSurvey":{"responded":true,"lastShownAt":1776950036941}},"disabled":false,"mfaEnabled":true,"lastActiveAt":"2026-05-14","isPending":false}}]}}],"tags":[],"activeVersion":{"updatedAt":"2026-05-14T02:32:58.697Z","createdAt":"2026-05-14T02:32:58.697Z","versionId":"9daeeb86-1371-41cc-bd79-c298b1d3ac38","workflowId":"PubCsNTOspF3xqXZ","nodes":[{"parameters":{"inputSource":"passthrough"},"id":"aac60b95-eac4-4d09-8529-1412ec167004","name":"When Executed by Another Workflow","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.1,"position":[-1360,848]},{"parameters":{"jsCode":"// WF-02: Detect Route\n// Determines which sub-workflow to call based on user status + message type\n// messageType from WF-01: 'text' or 'interactive'\n// rawMessage.interactive.type: 'button_reply' (button tap) or 'nfm_reply' (flow form)\n\nconst input = $input.first().json;\n\nconst userStatus = input.user?.status || null;\nconst messageType = input.messageType || 'text';\nconst interactiveType = input.rawMessage?.interactive?.type || null;\nconst pendingUser = input.pendingUser || null;\n\nlet route;\n\n// WhatsApp Flow form submission\nif (messageType === 'interactive' && interactiveType === 'nfm_reply') {\n  route = 'DETAILS_FORM';\n\n// Post-consultation button tap (btn_feedback / btn_rebook) for consultation_closed users\n} else if (messageType === 'interactive' && interactiveType === 'button_reply' && userStatus === 'consultation_closed') {\n  route = 'POST_CONSULT_TEXT'; // WF-43 handles button_reply and text for consultation_closed\n\n// Button tap (e.g. \"Payment Completed\")\n} else if (messageType === 'interactive' && interactiveType === 'button_reply') {\n  route = 'PAYMENT_CONFIRM';\n\n// No user record at all AND no pendingUser\n} else if (!userStatus && !pendingUser) {\n  route = 'NEW_USER';\n\n// pendingUser exists (received form, not yet submitted) — free text\n} else if (!userStatus && pendingUser) {\n  route = 'PRE_FORM_TEXT';\n\n// Text messages by status\n} else if (userStatus === 'payment_pending') {\n  route = 'PAYMENT_PENDING_TEXT';\n\n} else if (userStatus === 'payment_submitted') {\n  route = 'PAYMENT_SUBMITTED_TEXT';\n\n} else if (userStatus === 'consultation_active') {\n  route = 'RELAY';\n\n} else if (userStatus === 'consultation_closed') {\n  route = 'POST_CONSULT_TEXT';\n\n} else {\n  // blocked / opted_out / unknown — should not reach here (WF-01 filters these)\n  route = 'UNHANDLED';\n}\n\nreturn [{ json: { ...input, route } }];"},"id":"a2986c76-8972-4167-bfae-849f6ec6d186","name":"Detect Route","type":"n8n-nodes-base.code","typeVersion":2,"position":[-1152,848]},{"parameters":{"rules":{"values":[{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"NEW_USER","operator":{"type":"string","operation":"equals"},"id":"r-001-new-user"}],"combinator":"and"},"renameOutput":true,"outputKey":"NEW_USER"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"PRE_FORM_TEXT","operator":{"type":"string","operation":"equals"},"id":"r-002-pre-form"}],"combinator":"and"},"renameOutput":true,"outputKey":"PRE_FORM_TEXT"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"DETAILS_FORM","operator":{"type":"string","operation":"equals"},"id":"r-003-details-form"}],"combinator":"and"},"renameOutput":true,"outputKey":"DETAILS_FORM"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"PAYMENT_CONFIRM","operator":{"type":"string","operation":"equals"},"id":"r-004-payment-confirm"}],"combinator":"and"},"renameOutput":true,"outputKey":"PAYMENT_CONFIRM"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"PAYMENT_PENDING_TEXT","operator":{"type":"string","operation":"equals"},"id":"r-005-payment-pending"}],"combinator":"and"},"renameOutput":true,"outputKey":"PAYMENT_PENDING_TEXT"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"PAYMENT_SUBMITTED_TEXT","operator":{"type":"string","operation":"equals"},"id":"r-006-payment-submitted"}],"combinator":"and"},"renameOutput":true,"outputKey":"PAYMENT_SUBMITTED_TEXT"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"RELAY","operator":{"type":"string","operation":"equals"},"id":"r-007-relay"}],"combinator":"and"},"renameOutput":true,"outputKey":"RELAY"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.route }}","rightValue":"POST_CONSULT_TEXT","operator":{"type":"string","operation":"equals"},"id":"r-008-post-consult"}],"combinator":"and"},"renameOutput":true,"outputKey":"POST_CONSULT_TEXT"}]},"options":{}},"id":"6dba11e7-1a7d-4c2b-8783-eca6b19934a2","name":"Route Switch","type":"n8n-nodes-base.switch","typeVersion":3.2,"position":[-960,848]},{"parameters":{"content":"## WF-02: User State Router\n\nRoutes by status + message type:\n- NEW_USER → WF-21\n- PRE_FORM_TEXT → WF-23\n- DETAILS_FORM → WF-22\n- PAYMENT_CONFIRM → WF-32\n- PAYMENT_PENDING_TEXT → WF-30\n- PAYMENT_SUBMITTED_TEXT → WF-31\n- RELAY → WF-40\n- POST_CONSULT_TEXT → WF-43","height":340,"width":300},"id":"95eff215-82e7-4e88-8cb5-7324b9199f9e","name":"Sticky Note","type":"n8n-nodes-base.stickyNote","typeVersion":1,"position":[-1568,752]},{"parameters":{"workflowId":{"__rl":true,"value":"zM8WbxSdt9nXRoLZ","mode":"id"},"options":{}},"id":"1d2bca11-e466-4f90-b831-e63e58e2c295","name":"Call WF-21 (New User Welcome + Form)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,0]},{"parameters":{"workflowId":{"__rl":true,"value":"VpCER0Vqq3NYJGpI","mode":"id"},"options":{}},"id":"node-wf23-preform","name":"Call WF-23 (Pre-Form Intent Filter)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,240]},{"parameters":{"workflowId":{"__rl":true,"value":"dr8QM0m92Ml8MvIh","mode":"id"},"options":{}},"id":"fe14d5fd-57b7-4275-b62b-6b08737fe16f","name":"Call WF-22 (Details Form Processor)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,480]},{"parameters":{"workflowId":{"__rl":true,"value":"emUOLWVZiNVxcOe3","mode":"id"},"options":{}},"id":"node-wf32-payconfirm","name":"Call WF-32 (Payment Confirmation Receiver)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,720]},{"parameters":{"workflowId":{"__rl":true,"value":"gGJBY5fJha0Let8I","mode":"id"},"options":{}},"id":"node-wf30-paypending","name":"Call WF-30 (Payment Pending Intent Filter)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,960]},{"parameters":{"workflowId":{"__rl":true,"value":"HB8nXudAtk9iXz7C","mode":"id"},"options":{}},"id":"node-wf31-paysubmitted","name":"Call WF-31 (Payment Submitted Handler)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,1200]},{"parameters":{"workflowId":{"__rl":true,"value":"du32QBZbSQOjfESe","mode":"id"},"options":{}},"id":"f1cf996f-b3aa-4063-9410-b9fae665abd5","name":"Call WF-40 (User → Admin Relay)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,1440]},{"parameters":{"workflowId":{"__rl":true,"value":"3va0M06kijgyLejf","mode":"id"},"options":{}},"id":"node-wf43-postconsult","name":"Call WF-43 (Post-Consultation Handler)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[240,1680]},{"id":"0dbffb68-5c0b-4c35-91cf-22db800e3348","name":"Is Text Message?","type":"n8n-nodes-base.if","typeVersion":2,"position":[-1100,848],"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"text-check","leftValue":"={{ $json.messageType }}","operator":{"type":"string","operation":"equals"},"rightValue":"text"}],"combinator":"and"}}},{"id":"2259cd51-705a-4493-b327-771046c4526c","name":"Call WF-20 (Keyword Handler)","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.1,"position":[-960,680],"parameters":{"workflowId":{"__rl":true,"value":"LgIDj1v4ZbCPlX25","mode":"id"},"options":{}}},{"id":"366bdc83-2e0a-4d87-a434-9fe8fa091660","name":"Keyword Passthrough?","type":"n8n-nodes-base.if","typeVersion":2,"position":[-760,680],"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"passthrough-check","leftValue":"={{ $json.action }}","operator":{"type":"string","operation":"equals"},"rightValue":"passthrough"}],"combinator":"and"}}},{"id":"a83e47a9-5d89-4282-8603-bf9de797e862","name":"Restore Route Data","type":"n8n-nodes-base.code","typeVersion":2,"position":[-760,540],"parameters":{"jsCode":"return [$('Detect Route').first().json];"}}],"connections":{"When Executed by Another Workflow":{"main":[[{"node":"Detect Route","type":"main","index":0}]]},"Detect Route":{"main":[[{"node":"Is Text Message?","type":"main","index":0}]]},"Route Switch":{"main":[[{"node":"Call WF-21 (New User Welcome + Form)","type":"main","index":0}],[{"node":"Call WF-23 (Pre-Form Intent Filter)","type":"main","index":0}],[{"node":"Call WF-22 (Details Form Processor)","type":"main","index":0}],[{"node":"Call WF-32 (Payment Confirmation Receiver)","type":"main","index":0}],[{"node":"Call WF-30 (Payment Pending Intent Filter)","type":"main","index":0}],[{"node":"Call WF-31 (Payment Submitted Handler)","type":"main","index":0}],[{"node":"Call WF-40 (User → Admin Relay)","type":"main","index":0}],[{"node":"Call WF-43 (Post-Consultation Handler)","type":"main","index":0}]]},"Is Text Message?":{"main":[[{"node":"Call WF-20 (Keyword Handler)","type":"main","index":0}],[{"node":"Route Switch","type":"main","index":0}]]},"Call WF-20 (Keyword Handler)":{"main":[[{"node":"Keyword Passthrough?","type":"main","index":0}]]},"Keyword Passthrough?":{"main":[[{"node":"Restore Route Data","type":"main","index":0}],[]]},"Restore Route Data":{"main":[[{"node":"Route Switch","type":"main","index":0}]]}},"authors":"Chinmay Mujumdar","name":null,"description":null,"autosaved":false,"workflowPublishHistory":[{"createdAt":"2026-05-14T02:32:59.295Z","id":193,"workflowId":"PubCsNTOspF3xqXZ","versionId":"9daeeb86-1371-41cc-bd79-c298b1d3ac38","event":"activated","userId":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7"}]}}
+{
+  "updatedAt": "2026-05-14T02:32:58.694Z",
+  "createdAt": "2025-12-31T05:41:24.418Z",
+  "id": "PubCsNTOspF3xqXZ",
+  "name": "WF-02 User State Router",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "aac60b95-eac4-4d09-8529-1412ec167004",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1360,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// WF-02: Detect Route\n// Determines which sub-workflow to call based on user status + message type\n// messageType from WF-01: 'text' or 'interactive'\n// rawMessage.interactive.type: 'button_reply' (button tap) or 'nfm_reply' (flow form)\n\nconst input = $input.first().json;\n\nconst userStatus = input.user?.status || null;\nconst messageType = input.messageType || 'text';\nconst interactiveType = input.rawMessage?.interactive?.type || null;\nconst pendingUser = input.pendingUser || null;\n\nlet route;\n\n// WhatsApp Flow form submission\nif (messageType === 'interactive' && interactiveType === 'nfm_reply') {\n  route = 'DETAILS_FORM';\n\n// Post-consultation button tap (btn_feedback / btn_rebook) for consultation_closed users\n} else if (messageType === 'interactive' && interactiveType === 'button_reply' && userStatus === 'consultation_closed') {\n  route = 'POST_CONSULT_TEXT'; // WF-43 handles button_reply and text for consultation_closed\n\n// Button tap (e.g. \"Payment Completed\")\n} else if (messageType === 'interactive' && interactiveType === 'button_reply') {\n  route = 'PAYMENT_CONFIRM';\n\n// No user record at all AND no pendingUser\n} else if (!userStatus && !pendingUser) {\n  route = 'NEW_USER';\n\n// pendingUser exists (received form, not yet submitted) — free text\n} else if (!userStatus && pendingUser) {\n  route = 'PRE_FORM_TEXT';\n\n// Text messages by status\n} else if (userStatus === 'payment_pending') {\n  route = 'PAYMENT_PENDING_TEXT';\n\n} else if (userStatus === 'payment_submitted') {\n  route = 'PAYMENT_SUBMITTED_TEXT';\n\n} else if (userStatus === 'consultation_active') {\n  route = 'RELAY';\n\n} else if (userStatus === 'consultation_closed') {\n  route = 'POST_CONSULT_TEXT';\n\n} else {\n  // blocked / opted_out / unknown — should not reach here (WF-01 filters these)\n  route = 'UNHANDLED';\n}\n\nreturn [{ json: { ...input, route } }];"
+      },
+      "id": "a2986c76-8972-4167-bfae-849f6ec6d186",
+      "name": "Detect Route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1152,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "NEW_USER",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "r-001-new-user"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "NEW_USER"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "PRE_FORM_TEXT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "r-002-pre-form"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PRE_FORM_TEXT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "DETAILS_FORM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "r-003-details-form"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "DETAILS_FORM"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "PAYMENT_CONFIRM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "r-004-payment-confirm"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PAYMENT_CONFIRM"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "PAYMENT_PENDING_TEXT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "r-005-payment-pending"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PAYMENT_PENDING_TEXT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "PAYMENT_SUBMITTED_TEXT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "r-006-payment-submitted"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PAYMENT_SUBMITTED_TEXT"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "RELAY",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "r-007-relay"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "RELAY"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "POST_CONSULT_TEXT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "r-008-post-consult"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "POST_CONSULT_TEXT"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6dba11e7-1a7d-4c2b-8783-eca6b19934a2",
+      "name": "Route Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -960,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## WF-02: User State Router\n\nRoutes by status + message type:\n- NEW_USER → WF-21\n- PRE_FORM_TEXT → WF-23\n- DETAILS_FORM → WF-22\n- PAYMENT_CONFIRM → WF-32\n- PAYMENT_PENDING_TEXT → WF-30\n- PAYMENT_SUBMITTED_TEXT → WF-31\n- RELAY → WF-40\n- POST_CONSULT_TEXT → WF-43",
+        "height": 340,
+        "width": 300
+      },
+      "id": "95eff215-82e7-4e88-8cb5-7324b9199f9e",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1568,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "zM8WbxSdt9nXRoLZ",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "1d2bca11-e466-4f90-b831-e63e58e2c295",
+      "name": "Call WF-21 (New User Welcome + Form)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "VpCER0Vqq3NYJGpI",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "node-wf23-preform",
+      "name": "Call WF-23 (Pre-Form Intent Filter)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "dr8QM0m92Ml8MvIh",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "fe14d5fd-57b7-4275-b62b-6b08737fe16f",
+      "name": "Call WF-22 (Details Form Processor)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "emUOLWVZiNVxcOe3",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "node-wf32-payconfirm",
+      "name": "Call WF-32 (Payment Confirmation Receiver)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "gGJBY5fJha0Let8I",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "node-wf30-paypending",
+      "name": "Call WF-30 (Payment Pending Intent Filter)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "HB8nXudAtk9iXz7C",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "node-wf31-paysubmitted",
+      "name": "Call WF-31 (Payment Submitted Handler)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "du32QBZbSQOjfESe",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "f1cf996f-b3aa-4063-9410-b9fae665abd5",
+      "name": "Call WF-40 (User → Admin Relay)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "3va0M06kijgyLejf",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "node-wf43-postconsult",
+      "name": "Call WF-43 (Post-Consultation Handler)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        1680
+      ]
+    },
+    {
+      "id": "0dbffb68-5c0b-4c35-91cf-22db800e3348",
+      "name": "Is Text Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -1100,
+        848
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "text-check",
+              "leftValue": "={{ $json.messageType }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "text"
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "2259cd51-705a-4493-b327-771046c4526c",
+      "name": "Call WF-20 (Keyword Handler)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        -960,
+        680
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "LgIDj1v4ZbCPlX25",
+          "mode": "id"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "366bdc83-2e0a-4d87-a434-9fe8fa091660",
+      "name": "Keyword Passthrough?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -760,
+        680
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "passthrough-check",
+              "leftValue": "={{ $json.action }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "rightValue": "passthrough"
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a83e47a9-5d89-4282-8603-bf9de797e862",
+      "name": "Restore Route Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -760,
+        540
+      ],
+      "parameters": {
+        "jsCode": "return [$('Detect Route').first().json];"
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Detect Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Route": {
+      "main": [
+        [
+          {
+            "node": "Is Text Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Switch": {
+      "main": [
+        [
+          {
+            "node": "Call WF-21 (New User Welcome + Form)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call WF-23 (Pre-Form Intent Filter)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call WF-22 (Details Form Processor)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call WF-32 (Payment Confirmation Receiver)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call WF-30 (Payment Pending Intent Filter)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call WF-31 (Payment Submitted Handler)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call WF-40 (User → Admin Relay)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call WF-43 (Post-Consultation Handler)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Text Message?": {
+      "main": [
+        [
+          {
+            "node": "Call WF-20 (Keyword Handler)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Route Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call WF-20 (Keyword Handler)": {
+      "main": [
+        [
+          {
+            "node": "Keyword Passthrough?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keyword Passthrough?": {
+      "main": [
+        [
+          {
+            "node": "Restore Route Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Restore Route Data": {
+      "main": [
+        [
+          {
+            "node": "Route Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "messageId": "wamid.HBgLNjE0NjY5Mjc5MjEVAgASGBQzQTIzOTMyMjdDNEM4MDMwREJGOAA=",
+          "phoneNumber": "61466927921",
+          "phoneNumberFormatted": "+61466927921",
+          "contactName": "Prasad Mujumdar",
+          "messageType": "interactive",
+          "messageContent": "",
+          "messageContentUpper": "",
+          "rawMessage": {
+            "context": {
+              "from": "919653240263",
+              "id": "wamid.HBgLNjE0NjY5Mjc5MjEVAgARGBI5RUQ1MzM4RDA1OTNFNTBFNDcA"
+            },
+            "from": "61466927921",
+            "id": "wamid.HBgLNjE0NjY5Mjc5MjEVAgASGBQzQTIzOTMyMjdDNEM4MDMwREJGOAA=",
+            "timestamp": "1775960720",
+            "type": "interactive",
+            "interactive": {
+              "type": "nfm_reply",
+              "nfm_reply": {
+                "response_json": "{\"flow_token\":\"1775959480422\",\"place_of_birth\":\"Mumbai\",\"date_of_birth\":\"1982-04-12\",\"consent\":[\"agree\"],\"time_of_birth\":\"11:30\",\"full_name\":\"Hahdb\"}",
+                "body": "Sent",
+                "name": "flow"
+              }
+            }
+          },
+          "timestamp": "1775960720",
+          "metadata": {
+            "phoneNumberId": "1104226366097236",
+            "displayPhoneNumber": "919653240263"
+          },
+          "isNewUser": false,
+          "user": null,
+          "pendingUser": {
+            "phoneNumber": "61466927921",
+            "contactName": "Prasad Mujumdar",
+            "createdAt": "2026-04-12T02:04:40.384Z"
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "versionId": "9daeeb86-1371-41cc-bd79-c298b1d3ac38",
+  "activeVersionId": "9daeeb86-1371-41cc-bd79-c298b1d3ac38",
+  "versionCounter": 50,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2025-12-31T05:41:24.418Z",
+      "createdAt": "2025-12-31T05:41:24.418Z",
+      "role": "workflow:owner",
+      "workflowId": "PubCsNTOspF3xqXZ",
+      "projectId": "SpcBYo3r6YMWLf30",
+      "project": {
+        "updatedAt": "2025-12-26T03:43:50.268Z",
+        "createdAt": "2025-12-25T04:02:13.984Z",
+        "id": "SpcBYo3r6YMWLf30",
+        "name": "Chinmay Mujumdar <chinya1989mujumdar@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+        "projectRelations": [
+          {
+            "updatedAt": "2025-12-25T04:02:13.984Z",
+            "createdAt": "2025-12-25T04:02:13.984Z",
+            "userId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+            "projectId": "SpcBYo3r6YMWLf30",
+            "user": {
+              "updatedAt": "2026-05-16T00:34:09.583Z",
+              "createdAt": "2025-12-25T04:02:12.721Z",
+              "id": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+              "email": "chinya1989mujumdar@gmail.com",
+              "firstName": "Chinmay",
+              "lastName": "Mujumdar",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-12-26T03:46:19.986Z",
+                "personalization_survey_n8n_version": "2.1.4",
+                "companyIndustryExtended": [
+                  "other"
+                ],
+                "otherCompanyIndustryExtended": "Astrology",
+                "companySize": "<20",
+                "companyType": "other",
+                "role": "business-owner",
+                "reportedSource": "friend"
+              },
+              "settings": {
+                "userActivated": true,
+                "firstSuccessfulWorkflowId": "wMh0oBRtJbvhLgOf",
+                "userActivatedAt": 1772092088194,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1776950036941
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": true,
+              "lastActiveAt": "2026-05-16",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-05-14T02:32:58.697Z",
+    "createdAt": "2026-05-14T02:32:58.697Z",
+    "versionId": "9daeeb86-1371-41cc-bd79-c298b1d3ac38",
+    "workflowId": "PubCsNTOspF3xqXZ",
+    "nodes": [
+      {
+        "parameters": {
+          "inputSource": "passthrough"
+        },
+        "id": "aac60b95-eac4-4d09-8529-1412ec167004",
+        "name": "When Executed by Another Workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          -1360,
+          848
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// WF-02: Detect Route\n// Determines which sub-workflow to call based on user status + message type\n// messageType from WF-01: 'text' or 'interactive'\n// rawMessage.interactive.type: 'button_reply' (button tap) or 'nfm_reply' (flow form)\n\nconst input = $input.first().json;\n\nconst userStatus = input.user?.status || null;\nconst messageType = input.messageType || 'text';\nconst interactiveType = input.rawMessage?.interactive?.type || null;\nconst pendingUser = input.pendingUser || null;\n\nlet route;\n\n// WhatsApp Flow form submission\nif (messageType === 'interactive' && interactiveType === 'nfm_reply') {\n  route = 'DETAILS_FORM';\n\n// Post-consultation button tap (btn_feedback / btn_rebook) for consultation_closed users\n} else if (messageType === 'interactive' && interactiveType === 'button_reply' && userStatus === 'consultation_closed') {\n  route = 'POST_CONSULT_TEXT'; // WF-43 handles button_reply and text for consultation_closed\n\n// Button tap (e.g. \"Payment Completed\")\n} else if (messageType === 'interactive' && interactiveType === 'button_reply') {\n  route = 'PAYMENT_CONFIRM';\n\n// No user record at all AND no pendingUser\n} else if (!userStatus && !pendingUser) {\n  route = 'NEW_USER';\n\n// pendingUser exists (received form, not yet submitted) — free text\n} else if (!userStatus && pendingUser) {\n  route = 'PRE_FORM_TEXT';\n\n// Text messages by status\n} else if (userStatus === 'payment_pending') {\n  route = 'PAYMENT_PENDING_TEXT';\n\n} else if (userStatus === 'payment_submitted') {\n  route = 'PAYMENT_SUBMITTED_TEXT';\n\n} else if (userStatus === 'consultation_active') {\n  route = 'RELAY';\n\n} else if (userStatus === 'consultation_closed') {\n  route = 'POST_CONSULT_TEXT';\n\n} else {\n  // blocked / opted_out / unknown — should not reach here (WF-01 filters these)\n  route = 'UNHANDLED';\n}\n\nreturn [{ json: { ...input, route } }];"
+        },
+        "id": "a2986c76-8972-4167-bfae-849f6ec6d186",
+        "name": "Detect Route",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1152,
+          848
+        ]
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.route }}",
+                      "rightValue": "NEW_USER",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "id": "r-001-new-user"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "NEW_USER"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.route }}",
+                      "rightValue": "PRE_FORM_TEXT",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "id": "r-002-pre-form"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "PRE_FORM_TEXT"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.route }}",
+                      "rightValue": "DETAILS_FORM",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "id": "r-003-details-form"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "DETAILS_FORM"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.route }}",
+                      "rightValue": "PAYMENT_CONFIRM",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "id": "r-004-payment-confirm"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "PAYMENT_CONFIRM"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.route }}",
+                      "rightValue": "PAYMENT_PENDING_TEXT",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "id": "r-005-payment-pending"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "PAYMENT_PENDING_TEXT"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.route }}",
+                      "rightValue": "PAYMENT_SUBMITTED_TEXT",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "id": "r-006-payment-submitted"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "PAYMENT_SUBMITTED_TEXT"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.route }}",
+                      "rightValue": "RELAY",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "id": "r-007-relay"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "RELAY"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.route }}",
+                      "rightValue": "POST_CONSULT_TEXT",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "id": "r-008-post-consult"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "POST_CONSULT_TEXT"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "6dba11e7-1a7d-4c2b-8783-eca6b19934a2",
+        "name": "Route Switch",
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.2,
+        "position": [
+          -960,
+          848
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## WF-02: User State Router\n\nRoutes by status + message type:\n- NEW_USER → WF-21\n- PRE_FORM_TEXT → WF-23\n- DETAILS_FORM → WF-22\n- PAYMENT_CONFIRM → WF-32\n- PAYMENT_PENDING_TEXT → WF-30\n- PAYMENT_SUBMITTED_TEXT → WF-31\n- RELAY → WF-40\n- POST_CONSULT_TEXT → WF-43",
+          "height": 340,
+          "width": 300
+        },
+        "id": "95eff215-82e7-4e88-8cb5-7324b9199f9e",
+        "name": "Sticky Note",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -1568,
+          752
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "zM8WbxSdt9nXRoLZ",
+            "mode": "id"
+          },
+          "options": {}
+        },
+        "id": "1d2bca11-e466-4f90-b831-e63e58e2c295",
+        "name": "Call WF-21 (New User Welcome + Form)",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.1,
+        "position": [
+          240,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "VpCER0Vqq3NYJGpI",
+            "mode": "id"
+          },
+          "options": {}
+        },
+        "id": "node-wf23-preform",
+        "name": "Call WF-23 (Pre-Form Intent Filter)",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.1,
+        "position": [
+          240,
+          240
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "dr8QM0m92Ml8MvIh",
+            "mode": "id"
+          },
+          "options": {}
+        },
+        "id": "fe14d5fd-57b7-4275-b62b-6b08737fe16f",
+        "name": "Call WF-22 (Details Form Processor)",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.1,
+        "position": [
+          240,
+          480
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "emUOLWVZiNVxcOe3",
+            "mode": "id"
+          },
+          "options": {}
+        },
+        "id": "node-wf32-payconfirm",
+        "name": "Call WF-32 (Payment Confirmation Receiver)",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.1,
+        "position": [
+          240,
+          720
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "gGJBY5fJha0Let8I",
+            "mode": "id"
+          },
+          "options": {}
+        },
+        "id": "node-wf30-paypending",
+        "name": "Call WF-30 (Payment Pending Intent Filter)",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.1,
+        "position": [
+          240,
+          960
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "HB8nXudAtk9iXz7C",
+            "mode": "id"
+          },
+          "options": {}
+        },
+        "id": "node-wf31-paysubmitted",
+        "name": "Call WF-31 (Payment Submitted Handler)",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.1,
+        "position": [
+          240,
+          1200
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "du32QBZbSQOjfESe",
+            "mode": "id"
+          },
+          "options": {}
+        },
+        "id": "f1cf996f-b3aa-4063-9410-b9fae665abd5",
+        "name": "Call WF-40 (User → Admin Relay)",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.1,
+        "position": [
+          240,
+          1440
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "3va0M06kijgyLejf",
+            "mode": "id"
+          },
+          "options": {}
+        },
+        "id": "node-wf43-postconsult",
+        "name": "Call WF-43 (Post-Consultation Handler)",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.1,
+        "position": [
+          240,
+          1680
+        ]
+      },
+      {
+        "id": "0dbffb68-5c0b-4c35-91cf-22db800e3348",
+        "name": "Is Text Message?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          -1100,
+          848
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "text-check",
+                "leftValue": "={{ $json.messageType }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "rightValue": "text"
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      },
+      {
+        "id": "2259cd51-705a-4493-b327-771046c4526c",
+        "name": "Call WF-20 (Keyword Handler)",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.1,
+        "position": [
+          -960,
+          680
+        ],
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "LgIDj1v4ZbCPlX25",
+            "mode": "id"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "366bdc83-2e0a-4d87-a434-9fe8fa091660",
+        "name": "Keyword Passthrough?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          -760,
+          680
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "passthrough-check",
+                "leftValue": "={{ $json.action }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "rightValue": "passthrough"
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      },
+      {
+        "id": "a83e47a9-5d89-4282-8603-bf9de797e862",
+        "name": "Restore Route Data",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -760,
+          540
+        ],
+        "parameters": {
+          "jsCode": "return [$('Detect Route').first().json];"
+        }
+      }
+    ],
+    "connections": {
+      "When Executed by Another Workflow": {
+        "main": [
+          [
+            {
+              "node": "Detect Route",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Detect Route": {
+        "main": [
+          [
+            {
+              "node": "Is Text Message?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Route Switch": {
+        "main": [
+          [
+            {
+              "node": "Call WF-21 (New User Welcome + Form)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Call WF-23 (Pre-Form Intent Filter)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Call WF-22 (Details Form Processor)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Call WF-32 (Payment Confirmation Receiver)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Call WF-30 (Payment Pending Intent Filter)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Call WF-31 (Payment Submitted Handler)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Call WF-40 (User → Admin Relay)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Call WF-43 (Post-Consultation Handler)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is Text Message?": {
+        "main": [
+          [
+            {
+              "node": "Call WF-20 (Keyword Handler)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Route Switch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Call WF-20 (Keyword Handler)": {
+        "main": [
+          [
+            {
+              "node": "Keyword Passthrough?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Keyword Passthrough?": {
+        "main": [
+          [
+            {
+              "node": "Restore Route Data",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "Restore Route Data": {
+        "main": [
+          [
+            {
+              "node": "Route Switch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Chinmay Mujumdar",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-14T02:32:59.295Z",
+        "id": 193,
+        "workflowId": "PubCsNTOspF3xqXZ",
+        "versionId": "9daeeb86-1371-41cc-bd79-c298b1d3ac38",
+        "event": "activated",
+        "userId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7"
+      }
+    ]
+  }
+}

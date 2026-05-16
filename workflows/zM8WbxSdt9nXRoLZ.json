@@ -1,1 +1,368 @@
-{"updatedAt":"2026-04-12T02:02:38.537Z","createdAt":"2026-04-11T23:13:32.535Z","id":"zM8WbxSdt9nXRoLZ","name":"WF-21 New User Welcome + Form","description":null,"active":true,"isArchived":false,"nodes":[{"parameters":{"inputSource":"passthrough"},"id":"node-trigger","name":"When Executed by Another Workflow","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.1,"position":[0,0]},{"parameters":{"jsCode":"const input = $('When Executed by Another Workflow').first().json;\nconst phoneNumber = input.phoneNumber;\nconst userId = input.id || null;\nconst messageId = input.messageId || null;\nconst userMessage = input.messageContent || null;\n\nconst policyUrl = 'https://chinmaymujumdar.com/privacy-policy';\n\nconst messageText = [\n  'Welcome! 🙏',\n  '',\n  \"I'm Chinmay Mujumdar, a Vedic astrology consultant.\",\n  '',\n  '📋 Privacy Policy: ' + policyUrl,\n  '',\n  '✨ How it works:',\n  '• Share your birth details using the form below',\n  '• Pay ₹500 consultation fee via GPay',\n  '• Receive your personalised Vedic astrology consultation on WhatsApp',\n  '',\n  'To get started, please fill in the form with your birth details.'\n].join('\\n');\n\nconst interactivePayload = {\n  type: 'flow',\n  header: { type: 'text', text: 'Birth Details Form' },\n  body: { text: messageText },\n  flowId: '1408011897720771',\n  flowCta: 'Fill Details'\n};\n\nreturn [{\n  json: {\n    phoneNumber,\n    phoneNumberFormatted: input.phoneNumberFormatted || phoneNumber,\n    messageType: 'interactive',\n    messageContent: messageText,\n    interactivePayload,\n    userId,\n    inboundMessageId: messageId,\n    userMessage\n  }\n}];"},"id":"node-build-msg","name":"Build Welcome Message","type":"n8n-nodes-base.code","typeVersion":2,"position":[432,0]},{"parameters":{"workflowId":{"__rl":true,"value":"BUVun38WEKb12zg9","mode":"list","cachedResultUrl":"/workflow/BUVun38WEKb12zg9","cachedResultName":"WF-50 Send WhatsApp"},"workflowInputs":{"mappingMode":"defineBelow","value":{},"matchingColumns":[],"schema":[],"attemptToConvertTypes":false,"convertFieldsToString":true},"options":{}},"id":"node-call-wf50","name":"Call WF-50 Send WhatsApp","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.2,"position":[656,0]},{"parameters":{"operation":"executeQuery","query":"INSERT INTO chinmay_astro.pending_users (phone_number, contact_name, created_at)\nVALUES ($1, $2, NOW())\nON CONFLICT (phone_number) DO UPDATE \n  SET contact_name = EXCLUDED.contact_name,\n      created_at = NOW()\nRETURNING phone_number","options":{"queryReplacement":"={{ $json.phoneNumber }}, {{ $json.contactName }}"}},"type":"n8n-nodes-base.postgres","typeVersion":2.6,"position":[208,0],"id":"28af07ff-92ce-46dd-9549-5b9270a1f746","name":"Insert Pending User","credentials":{"postgres":{"id":"Zomqv5wsowQAhdGl","name":"PostgreSQL - Chinmay Astro Production"}}}],"connections":{"When Executed by Another Workflow":{"main":[[{"node":"Insert Pending User","type":"main","index":0}]]},"Build Welcome Message":{"main":[[{"node":"Call WF-50 Send WhatsApp","type":"main","index":0}]]},"Insert Pending User":{"main":[[{"node":"Build Welcome Message","type":"main","index":0}]]}},"settings":{"executionOrder":"v1","callerPolicy":"workflowsFromSameOwner","availableInMCP":false},"staticData":null,"meta":{"templateCredsSetupCompleted":true},"pinData":{"When Executed by Another Workflow":[{"json":{"messageId":"wamid.HBgLNjE0NjY5Mjc5MjEVAgASGBQzQTcxQUMzOEEyRkE1QTNBOUU0OQA=","phoneNumber":"61466927921","phoneNumberFormatted":"+61466927921","contactName":"Prasad Mujumdar","messageType":"text","messageContent":"Hi","messageContentUpper":"HI","rawMessage":{"from":"61466927921","id":"wamid.HBgLNjE0NjY5Mjc5MjEVAgASGBQzQTcxQUMzOEEyRkE1QTNBOUU0OQA=","timestamp":"1775958066","text":{"body":"Hi"},"type":"text"},"timestamp":"1775958066","metadata":{"phoneNumberId":"1104226366097236","displayPhoneNumber":"919653240263"},"isNewUser":true,"user":null,"route":"NEW_USER","routeReason":"User does not exist in database"},"pairedItem":{"item":0}}]},"versionId":"810270de-9ee9-49bc-9975-be08ab59dfcc","activeVersionId":"810270de-9ee9-49bc-9975-be08ab59dfcc","versionCounter":31,"triggerCount":0,"shared":[{"updatedAt":"2026-04-11T23:13:32.535Z","createdAt":"2026-04-11T23:13:32.535Z","role":"workflow:owner","workflowId":"zM8WbxSdt9nXRoLZ","projectId":"SpcBYo3r6YMWLf30","project":{"updatedAt":"2025-12-26T03:43:50.268Z","createdAt":"2025-12-25T04:02:13.984Z","id":"SpcBYo3r6YMWLf30","name":"Chinmay Mujumdar <chinya1989mujumdar@gmail.com>","type":"personal","icon":null,"description":null,"creatorId":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7","projectRelations":[{"updatedAt":"2025-12-25T04:02:13.984Z","createdAt":"2025-12-25T04:02:13.984Z","userId":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7","projectId":"SpcBYo3r6YMWLf30","user":{"updatedAt":"2026-05-12T23:55:31.347Z","createdAt":"2025-12-25T04:02:12.721Z","id":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7","email":"chinya1989mujumdar@gmail.com","firstName":"Chinmay","lastName":"Mujumdar","personalizationAnswers":{"version":"v4","personalization_survey_submitted_at":"2025-12-26T03:46:19.986Z","personalization_survey_n8n_version":"2.1.4","companyIndustryExtended":["other"],"otherCompanyIndustryExtended":"Astrology","companySize":"<20","companyType":"other","role":"business-owner","reportedSource":"friend"},"settings":{"userActivated":true,"firstSuccessfulWorkflowId":"wMh0oBRtJbvhLgOf","userActivatedAt":1772092088194,"npsSurvey":{"responded":true,"lastShownAt":1776950036941}},"disabled":false,"mfaEnabled":true,"lastActiveAt":"2026-05-13","isPending":false}}]}}],"tags":[],"activeVersion":{"updatedAt":"2026-04-12T02:02:40.959Z","createdAt":"2026-04-12T02:02:38.538Z","versionId":"810270de-9ee9-49bc-9975-be08ab59dfcc","workflowId":"zM8WbxSdt9nXRoLZ","nodes":[{"parameters":{"inputSource":"passthrough"},"id":"node-trigger","name":"When Executed by Another Workflow","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.1,"position":[0,0]},{"parameters":{"jsCode":"const input = $('When Executed by Another Workflow').first().json;\nconst phoneNumber = input.phoneNumber;\nconst userId = input.id || null;\nconst messageId = input.messageId || null;\nconst userMessage = input.messageContent || null;\n\nconst policyUrl = 'https://chinmaymujumdar.com/privacy-policy';\n\nconst messageText = [\n  'Welcome! 🙏',\n  '',\n  \"I'm Chinmay Mujumdar, a Vedic astrology consultant.\",\n  '',\n  '📋 Privacy Policy: ' + policyUrl,\n  '',\n  '✨ How it works:',\n  '• Share your birth details using the form below',\n  '• Pay ₹500 consultation fee via GPay',\n  '• Receive your personalised Vedic astrology consultation on WhatsApp',\n  '',\n  'To get started, please fill in the form with your birth details.'\n].join('\\n');\n\nconst interactivePayload = {\n  type: 'flow',\n  header: { type: 'text', text: 'Birth Details Form' },\n  body: { text: messageText },\n  flowId: '1408011897720771',\n  flowCta: 'Fill Details'\n};\n\nreturn [{\n  json: {\n    phoneNumber,\n    phoneNumberFormatted: input.phoneNumberFormatted || phoneNumber,\n    messageType: 'interactive',\n    messageContent: messageText,\n    interactivePayload,\n    userId,\n    inboundMessageId: messageId,\n    userMessage\n  }\n}];"},"id":"node-build-msg","name":"Build Welcome Message","type":"n8n-nodes-base.code","typeVersion":2,"position":[432,0]},{"parameters":{"workflowId":{"__rl":true,"value":"BUVun38WEKb12zg9","mode":"list","cachedResultUrl":"/workflow/BUVun38WEKb12zg9","cachedResultName":"WF-50 Send WhatsApp"},"workflowInputs":{"mappingMode":"defineBelow","value":{},"matchingColumns":[],"schema":[],"attemptToConvertTypes":false,"convertFieldsToString":true},"options":{}},"id":"node-call-wf50","name":"Call WF-50 Send WhatsApp","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.2,"position":[656,0]},{"parameters":{"operation":"executeQuery","query":"INSERT INTO chinmay_astro.pending_users (phone_number, contact_name, created_at)\nVALUES ($1, $2, NOW())\nON CONFLICT (phone_number) DO UPDATE \n  SET contact_name = EXCLUDED.contact_name,\n      created_at = NOW()\nRETURNING phone_number","options":{"queryReplacement":"={{ $json.phoneNumber }}, {{ $json.contactName }}"}},"type":"n8n-nodes-base.postgres","typeVersion":2.6,"position":[208,0],"id":"28af07ff-92ce-46dd-9549-5b9270a1f746","name":"Insert Pending User","credentials":{"postgres":{"id":"Zomqv5wsowQAhdGl","name":"PostgreSQL - Chinmay Astro Production"}}}],"connections":{"When Executed by Another Workflow":{"main":[[{"node":"Insert Pending User","type":"main","index":0}]]},"Build Welcome Message":{"main":[[{"node":"Call WF-50 Send WhatsApp","type":"main","index":0}]]},"Insert Pending User":{"main":[[{"node":"Build Welcome Message","type":"main","index":0}]]}},"authors":"Chinmay Mujumdar","name":"Version 810270de","description":"","autosaved":false,"workflowPublishHistory":[{"createdAt":"2026-04-12T02:02:40.956Z","id":51,"workflowId":"zM8WbxSdt9nXRoLZ","versionId":"810270de-9ee9-49bc-9975-be08ab59dfcc","event":"activated","userId":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7"}]}}
+{
+  "updatedAt": "2026-04-12T02:02:38.537Z",
+  "createdAt": "2026-04-11T23:13:32.535Z",
+  "id": "zM8WbxSdt9nXRoLZ",
+  "name": "WF-21 New User Welcome + Form",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "node-trigger",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $('When Executed by Another Workflow').first().json;\nconst phoneNumber = input.phoneNumber;\nconst userId = input.id || null;\nconst messageId = input.messageId || null;\nconst userMessage = input.messageContent || null;\n\nconst policyUrl = 'https://chinmaymujumdar.com/privacy-policy';\n\nconst messageText = [\n  'Welcome! 🙏',\n  '',\n  \"I'm Chinmay Mujumdar, a Vedic astrology consultant.\",\n  '',\n  '📋 Privacy Policy: ' + policyUrl,\n  '',\n  '✨ How it works:',\n  '• Share your birth details using the form below',\n  '• Pay ₹500 consultation fee via GPay',\n  '• Receive your personalised Vedic astrology consultation on WhatsApp',\n  '',\n  'To get started, please fill in the form with your birth details.'\n].join('\\n');\n\nconst interactivePayload = {\n  type: 'flow',\n  header: { type: 'text', text: 'Birth Details Form' },\n  body: { text: messageText },\n  flowId: '1408011897720771',\n  flowCta: 'Fill Details'\n};\n\nreturn [{\n  json: {\n    phoneNumber,\n    phoneNumberFormatted: input.phoneNumberFormatted || phoneNumber,\n    messageType: 'interactive',\n    messageContent: messageText,\n    interactivePayload,\n    userId,\n    inboundMessageId: messageId,\n    userMessage\n  }\n}];"
+      },
+      "id": "node-build-msg",
+      "name": "Build Welcome Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "BUVun38WEKb12zg9",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/BUVun38WEKb12zg9",
+          "cachedResultName": "WF-50 Send WhatsApp"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "node-call-wf50",
+      "name": "Call WF-50 Send WhatsApp",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        656,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO chinmay_astro.pending_users (phone_number, contact_name, created_at)\nVALUES ($1, $2, NOW())\nON CONFLICT (phone_number) DO UPDATE \n  SET contact_name = EXCLUDED.contact_name,\n      created_at = NOW()\nRETURNING phone_number",
+        "options": {
+          "queryReplacement": "={{ $json.phoneNumber }}, {{ $json.contactName }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        0
+      ],
+      "id": "28af07ff-92ce-46dd-9549-5b9270a1f746",
+      "name": "Insert Pending User",
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Insert Pending User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Welcome Message": {
+      "main": [
+        [
+          {
+            "node": "Call WF-50 Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Pending User": {
+      "main": [
+        [
+          {
+            "node": "Build Welcome Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "messageId": "wamid.HBgLNjE0NjY5Mjc5MjEVAgASGBQzQTcxQUMzOEEyRkE1QTNBOUU0OQA=",
+          "phoneNumber": "61466927921",
+          "phoneNumberFormatted": "+61466927921",
+          "contactName": "Prasad Mujumdar",
+          "messageType": "text",
+          "messageContent": "Hi",
+          "messageContentUpper": "HI",
+          "rawMessage": {
+            "from": "61466927921",
+            "id": "wamid.HBgLNjE0NjY5Mjc5MjEVAgASGBQzQTcxQUMzOEEyRkE1QTNBOUU0OQA=",
+            "timestamp": "1775958066",
+            "text": {
+              "body": "Hi"
+            },
+            "type": "text"
+          },
+          "timestamp": "1775958066",
+          "metadata": {
+            "phoneNumberId": "1104226366097236",
+            "displayPhoneNumber": "919653240263"
+          },
+          "isNewUser": true,
+          "user": null,
+          "route": "NEW_USER",
+          "routeReason": "User does not exist in database"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "versionId": "810270de-9ee9-49bc-9975-be08ab59dfcc",
+  "activeVersionId": "810270de-9ee9-49bc-9975-be08ab59dfcc",
+  "versionCounter": 31,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-04-11T23:13:32.535Z",
+      "createdAt": "2026-04-11T23:13:32.535Z",
+      "role": "workflow:owner",
+      "workflowId": "zM8WbxSdt9nXRoLZ",
+      "projectId": "SpcBYo3r6YMWLf30",
+      "project": {
+        "updatedAt": "2025-12-26T03:43:50.268Z",
+        "createdAt": "2025-12-25T04:02:13.984Z",
+        "id": "SpcBYo3r6YMWLf30",
+        "name": "Chinmay Mujumdar <chinya1989mujumdar@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+        "projectRelations": [
+          {
+            "updatedAt": "2025-12-25T04:02:13.984Z",
+            "createdAt": "2025-12-25T04:02:13.984Z",
+            "userId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+            "projectId": "SpcBYo3r6YMWLf30",
+            "user": {
+              "updatedAt": "2026-05-16T00:34:09.583Z",
+              "createdAt": "2025-12-25T04:02:12.721Z",
+              "id": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+              "email": "chinya1989mujumdar@gmail.com",
+              "firstName": "Chinmay",
+              "lastName": "Mujumdar",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-12-26T03:46:19.986Z",
+                "personalization_survey_n8n_version": "2.1.4",
+                "companyIndustryExtended": [
+                  "other"
+                ],
+                "otherCompanyIndustryExtended": "Astrology",
+                "companySize": "<20",
+                "companyType": "other",
+                "role": "business-owner",
+                "reportedSource": "friend"
+              },
+              "settings": {
+                "userActivated": true,
+                "firstSuccessfulWorkflowId": "wMh0oBRtJbvhLgOf",
+                "userActivatedAt": 1772092088194,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1776950036941
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": true,
+              "lastActiveAt": "2026-05-16",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-04-12T02:02:40.959Z",
+    "createdAt": "2026-04-12T02:02:38.538Z",
+    "versionId": "810270de-9ee9-49bc-9975-be08ab59dfcc",
+    "workflowId": "zM8WbxSdt9nXRoLZ",
+    "nodes": [
+      {
+        "parameters": {
+          "inputSource": "passthrough"
+        },
+        "id": "node-trigger",
+        "name": "When Executed by Another Workflow",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          0,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const input = $('When Executed by Another Workflow').first().json;\nconst phoneNumber = input.phoneNumber;\nconst userId = input.id || null;\nconst messageId = input.messageId || null;\nconst userMessage = input.messageContent || null;\n\nconst policyUrl = 'https://chinmaymujumdar.com/privacy-policy';\n\nconst messageText = [\n  'Welcome! 🙏',\n  '',\n  \"I'm Chinmay Mujumdar, a Vedic astrology consultant.\",\n  '',\n  '📋 Privacy Policy: ' + policyUrl,\n  '',\n  '✨ How it works:',\n  '• Share your birth details using the form below',\n  '• Pay ₹500 consultation fee via GPay',\n  '• Receive your personalised Vedic astrology consultation on WhatsApp',\n  '',\n  'To get started, please fill in the form with your birth details.'\n].join('\\n');\n\nconst interactivePayload = {\n  type: 'flow',\n  header: { type: 'text', text: 'Birth Details Form' },\n  body: { text: messageText },\n  flowId: '1408011897720771',\n  flowCta: 'Fill Details'\n};\n\nreturn [{\n  json: {\n    phoneNumber,\n    phoneNumberFormatted: input.phoneNumberFormatted || phoneNumber,\n    messageType: 'interactive',\n    messageContent: messageText,\n    interactivePayload,\n    userId,\n    inboundMessageId: messageId,\n    userMessage\n  }\n}];"
+        },
+        "id": "node-build-msg",
+        "name": "Build Welcome Message",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          432,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "BUVun38WEKb12zg9",
+            "mode": "list",
+            "cachedResultUrl": "/workflow/BUVun38WEKb12zg9",
+            "cachedResultName": "WF-50 Send WhatsApp"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {},
+            "matchingColumns": [],
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": true
+          },
+          "options": {}
+        },
+        "id": "node-call-wf50",
+        "name": "Call WF-50 Send WhatsApp",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          656,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "INSERT INTO chinmay_astro.pending_users (phone_number, contact_name, created_at)\nVALUES ($1, $2, NOW())\nON CONFLICT (phone_number) DO UPDATE \n  SET contact_name = EXCLUDED.contact_name,\n      created_at = NOW()\nRETURNING phone_number",
+          "options": {
+            "queryReplacement": "={{ $json.phoneNumber }}, {{ $json.contactName }}"
+          }
+        },
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          208,
+          0
+        ],
+        "id": "28af07ff-92ce-46dd-9549-5b9270a1f746",
+        "name": "Insert Pending User",
+        "credentials": {
+          "postgres": {
+            "id": "Zomqv5wsowQAhdGl",
+            "name": "PostgreSQL - Chinmay Astro Production"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "When Executed by Another Workflow": {
+        "main": [
+          [
+            {
+              "node": "Insert Pending User",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Welcome Message": {
+        "main": [
+          [
+            {
+              "node": "Call WF-50 Send WhatsApp",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Insert Pending User": {
+        "main": [
+          [
+            {
+              "node": "Build Welcome Message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Chinmay Mujumdar",
+    "name": "Version 810270de",
+    "description": "",
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-12T02:02:40.956Z",
+        "id": 51,
+        "workflowId": "zM8WbxSdt9nXRoLZ",
+        "versionId": "810270de-9ee9-49bc-9975-be08ab59dfcc",
+        "event": "activated",
+        "userId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7"
+      }
+    ]
+  }
+}

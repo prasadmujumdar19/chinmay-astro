@@ -61,7 +61,7 @@
             {
               "id": "f2",
               "name": "messageText",
-              "value": "=\ud83d\udcf2 *{{ $('Load User Record').item.json.name }}:* {{ $('When Executed by Another Workflow').item.json.messageContent }}",
+              "value": "=📲 *{{ $('Load User Record').item.json.name }}:* {{ $('When Executed by Another Workflow').item.json.messageContent }}",
               "type": "string"
             }
           ]
@@ -132,7 +132,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $('When Executed by Another Workflow').first().json;\nreturn [{\n  json: {\n    phoneNumber: input.phoneNumber,\n    messageType: 'text',\n    messageBody: 'Your consultation with Chinmay is currently active. STOP cannot be used during a live consultation \u2014 please continue your conversation here. If you would like to end the consultation, please ask Chinmay to close it.'\n  }\n}];"
+        "jsCode": "const input = $('When Executed by Another Workflow').first().json;\nreturn [{\n  json: {\n    phoneNumber: input.phoneNumber,\n    messageType: 'text',\n    messageBody: 'Your consultation with Chinmay is currently active. STOP cannot be used during a live consultation — please continue your conversation here. If you would like to end the consultation, please ask Chinmay to close it.'\n  }\n}];"
       },
       "id": "code-j19-prep-001",
       "name": "Prepare J-19 Response",
@@ -373,7 +373,7 @@
               {
                 "id": "f2",
                 "name": "messageText",
-                "value": "=\ud83d\udcf2 *{{ $('Load User Record').item.json.name }}:* {{ $('When Executed by Another Workflow').item.json.messageContent }}",
+                "value": "=📲 *{{ $('Load User Record').item.json.name }}:* {{ $('When Executed by Another Workflow').item.json.messageContent }}",
                 "type": "string"
               }
             ]
@@ -444,7 +444,7 @@
       },
       {
         "parameters": {
-          "jsCode": "const input = $('When Executed by Another Workflow').first().json;\nreturn [{\n  json: {\n    phoneNumber: input.phoneNumber,\n    messageType: 'text',\n    messageBody: 'Your consultation with Chinmay is currently active. STOP cannot be used during a live consultation \u2014 please continue your conversation here. If you would like to end the consultation, please ask Chinmay to close it.'\n  }\n}];"
+          "jsCode": "const input = $('When Executed by Another Workflow').first().json;\nreturn [{\n  json: {\n    phoneNumber: input.phoneNumber,\n    messageType: 'text',\n    messageBody: 'Your consultation with Chinmay is currently active. STOP cannot be used during a live consultation — please continue your conversation here. If you would like to end the consultation, please ask Chinmay to close it.'\n  }\n}];"
         },
         "id": "code-j19-prep-001",
         "name": "Prepare J-19 Response",
