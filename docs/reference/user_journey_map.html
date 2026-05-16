@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chinmay Astro — User Journey Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0d0f14;
+    color: #e8eaf0;
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: auto;
+  }
+
+  .header {
+    padding: 32px 48px 24px;
+    border-bottom: 1px solid #1e2330;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .header h1 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+
+  .header span {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #4a5170;
+    letter-spacing: 0.05em;
+  }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    padding: 14px 48px;
+    border-bottom: 1px solid #1e2330;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: #6b7290;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* State reference bar */
+  .state-bar {
+    padding: 12px 48px;
+    border-bottom: 1px solid #1e2330;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .state-bar-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #4a5170;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-right: 4px;
+  }
+  .state-pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+
+  .canvas-wrap {
+    padding: 32px 48px 80px;
+    overflow-x: auto;
+  }
+
+  /* Journey cards */
+  .journey-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+    max-width: 1600px;
+  }
+
+  .journey-card {
+    background: #0f1118;
+    border: 1px solid #1e2330;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+
+  .journey-card:hover {
+    border-color: #2e3450;
+  }
+
+  .card-header {
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid #181b26;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .journey-id {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #3d4263;
+    padding-top: 2px;
+    flex-shrink: 0;
+    min-width: 32px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #c8cde0;
+    line-height: 1.4;
+    flex: 1;
+  }
+
+  .card-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    border: 1px solid;
+  }
+
+  .card-body {
+    padding: 14px 18px;
+  }
+
+  .trigger-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .trigger-icon {
+    font-size: 10px;
+    color: #4a5170;
+    padding-top: 1px;
+    flex-shrink: 0;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .trigger-text {
+    font-size: 11px;
+    color: #8890aa;
+    line-height: 1.5;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .steps {
+    list-style: none;
+    margin-top: 8px;
+    border-left: 1px solid #1e2330;
+    padding-left: 14px;
+    margin-left: 4px;
+  }
+
+  .steps li {
+    font-size: 11px;
+    color: #7880a0;
+    padding: 3px 0;
+    line-height: 1.5;
+    position: relative;
+  }
+
+  .steps li::before {
+    content: '';
+    position: absolute;
+    left: -18px;
+    top: 9px;
+    width: 6px;
+    height: 1px;
+    background: #2e3450;
+  }
+
+  .steps li strong {
+    color: #a0a8c0;
+    font-weight: 600;
+  }
+
+  .steps li em {
+    color: #4d8a6a;
+    font-style: normal;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+  }
+
+  .intent-badge {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-right: 3px;
+    vertical-align: middle;
+  }
+
+  .state-transition {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: #0c0e16;
+    border-radius: 6px;
+    border: 1px solid #1a1d2e;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #4a5170;
+    line-height: 1.8;
+  }
+
+  .state-transition .arrow { color: #3d6040; }
+  .state-from { color: #5a6480; }
+  .state-to   { color: #6a9a76; }
+
+  .card-footer {
+    padding: 8px 18px 12px;
+    border-top: 1px solid #141620;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: 1px solid;
+  }
+
+  /* Section headers */
+  .section-header {
+    margin: 40px 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .section-header h2 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #4a5170;
+  }
+
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: #1e2330;
+  }
+
+  /* Colour schemes per category */
+  /* Onboarding */
+  .cat-onboarding .card-header { border-bottom-color: #1a2a1f; }
+  .cat-onboarding { border-color: #1e3828; }
+  .cat-onboarding .card-badge { background: #0f2218; color: #4a9a64; border-color: #1a5a3a; }
+  .cat-onboarding .journey-id { color: #2d5a3d; }
+  .cat-onboarding .section-header h2 { color: #4a9a64; }
+
+  /* Payment */
+  .cat-payment .card-header { border-bottom-color: #1a1f2a; }
+  .cat-payment { border-color: #1e2838; }
+  .cat-payment .card-badge { background: #0f1828; color: #4a74ba; border-color: #1a3870; }
+  .cat-payment .journey-id { color: #2d4a7a; }
+
+  /* Consultation */
+  .cat-consult .card-header { border-bottom-color: #1a2220; }
+  .cat-consult { border-color: #1e2c2a; }
+  .cat-consult .card-badge { background: #0f2020; color: #4ab0a0; border-color: #1a5a52; }
+  .cat-consult .journey-id { color: #2d6a60; }
+
+  /* Admin */
+  .cat-admin .card-header { border-bottom-color: #1f1a25; }
+  .cat-admin { border-color: #2a1e35; }
+  .cat-admin .card-badge { background: #1a1025; color: #8a5abf; border-color: #4a2a7a; }
+  .cat-admin .journey-id { color: #5a3a8a; }
+
+  /* Post-consult */
+  .cat-postconsult .card-header { border-bottom-color: #251a14; }
+  .cat-postconsult { border-color: #352212; }
+  .cat-postconsult .card-badge { background: #251408; color: #c08a40; border-color: #7a5010; }
+  .cat-postconsult .journey-id { color: #8a6030; }
+
+  /* Edge/error */
+  .cat-edge .card-header { border-bottom-color: #201818; }
+  .cat-edge { border-color: #301a1a; }
+  .cat-edge .card-badge { background: #1f0f0f; color: #b05050; border-color: #6a2020; }
+  .cat-edge .journey-id { color: #7a3030; }
+
+  /* Background jobs */
+  .cat-bg .card-header { border-bottom-color: #1a1025; }
+  .cat-bg { border-color: #221530; }
+  .cat-bg .card-badge { background: #130d22; color: #7a50b0; border-color: #402870; }
+  .cat-bg .journey-id { color: #5a3a8a; }
+
+  /* Intent chip colours */
+  .intent-consult   { background:#0f2218; color:#4a9a64; border:1px solid #1a5a3a; }
+  .intent-enquiry   { background:#1a1500; color:#9a8030; border:1px solid #5a4a10; }
+  .intent-rebook    { background:#0d1a2e; color:#4a74ba; border:1px solid #1a3870; }
+  .intent-off       { background:#1f0f0f; color:#b05050; border:1px solid #6a2020; }
+  .intent-stop      { background:#1a1010; color:#904040; border:1px solid #5a2020; }
+  .intent-feedback  { background:#251408; color:#c08a40; border:1px solid #7a5010; }
+
+  /* State pills */
+  .sp-new         { background:#0f1a10; color:#4a8a54; border-color:#2a5a34; }
+  .sp-pp          { background:#0d1a2e; color:#4a74ba; border-color:#1a3870; }
+  .sp-ps          { background:#1a1500; color:#9a8030; border-color:#5a4a10; }
+  .sp-active      { background:#0f2218; color:#5ab080; border-color:#1a6a42; }
+  .sp-closed      { background:#201520; color:#9060a0; border-color:#4a2870; }
+  .sp-blocked     { background:#1f0f0f; color:#b05050; border-color:#6a2020; }
+
+  /* FDF-inspired badge */
+  .badge-fdf { background:#1a1000; color:#c08020; border:1px solid #7a5010; font-size:9px; padding:1px 6px; border-radius:3px; font-family:'DM Mono',monospace; }
+
+  .note-box {
+    background: #0c1018;
+    border: 1px solid #1a2030;
+    border-left: 3px solid #3a5a80;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 28px;
+    font-size: 11px;
+    color: #7080a0;
+    line-height: 1.7;
+    font-family: 'DM Mono', monospace;
+  }
+  .note-box strong { color: #8090b8; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Chinmay Astro — User Journey Map</h1>
+  <span>VERSION 2.0 · LOGICAL DESIGN · APRIL 2026</span>
+</div>
+
+<div class="legend">
+  <span class="state-bar-label">Legend</span>
+  <div class="legend-item"><div class="legend-dot" style="background:#4a9a64;"></div> Onboarding</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#4a74ba;"></div> Payment</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#4ab0a0;"></div> Consultation</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#8a5abf;"></div> Admin</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#c08a40;"></div> Post-Consult</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#b05050;"></div> Edge / Error</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7a50b0;"></div> Background Job</div>
+  <div class="legend-item" style="margin-left:8px;">
+    <span class="badge-fdf">FDF</span>
+    <span style="margin-left:4px;">Pattern borrowed from Friendly Deal Finder</span>
+  </div>
+</div>
+
+<div class="state-bar">
+  <span class="state-bar-label">User States:</span>
+  <span class="state-pill sp-new">new</span>
+  <span class="state-pill sp-pp">payment_pending</span>
+  <span class="state-pill sp-ps">payment_submitted</span>
+  <span class="state-pill sp-active">consultation_active</span>
+  <span class="state-pill sp-closed">consultation_closed</span>
+  <span class="state-pill sp-blocked">blocked</span>
+  <span class="state-pill" style="background:#1a1000;color:#c08030;border:1px solid #6a4010;">opted_out</span>
+</div>
+
+<div class="canvas-wrap">
+
+  <div class="note-box">
+    <strong>Design Principles (v2.0):</strong> This map is drawn from scratch — independent of current workflow IDs.<br>
+    Key upgrades vs MVP: (1) <strong>Intent Filter</strong> on all free-form messages, borrowed from FDF WF-35/WF-36.<br>
+    (2) <strong>Consent gate</strong> before any DB write (FDF J1 pattern). (3) <strong>User keywords</strong> HELP / STOP / REBOOK for self-service.<br>
+    (4) Two-dimensional state tracking: <em>status</em> + <em>stage</em>. (5) Graceful handling of all non-text message types.
+  </div>
+
+  <!-- ═══════════════════════════════════════════ SECTION: ONBOARDING ═══ -->
+  <div class="section-header">
+    <span class="legend-dot" style="background:#4a9a64; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+    <h2 style="color:#4a9a64;">Onboarding Journeys</h2>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="journey-grid">
+
+    <!-- J1 -->
+    <div class="journey-card cat-onboarding">
+      <div class="card-header">
+        <span class="journey-id">J-01</span>
+        <span class="card-title">Brand-new user — any first message</span>
+        <span class="card-badge"><span class="badge-fdf">FDF</span></span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Inbound message, no DB record exists</span>
+        </div>
+        <ul class="steps">
+          <li>No DB write at this stage</li>
+          <li>Send fixed <strong>Welcome + Consent template</strong> regardless of message content (even if user already stated their question)</li>
+          <li>Template: <em>"Namaste! This is Chinmay Astro. Reply YES to agree to our terms and begin."</em></li>
+          <li>Include brief service description + ₹500 fee upfront</li>
+          <li>Await user response → routes to J-02 (YES) or J-04 (NO / anything else)</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">null</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">no change (no DB write)</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#0f2218;color:#4a9a64;border-color:#1a5a3a;">entry:organic</span>
+        <span class="tag" style="background:#0f2218;color:#4a9a64;border-color:#1a5a3a;">entry:ad</span>
+        <span class="tag" style="background:#0f2218;color:#4a9a64;border-color:#1a5a3a;">no-db-write</span>
+      </div>
+    </div>
+
+    <!-- J2 -->
+    <div class="journey-card cat-onboarding">
+      <div class="card-header">
+        <span class="journey-id">J-02</span>
+        <span class="card-title">New user — consent given (YES)</span>
+        <span class="card-badge"><span class="badge-fdf">FDF</span></span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">User taps YES button / types YES. No DB record exists.</span>
+        </div>
+        <ul class="steps">
+          <li>Create DB record: <strong>status=new, stage=consented</strong></li>
+          <li>Run <strong>Intent Filter</strong> on original first message (if it was meaningful — e.g., user already asked a question)</li>
+          <li>Send <strong>WhatsApp Flow form</strong> to collect birth details (name, DOB, TOB, birth place)</li>
+          <li>Await form submission → J-03</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">null</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">new / consented</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#0f2218;color:#4a9a64;border-color:#1a5a3a;">db-create</span>
+        <span class="tag" style="background:#0f2218;color:#4a9a64;border-color:#1a5a3a;">wf-flow-form</span>
+      </div>
+    </div>
+
+    <!-- J3 -->
+    <div class="journey-card cat-onboarding">
+      <div class="card-header">
+        <span class="journey-id">J-03</span>
+        <span class="card-title">Birth details form submitted</span>
+        <span class="card-badge" style="background:#0f1828;color:#4a74ba;border-color:#1a3870;">FORM</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">WhatsApp Flow callback received with encrypted birth details</span>
+        </div>
+        <ul class="steps">
+          <li>Decrypt + validate form payload</li>
+          <li>Store name, DOB, TOB, birth_place in DB</li>
+          <li>Update state: <strong>status=payment_pending</strong></li>
+          <li>Create Slack channel <em>consult-{phone}</em> immediately (via WF-52) + save to DB</li>
+          <li>Send payment instructions: GPay UPI ID + ₹500 amount</li>
+          <li>Send interactive button: <em>"Payment Completed ✓"</em></li>
+          <li>Await payment confirmation → J-06</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">new / consented</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">payment_pending</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#0f1828;color:#4a74ba;border-color:#1a3870;">state-change</span>
+        <span class="tag" style="background:#0f1828;color:#4a74ba;border-color:#1a3870;">payment-instructions</span>
+        <span class="tag" style="background:#0d1a2e;color:#4a74ba;border-color:#1a3870;">slack-channel-create</span>
+      </div>
+    </div>
+
+    <!-- J4 -->
+    <div class="journey-card cat-onboarding">
+      <div class="card-header">
+        <span class="journey-id">J-04</span>
+        <span class="card-title">New user — consent declined or ignored</span>
+        <span class="card-badge" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">DECLINE</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">User sends NO, or any non-YES response after J-01 welcome</span>
+        </div>
+        <ul class="steps">
+          <li>No DB write</li>
+          <li>If explicit NO: <em>"No problem! If you ever want an astrology consultation, just message again."</em></li>
+          <li>If garbage / off-topic: polite redirect — <em>"Reply YES to get started, or send HELP for more information."</em></li>
+          <li>Session remains stateless — next message re-triggers J-01</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">null</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">no change</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">no-db-write</span>
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">graceful-exit</span>
+      </div>
+    </div>
+
+    <!-- J5 -->
+    <div class="journey-card cat-onboarding">
+      <div class="card-header">
+        <span class="journey-id">J-05</span>
+        <span class="card-title">new/consented user — free-form message (pre-form)</span>
+        <span class="card-badge"><span class="badge-fdf">FDF</span></span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">User sends a text message after consenting but before submitting the birth details form</span>
+        </div>
+        <ul class="steps">
+          <li>Run <strong>Intent Filter</strong> (Gemini): classify as one of:
+            <br><span class="intent-badge intent-enquiry">general_enquiry</span>
+            <span class="intent-badge intent-consult">wants_consultation</span>
+            <span class="intent-badge intent-off">garbage/malicious</span>
+          </li>
+          <li><strong>general_enquiry</strong>: Gemini answers briefly, re-prompts to fill the form</li>
+          <li><strong>wants_consultation</strong>: Gemini confirms intent, re-sends form link</li>
+          <li><strong>garbage/malicious</strong>: polite deflection, no state change</li>
+          <li>Keywords HELP (J-16) and STOP (J-17) still work here</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">new / consented</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">no change</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#0f2218;color:#4a9a64;border-color:#1a5a3a;">intent-filter</span>
+        <span class="tag" style="background:#0f2218;color:#4a9a64;border-color:#1a5a3a;">gemini</span>
+      </div>
+    </div>
+
+  </div><!-- /onboarding grid -->
+
+  <!-- ═══════════════════════════════════════════ SECTION: PAYMENT ═══ -->
+  <div class="section-header">
+    <span class="legend-dot" style="background:#4a74ba; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+    <h2 style="color:#4a74ba;">Payment Journeys</h2>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="journey-grid">
+
+    <!-- J6 -->
+    <div class="journey-card cat-payment">
+      <div class="card-header">
+        <span class="journey-id">J-06</span>
+        <span class="card-title">User taps "Payment Completed"</span>
+        <span class="card-badge">PAYMENT</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Interactive button tap: "Payment Completed ✓"</span>
+        </div>
+        <ul class="steps">
+          <li>Create payment record in DB (status=submitted)</li>
+          <li>Update user: <strong>status=payment_submitted</strong></li>
+          <li>Load existing <em>consult-{phone}</em> channel ID from DB (created at form submission)</li>
+          <li>Post to Slack channel: user details + payment pending verification + <code>APPROVE PAYMENT {phone}</code> instruction</li>
+          <li>Send user: <em>"Got it! Chinmay will review your payment and confirm shortly. Usually within a few minutes."</em></li>
+          <li>Await admin action → J-09 (APPROVE) or J-10 (REJECT)</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">payment_pending</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">payment_submitted</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#0d1a2e;color:#4a74ba;border-color:#1a3870;">admin-notified</span>
+      </div>
+    </div>
+
+    <!-- J7 -->
+    <div class="journey-card cat-payment">
+      <div class="card-header">
+        <span class="journey-id">J-07</span>
+        <span class="card-title">payment_pending user — free-form message</span>
+        <span class="card-badge"><span class="badge-fdf">FDF</span></span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">User sends text while status=payment_pending (birth details collected, waiting to pay)</span>
+        </div>
+        <ul class="steps">
+          <li>Run <strong>Intent Filter</strong>: classify message</li>
+          <li><strong>general_enquiry</strong>: Gemini answers, re-prompts for payment</li>
+          <li><strong>wants_consultation</strong>: Remind them payment is next step, resend GPay instructions + button</li>
+          <li><strong>off-topic/garbage</strong>: polite deflection</li>
+          <li>HELP (J-16) and STOP (J-17) still intercepted</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">payment_pending</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">no change</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#0d1a2e;color:#4a74ba;border-color:#1a3870;">intent-filter</span>
+      </div>
+    </div>
+
+    <!-- J8 -->
+    <div class="journey-card cat-payment">
+      <div class="card-header">
+        <span class="journey-id">J-08</span>
+        <span class="card-title">payment_submitted user — message while awaiting approval</span>
+        <span class="card-badge"><span class="badge-fdf">FDF</span></span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">User sends any message after tapping "Payment Completed" but before admin approval</span>
+        </div>
+        <ul class="steps">
+          <li>Run <strong>Intent Filter</strong>: classify message</li>
+          <li><strong>general_enquiry / wants_consultation</strong>: acknowledge, inform payment is under review, estimated wait time</li>
+          <li><strong>off-topic</strong>: polite response</li>
+          <li>No state change. Admin still needs to approve/reject.</li>
+          <li>Relay message content to Slack channel as context for admin (informational)</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">payment_submitted</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">no change</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#0d1a2e;color:#4a74ba;border-color:#1a3870;">intent-filter</span>
+        <span class="tag" style="background:#0d1a2e;color:#4a74ba;border-color:#1a3870;">slack-relay-info</span>
+      </div>
+    </div>
+
+  </div><!-- /payment grid -->
+
+  <!-- ═══════════════════════════════════════════ SECTION: ADMIN ═══ -->
+  <div class="section-header">
+    <span class="legend-dot" style="background:#8a5abf; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+    <h2 style="color:#8a5abf;">Admin (Slack) Journeys</h2>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="journey-grid">
+
+    <!-- J9 -->
+    <div class="journey-card cat-admin">
+      <div class="card-header">
+        <span class="journey-id">J-09</span>
+        <span class="card-title">Admin approves payment</span>
+        <span class="card-badge">ADMIN</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Admin types: <em>APPROVE PAYMENT &lt;phone&gt;</em> in the user's <em>consult-{phone}</em> Slack channel</span>
+        </div>
+        <ul class="steps">
+          <li>Update payment record: status=approved</li>
+          <li>Update user: <strong>status=consultation_active</strong></li>
+          <li>Log consultation start in consultations table</li>
+          <li>Enable relay mode (WhatsApp ↔ Slack bidirectional)</li>
+          <li>Send user: <em>"Your consultation has started! You can now ask Chinmay your astrology questions."</em></li>
+          <li>Post Slack confirmation with birth details summary for admin reference</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">payment_submitted</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">consultation_active</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#1a1025;color:#8a5abf;border-color:#4a2a7a;">admin-cmd</span>
+        <span class="tag" style="background:#1a1025;color:#8a5abf;border-color:#4a2a7a;">relay-enabled</span>
+      </div>
+    </div>
+
+    <!-- J10 -->
+    <div class="journey-card cat-admin">
+      <div class="card-header">
+        <span class="journey-id">J-10</span>
+        <span class="card-title">Admin rejects payment</span>
+        <span class="card-badge">ADMIN</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Admin runs: <em>REJECT &lt;phone&gt;</em> in Slack (payment not verified)</span>
+        </div>
+        <ul class="steps">
+          <li>Update payment record: status=rejected</li>
+          <li>Update user: <strong>status=payment_pending</strong> (loop back)</li>
+          <li>Archive / close Slack channel</li>
+          <li>Send user rejection message: <em>"We couldn't verify your payment. Please complete payment and tap the button again."</em></li>
+          <li>Resend GPay instructions + "Payment Completed" button</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">payment_submitted</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">payment_pending</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#1a1025;color:#8a5abf;border-color:#4a2a7a;">admin-cmd</span>
+        <span class="tag" style="background:#1a1025;color:#8a5abf;border-color:#4a2a7a;">loop-back</span>
+      </div>
+    </div>
+
+    <!-- J11 -->
+    <div class="journey-card cat-admin">
+      <div class="card-header">
+        <span class="journey-id">J-11</span>
+        <span class="card-title">Admin closes consultation</span>
+        <span class="card-badge">ADMIN</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Admin runs: <em>CLOSE CHAT CONSULT &lt;phone&gt;</em> in Slack</span>
+        </div>
+        <ul class="steps">
+          <li>Disable relay mode</li>
+          <li>Update consultation record: status=closed, closed_at=now</li>
+          <li>Update user: <strong>status=consultation_closed</strong></li>
+          <li><strong>Slack channel intentionally kept open</strong> — reused by WF-45 on rebook (no archive). Do not add archival here.</li>
+          <li>Send user post-consultation menu (interactive buttons):
+            <br>  ✦ <em>"Provide Feedback"</em>
+            <br>  ✦ <em>"Book Another Consultation"</em>
+            <br>  ✦ <em>"I'm done, thank you"</em>
+          </li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">consultation_active</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">consultation_closed</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#1a1025;color:#8a5abf;border-color:#4a2a7a;">admin-cmd</span>
+        <span class="tag" style="background:#1a1025;color:#8a5abf;border-color:#4a2a7a;">relay-disabled</span>
+        <span class="tag" style="background:#1a1025;color:#8a5abf;border-color:#4a2a7a;">slack-channel-reuse</span>
+      </div>
+    </div>
+
+    <!-- J12 -->
+    <div class="journey-card cat-admin">
+      <div class="card-header">
+        <span class="journey-id">J-12</span>
+        <span class="card-title">Admin blocks a user</span>
+        <span class="card-badge">ADMIN</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Admin runs: <em>BLOCK &lt;phone&gt;</em> in Slack</span>
+        </div>
+        <ul class="steps">
+          <li>Update user: <strong>status=blocked</strong></li>
+          <li>All future messages from this number silently dropped at WF-01</li>
+          <li>No message sent to user (silent block)</li>
+          <li>Admin gets confirmation in Slack</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">any</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">blocked</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#1a1025;color:#8a5abf;border-color:#4a2a7a;">admin-cmd</span>
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">terminal-state</span>
+      </div>
+    </div>
+
+  </div><!-- /admin grid -->
+
+  <!-- ═══════════════════════════════════════════ SECTION: CONSULTATION ═══ -->
+  <div class="section-header">
+    <span class="legend-dot" style="background:#4ab0a0; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+    <h2 style="color:#4ab0a0;">Consultation Journeys</h2>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="journey-grid">
+
+    <!-- J13 -->
+    <div class="journey-card cat-consult">
+      <div class="card-header">
+        <span class="journey-id">J-13</span>
+        <span class="card-title">Active consultation — user message relay</span>
+        <span class="card-badge">RELAY</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">User sends any text message while status=consultation_active</span>
+        </div>
+        <ul class="steps">
+          <li>Log message to DB</li>
+          <li>Forward verbatim to Slack channel <em>consult-{phone}</em></li>
+          <li>No LLM processing — pure pass-through</li>
+          <li>HELP keyword still intercepted → J-16</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">consultation_active</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">no change</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#0f2020;color:#4ab0a0;border-color:#1a5a52;">relay-mode</span>
+        <span class="tag" style="background:#0f2020;color:#4ab0a0;border-color:#1a5a52;">no-llm</span>
+      </div>
+    </div>
+
+    <!-- J14 -->
+    <div class="journey-card cat-consult">
+      <div class="card-header">
+        <span class="journey-id">J-14</span>
+        <span class="card-title">Active consultation — admin message relay</span>
+        <span class="card-badge">RELAY</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Admin (Chinmay) types in the <em>consult-{phone}</em> Slack channel</span>
+        </div>
+        <ul class="steps">
+          <li>Detect message in active consultation channel (not a command)</li>
+          <li>Forward verbatim to user's WhatsApp</li>
+          <li>Log message to DB as direction=outbound</li>
+          <li>Bot-loop prevention: verify author is not the bot itself</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">consultation_active</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">no change</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#0f2020;color:#4ab0a0;border-color:#1a5a52;">relay-mode</span>
+        <span class="tag" style="background:#0f2020;color:#4ab0a0;border-color:#1a5a52;">slack→whatsapp</span>
+      </div>
+    </div>
+
+  </div><!-- /consult grid -->
+
+  <!-- ═══════════════════════════════════════════ SECTION: POST-CONSULT ═══ -->
+  <div class="section-header">
+    <span class="legend-dot" style="background:#c08a40; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+    <h2 style="color:#c08a40;">Post-Consultation Journeys</h2>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="journey-grid">
+
+    <!-- J15 -->
+    <div class="journey-card cat-postconsult">
+      <div class="card-header">
+        <span class="journey-id">J-15</span>
+        <span class="card-title">User provides feedback</span>
+        <span class="card-badge">POST-CONSULT</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">User taps "Provide Feedback" button after J-11</span>
+        </div>
+        <ul class="steps">
+          <li>Set <strong>awaiting_feedback=true</strong> in DB</li>
+          <li>Prompt: <em>"We'd love your feedback! Please share your experience in a message."</em></li>
+          <li>Next free-text from user is captured as feedback</li>
+          <li>Log feedback, reset <strong>awaiting_feedback=false</strong></li>
+          <li>Thank user: <em>"Thank you for your feedback! We hope to serve you again."</em></li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">consultation_closed</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">consultation_closed (flag set/cleared)</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#251408;color:#c08a40;border-color:#7a5010;">feedback-flag</span>
+      </div>
+    </div>
+
+    <!-- J16 (rebook) -->
+    <div class="journey-card cat-postconsult">
+      <div class="card-header">
+        <span class="journey-id">J-16</span>
+        <span class="card-title">User books another consultation (REBOOK)</span>
+        <span class="card-badge"><span class="badge-fdf">FDF</span></span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">User taps "Book Another Consultation" button <strong>OR</strong> sends keyword <strong>REBOOK</strong> from any closed state</span>
+        </div>
+        <ul class="steps">
+          <li>Detect REBOOK intent (button tap or keyword — inspired by FDF CHANGE keyword)</li>
+          <li>Send new payment instructions (birth details already on file — no need to re-submit form)</li>
+          <li>Update user: <strong>status=payment_pending</strong></li>
+          <li>Send interactive button: <em>"Payment Completed ✓"</em></li>
+          <li>Standard payment → approval → consultation flow resumes (J-06 onward)</li>
+          <li><strong>Option:</strong> If birth details may have changed, offer <em>"Update Birth Details"</em> link before payment</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">consultation_closed</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">payment_pending</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#251408;color:#c08a40;border-color:#7a5010;">keyword:REBOOK</span>
+        <span class="tag" style="background:#251408;color:#c08a40;border-color:#7a5010;">no-re-onboarding</span>
+      </div>
+    </div>
+
+    <!-- J17 — closed user free-form -->
+    <div class="journey-card cat-postconsult">
+      <div class="card-header">
+        <span class="journey-id">J-17</span>
+        <span class="card-title">consultation_closed user — free-form message</span>
+        <span class="card-badge"><span class="badge-fdf">FDF</span></span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">User sends a free-form text message while status=consultation_closed (not a keyword, not awaiting_feedback)</span>
+        </div>
+        <ul class="steps">
+          <li>Run <strong>Intent Filter</strong>: classify message
+            <br><span class="intent-badge intent-rebook">rebook_intent</span>
+            <span class="intent-badge intent-enquiry">general_enquiry</span>
+            <span class="intent-badge intent-feedback">feedback_intent</span>
+            <span class="intent-badge intent-off">off-topic</span>
+          </li>
+          <li><strong>rebook_intent</strong>: acknowledge + redirect — <em>"To book another consultation, just send REBOOK."</em></li>
+          <li><strong>general_enquiry</strong>: Gemini answers briefly, offers REBOOK option</li>
+          <li><strong>feedback_intent</strong>: prompt them to use the feedback button, or accept inline</li>
+          <li><strong>off-topic</strong>: polite response, no state change</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">consultation_closed</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">no change (unless rebook initiated)</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#251408;color:#c08a40;border-color:#7a5010;">intent-filter</span>
+        <span class="tag" style="background:#251408;color:#c08a40;border-color:#7a5010;">gemini</span>
+      </div>
+    </div>
+
+  </div><!-- /post-consult grid -->
+
+  <!-- ═══════════════════════════════════════════ SECTION: UNIVERSAL KEYWORDS ═══ -->
+  <div class="section-header">
+    <span class="legend-dot" style="background:#b05050; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+    <h2 style="color:#b05050;">Universal Keyword Journeys</h2>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="journey-grid">
+
+    <!-- J18 HELP -->
+    <div class="journey-card cat-edge">
+      <div class="card-header">
+        <span class="journey-id">J-18</span>
+        <span class="card-title">HELP keyword — any state</span>
+        <span class="card-badge"><span class="badge-fdf">FDF</span></span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">User sends text "HELP" (case-insensitive) from any state</span>
+        </div>
+        <ul class="steps">
+          <li>Intercept before any other routing</li>
+          <li>Respond contextually based on current <strong>status</strong>:
+            <br>  • <em>new/consented</em>: explain next step (fill form)
+            <br>  • <em>payment_pending</em>: resend payment instructions
+            <br>  • <em>payment_submitted</em>: confirm payment under review
+            <br>  • <em>consultation_active</em>: confirm relay is live, Chinmay can see messages
+            <br>  • <em>consultation_closed</em>: list options (REBOOK / feedback)
+          </li>
+          <li>No state change</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">any</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">no change</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">keyword:HELP</span>
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">contextual-response</span>
+      </div>
+    </div>
+
+    <!-- J19 STOP -->
+    <div class="journey-card cat-edge">
+      <div class="card-header">
+        <span class="journey-id">J-19</span>
+        <span class="card-title">STOP keyword — user-initiated unsubscribe (Meta regulatory requirement)</span>
+        <span class="card-badge"><span class="badge-fdf">FDF</span></span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">User sends "STOP" from any state. Intercepted at WF-20 before any other routing. MVP Day 1 — required for Meta go-live.</span>
+        </div>
+        <ul class="steps">
+          <li>Intercept at WF-20 before any other routing (exact keyword match, case-insensitive)</li>
+          <li><strong>If consultation_active:</strong> do NOT unsubscribe — send: <em>"Your active consultation cannot be ended by you. Your astrologer will close the session when complete. If you wish to stop all future messages after this consultation, send STOP again once it is closed."</em> No state change.</li>
+          <li><strong>All other states (payment_pending, payment_submitted, consultation_closed, new):</strong> update <code>status = opted_out</code> (NOT blocked — distinct from admin BLOCK). Log to admin_actions table.</li>
+          <li>Send confirmation: <em>"You have been unsubscribed from Chinmay Astro. No further messages will be sent. If you ever wish to consult again, simply message us and we will get you started."</em></li>
+          <li>Future messages from opted_out users: WF-01 routes to new journey — treat as brand new user (re-trigger J-01 welcome + form flow). DB record is NOT deleted.</li>
+          <li>Handled by WF-47 (Unsubscribe Handler) — called from WF-20.</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">any (except consultation_active)</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">opted_out</span>
+        </div>
+        <div class="note-box" style="margin-top:8px; font-size:0.85em;">
+          ⚠️ <strong>opted_out ≠ blocked.</strong> <code>opted_out</code> = user chose to leave (regulatory). <code>blocked</code> = admin/system action for bad behaviour. Handled differently in WF-01 routing and admin tooling.
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">keyword:STOP</span>
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">opt-out</span>
+        <span class="tag" style="background:#1a1000;color:#c08030;border-color:#6a4010;">MVP-Day1</span>
+        <span class="tag" style="background:#1a1000;color:#c08030;border-color:#6a4010;">WF-47</span>
+      </div>
+    </div>
+
+    <!-- J20 REBOOK keyword -->
+    <div class="journey-card cat-edge">
+      <div class="card-header">
+        <span class="journey-id">J-20</span>
+        <span class="card-title">REBOOK keyword — from closed/inactive state</span>
+        <span class="card-badge"><span class="badge-fdf">FDF</span></span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">User sends "REBOOK" explicitly from consultation_closed (or after STOP opt-out re-engages)</span>
+        </div>
+        <ul class="steps">
+          <li>Works from: consultation_closed, soft-blocked (if re-messaged)</li>
+          <li>Birth details already on file — skip form entirely</li>
+          <li>Reset state: <strong>status=payment_pending</strong></li>
+          <li>Send payment instructions immediately + "Payment Completed" button</li>
+          <li>Flow continues from J-06</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">consultation_closed</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">payment_pending</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">keyword:REBOOK</span>
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">no-re-onboarding</span>
+      </div>
+    </div>
+
+    <!-- J21 Opted-out user re-engages -->
+    <div class="journey-card cat-edge">
+      <div class="card-header">
+        <span class="journey-id">J-21</span>
+        <span class="card-title">Opted-out user messages again</span>
+        <span class="card-badge">POST-MVP</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">User who previously sent STOP (status=opted_out) sends any message</span>
+        </div>
+        <ul class="steps">
+          <li>Detected at WF-01 — opted_out users are NOT silently dropped (unlike blocked)</li>
+          <li>Post-MVP: clear opted_out status, treat as returning user → re-trigger J-01 welcome flow</li>
+          <li>MVP: for simplicity, treat opted_out same as brand-new (no record check) — re-trigger J-01 welcome + form. Birth details already in DB may be reused if phone matches.</li>
+          <li>No state change at WF-01 — routing decision deferred to dedicated workflow</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">opted_out</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">new (re-onboarding starts)</span>
+        </div>
+        <div class="note-box" style="margin-top:8px; font-size:0.85em;">
+          📝 <strong>MVP scope:</strong> Route opted_out back to J-01 welcome. Post-MVP: add dedicated re-engagement flow that detects prior DB record and skips re-entry of birth details.
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#1a1000;color:#c08030;border-color:#6a4010;">opted_out</span>
+        <span class="tag" style="background:#1a1000;color:#c08030;border-color:#6a4010;">re-engagement</span>
+        <span class="tag" style="background:#251408;color:#c08a40;border-color:#7a5010;">post-mvp</span>
+      </div>
+    </div>
+
+    <!-- J-A UNBLOCK admin command -->
+    <div class="journey-card cat-admin">
+      <div class="card-header">
+        <span class="journey-id">J-A1</span>
+        <span class="card-title">Admin UNBLOCK command</span>
+        <span class="card-badge">ADMIN</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Admin runs: <em>UNBLOCK &lt;phone&gt;</em> in Slack (any channel or chinmay-admin-commands)</span>
+        </div>
+        <ul class="steps">
+          <li>Parsed by WF-11 (Command Parser) — new UNBLOCK branch</li>
+          <li>Looks up user by phone number — must have status=blocked</li>
+          <li>Updates status → <code>consultation_closed</code> (safe fallback — user can REBOOK from there)</li>
+          <li>Logs to admin_actions table</li>
+          <li>Confirms to admin in Slack: <em>"✅ User &lt;name&gt; (+91XXXXXXXXXX) has been unblocked. Their status is now consultation_closed. They can REBOOK when ready."</em></li>
+          <li>No WhatsApp message to user — admin decides when/if to notify them</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">blocked</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">consultation_closed</span>
+        </div>
+        <div class="note-box" style="margin-top:8px; font-size:0.85em;">
+          ⚠️ UNBLOCK only works on <code>blocked</code> (admin-blocked) users. Users with <code>opted_out</code> (self-unsubscribed via STOP) re-engage themselves by messaging — no admin UNBLOCK needed.
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">admin-command</span>
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">WF-11</span>
+        <span class="tag" style="background:#1a1000;color:#c08030;border-color:#6a4010;">MVP</span>
+      </div>
+    </div>
+
+  </div><!-- /keyword grid -->
+
+  <!-- ═══════════════════════════════════════════ SECTION: EDGE / NON-TEXT ═══ -->
+  <div class="section-header">
+    <span class="legend-dot" style="background:#7a3030; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+    <h2 style="color:#b05050;">Edge Cases &amp; Non-Text Journeys</h2>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="journey-grid">
+
+    <!-- J21 -->
+    <div class="journey-card cat-edge">
+      <div class="card-header">
+        <span class="journey-id">J-21</span>
+        <span class="card-title">Non-text messages (images, audio, reactions, stickers)</span>
+        <span class="card-badge"><span class="badge-fdf">FDF</span></span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Any non-text inbound message type</span>
+        </div>
+        <ul class="steps">
+          <li><strong>Reactions</strong> (thumbs up, heart, etc.): silently ignore, return 200 to Meta. No DB write.</li>
+          <li><strong>Images / audio / video / document</strong>: politely deflect — <em>"Please send text messages only. Images and audio are not supported."</em></li>
+          <li><strong>Exception</strong>: if consultation_active, forward image/audio to Slack as a notification (admin can see it); send user: <em>"Chinmay can see you sent a file. Text responses only from our side."</em></li>
+          <li>No state change in all cases</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">any</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">no change</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">non-text</span>
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">reactions-drop</span>
+      </div>
+    </div>
+
+    <!-- J22 -->
+    <div class="journey-card cat-edge">
+      <div class="card-header">
+        <span class="journey-id">J-22</span>
+        <span class="card-title">Blocked user attempts to message</span>
+        <span class="card-badge">BLOCKED</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Inbound message from a phone number with status=blocked</span>
+        </div>
+        <ul class="steps">
+          <li>Detected at WF-01 (early in routing)</li>
+          <li>Message silently dropped — return 200 to Meta</li>
+          <li>No response to user</li>
+          <li>Log attempt to admin_actions table (audit trail)</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">blocked</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">no change</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">silent-drop</span>
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">audit-log</span>
+      </div>
+    </div>
+
+    <!-- J23 country filter -->
+    <div class="journey-card cat-edge">
+      <div class="card-header">
+        <span class="journey-id">J-23</span>
+        <span class="card-title">Message from unsupported country</span>
+        <span class="card-badge">FILTER</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Inbound message where phone country code is not in allowed list (e.g., not +91 India)</span>
+        </div>
+        <ul class="steps">
+          <li>Detected at WF-01 (country code check)</li>
+          <li>Drop silently or send: <em>"This service is currently available only in India."</em></li>
+          <li>No DB write, no state change</li>
+        </ul>
+        <div class="state-transition">
+          <span class="state-from">null</span>
+          <span class="arrow"> → </span>
+          <span class="state-to">no change</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#1f0f0f;color:#b05050;border-color:#6a2020;">country-filter</span>
+      </div>
+    </div>
+
+  </div><!-- /edge grid -->
+
+  <!-- ═══════════════════════════════════════════ SECTION: BACKGROUND JOBS ═══ -->
+  <div class="section-header">
+    <span class="legend-dot" style="background:#7a50b0; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+    <h2 style="color:#7a50b0;">Background Job Journeys</h2>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="journey-grid">
+
+    <!-- J24 health check -->
+    <div class="journey-card cat-bg">
+      <div class="card-header">
+        <span class="journey-id">J-24</span>
+        <span class="card-title">Health Check Monitor</span>
+        <span class="card-badge">SCHEDULED</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Cron: every hour</span>
+        </div>
+        <ul class="steps">
+          <li>Check n8n service, DB connection, WhatsApp encryption service</li>
+          <li>Verify Meta webhook is reachable</li>
+          <li>If any check fails: alert Chinmay via Slack DM</li>
+          <li>Log health status to admin_actions table</li>
+        </ul>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#130d22;color:#7a50b0;border-color:#402870;">hourly</span>
+        <span class="tag" style="background:#130d22;color:#7a50b0;border-color:#402870;">infra-alert</span>
+      </div>
+    </div>
+
+    <!-- J25 payment reminder -->
+    <div class="journey-card cat-bg">
+      <div class="card-header">
+        <span class="journey-id">J-25</span>
+        <span class="card-title">Payment Reminder (stale payment_pending users)</span>
+        <span class="card-badge">SCHEDULED</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Cron: daily 9 AM IST</span>
+        </div>
+        <ul class="steps">
+          <li>Fetch users where status=payment_pending AND updated_at older than 24 hours</li>
+          <li>Send WhatsApp reminder: <em>"We noticed you haven't completed your payment yet. Send REBOOK or tap below to continue."</em></li>
+          <li>Resend payment instructions + button</li>
+          <li>After 7 days without payment: mark user inactive (soft cleanup)</li>
+        </ul>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#130d22;color:#7a50b0;border-color:#402870;">daily</span>
+        <span class="tag" style="background:#130d22;color:#7a50b0;border-color:#402870;">⚠️ meta-template</span>
+      </div>
+    </div>
+
+    <!-- J26 inactive scanner -->
+    <div class="journey-card cat-bg">
+      <div class="card-header">
+        <span class="journey-id">J-26</span>
+        <span class="card-title">Inactive User Scanner</span>
+        <span class="card-badge">SCHEDULED</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Cron: daily 3 AM IST</span>
+        </div>
+        <ul class="steps">
+          <li>Scan users with consultation_closed AND last_updated older than 90 days</li>
+          <li>Mark status=inactive</li>
+          <li>No message sent (silent)</li>
+          <li>Optionally: send a re-engagement nudge for 60-day inactive users (requires Meta template)</li>
+        </ul>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#130d22;color:#7a50b0;border-color:#402870;">daily</span>
+        <span class="tag" style="background:#130d22;color:#7a50b0;border-color:#402870;">90-day-rule</span>
+      </div>
+    </div>
+
+    <!-- J27 consent cleanup -->
+    <div class="journey-card cat-bg">
+      <div class="card-header">
+        <span class="journey-id">J-27</span>
+        <span class="card-title">Consent / Stale New-User Cleanup</span>
+        <span class="card-badge">SCHEDULED</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Cron: daily</span>
+        </div>
+        <ul class="steps">
+          <li>Delete DB records where status=new AND created_at older than 24 hours</li>
+          <li>These are users who consented but never submitted the birth details form</li>
+          <li>Clean slate: if they message again they re-enter J-01</li>
+        </ul>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#130d22;color:#7a50b0;border-color:#402870;">daily</span>
+        <span class="tag" style="background:#130d22;color:#7a50b0;border-color:#402870;">data-hygiene</span>
+      </div>
+    </div>
+
+    <!-- J28 data cleanup -->
+    <div class="journey-card cat-bg">
+      <div class="card-header">
+        <span class="journey-id">J-28</span>
+        <span class="card-title">Data Retention Cleanup</span>
+        <span class="card-badge">SCHEDULED</span>
+      </div>
+      <div class="card-body">
+        <div class="trigger-row">
+          <span class="trigger-icon">TRG</span>
+          <span class="trigger-text">Cron: monthly</span>
+        </div>
+        <ul class="steps">
+          <li>Delete/anonymise users with status=inactive AND updated_at older than retention period</li>
+          <li>Cascade: delete messages, consultations, payments for those users</li>
+          <li>Retention period: confirm per applicable Indian data protection law</li>
+          <li>Log deletion count to admin_actions for audit</li>
+        </ul>
+      </div>
+      <div class="card-footer">
+        <span class="tag" style="background:#130d22;color:#7a50b0;border-color:#402870;">monthly</span>
+        <span class="tag" style="background:#130d22;color:#7a50b0;border-color:#402870;">data-compliance</span>
+      </div>
+    </div>
+
+  </div><!-- /bg grid -->
+
+  <!-- ═══════════════════════════════════════════ INTENT FILTER DESIGN ═══ -->
+  <div class="section-header">
+    <span class="legend-dot" style="background:#9a8030; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+    <h2 style="color:#9a8030;">Intent Filter Design <span class="badge-fdf" style="margin-left:8px;">FDF Pattern</span></h2>
+    <div class="section-line"></div>
+  </div>
+
+  <div style="max-width:900px; margin-bottom:32px;">
+    <div class="note-box" style="border-left-color:#7a6010;">
+      <strong>Intent Filter (WF-25)</strong> is a shared sub-workflow called by any workflow that needs to classify ambiguous free-form user messages. Modelled on FDF WF-05. Uses Gemini 2.5 Flash Lite (temperature=0, max 20 tokens) for fast, cheap classification. Returns structured intent + passthrough of original input fields.<br><br>
+      <strong>Applied in (MVP):</strong> WF-23 (pre-form), WF-30 (payment_pending), WF-31 (payment_submitted), WF-43 (consultation_closed)<br><br>
+      <strong>Intent classes for Chinmay Astro:</strong>
+      <span class="intent-badge intent-consult" style="margin:0 3px;">wants_consultation</span>
+      <span class="intent-badge intent-enquiry" style="margin:0 3px;">general_enquiry</span>
+      <span class="intent-badge intent-rebook" style="margin:0 3px;">rebook_intent</span>
+      <span class="intent-badge intent-feedback" style="margin:0 3px;">feedback_intent</span>
+      <span class="intent-badge intent-off" style="margin:0 3px;">garbage</span>
+      <span class="intent-badge" style="background:#1f0f0f;color:#b05050;border:1px solid #6a2020; margin:0 3px;">malicious_abusive</span>
+      <span class="intent-badge" style="background:#1f0f0f;color:#b05050;border:1px solid #6a2020; margin:0 3px;">inappropriate</span>
+      <br><br>
+      <strong>Key design rules:</strong><br>
+      • Keywords (HELP, STOP, REBOOK) are intercepted at WF-20 <em>before</em> the Intent Filter — exact keyword match, no LLM.<br>
+      • <strong>garbage</strong>: warn user, notify admin via Slack (do not auto-block).<br>
+      • <strong>malicious_abusive / inappropriate</strong>: warn user, notify admin in Slack + trigger BLOCK flow via WF-46 (auto-block on abuse).<br>
+      • <strong>stop_intent</strong> (user expresses desire to leave in free-form, not exact STOP keyword): acknowledge + guide toward sending STOP keyword. Do not auto-unsubscribe from free-form.<br>
+      • All callers pass: <code>phoneNumber</code>, <code>userId</code>, <code>messageText</code>, <code>userStatus</code>, <code>userStage</code>.<br>
+      • WF-25 returns: original fields + <code>intentResult</code> (one of the classes above).
+    </div>
+  </div>
+
+  <!-- State Machine Summary -->
+  <div class="section-header">
+    <span class="legend-dot" style="background:#4a74ba; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+    <h2 style="color:#4a74ba;">State Machine Summary</h2>
+    <div class="section-line"></div>
+  </div>
+
+  <div style="max-width:900px; margin-bottom:48px;">
+    <div class="state-transition" style="font-size:11px; line-height:2.4; padding:16px 20px;">
+      <span style="color:#4a5170;">null</span>
+      <span class="arrow"> →(J-02 YES)→ </span>
+      <span style="color:#4a9a64;">new/consented</span>
+      <span class="arrow"> →(J-03 form)→ </span>
+      <span style="color:#4a74ba;">payment_pending</span>
+      <span class="arrow"> →(J-06 tap)→ </span>
+      <span style="color:#9a8030;">payment_submitted</span>
+      <span class="arrow"> →(J-09 APPROVE)→ </span>
+      <span style="color:#4ab0a0;">consultation_active</span>
+      <span class="arrow"> →(J-11 CLOSE)→ </span>
+      <span style="color:#9060a0;">consultation_closed</span>
+      <span class="arrow"> →(J-16 REBOOK)→ </span>
+      <span style="color:#4a74ba;">payment_pending</span>
+      <span style="color:#4a5170;"> [loop]</span>
+      <br>
+      <span style="color:#4a5170;">any state</span>
+      <span class="arrow"> →(J-12 admin BLOCK)→ </span>
+      <span style="color:#b05050;">blocked</span>
+      <span class="arrow"> →(J-A1 UNBLOCK)→ </span>
+      <span style="color:#9060a0;">consultation_closed</span>
+      <br>
+      <span style="color:#4a5170;">any state (except consultation_active)</span>
+      <span class="arrow"> →(J-19 user STOP)→ </span>
+      <span style="color:#c08030;">opted_out</span>
+      <span class="arrow"> →(J-21 re-message)→ </span>
+      <span style="color:#4a9a64;">new (re-onboard)</span>
+      <br>
+      <span style="color:#4a5170;">payment_submitted</span>
+      <span class="arrow"> →(J-10 REJECT)→ </span>
+      <span style="color:#4a74ba;">payment_pending</span>
+      <span style="color:#4a5170;"> [retry]</span>
+    </div>
+  </div>
+
+</div><!-- /canvas-wrap -->
+</body>
+</html>
