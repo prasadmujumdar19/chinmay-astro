@@ -1,1 +1,1677 @@
-{"updatedAt":"2026-05-14T03:44:22.181Z","createdAt":"2026-01-21T07:54:33.528Z","id":"wMh0oBRtJbvhLgOf","name":"WF-10 Slack Admin Handler","description":null,"active":true,"isArchived":false,"nodes":[{"parameters":{"httpMethod":"POST","path":"slack-webhook","responseMode":"responseNode","options":{}},"type":"n8n-nodes-base.webhook","typeVersion":2.1,"position":[-896,48],"id":"e4aacf0a-e3b3-4789-83a1-9a5c5385b0e0","name":"Webhook","webhookId":"27a3efa5-513d-478b-8b21-185b9e64bd42"},{"parameters":{"respondWith":"json","responseBody":"={\n  \"challenge\": \"{{ $json.body.challenge }}\"\n}","options":{"responseCode":200}},"type":"n8n-nodes-base.respondToWebhook","typeVersion":1.4,"position":[-352,-192],"id":"d65b12ca-97ac-4988-93f2-6e57d7bd393b","name":"Respond to Webhook"},{"parameters":{"rules":{"values":[{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.body.type }}","rightValue":"url_verification","operator":{"type":"string","operation":"equals"},"id":"3d72472b-a159-4067-8872-e69cae3707ca"}],"combinator":"and"},"renameOutput":true,"outputKey":"URL Verification"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"0769c918-759f-48be-9fcb-2a3d39e04c29","leftValue":"={{ $json.body.type }}","rightValue":"event_callback","operator":{"type":"string","operation":"equals","name":"filter.operator.equals"}}],"combinator":"and"},"renameOutput":true,"outputKey":"Message Event"}]},"options":{"fallbackOutput":"extraOutput"}},"type":"n8n-nodes-base.switch","typeVersion":3.3,"position":[-704,32],"id":"1e4729f8-3d74-4471-87b0-990c579712f2","name":"Event Callback Vs URL Verification"},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"42af9613-404a-4d65-88ac-ee922d15f068","leftValue":"={{ $json.body.authorizations[0].user_id }}","rightValue":"={{ $json.body.event.user }}","operator":{"type":"string","operation":"notEquals"}}],"combinator":"and"},"options":{}},"type":"n8n-nodes-base.if","typeVersion":2.2,"position":[-320,400],"id":"a2d44aee-1296-4c72-a9f4-cd354286c56f","name":"Human Vs Bot Message?"},{"parameters":{"assignments":{"assignments":[{"id":"b21886a0-7d04-4e0a-8783-b095c171bc27","name":"channel_id","value":"={{ $json.body.event.channel }}","type":"string"},{"id":"d61a87e8-e616-4dc0-96f1-60d5c9695f76","name":"channel_name","value":"\"\"","type":"string"},{"id":"0ecee119-ace0-4022-ab98-e649756e6c19","name":"user_id","value":"={{ $json.body.event.user }}","type":"string"},{"id":"bfe8959f-9544-41e1-bdee-0c0d60b0e9e8","name":"message_text","value":"={{ $json.body.event.text }}","type":"string"},{"id":"06cffc2b-c18a-4725-88b6-286e698c5635","name":"timestamp","value":"={{ $json.body.event.ts }}","type":"string"}]},"options":{}},"type":"n8n-nodes-base.set","typeVersion":3.4,"position":[-112,304],"id":"fbcc47ac-a3b0-4e98-ab1f-2f847b078e28","name":"Extract Required Fields"},{"parameters":{"resource":"channel","operation":"get","channelId":{"__rl":true,"value":"={{ $json.channel_id }}","mode":"id"},"options":{}},"type":"n8n-nodes-base.slack","typeVersion":2.3,"position":[0,0],"id":"db3cbb9e-5c94-4a11-b385-4561407411f7","name":"Find Channel","webhookId":"8e7b7389-baac-46bb-aa21-92f461b861c7","credentials":{"slackApi":{"id":"WSds5JWe5b6N7myY","name":"Slack - Chinmay Astro"}}},{"parameters":{"rules":{"values":[{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.name }}","rightValue":"chinmay-admin-commands","operator":{"type":"string","operation":"equals"},"id":"fc042573-2ac4-4e68-a6aa-6ccec7c50092"}],"combinator":"and"},"renameOutput":true,"outputKey":"System Commands"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"6f2fa923-3319-4d6e-ac5a-8fea206c03d1","leftValue":"={{ $json.name }}","rightValue":"consult-","operator":{"type":"string","operation":"startsWith"}}],"combinator":"and"},"renameOutput":true,"outputKey":"User Channel"}]},"options":{"fallbackOutput":"none"}},"type":"n8n-nodes-base.switch","typeVersion":3.3,"position":[464,128],"id":"79e9e912-d931-4949-baac-12c10d466813","name":"Admin Vs User Channel?"},{"parameters":{"workflowId":{"__rl":true,"value":"GoTYo0GS2y8qjjkw","mode":"list","cachedResultUrl":"/workflow/28ZhJXcfne1xBvG4","cachedResultName":"WF-11 Command Parser"},"workflowInputs":{"mappingMode":"passthrough","value":{}},"options":{}},"type":"n8n-nodes-base.executeWorkflow","typeVersion":1.3,"position":[1216,48],"id":"56b335d3-4894-462b-bde3-b581865983e8","name":"Call WF-11 Command Parser"},{"parameters":{"mode":"combine","advanced":true,"mergeByFields":{"values":[{"field1":"id","field2":"channel_id"}]},"options":{}},"type":"n8n-nodes-base.merge","typeVersion":3.2,"position":[208,128],"id":"3fab6bc3-6474-4c17-95de-f3c5efb63ee0","name":"Merge Message n Channel"},{"parameters":{"workflowId":{"__rl":true,"value":"6PzJRZsF7k2d9hV7","mode":"id","cachedResultName":"WF-41 Admin -> User Relay"},"workflowInputs":{"mappingMode":"passthrough","value":{}},"options":{}},"type":"n8n-nodes-base.executeWorkflow","typeVersion":1.3,"position":[1264,352],"id":"586c536e-947b-4096-be65-f788a7a35107","name":"Call WF-41 (Admin->User Relay)"},{"parameters":{"jsCode":"const input = $input.first().json;\n// Strip Slack mrkdwn formatting (backticks, bold, italic) from start/end\nconst messageText = (input.message_text || '').trim().replace(/^[`*_~]+|[`*_~]+$/g, '').trim();\n\n// Command keywords\nconst commandKeywords = ['APPROVE', 'REJECT', 'CLOSE', 'BLOCK', 'UNBLOCK', 'LIST', 'STATS', 'HELP'];\n\n// Check if message starts with a command (case insensitive)\nconst messageUpper = messageText.toUpperCase();\nconst isCommand = commandKeywords.some(keyword => messageUpper.startsWith(keyword));\n\nreturn [{\n  json: {\n    messageText: messageText,\n    adminUserId: input.user_id,\n    channelId: input.channel_id,\n    channelName: input.name_normalized,\n    isCommand: isCommand\n  }\n}];"},"type":"n8n-nodes-base.code","typeVersion":2,"position":[688,64],"id":"ee68f3e7-8ecf-4316-ac12-d65ccc210e78","name":"Detect Command - Admin Channel"},{"parameters":{"jsCode":"const input = $input.first().json;\n// Strip Slack mrkdwn formatting (backticks, bold, italic) from start/end\nconst messageText = (input.message_text || '').trim().replace(/^[`*_~]+|[`*_~]+$/g, '').trim();\n\n// Command keywords\nconst commandKeywords = ['APPROVE', 'REJECT', 'CLOSE', 'BLOCK', 'UNBLOCK', 'LIST', 'STATS', 'HELP'];\n\n// Check if message starts with a command (case insensitive)\nconst messageUpper = messageText.toUpperCase();\nconst isCommand = commandKeywords.some(keyword => messageUpper.startsWith(keyword));\n\nreturn [{\n  json: {\n    messageText: messageText,\n    adminUserId: input.user_id,\n    channelId: input.channel_id,\n    channelName: input.name_normalized,\n    isCommand: isCommand\n  }\n}];"},"type":"n8n-nodes-base.code","typeVersion":2,"position":[688,256],"id":"8be8d0fe-15ee-418a-bde8-a9f4a4670797","name":"Detect Command - User Channel"},{"parameters":{"rules":{"values":[{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.isCommand }}","rightValue":"","operator":{"type":"boolean","operation":"true","singleValue":true},"id":"7e1e1517-5ca4-4712-a49c-cff2f3711b5f"}],"combinator":"and"},"renameOutput":true,"outputKey":"Command"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"e3252436-f75c-4af2-8890-5d5860858514","leftValue":"={{ $json.isCommand }}","rightValue":"","operator":{"type":"boolean","operation":"false","singleValue":true}}],"combinator":"and"},"renameOutput":true,"outputKey":"Not Command"}]},"options":{}},"type":"n8n-nodes-base.switch","typeVersion":3.3,"position":[896,64],"id":"62f8c1e7-ef27-4494-aaa3-5f0a7107c343","name":"Command - Admin Channel ?"},{"parameters":{"rules":{"values":[{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.isCommand }}","rightValue":"","operator":{"type":"boolean","operation":"true","singleValue":true},"id":"7e1e1517-5ca4-4712-a49c-cff2f3711b5f"}],"combinator":"and"},"renameOutput":true,"outputKey":"Command"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"e3252436-f75c-4af2-8890-5d5860858514","leftValue":"={{ $json.isCommand }}","rightValue":"","operator":{"type":"boolean","operation":"false","singleValue":true}}],"combinator":"and"},"renameOutput":true,"outputKey":"Not Command"}]},"options":{}},"type":"n8n-nodes-base.switch","typeVersion":3.3,"position":[896,256],"id":"d32aee57-8ec5-4fb5-a522-698a5fcfd04a","name":"Command - User Channel ?"},{"parameters":{"respondWith":"json","responseBody":"{\"ok\": true}","options":{"responseCode":200}},"id":"0517f3ca-9f96-4616-8246-910f8ea2c6a1","name":"Respond 200 OK","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.4,"position":[-496,304]},{"parameters":{"respondWith":"json","responseBody":"{\"ok\": true}","options":{"responseCode":200}},"id":"fallback-respond-200","name":"Respond 200 Fallback","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.4,"position":[-352,112]},{"id":"d188d85e-d87a-40ca-a516-0b7b34a11d5e","name":"Load User Status","type":"n8n-nodes-base.postgres","typeVersion":2.5,"position":[1050,500],"parameters":{"operation":"executeQuery","query":"SELECT status FROM chinmay_astro.users WHERE slack_channel_id = $1 LIMIT 1","options":{"queryReplacement":"={{ $json.channelId }}"}},"credentials":{"postgres":{"id":"Zomqv5wsowQAhdGl","name":"PostgreSQL - Chinmay Astro Production"}}},{"id":"cdf07f5d-fdc8-443a-8f96-61b986208908","name":"User Consultation Active?","type":"n8n-nodes-base.if","typeVersion":2,"position":[1264,500],"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"relay-guard-1","leftValue":"={{ $json.status }}","rightValue":"consultation_active","operator":{"type":"string","operation":"equals"}}],"combinator":"and"}}}],"connections":{"Webhook":{"main":[[{"node":"Event Callback Vs URL Verification","type":"main","index":0}]]},"Event Callback Vs URL Verification":{"main":[[{"node":"Respond to Webhook","type":"main","index":0}],[{"node":"Respond 200 OK","type":"main","index":0}],[{"node":"Respond 200 Fallback","type":"main","index":0}]]},"Human Vs Bot Message?":{"main":[[{"node":"Extract Required Fields","type":"main","index":0}]]},"Extract Required Fields":{"main":[[{"node":"Find Channel","type":"main","index":0},{"node":"Merge Message n Channel","type":"main","index":1}]]},"Find Channel":{"main":[[{"node":"Merge Message n Channel","type":"main","index":0}]]},"Admin Vs User Channel?":{"main":[[{"node":"Detect Command - Admin Channel","type":"main","index":0}],[{"node":"Detect Command - User Channel","type":"main","index":0}]]},"Merge Message n Channel":{"main":[[{"node":"Admin Vs User Channel?","type":"main","index":0}]]},"Detect Command - Admin Channel":{"main":[[{"node":"Command - Admin Channel ?","type":"main","index":0}]]},"Detect Command - User Channel":{"main":[[{"node":"Command - User Channel ?","type":"main","index":0}]]},"Command - Admin Channel ?":{"main":[[{"node":"Call WF-11 Command Parser","type":"main","index":0}]]},"Command - User Channel ?":{"main":[[{"node":"Call WF-11 Command Parser","type":"main","index":0}],[{"node":"Load User Status","type":"main","index":0}]]},"Respond 200 OK":{"main":[[{"node":"Human Vs Bot Message?","type":"main","index":0}]]},"Load User Status":{"main":[[{"node":"User Consultation Active?","type":"main","index":0}]]},"User Consultation Active?":{"main":[[{"node":"Call WF-41 (Admin->User Relay)","type":"main","index":0}]]}},"settings":{"executionOrder":"v1","availableInMCP":false,"callerPolicy":"workflowsFromSameOwner"},"staticData":null,"meta":{"templateCredsSetupCompleted":true},"pinData":{},"versionId":"4694f9ec-2d69-4f88-be4d-67eff2e3e95e","activeVersionId":"4694f9ec-2d69-4f88-be4d-67eff2e3e95e","versionCounter":54,"triggerCount":1,"shared":[{"updatedAt":"2026-01-21T07:54:33.528Z","createdAt":"2026-01-21T07:54:33.528Z","role":"workflow:owner","workflowId":"wMh0oBRtJbvhLgOf","projectId":"SpcBYo3r6YMWLf30","project":{"updatedAt":"2025-12-26T03:43:50.268Z","createdAt":"2025-12-25T04:02:13.984Z","id":"SpcBYo3r6YMWLf30","name":"Chinmay Mujumdar <chinya1989mujumdar@gmail.com>","type":"personal","icon":null,"description":null,"creatorId":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7","projectRelations":[{"updatedAt":"2025-12-25T04:02:13.984Z","createdAt":"2025-12-25T04:02:13.984Z","userId":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7","projectId":"SpcBYo3r6YMWLf30","user":{"updatedAt":"2026-05-13T23:33:16.015Z","createdAt":"2025-12-25T04:02:12.721Z","id":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7","email":"chinya1989mujumdar@gmail.com","firstName":"Chinmay","lastName":"Mujumdar","personalizationAnswers":{"version":"v4","personalization_survey_submitted_at":"2025-12-26T03:46:19.986Z","personalization_survey_n8n_version":"2.1.4","companyIndustryExtended":["other"],"otherCompanyIndustryExtended":"Astrology","companySize":"<20","companyType":"other","role":"business-owner","reportedSource":"friend"},"settings":{"userActivated":true,"firstSuccessfulWorkflowId":"wMh0oBRtJbvhLgOf","userActivatedAt":1772092088194,"npsSurvey":{"responded":true,"lastShownAt":1776950036941}},"disabled":false,"mfaEnabled":true,"lastActiveAt":"2026-05-14","isPending":false}}]}}],"tags":[],"activeVersion":{"updatedAt":"2026-05-14T03:44:22.184Z","createdAt":"2026-05-14T03:44:22.184Z","versionId":"4694f9ec-2d69-4f88-be4d-67eff2e3e95e","workflowId":"wMh0oBRtJbvhLgOf","nodes":[{"parameters":{"httpMethod":"POST","path":"slack-webhook","responseMode":"responseNode","options":{}},"type":"n8n-nodes-base.webhook","typeVersion":2.1,"position":[-896,48],"id":"e4aacf0a-e3b3-4789-83a1-9a5c5385b0e0","name":"Webhook","webhookId":"27a3efa5-513d-478b-8b21-185b9e64bd42"},{"parameters":{"respondWith":"json","responseBody":"={\n  \"challenge\": \"{{ $json.body.challenge }}\"\n}","options":{"responseCode":200}},"type":"n8n-nodes-base.respondToWebhook","typeVersion":1.4,"position":[-352,-192],"id":"d65b12ca-97ac-4988-93f2-6e57d7bd393b","name":"Respond to Webhook"},{"parameters":{"rules":{"values":[{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.body.type }}","rightValue":"url_verification","operator":{"type":"string","operation":"equals"},"id":"3d72472b-a159-4067-8872-e69cae3707ca"}],"combinator":"and"},"renameOutput":true,"outputKey":"URL Verification"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"0769c918-759f-48be-9fcb-2a3d39e04c29","leftValue":"={{ $json.body.type }}","rightValue":"event_callback","operator":{"type":"string","operation":"equals","name":"filter.operator.equals"}}],"combinator":"and"},"renameOutput":true,"outputKey":"Message Event"}]},"options":{"fallbackOutput":"extraOutput"}},"type":"n8n-nodes-base.switch","typeVersion":3.3,"position":[-704,32],"id":"1e4729f8-3d74-4471-87b0-990c579712f2","name":"Event Callback Vs URL Verification"},{"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"42af9613-404a-4d65-88ac-ee922d15f068","leftValue":"={{ $json.body.authorizations[0].user_id }}","rightValue":"={{ $json.body.event.user }}","operator":{"type":"string","operation":"notEquals"}}],"combinator":"and"},"options":{}},"type":"n8n-nodes-base.if","typeVersion":2.2,"position":[-320,400],"id":"a2d44aee-1296-4c72-a9f4-cd354286c56f","name":"Human Vs Bot Message?"},{"parameters":{"assignments":{"assignments":[{"id":"b21886a0-7d04-4e0a-8783-b095c171bc27","name":"channel_id","value":"={{ $json.body.event.channel }}","type":"string"},{"id":"d61a87e8-e616-4dc0-96f1-60d5c9695f76","name":"channel_name","value":"\"\"","type":"string"},{"id":"0ecee119-ace0-4022-ab98-e649756e6c19","name":"user_id","value":"={{ $json.body.event.user }}","type":"string"},{"id":"bfe8959f-9544-41e1-bdee-0c0d60b0e9e8","name":"message_text","value":"={{ $json.body.event.text }}","type":"string"},{"id":"06cffc2b-c18a-4725-88b6-286e698c5635","name":"timestamp","value":"={{ $json.body.event.ts }}","type":"string"}]},"options":{}},"type":"n8n-nodes-base.set","typeVersion":3.4,"position":[-112,304],"id":"fbcc47ac-a3b0-4e98-ab1f-2f847b078e28","name":"Extract Required Fields"},{"parameters":{"resource":"channel","operation":"get","channelId":{"__rl":true,"value":"={{ $json.channel_id }}","mode":"id"},"options":{}},"type":"n8n-nodes-base.slack","typeVersion":2.3,"position":[0,0],"id":"db3cbb9e-5c94-4a11-b385-4561407411f7","name":"Find Channel","webhookId":"8e7b7389-baac-46bb-aa21-92f461b861c7","credentials":{"slackApi":{"id":"WSds5JWe5b6N7myY","name":"Slack - Chinmay Astro"}}},{"parameters":{"rules":{"values":[{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.name }}","rightValue":"chinmay-admin-commands","operator":{"type":"string","operation":"equals"},"id":"fc042573-2ac4-4e68-a6aa-6ccec7c50092"}],"combinator":"and"},"renameOutput":true,"outputKey":"System Commands"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"6f2fa923-3319-4d6e-ac5a-8fea206c03d1","leftValue":"={{ $json.name }}","rightValue":"consult-","operator":{"type":"string","operation":"startsWith"}}],"combinator":"and"},"renameOutput":true,"outputKey":"User Channel"}]},"options":{"fallbackOutput":"none"}},"type":"n8n-nodes-base.switch","typeVersion":3.3,"position":[464,128],"id":"79e9e912-d931-4949-baac-12c10d466813","name":"Admin Vs User Channel?"},{"parameters":{"workflowId":{"__rl":true,"value":"GoTYo0GS2y8qjjkw","mode":"list","cachedResultUrl":"/workflow/28ZhJXcfne1xBvG4","cachedResultName":"WF-11 Command Parser"},"workflowInputs":{"mappingMode":"passthrough","value":{}},"options":{}},"type":"n8n-nodes-base.executeWorkflow","typeVersion":1.3,"position":[1216,48],"id":"56b335d3-4894-462b-bde3-b581865983e8","name":"Call WF-11 Command Parser"},{"parameters":{"mode":"combine","advanced":true,"mergeByFields":{"values":[{"field1":"id","field2":"channel_id"}]},"options":{}},"type":"n8n-nodes-base.merge","typeVersion":3.2,"position":[208,128],"id":"3fab6bc3-6474-4c17-95de-f3c5efb63ee0","name":"Merge Message n Channel"},{"parameters":{"workflowId":{"__rl":true,"value":"6PzJRZsF7k2d9hV7","mode":"id","cachedResultName":"WF-41 Admin -> User Relay"},"workflowInputs":{"mappingMode":"passthrough","value":{}},"options":{}},"type":"n8n-nodes-base.executeWorkflow","typeVersion":1.3,"position":[1264,352],"id":"586c536e-947b-4096-be65-f788a7a35107","name":"Call WF-41 (Admin->User Relay)"},{"parameters":{"jsCode":"const input = $input.first().json;\n// Strip Slack mrkdwn formatting (backticks, bold, italic) from start/end\nconst messageText = (input.message_text || '').trim().replace(/^[`*_~]+|[`*_~]+$/g, '').trim();\n\n// Command keywords\nconst commandKeywords = ['APPROVE', 'REJECT', 'CLOSE', 'BLOCK', 'UNBLOCK', 'LIST', 'STATS', 'HELP'];\n\n// Check if message starts with a command (case insensitive)\nconst messageUpper = messageText.toUpperCase();\nconst isCommand = commandKeywords.some(keyword => messageUpper.startsWith(keyword));\n\nreturn [{\n  json: {\n    messageText: messageText,\n    adminUserId: input.user_id,\n    channelId: input.channel_id,\n    channelName: input.name_normalized,\n    isCommand: isCommand\n  }\n}];"},"type":"n8n-nodes-base.code","typeVersion":2,"position":[688,64],"id":"ee68f3e7-8ecf-4316-ac12-d65ccc210e78","name":"Detect Command - Admin Channel"},{"parameters":{"jsCode":"const input = $input.first().json;\n// Strip Slack mrkdwn formatting (backticks, bold, italic) from start/end\nconst messageText = (input.message_text || '').trim().replace(/^[`*_~]+|[`*_~]+$/g, '').trim();\n\n// Command keywords\nconst commandKeywords = ['APPROVE', 'REJECT', 'CLOSE', 'BLOCK', 'UNBLOCK', 'LIST', 'STATS', 'HELP'];\n\n// Check if message starts with a command (case insensitive)\nconst messageUpper = messageText.toUpperCase();\nconst isCommand = commandKeywords.some(keyword => messageUpper.startsWith(keyword));\n\nreturn [{\n  json: {\n    messageText: messageText,\n    adminUserId: input.user_id,\n    channelId: input.channel_id,\n    channelName: input.name_normalized,\n    isCommand: isCommand\n  }\n}];"},"type":"n8n-nodes-base.code","typeVersion":2,"position":[688,256],"id":"8be8d0fe-15ee-418a-bde8-a9f4a4670797","name":"Detect Command - User Channel"},{"parameters":{"rules":{"values":[{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.isCommand }}","rightValue":"","operator":{"type":"boolean","operation":"true","singleValue":true},"id":"7e1e1517-5ca4-4712-a49c-cff2f3711b5f"}],"combinator":"and"},"renameOutput":true,"outputKey":"Command"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"e3252436-f75c-4af2-8890-5d5860858514","leftValue":"={{ $json.isCommand }}","rightValue":"","operator":{"type":"boolean","operation":"false","singleValue":true}}],"combinator":"and"},"renameOutput":true,"outputKey":"Not Command"}]},"options":{}},"type":"n8n-nodes-base.switch","typeVersion":3.3,"position":[896,64],"id":"62f8c1e7-ef27-4494-aaa3-5f0a7107c343","name":"Command - Admin Channel ?"},{"parameters":{"rules":{"values":[{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"leftValue":"={{ $json.isCommand }}","rightValue":"","operator":{"type":"boolean","operation":"true","singleValue":true},"id":"7e1e1517-5ca4-4712-a49c-cff2f3711b5f"}],"combinator":"and"},"renameOutput":true,"outputKey":"Command"},{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"e3252436-f75c-4af2-8890-5d5860858514","leftValue":"={{ $json.isCommand }}","rightValue":"","operator":{"type":"boolean","operation":"false","singleValue":true}}],"combinator":"and"},"renameOutput":true,"outputKey":"Not Command"}]},"options":{}},"type":"n8n-nodes-base.switch","typeVersion":3.3,"position":[896,256],"id":"d32aee57-8ec5-4fb5-a522-698a5fcfd04a","name":"Command - User Channel ?"},{"parameters":{"respondWith":"json","responseBody":"{\"ok\": true}","options":{"responseCode":200}},"id":"0517f3ca-9f96-4616-8246-910f8ea2c6a1","name":"Respond 200 OK","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.4,"position":[-496,304]},{"parameters":{"respondWith":"json","responseBody":"{\"ok\": true}","options":{"responseCode":200}},"id":"fallback-respond-200","name":"Respond 200 Fallback","type":"n8n-nodes-base.respondToWebhook","typeVersion":1.4,"position":[-352,112]},{"id":"d188d85e-d87a-40ca-a516-0b7b34a11d5e","name":"Load User Status","type":"n8n-nodes-base.postgres","typeVersion":2.5,"position":[1050,500],"parameters":{"operation":"executeQuery","query":"SELECT status FROM chinmay_astro.users WHERE slack_channel_id = $1 LIMIT 1","options":{"queryReplacement":"={{ $json.channelId }}"}},"credentials":{"postgres":{"id":"Zomqv5wsowQAhdGl","name":"PostgreSQL - Chinmay Astro Production"}}},{"id":"cdf07f5d-fdc8-443a-8f96-61b986208908","name":"User Consultation Active?","type":"n8n-nodes-base.if","typeVersion":2,"position":[1264,500],"parameters":{"conditions":{"options":{"caseSensitive":true,"leftValue":"","typeValidation":"strict"},"conditions":[{"id":"relay-guard-1","leftValue":"={{ $json.status }}","rightValue":"consultation_active","operator":{"type":"string","operation":"equals"}}],"combinator":"and"}}}],"connections":{"Webhook":{"main":[[{"node":"Event Callback Vs URL Verification","type":"main","index":0}]]},"Event Callback Vs URL Verification":{"main":[[{"node":"Respond to Webhook","type":"main","index":0}],[{"node":"Respond 200 OK","type":"main","index":0}],[{"node":"Respond 200 Fallback","type":"main","index":0}]]},"Human Vs Bot Message?":{"main":[[{"node":"Extract Required Fields","type":"main","index":0}]]},"Extract Required Fields":{"main":[[{"node":"Find Channel","type":"main","index":0},{"node":"Merge Message n Channel","type":"main","index":1}]]},"Find Channel":{"main":[[{"node":"Merge Message n Channel","type":"main","index":0}]]},"Admin Vs User Channel?":{"main":[[{"node":"Detect Command - Admin Channel","type":"main","index":0}],[{"node":"Detect Command - User Channel","type":"main","index":0}]]},"Merge Message n Channel":{"main":[[{"node":"Admin Vs User Channel?","type":"main","index":0}]]},"Detect Command - Admin Channel":{"main":[[{"node":"Command - Admin Channel ?","type":"main","index":0}]]},"Detect Command - User Channel":{"main":[[{"node":"Command - User Channel ?","type":"main","index":0}]]},"Command - Admin Channel ?":{"main":[[{"node":"Call WF-11 Command Parser","type":"main","index":0}]]},"Command - User Channel ?":{"main":[[{"node":"Call WF-11 Command Parser","type":"main","index":0}],[{"node":"Load User Status","type":"main","index":0}]]},"Respond 200 OK":{"main":[[{"node":"Human Vs Bot Message?","type":"main","index":0}]]},"Load User Status":{"main":[[{"node":"User Consultation Active?","type":"main","index":0}]]},"User Consultation Active?":{"main":[[{"node":"Call WF-41 (Admin->User Relay)","type":"main","index":0}]]}},"authors":"Chinmay Mujumdar","name":null,"description":null,"autosaved":false,"workflowPublishHistory":[{"createdAt":"2026-05-14T03:44:22.319Z","id":194,"workflowId":"wMh0oBRtJbvhLgOf","versionId":"4694f9ec-2d69-4f88-be4d-67eff2e3e95e","event":"activated","userId":"4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7"}]}}
+{
+  "updatedAt": "2026-05-16T03:18:23.836Z",
+  "createdAt": "2026-01-21T07:54:33.528Z",
+  "id": "wMh0oBRtJbvhLgOf",
+  "name": "WF-10 Slack Admin Handler",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "slack-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -896,
+        48
+      ],
+      "id": "e4aacf0a-e3b3-4789-83a1-9a5c5385b0e0",
+      "name": "Webhook",
+      "webhookId": "27a3efa5-513d-478b-8b21-185b9e64bd42",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"challenge\": \"{{ $json.body.challenge }}\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -352,
+        -192
+      ],
+      "id": "d65b12ca-97ac-4988-93f2-6e57d7bd393b",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.type }}",
+                    "rightValue": "url_verification",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "3d72472b-a159-4067-8872-e69cae3707ca"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "URL Verification"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "0769c918-759f-48be-9fcb-2a3d39e04c29",
+                    "leftValue": "={{ $json.body.type }}",
+                    "rightValue": "event_callback",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Message Event"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extraOutput"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -704,
+        32
+      ],
+      "id": "1e4729f8-3d74-4471-87b0-990c579712f2",
+      "name": "Event Callback Vs URL Verification"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "42af9613-404a-4d65-88ac-ee922d15f068",
+              "leftValue": "={{ $json.body.authorizations[0].user_id }}",
+              "rightValue": "={{ $json.body.event.user }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -320,
+        400
+      ],
+      "id": "a2d44aee-1296-4c72-a9f4-cd354286c56f",
+      "name": "Human Vs Bot Message?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b21886a0-7d04-4e0a-8783-b095c171bc27",
+              "name": "channel_id",
+              "value": "={{ $json.body.event.channel }}",
+              "type": "string"
+            },
+            {
+              "id": "d61a87e8-e616-4dc0-96f1-60d5c9695f76",
+              "name": "channel_name",
+              "value": "\"\"",
+              "type": "string"
+            },
+            {
+              "id": "0ecee119-ace0-4022-ab98-e649756e6c19",
+              "name": "user_id",
+              "value": "={{ $json.body.event.user }}",
+              "type": "string"
+            },
+            {
+              "id": "bfe8959f-9544-41e1-bdee-0c0d60b0e9e8",
+              "name": "message_text",
+              "value": "={{ $json.body.event.text }}",
+              "type": "string"
+            },
+            {
+              "id": "06cffc2b-c18a-4725-88b6-286e698c5635",
+              "name": "timestamp",
+              "value": "={{ $json.body.event.ts }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -112,
+        304
+      ],
+      "id": "fbcc47ac-a3b0-4e98-ab1f-2f847b078e28",
+      "name": "Extract Required Fields"
+    },
+    {
+      "parameters": {
+        "resource": "channel",
+        "operation": "get",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channel_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "db3cbb9e-5c94-4a11-b385-4561407411f7",
+      "name": "Find Channel",
+      "webhookId": "8e7b7389-baac-46bb-aa21-92f461b861c7",
+      "credentials": {
+        "slackApi": {
+          "id": "WSds5JWe5b6N7myY",
+          "name": "Slack - Chinmay Astro"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.name }}",
+                    "rightValue": "chinmay-admin-commands",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "fc042573-2ac4-4e68-a6aa-6ccec7c50092"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "System Commands"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6f2fa923-3319-4d6e-ac5a-8fea206c03d1",
+                    "leftValue": "={{ $json.name }}",
+                    "rightValue": "consult-",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "User Channel"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        464,
+        128
+      ],
+      "id": "79e9e912-d931-4949-baac-12c10d466813",
+      "name": "Admin Vs User Channel?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "GoTYo0GS2y8qjjkw",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/28ZhJXcfne1xBvG4",
+          "cachedResultName": "WF-11 Command Parser"
+        },
+        "workflowInputs": {
+          "mappingMode": "passthrough",
+          "value": {}
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1216,
+        48
+      ],
+      "id": "56b335d3-4894-462b-bde3-b581865983e8",
+      "name": "Call WF-11 Command Parser"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "id",
+              "field2": "channel_id"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        208,
+        128
+      ],
+      "id": "3fab6bc3-6474-4c17-95de-f3c5efb63ee0",
+      "name": "Merge Message n Channel"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "6PzJRZsF7k2d9hV7",
+          "mode": "id",
+          "cachedResultName": "WF-41 Admin -> User Relay"
+        },
+        "workflowInputs": {
+          "mappingMode": "passthrough",
+          "value": {}
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1264,
+        352
+      ],
+      "id": "586c536e-947b-4096-be65-f788a7a35107",
+      "name": "Call WF-41 (Admin->User Relay)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n// Strip Slack mrkdwn formatting (backticks, bold, italic) from start/end\nconst messageText = (input.message_text || '').trim().replace(/^[`*_~]+|[`*_~]+$/g, '').trim();\n\n// Command keywords\nconst commandKeywords = ['APPROVE', 'REJECT', 'CLOSE', 'BLOCK', 'UNBLOCK', 'LIST', 'STATS', 'HELP'];\n\n// Check if message starts with a command (case insensitive)\nconst messageUpper = messageText.toUpperCase();\nconst isCommand = commandKeywords.some(keyword => messageUpper.startsWith(keyword));\n\nreturn [{\n  json: {\n    messageText: messageText,\n    adminUserId: input.user_id,\n    channelId: input.channel_id,\n    channelName: input.name_normalized,\n    isCommand: isCommand\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        64
+      ],
+      "id": "ee68f3e7-8ecf-4316-ac12-d65ccc210e78",
+      "name": "Detect Command - Admin Channel"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n// Strip Slack mrkdwn formatting (backticks, bold, italic) from start/end\nconst messageText = (input.message_text || '').trim().replace(/^[`*_~]+|[`*_~]+$/g, '').trim();\n\n// Command keywords\nconst commandKeywords = ['APPROVE', 'REJECT', 'CLOSE', 'BLOCK', 'UNBLOCK', 'LIST', 'STATS', 'HELP'];\n\n// Check if message starts with a command (case insensitive)\nconst messageUpper = messageText.toUpperCase();\nconst isCommand = commandKeywords.some(keyword => messageUpper.startsWith(keyword));\n\nreturn [{\n  json: {\n    messageText: messageText,\n    adminUserId: input.user_id,\n    channelId: input.channel_id,\n    channelName: input.name_normalized,\n    isCommand: isCommand\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        256
+      ],
+      "id": "8be8d0fe-15ee-418a-bde8-a9f4a4670797",
+      "name": "Detect Command - User Channel"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.isCommand }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "7e1e1517-5ca4-4712-a49c-cff2f3711b5f"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Command"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e3252436-f75c-4af2-8890-5d5860858514",
+                    "leftValue": "={{ $json.isCommand }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Not Command"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        896,
+        64
+      ],
+      "id": "62f8c1e7-ef27-4494-aaa3-5f0a7107c343",
+      "name": "Command - Admin Channel ?"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.isCommand }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "7e1e1517-5ca4-4712-a49c-cff2f3711b5f"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Command"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e3252436-f75c-4af2-8890-5d5860858514",
+                    "leftValue": "={{ $json.isCommand }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Not Command"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        896,
+        256
+      ],
+      "id": "d32aee57-8ec5-4fb5-a522-698a5fcfd04a",
+      "name": "Command - User Channel ?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"ok\": true}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "0517f3ca-9f96-4616-8246-910f8ea2c6a1",
+      "name": "Respond 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -496,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"ok\": true}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "fallback-respond-200",
+      "name": "Respond 200 Fallback",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -352,
+        112
+      ]
+    },
+    {
+      "id": "d188d85e-d87a-40ca-a516-0b7b34a11d5e",
+      "name": "Load User Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1050,
+        500
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT status FROM chinmay_astro.users WHERE slack_channel_id = $1 LIMIT 1",
+        "options": {
+          "queryReplacement": "={{ $json.channelId }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "Zomqv5wsowQAhdGl",
+          "name": "PostgreSQL - Chinmay Astro Production"
+        }
+      }
+    },
+    {
+      "id": "cdf07f5d-fdc8-443a-8f96-61b986208908",
+      "name": "User Consultation Active?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        500
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "relay-guard-1",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "consultation_active",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Event Callback Vs URL Verification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Event Callback Vs URL Verification": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 200 Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human Vs Bot Message?": {
+      "main": [
+        [
+          {
+            "node": "Extract Required Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Required Fields": {
+      "main": [
+        [
+          {
+            "node": "Find Channel",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Message n Channel",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Find Channel": {
+      "main": [
+        [
+          {
+            "node": "Merge Message n Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin Vs User Channel?": {
+      "main": [
+        [
+          {
+            "node": "Detect Command - Admin Channel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Detect Command - User Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Message n Channel": {
+      "main": [
+        [
+          {
+            "node": "Admin Vs User Channel?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Command - Admin Channel": {
+      "main": [
+        [
+          {
+            "node": "Command - Admin Channel ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Command - User Channel": {
+      "main": [
+        [
+          {
+            "node": "Command - User Channel ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Command - Admin Channel ?": {
+      "main": [
+        [
+          {
+            "node": "Call WF-11 Command Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Command - User Channel ?": {
+      "main": [
+        [
+          {
+            "node": "Call WF-11 Command Parser",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Load User Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond 200 OK": {
+      "main": [
+        [
+          {
+            "node": "Human Vs Bot Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load User Status": {
+      "main": [
+        [
+          {
+            "node": "User Consultation Active?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "User Consultation Active?": {
+      "main": [
+        [
+          {
+            "node": "Call WF-41 (Admin->User Relay)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "ad3f21c8-079e-4c82-b088-b8705dcf2f22",
+  "activeVersionId": "ad3f21c8-079e-4c82-b088-b8705dcf2f22",
+  "versionCounter": 57,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-01-21T07:54:33.528Z",
+      "createdAt": "2026-01-21T07:54:33.528Z",
+      "role": "workflow:owner",
+      "workflowId": "wMh0oBRtJbvhLgOf",
+      "projectId": "SpcBYo3r6YMWLf30",
+      "project": {
+        "updatedAt": "2025-12-26T03:43:50.268Z",
+        "createdAt": "2025-12-25T04:02:13.984Z",
+        "id": "SpcBYo3r6YMWLf30",
+        "name": "Chinmay Mujumdar <chinya1989mujumdar@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+        "projectRelations": [
+          {
+            "updatedAt": "2025-12-25T04:02:13.984Z",
+            "createdAt": "2025-12-25T04:02:13.984Z",
+            "userId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+            "projectId": "SpcBYo3r6YMWLf30",
+            "user": {
+              "updatedAt": "2026-05-16T00:34:09.583Z",
+              "createdAt": "2025-12-25T04:02:12.721Z",
+              "id": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+              "email": "chinya1989mujumdar@gmail.com",
+              "firstName": "Chinmay",
+              "lastName": "Mujumdar",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-12-26T03:46:19.986Z",
+                "personalization_survey_n8n_version": "2.1.4",
+                "companyIndustryExtended": [
+                  "other"
+                ],
+                "otherCompanyIndustryExtended": "Astrology",
+                "companySize": "<20",
+                "companyType": "other",
+                "role": "business-owner",
+                "reportedSource": "friend"
+              },
+              "settings": {
+                "userActivated": true,
+                "firstSuccessfulWorkflowId": "wMh0oBRtJbvhLgOf",
+                "userActivatedAt": 1772092088194,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1776950036941
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": true,
+              "lastActiveAt": "2026-05-16",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-05-16T03:18:23.838Z",
+    "createdAt": "2026-05-16T03:18:23.838Z",
+    "versionId": "ad3f21c8-079e-4c82-b088-b8705dcf2f22",
+    "workflowId": "wMh0oBRtJbvhLgOf",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "slack-webhook",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          -896,
+          48
+        ],
+        "id": "e4aacf0a-e3b3-4789-83a1-9a5c5385b0e0",
+        "name": "Webhook",
+        "webhookId": "27a3efa5-513d-478b-8b21-185b9e64bd42",
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={\n  \"challenge\": \"{{ $json.body.challenge }}\"\n}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.4,
+        "position": [
+          -352,
+          -192
+        ],
+        "id": "d65b12ca-97ac-4988-93f2-6e57d7bd393b",
+        "name": "Respond to Webhook"
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.body.type }}",
+                      "rightValue": "url_verification",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "id": "3d72472b-a159-4067-8872-e69cae3707ca"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "URL Verification"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "id": "0769c918-759f-48be-9fcb-2a3d39e04c29",
+                      "leftValue": "={{ $json.body.type }}",
+                      "rightValue": "event_callback",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals",
+                        "name": "filter.operator.equals"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "Message Event"
+              }
+            ]
+          },
+          "options": {
+            "fallbackOutput": "extraOutput"
+          }
+        },
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.3,
+        "position": [
+          -704,
+          32
+        ],
+        "id": "1e4729f8-3d74-4471-87b0-990c579712f2",
+        "name": "Event Callback Vs URL Verification"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "42af9613-404a-4d65-88ac-ee922d15f068",
+                "leftValue": "={{ $json.body.authorizations[0].user_id }}",
+                "rightValue": "={{ $json.body.event.user }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEquals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -320,
+          400
+        ],
+        "id": "a2d44aee-1296-4c72-a9f4-cd354286c56f",
+        "name": "Human Vs Bot Message?"
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "b21886a0-7d04-4e0a-8783-b095c171bc27",
+                "name": "channel_id",
+                "value": "={{ $json.body.event.channel }}",
+                "type": "string"
+              },
+              {
+                "id": "d61a87e8-e616-4dc0-96f1-60d5c9695f76",
+                "name": "channel_name",
+                "value": "\"\"",
+                "type": "string"
+              },
+              {
+                "id": "0ecee119-ace0-4022-ab98-e649756e6c19",
+                "name": "user_id",
+                "value": "={{ $json.body.event.user }}",
+                "type": "string"
+              },
+              {
+                "id": "bfe8959f-9544-41e1-bdee-0c0d60b0e9e8",
+                "name": "message_text",
+                "value": "={{ $json.body.event.text }}",
+                "type": "string"
+              },
+              {
+                "id": "06cffc2b-c18a-4725-88b6-286e698c5635",
+                "name": "timestamp",
+                "value": "={{ $json.body.event.ts }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -112,
+          304
+        ],
+        "id": "fbcc47ac-a3b0-4e98-ab1f-2f847b078e28",
+        "name": "Extract Required Fields"
+      },
+      {
+        "parameters": {
+          "resource": "channel",
+          "operation": "get",
+          "channelId": {
+            "__rl": true,
+            "value": "={{ $json.channel_id }}",
+            "mode": "id"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.3,
+        "position": [
+          0,
+          0
+        ],
+        "id": "db3cbb9e-5c94-4a11-b385-4561407411f7",
+        "name": "Find Channel",
+        "webhookId": "8e7b7389-baac-46bb-aa21-92f461b861c7",
+        "credentials": {
+          "slackApi": {
+            "id": "WSds5JWe5b6N7myY",
+            "name": "Slack - Chinmay Astro"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.name }}",
+                      "rightValue": "chinmay-admin-commands",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "id": "fc042573-2ac4-4e68-a6aa-6ccec7c50092"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "System Commands"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "id": "6f2fa923-3319-4d6e-ac5a-8fea206c03d1",
+                      "leftValue": "={{ $json.name }}",
+                      "rightValue": "consult-",
+                      "operator": {
+                        "type": "string",
+                        "operation": "startsWith"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "User Channel"
+              }
+            ]
+          },
+          "options": {
+            "fallbackOutput": "none"
+          }
+        },
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.3,
+        "position": [
+          464,
+          128
+        ],
+        "id": "79e9e912-d931-4949-baac-12c10d466813",
+        "name": "Admin Vs User Channel?"
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "GoTYo0GS2y8qjjkw",
+            "mode": "list",
+            "cachedResultUrl": "/workflow/28ZhJXcfne1xBvG4",
+            "cachedResultName": "WF-11 Command Parser"
+          },
+          "workflowInputs": {
+            "mappingMode": "passthrough",
+            "value": {}
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.3,
+        "position": [
+          1216,
+          48
+        ],
+        "id": "56b335d3-4894-462b-bde3-b581865983e8",
+        "name": "Call WF-11 Command Parser"
+      },
+      {
+        "parameters": {
+          "mode": "combine",
+          "advanced": true,
+          "mergeByFields": {
+            "values": [
+              {
+                "field1": "id",
+                "field2": "channel_id"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.merge",
+        "typeVersion": 3.2,
+        "position": [
+          208,
+          128
+        ],
+        "id": "3fab6bc3-6474-4c17-95de-f3c5efb63ee0",
+        "name": "Merge Message n Channel"
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "6PzJRZsF7k2d9hV7",
+            "mode": "id",
+            "cachedResultName": "WF-41 Admin -> User Relay"
+          },
+          "workflowInputs": {
+            "mappingMode": "passthrough",
+            "value": {}
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.3,
+        "position": [
+          1264,
+          352
+        ],
+        "id": "586c536e-947b-4096-be65-f788a7a35107",
+        "name": "Call WF-41 (Admin->User Relay)"
+      },
+      {
+        "parameters": {
+          "jsCode": "const input = $input.first().json;\n// Strip Slack mrkdwn formatting (backticks, bold, italic) from start/end\nconst messageText = (input.message_text || '').trim().replace(/^[`*_~]+|[`*_~]+$/g, '').trim();\n\n// Command keywords\nconst commandKeywords = ['APPROVE', 'REJECT', 'CLOSE', 'BLOCK', 'UNBLOCK', 'LIST', 'STATS', 'HELP'];\n\n// Check if message starts with a command (case insensitive)\nconst messageUpper = messageText.toUpperCase();\nconst isCommand = commandKeywords.some(keyword => messageUpper.startsWith(keyword));\n\nreturn [{\n  json: {\n    messageText: messageText,\n    adminUserId: input.user_id,\n    channelId: input.channel_id,\n    channelName: input.name_normalized,\n    isCommand: isCommand\n  }\n}];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          688,
+          64
+        ],
+        "id": "ee68f3e7-8ecf-4316-ac12-d65ccc210e78",
+        "name": "Detect Command - Admin Channel"
+      },
+      {
+        "parameters": {
+          "jsCode": "const input = $input.first().json;\n// Strip Slack mrkdwn formatting (backticks, bold, italic) from start/end\nconst messageText = (input.message_text || '').trim().replace(/^[`*_~]+|[`*_~]+$/g, '').trim();\n\n// Command keywords\nconst commandKeywords = ['APPROVE', 'REJECT', 'CLOSE', 'BLOCK', 'UNBLOCK', 'LIST', 'STATS', 'HELP'];\n\n// Check if message starts with a command (case insensitive)\nconst messageUpper = messageText.toUpperCase();\nconst isCommand = commandKeywords.some(keyword => messageUpper.startsWith(keyword));\n\nreturn [{\n  json: {\n    messageText: messageText,\n    adminUserId: input.user_id,\n    channelId: input.channel_id,\n    channelName: input.name_normalized,\n    isCommand: isCommand\n  }\n}];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          688,
+          256
+        ],
+        "id": "8be8d0fe-15ee-418a-bde8-a9f4a4670797",
+        "name": "Detect Command - User Channel"
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.isCommand }}",
+                      "rightValue": "",
+                      "operator": {
+                        "type": "boolean",
+                        "operation": "true",
+                        "singleValue": true
+                      },
+                      "id": "7e1e1517-5ca4-4712-a49c-cff2f3711b5f"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "Command"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "id": "e3252436-f75c-4af2-8890-5d5860858514",
+                      "leftValue": "={{ $json.isCommand }}",
+                      "rightValue": "",
+                      "operator": {
+                        "type": "boolean",
+                        "operation": "false",
+                        "singleValue": true
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "Not Command"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.3,
+        "position": [
+          896,
+          64
+        ],
+        "id": "62f8c1e7-ef27-4494-aaa3-5f0a7107c343",
+        "name": "Command - Admin Channel ?"
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.isCommand }}",
+                      "rightValue": "",
+                      "operator": {
+                        "type": "boolean",
+                        "operation": "true",
+                        "singleValue": true
+                      },
+                      "id": "7e1e1517-5ca4-4712-a49c-cff2f3711b5f"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "Command"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 2
+                  },
+                  "conditions": [
+                    {
+                      "id": "e3252436-f75c-4af2-8890-5d5860858514",
+                      "leftValue": "={{ $json.isCommand }}",
+                      "rightValue": "",
+                      "operator": {
+                        "type": "boolean",
+                        "operation": "false",
+                        "singleValue": true
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "Not Command"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.3,
+        "position": [
+          896,
+          256
+        ],
+        "id": "d32aee57-8ec5-4fb5-a522-698a5fcfd04a",
+        "name": "Command - User Channel ?"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "{\"ok\": true}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "0517f3ca-9f96-4616-8246-910f8ea2c6a1",
+        "name": "Respond 200 OK",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.4,
+        "position": [
+          -496,
+          304
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "{\"ok\": true}",
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "id": "fallback-respond-200",
+        "name": "Respond 200 Fallback",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.4,
+        "position": [
+          -352,
+          112
+        ]
+      },
+      {
+        "id": "d188d85e-d87a-40ca-a516-0b7b34a11d5e",
+        "name": "Load User Status",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          1050,
+          500
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT status FROM chinmay_astro.users WHERE slack_channel_id = $1 LIMIT 1",
+          "options": {
+            "queryReplacement": "={{ $json.channelId }}"
+          }
+        },
+        "credentials": {
+          "postgres": {
+            "id": "Zomqv5wsowQAhdGl",
+            "name": "PostgreSQL - Chinmay Astro Production"
+          }
+        }
+      },
+      {
+        "id": "cdf07f5d-fdc8-443a-8f96-61b986208908",
+        "name": "User Consultation Active?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1264,
+          500
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "relay-guard-1",
+                "leftValue": "={{ $json.status }}",
+                "rightValue": "consultation_active",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Event Callback Vs URL Verification",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Event Callback Vs URL Verification": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond 200 OK",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond 200 Fallback",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Human Vs Bot Message?": {
+        "main": [
+          [
+            {
+              "node": "Extract Required Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Required Fields": {
+        "main": [
+          [
+            {
+              "node": "Find Channel",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Merge Message n Channel",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "Find Channel": {
+        "main": [
+          [
+            {
+              "node": "Merge Message n Channel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Admin Vs User Channel?": {
+        "main": [
+          [
+            {
+              "node": "Detect Command - Admin Channel",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Detect Command - User Channel",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Merge Message n Channel": {
+        "main": [
+          [
+            {
+              "node": "Admin Vs User Channel?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Detect Command - Admin Channel": {
+        "main": [
+          [
+            {
+              "node": "Command - Admin Channel ?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Detect Command - User Channel": {
+        "main": [
+          [
+            {
+              "node": "Command - User Channel ?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Command - Admin Channel ?": {
+        "main": [
+          [
+            {
+              "node": "Call WF-11 Command Parser",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Command - User Channel ?": {
+        "main": [
+          [
+            {
+              "node": "Call WF-11 Command Parser",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Load User Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Respond 200 OK": {
+        "main": [
+          [
+            {
+              "node": "Human Vs Bot Message?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Load User Status": {
+        "main": [
+          [
+            {
+              "node": "User Consultation Active?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "User Consultation Active?": {
+        "main": [
+          [
+            {
+              "node": "Call WF-41 (Admin->User Relay)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Chinmay Mujumdar",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-16T03:18:23.932Z",
+        "id": 230,
+        "workflowId": "wMh0oBRtJbvhLgOf",
+        "versionId": "ad3f21c8-079e-4c82-b088-b8705dcf2f22",
+        "event": "activated",
+        "userId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7"
+      }
+    ]
+  }
+}
