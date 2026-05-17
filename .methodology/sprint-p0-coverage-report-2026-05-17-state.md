@@ -4,8 +4,11 @@ input_hash: 23448634cd16f290cacd6d385ad28337f4757c1783d10a3dc4592b2a4305cfda
 source_file_update: false
 working_copy_path: .methodology/sprint-p0-coverage-report-2026-05-17-working.md
 planned_at: 2026-05-17T03:09:27Z
-last_updated: 2026-05-17T16:40:00Z
+last_updated: 2026-05-17T17:00:00Z
 planning_complete: true
+sprint_complete: true
+sprint_closed_at: 2026-05-17T17:00:00Z
+sprint_final_commit: 2f2f332
 
 batch_7_execution_plan:
   assessed_at: 2026-05-17T16:40:00Z
@@ -278,7 +281,8 @@ items:
   - id: GIT-PUSH
     description: "Clone github.com/prasadmujumdar19/chinmay-astro to /tmp/claude-scratch/, copy: workflows/*.json (15 touched), docs/pseudocode/*.md (15 touched), .methodology/sprint-p0-coverage-report-2026-05-17-*.md, .methodology/handoff-p0-live-workflow-sync-complete.md. Run secrets scan one more time. Commit with concise message; push to main. Clean up /tmp/claude-scratch/. Per CLAUDE.md git workflow"
     priority: P0
-    status: pending
+    status: done  # completed 2026-05-17T17:00Z (Mode A full wrapper, user-approved push)
+    notes: "Commit 2f2f332 on prasadmujumdar19/chinmay-astro main (e077984..2f2f332). 31 files changed (15 workflow JSONs + 15 pseudocode .md + 1 sprint-state), 284 insertions / 392 deletions. Secrets scan clean on workflows/ docs/pseudocode/ .methodology/ (false-positive filter applied to state file grep literals). Clone + scratch cleaned up. Note: followups.md was unchanged this session so not in the commit. Handoff for this sprint is the next-action item (separate from this commit per skill Step 5)."
     batch: 7
     depends_on:
       - id: REGEN-MD
@@ -324,3 +328,44 @@ n8n_id_mapping_reference: docs/workflow-registry.md
 pseudocode_reference_dir: docs/pseudocode/
 workflows_export_dir: workflows/
 md_output_dir: docs/pseudocode/
+
+# ============================================================
+# POST-SPRINT FOLLOWUP EXECUTION — added 2026-05-17 (after sprint close)
+# ============================================================
+# Sprint was closed at commit 2f2f332. User reviewed the followups file
+# and directed action on items below. This block records the execution
+# plan and final status. The sprint itself remains closed; these items
+# are tracked here for audit continuity.
+
+followup_execution:
+  started_at: 2026-05-17T17:30:00Z
+  closed_at: 2026-05-17T18:30:00Z
+  source: .methodology/sprint-p0-coverage-report-2026-05-17-followups.md
+  assessed_at: 2026-05-17T17:30:00Z
+  assess_rationale: "4 items mixing change types (structural-rewrite, surgical-SQL, structural-removal, project-wide normalization) — Step 2a required (≥3 items, mixed)"
+  outcome: "All 4 planned items done. FU-4 sweep surfaced 11 additional pre-existing lint debt items across 6 WFs (3 categories: typeVersion=1 with workflowInputs, SELECT lacking alwaysOutputData, passthrough mapping) — logged as new followups, NOT addressed (out of FU-4 scope)."
+  workflows_modified: [UV62An60fzflU0uD, hYGNM97sXvdo1WmI, dr8QM0m92Ml8MvIh, 3va0M06kijgyLejf, 6PzJRZsF7k2d9hV7, Du2CJ3OTohRFZYoA, emUOLWVZiNVxcOe3, eTV1lUcYrXBg2q2T, gGJBY5fJha0Let8I, HB8nXudAtk9iXz7C, LgIDj1v4ZbCPlX25, MUG7rPgSHc7UtAE9, RjwHs9Dx5cK8Q5wD, VpCER0Vqq3NYJGpI]
+  workflows_modified_count: 14
+  new_followups_logged: 11
+  execution_modes:
+    fu-1-wf46-dr10: "Mode A — full build-workflow Skill, Step 5e regenerate-by-copy. 3+ node mods + connection rewiring."
+    fu-2-wf01-load-user-cols: "Mode B inline-inherit — single Postgres node query string update."
+    fu-3-wf22-redundant-if: "Mode B inline-inherit — remove 1 IF, rewire to converged downstream."
+    fu-4-project-rl-norm: "Mode C Batch Surgical — same jq transform across 16 __rl + 3 continueOnFail WFs; single transform script, per-WF PUT, single commit."
+  subagents_dispatched: "None — feedback_sprint_parallelism strongly directs inline; no item meets all 4 Mode D caveats."
+  items:
+    - id: fu-1-wf46-dr10
+      description: "WF-46 DR-10 fix (remove Get User Slack Channel + Archive Slack Channel) + WF-51 alignment (refactor Send a message to call WF-51)"
+      status: done
+    - id: fu-2-wf01-load-user-cols
+      description: "Expand WF-01 Load User SELECT to include all 13 missing columns from pseudocode Step 11"
+      status: done
+    - id: fu-3-wf22-redundant-if
+      description: "Remove WF-22 redundant User Created? IF node (both branches converge to Ensure Slack Channel Exists)"
+      status: done
+    - id: fu-4-project-rl-norm
+      description: "Project-wide normalization: __rl workflowId objects → string (16 WFs); continueOnFail:true → onError:continueRegularOutput (3 WFs)"
+      status: done
+  closed_items:
+    - id: fu-closed-code-node-shape
+      reason: "Per-user decision (2026-05-17): ignore/close. WF-50/60 sub-utility Code nodes returning single objects auto-wrap in n8n v2; production-stable for months."
