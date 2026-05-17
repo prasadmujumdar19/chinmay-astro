@@ -1,0 +1,30 @@
+WF-33 — Payment Approval Processor
+
+## Summary
+
+- Inputs: command, subCommand, phoneNumber, channelId (admin's Slack user id / channel) — triggered by WF-11 command parser when admin sends "APPROVE PAYMENT <phone>"
+- Outputs: Payment row marked approved; user status moved to consultation_active; new consultations row; user.current_consultation_id set; WhatsApp template "consultation_activated" sent to user; Slack confirmation posted to user's consult channel. If user is in wrong state, only a Slack warning is posted.
+- State Transitions: payment_submitted → consultation_active (only if user is currently payment_submitted)
+- Calls Sub-Workflows: WF-50 (Send WhatsApp). Posts Slack directly via Slack node (does NOT call WF-51 here). Does NOT call WF-52 — channel already exists (created at WF-22).
+
+---
+
+## Algorithm
+
+Step 1: Start — Triggered by WF-11 with {command, subCommand, phoneNumber, channelId (admin user id)}.
+Step 2: Extract command data: keep phoneNumber, adminUserId = channelId, command, subCommand.
+Step 3: SELECT * FROM chinmay_astro.users WHERE phone_number = phoneNumber LIMIT 1. Capture user row (includes id, status, slack_channel_id, name, dob, tob, place, etc.).
+Step 4: Check: Is user.status == "payment_submitted"?
+  - If YES → go to Step 5
+  - If NO → go to Step 13 (wrong-state guard)
+Step 5: UPDATE chinmay_astro.payments SET status='approved', verified_at=NOW(), verified_by=adminUserId WHERE user_id=user.id AND status='pending_verification' RETURNING id. Capture payment.id.
+Step 6: UPDATE chinmay_astro.users SET status='consultation_active', updated_at=NOW() WHERE id=user.id RETURNING *.
+Step 7: INSERT INTO chinmay_astro.consultations (user_id, payment_id, status, started_at) VALUES (user.id, payment.id, 'active', NOW()) RETURNING *. Capture consultation.id.
+Step 8: UPDATE chinmay_astro.users SET current_consultation_id=consultation.id, updated_at=NOW() WHERE id=user.id RETURNING *.
+Step 9: Build user activation message: phoneNumber = user.phone_number; messageType=template; templateName="consultation_activated"; templateParams=[user.name].
+Step 10: Call WF-50 with the template payload (WhatsApp template message to user).
+Step 11: Post Slack message directly to user's consult channel (channelId = user.slack_channel_id): "✅ Consultation Activated — User: <name>, Phone: <phone>, DOB: <dob>, TOB: <tob>, Place: <place>. User has been notified. They can now send their questions. To close consultation when done, type: CLOSE CONSULTATION <phone>".
+Step 12: End.
+
+(Wrong-state guard)
+Step 13: Post Slack warning to user.slack_channel_id: "APPROVE PAYMENT failed — user <wa_id> is not in payment_submitted state (current: <status>). No changes made." End.

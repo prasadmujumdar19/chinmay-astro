@@ -1,0 +1,28 @@
+WF-23 — Pre-Form Intent Filter
+
+## Summary
+
+- Inputs: phoneNumber, userId, messageText, userStatus. Called by WF-02 when a known user is in pre-form state (record in `pending_users` but no `users` row yet) and sends free-form text.
+- Outputs: Either re-sends the Flow form via WF-50 with a contextual intro, routes user to WF-47 (unsubscribe), or hands off to WF-25's built-in garbage/abuse handling (which sends its own warning).
+- State Transitions: none directly (WF-47 may move user to opted_out).
+- Calls Sub-Workflows: WF-25 (Intent Classifier), WF-47 (Unsubscribe), WF-50 (Send WhatsApp)
+
+---
+
+## Algorithm
+
+Step 1: Start — workflow triggered by another workflow (WF-02) with phoneNumber, userId, messageText, userStatus.
+Step 2: Call WF-25 (Intent Classifier) with phoneNumber, userId, messageText, userStatus. WF-25 returns intentResult (one of: wants_consultation, general_enquiry, rebook_intent, feedback_intent, stop_intent, garbage, malicious_abusive, inappropriate). Note: WF-25 itself sends warnings + auto-blocks for garbage / malicious_abusive / inappropriate before returning.
+Step 3: Check: is the intent a "pass-through" intent (NOT garbage AND NOT malicious_abusive AND NOT inappropriate AND NOT stop_intent)?
+  - If YES (pass-through — typically wants_consultation, general_enquiry, rebook_intent, feedback_intent) → go to Step 4
+  - If NO → go to Step 6
+Step 4: Build a contextual intro line based on intentResult:
+  - "wants_consultation" → "Great! Please fill in your birth details to book your Vedic astrology consultation with Chinmay."
+  - "general_enquiry" → "Thanks for your question! To get started with your personalised consultation, please fill in your birth details below."
+  - Otherwise (e.g. rebook_intent, feedback_intent) → "To proceed with your consultation, please fill in your birth details using the form below."
+  Append the privacy policy URL. Build the interactive Flow payload (type=flow, header="Birth Details Form", flowId="1408011897720771", flowCta="Fill Details").
+Step 5: Call WF-50 with phoneNumber, messageType="interactive", interactivePayload=the flow object. End.
+Step 6: Check: is intentResult == "stop_intent"?
+  - If YES → go to Step 7
+  - If NO (garbage / malicious_abusive / inappropriate — already handled inside WF-25) → End.
+Step 7: Call WF-47 (Unsubscribe) with phoneNumber, userId, userStatus. End.

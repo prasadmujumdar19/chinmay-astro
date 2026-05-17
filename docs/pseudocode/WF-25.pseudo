@@ -1,0 +1,36 @@
+WF-25 — Intent Classifier
+
+## Summary
+
+- Inputs: phoneNumber, userId, messageContent (the user's free-form text), userStatus. Called by any workflow that needs to classify a user message before acting (e.g. WF-23, WF-01 free-form text states).
+- Outputs: Returns the input payload extended with `intentResult` ∈ {wants_consultation, general_enquiry, rebook_intent, feedback_intent, stop_intent, garbage, malicious_abusive, inappropriate}. Side effects: for garbage sends a warning + notifies admin via Slack; for malicious_abusive / inappropriate sends a block warning + auto-blocks the user via WF-46.
+- State Transitions: none directly. WF-46 (called for abuse/inappropriate) transitions user to `blocked`.
+- Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack — admin notify), WF-46 (Auto-Block)
+
+---
+
+## Algorithm
+
+Step 1: Start — workflow triggered by another workflow with phoneNumber, userId, messageContent, userStatus.
+Step 2: Build the Gemini classification request:
+  - Prompt: "You are an intent classifier for a WhatsApp astrology consultation service. User context: Status: <userStatus>. Classify the message into EXACTLY ONE of: wants_consultation, general_enquiry, rebook_intent, feedback_intent, stop_intent, garbage, malicious_abusive, inappropriate. <category definitions>. User message: \"<messageContent>\". Reply with ONLY the category word."
+  - Body: contents=[{parts:[{text: prompt}]}], generationConfig={temperature:0, maxOutputTokens:20}.
+Step 3: POST the body to Gemini gemini-2.5-flash-lite generateContent endpoint with the Gemini API key. On error → go to Step 4. On success → go to Step 5.
+Step 4: Handle Gemini error — default intentResult = "general_enquiry", set geminiError=true, then go to Step 13 (return to caller).
+Step 5: Parse Gemini response — read candidates[0].content.parts[0].text, trim and lowercase. If it matches one of the 8 valid categories, use it; otherwise default intentResult = "general_enquiry".
+Step 6: Route on intentResult:
+  - "wants_consultation" → go to Step 13
+  - "general_enquiry" → go to Step 13
+  - "rebook_intent" → go to Step 13
+  - "feedback_intent" → go to Step 13
+  - "garbage" → go to Step 7
+  - "malicious_abusive" → go to Step 9
+  - "inappropriate" → go to Step 9
+  - "stop_intent" → go to Step 13
+Step 7: Build a garbage warning: phoneNumber=<phone>, message="⚠️ Your message could not be understood. Please send a clear question about our astrology consultation service."
+Step 8: Call WF-50 to send the garbage warning to the user, then call WF-51 to notify the admin Slack channel about the garbage message. End (no return to caller — caller flow halts on garbage).
+Step 9: Build a block warning: phoneNumber=<phone>, message="🚫 Your message has been flagged as inappropriate or abusive. Your access to this service has been restricted."
+Step 10: Call WF-50 to send the block warning to the user.
+Step 11: Call WF-46 (Auto-Block) which moves the user to status=blocked and records the admin_action. End.
+Step 12: (reserved — unused branch from Gemini-error path joins here.)
+Step 13: Return to caller — pass through the original input merged with intentResult.

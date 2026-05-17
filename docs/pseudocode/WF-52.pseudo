@@ -1,0 +1,27 @@
+WF-52 — Slack Channel Manager
+
+## Summary
+
+- Inputs: phone_number (or phoneNumber), name (or userName), userId
+- Outputs: Returns { success, channelId, channelName, channelUrl }. Creates a new private Slack channel `consult-<phoneNumber>` and invites the admin user (U0AGTECS1KR), OR if the channel already exists, returns the existing channel.
+- State Transitions: none (caller — WF-22 — persists slack_channel_id to users row)
+- Calls Sub-Workflows: none
+
+---
+
+## Algorithm
+
+Step 1: Start — triggered by another workflow (typically WF-22) with { phone_number, name, userId } passed through.
+Step 2: Prepare channel name (code): channelName = `consult-<phoneNumber>`. Carry userName, phoneNumber, userId forward. Go to Step 3.
+Step 3: Create private Slack channel via Slack API (conversations.create, name=channelName, is_private=true). On error use the error output branch.
+  - On success → go to Step 4 (new-channel branch).
+  - On error → go to Step 6 (error branch).
+Step 4: Invite admin to the new channel via Slack API (conversations.invite, channel=<new channel id>, users=['U0AGTECS1KR']). Go to Step 5.
+Step 5: Build new-channel return (code): { success:true, channelId=<new id>, channelName=<new name>, channelUrl=`https://app.slack.com/client/<team_id>/<channel_id>` }. Go to Step 10.
+Step 6: Check: does the error message contain 'name_taken'?
+  - If YES → go to Step 7
+  - If NO → end with error (no further handling).
+Step 7: List all private channels via Slack API (conversations.list, types=private_channel, returnAll=true). Go to Step 8.
+Step 8: Filter that list for the one whose name equals the prepared channelName. Go to Step 9.
+Step 9: Build existing-channel return (code): { success:true, channelId=<existing id>, channelName=<existing name>, channelUrl=`https://app.slack.com/client/<team_id>/<channel_id>` }. Go to Step 10.
+Step 10: End (return object emitted to caller).

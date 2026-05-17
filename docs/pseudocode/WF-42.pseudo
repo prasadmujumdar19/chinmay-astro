@@ -1,0 +1,30 @@
+WF-42 — Consultation Closer
+
+## Summary
+
+- Inputs: phoneNumber, channelName (Slack channel where admin typed CLOSE)
+- Outputs: consultations row closed, users row updated, WhatsApp feedback/rebook prompt sent, Slack confirmation in consult channel
+- State Transitions: consultation_active → consultation_closed
+- Calls Sub-Workflows: WF-50 (Send WhatsApp)
+- Design rule: Slack channel is NOT archived — same channel is reused on rebook.
+
+---
+
+## Algorithm
+
+Step 1: Start — triggered by another workflow (admin CLOSE handler) with phoneNumber and channelName.
+Step 2: SELECT * FROM chinmay_astro.users WHERE phone_number = <phoneNumber> LIMIT 1.
+Step 3: Check: Is user.status == 'consultation_active'?
+  - If YES → go to Step 4
+  - If NO  → go to Step 11
+Step 4: UPDATE chinmay_astro.consultations SET status='closed', ended_at=NOW(), closed_by='admin' WHERE user_id = <user.id> AND status='active' RETURNING *.
+Step 5: UPDATE chinmay_astro.users SET status='consultation_closed', current_consultation_id=NULL, total_consultations = total_consultations + 1, updated_at=NOW() WHERE id = <user.id> RETURNING *.
+Step 6: Build interactive WhatsApp payload (two buttons):
+  - body.text = "✨ Your consultation with Chinmay is complete, <user.name>! We hope it was insightful.\n\nWould you like to share your experience or book another session?"
+  - buttons: [ {id: btn_feedback, title: "Leave Feedback"}, {id: btn_rebook, title: "Book Again"} ]
+Step 7: Call WF-50 with phoneNumber, messageType=interactive, interactivePayload=<payload above>.
+Step 8: Post to Slack channel #<channelName>: "✅ *Consultation Closed*\n\n*User:* <user.name>\n*Phone:* <user.phone_number>\n\nFeedback request sent to user."
+Step 9: End.
+Step 10: (skipped — branch only reached via Step 3 NO)
+Step 11: Post to Slack channel (id = user.slack_channel_id): "CLOSE failed — user <user.wa_id> is not in consultation_active state (current: `<user.status>`). No changes made."
+Step 12: End.

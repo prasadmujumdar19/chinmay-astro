@@ -1,0 +1,22 @@
+WF-46 — User Blocker
+
+## Summary
+
+- Inputs: phoneNumber, blockReason (optional), adminUserId (from caller workflow)
+- Outputs: users row updated to blocked; Slack notification posted to chinmay-admin-commands; user's consult Slack channel archived
+- State Transitions: any → `blocked`
+- Calls Sub-Workflows: none
+
+---
+
+## Algorithm
+
+Step 1: Start — triggered by another workflow with { phoneNumber, blockReason, adminUserId } passed through.
+Step 2: Load user record: SELECT * FROM chinmay_astro.users WHERE phone_number = <phoneNumber> LIMIT 1. Go to Step 3.
+Step 3: Update user to blocked: UPDATE chinmay_astro.users SET status='blocked', blocked_at=NOW(), blocked_by='admin', blocked_reason='Blocked by admin', updated_at=NOW() WHERE id=<loaded user id> RETURNING *. Go to Step 4.
+Step 4: Post Slack notification to admin channel C0A5B0ZE81E (chinmay-admin-commands) with text including: user name, phone, blockReason (or 'Blocked by admin'), adminUserId, and note that the user can no longer message. Go to Step 5.
+Step 5: Look up the user's consult channel id: SELECT slack_channel_id FROM chinmay_astro.users WHERE phone_number = <trigger phoneNumber>. Go to Step 6.
+Step 6: Archive that Slack channel via Slack API (channels.archive on slack_channel_id). On error continue (workflow does not fail). Go to Step 7.
+Step 7: End.
+
+Note: This workflow does NOT write to admin_actions itself; the caller (WF-12 BLOCK handler) is expected to log the admin action. Confirm against the BLOCK command pseudocode if reconciling F-02.

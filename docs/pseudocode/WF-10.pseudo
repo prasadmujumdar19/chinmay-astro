@@ -1,0 +1,44 @@
+WF-10 — Slack Admin Handler
+
+## Summary
+
+- Inputs: Slack Events API POST at /slack-webhook (url_verification challenge or event_callback with message events from any channel where bot is a member)
+- Outputs: HTTP 200 (with challenge echo on verification); dispatches recognized admin commands to WF-11, and Chinmay's free-text replies in active consultation channels to WF-41
+- State Transitions: none (delegates; downstream WFs mutate state)
+- Calls Sub-Workflows: WF-11 (Command Parser), WF-41 (Admin → User Relay)
+
+---
+
+## Algorithm
+
+Step 1: Start — receive HTTP POST on /slack-webhook from Slack Events API.
+Step 2: Switch on body.type:
+  - 'url_verification' → go to Step 3.
+  - 'event_callback' → go to Step 4.
+  - Anything else (fallback) → go to Step 20 (respond 200 fallback).
+Step 3: Respond 200 with {"challenge": body.challenge} (Slack endpoint verification). End.
+Step 4: Respond 200 OK immediately (acknowledge to Slack within 3s).
+Step 5: Check: body.authorizations[0].user_id != body.event.user (i.e., the message was sent by a human, not the bot itself)?
+  - If YES → go to Step 6.
+  - If NO (bot's own message) → End (loop prevention).
+Step 6: Extract fields: channel_id=event.channel, user_id=event.user, message_text=event.text, timestamp=event.ts.
+Step 7: Call Slack API channel.get on channel_id to retrieve channel name.
+Step 8: Merge the channel info (id, name) with the extracted message fields (combine by id == channel_id).
+Step 9: Switch on channel name:
+  - name == 'chinmay-admin-commands' → go to Step 10 (admin channel branch).
+  - name starts with 'consult-' → go to Step 13 (user consultation channel branch).
+  - Otherwise → End (channel not relevant).
+Step 10: Detect Command (admin channel) — strip mrkdwn formatting; uppercase; check if message starts with one of [APPROVE, REJECT, CLOSE, BLOCK, UNBLOCK, LIST, STATS, HELP]. Set isCommand accordingly. Pass forward {messageText, adminUserId, channelId, channelName, isCommand}.
+Step 11: Check: isCommand == true?
+  - If YES → call WF-11 (Command Parser) with this payload. End.
+  - If NO → End (ignore non-command chatter in admin channel).
+Step 12: (unused — admin channel has no relay branch.)
+Step 13: Detect Command (user consultation channel) — same logic as Step 10.
+Step 14: Check: isCommand == true?
+  - If YES → call WF-11 (Command Parser) with this payload. End. (This is how APPROVE PAYMENT/CLOSE/etc. work from inside the user's consult channel.)
+  - If NO → go to Step 15.
+Step 15: SELECT status, channelName, messageText FROM users WHERE slack_channel_id = $channelId LIMIT 1.
+Step 16: Check: status == 'consultation_active'?
+  - If YES → call WF-41 (Admin → User Relay) with the message payload (Chinmay's text reply will be sent to the user via WhatsApp). End.
+  - If NO → End (channel is not currently in active consultation — drop).
+Step 20: Respond 200 fallback for unknown body types. End.

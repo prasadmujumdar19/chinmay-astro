@@ -1,0 +1,35 @@
+WF-31 — Payment Submitted Handler
+
+## Summary
+
+- Inputs: phoneNumber, userId, messageText, messageContent, userStatus, user.name (from caller WF-01 for payment_submitted users)
+- Outputs: WhatsApp "under review" reassurance to user AND a Slack relay of the user message into the user's consult channel; or hand-off to WF-47
+- State Transitions: none (stop_intent path delegates to WF-47)
+- Calls Sub-Workflows: WF-25 (Intent Classifier), WF-47 (Unsubscribe), WF-50 (Send WhatsApp), WF-51 (Send Slack)
+
+---
+
+## Algorithm
+
+Step 1: Start — Triggered by parent with {phoneNumber, userId, messageText, messageContent, userStatus, user}.
+Step 2: Fan out in parallel from trigger:
+  - Branch A → Step 3 (intent classification + user reply)
+  - Branch B → Step 9 (admin Slack relay)
+
+(Branch A — user reply)
+Step 3: Call WF-25 with phoneNumber, userId, messageText, userStatus. Receive intentResult.
+Step 4: Check: Is intentResult NOT one of {garbage, malicious_abusive, inappropriate, stop_intent}?
+  - If YES → go to Step 5
+  - If NO → go to Step 7
+Step 5: Build "under review" message: "⏳ Your payment is currently under review. Chinmay will verify it and get back to you shortly (usually within a few hours). You don't need to do anything else right now. If you have any questions, feel free to ask!"
+Step 6: Call WF-50 with phoneNumber and the message. Go to Step 12.
+Step 7: Check: Is intentResult == "stop_intent"?
+  - If YES → go to Step 8
+  - If NO → go to Step 12 (silently drop garbage/abusive/inappropriate)
+Step 8: Call WF-47 (Unsubscribe) with phoneNumber, userId, userStatus. Go to Step 12.
+
+(Branch B — relay user message into Slack consult channel)
+Step 9: SELECT slack_channel_id FROM chinmay_astro.users WHERE phone_number = phoneNumber LIMIT 1.
+Step 10: Build relay payload: channelId = slack_channel_id; messageText = "💬 Message from <user.name or phoneNumber> (payment under review):\n><messageContent>".
+Step 11: Call WF-51 (Send Slack) with the payload.
+Step 12: End.

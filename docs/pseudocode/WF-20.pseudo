@@ -1,0 +1,30 @@
+WF-20 — Keyword Handler
+
+## Summary
+
+- Inputs: phoneNumber, userId, userStatus, messageText (called as sub-workflow by WF-01)
+- Outputs: Either routes user to WF-47 (unsubscribe), WF-45 (rebook), or sends a HELP message via WF-50. Otherwise returns `action=passthrough` so the caller continues normal routing.
+- State Transitions: none directly (downstream WF-47 sets `opted_out`, WF-45 may move user to `payment_pending`)
+- Calls Sub-Workflows: WF-47 (Unsubscribe), WF-45 (Rebook), WF-50 (Send WhatsApp)
+
+---
+
+## Algorithm
+
+Step 1: Start — workflow triggered by another workflow (WF-01) with phoneNumber, userId, userStatus, messageText.
+Step 2: Normalize the input — set keyword = uppercase(trim(messageText)). Carry forward phoneNumber, userId, messageText.
+Step 3: Check: keyword value?
+  - If keyword == "HELP" → go to Step 4
+  - If keyword == "STOP" → go to Step 5
+  - If keyword == "REBOOK" → go to Step 6
+  - Otherwise (no keyword match) → go to Step 7
+Step 4: Build a contextual help message based on userStatus:
+  - If userStatus == "payment_pending": tell user to pay ₹500 via UPI to +91-9653240263 and tap "Payment Completed ✓".
+  - If userStatus == "payment_submitted": tell user payment is under review.
+  - If userStatus == "consultation_active": tell user to just type their question.
+  - If userStatus == "consultation_closed": tell user to type REBOOK.
+  - Otherwise: send generic menu listing REBOOK and STOP options.
+  Call WF-50 with phoneNumber and the chosen messageBody (text). End.
+Step 5: Call WF-47 (Unsubscribe) with phoneNumber, userId, userStatus. End.
+Step 6: Call WF-45 (Rebook) with phoneNumber, userId. End.
+Step 7: Set action = "passthrough" and return phoneNumber, userId, messageText to the caller so WF-01 continues normal routing. End.

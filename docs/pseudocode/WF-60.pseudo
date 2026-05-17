@@ -1,0 +1,22 @@
+WF-60 — Message Logger
+
+## Summary
+
+- Inputs: userId (or user.id), consultationId (or user.current_consultation_id), direction ('inbound'|'outbound'), messageType, messageContent (or content/userMessage), messageId (or whatsappMessageId), phoneNumber, rawMessage, timestamp, contactName, success, error
+- Outputs: Inserts a row into chinmay_astro.messages and returns { logged:true, logId }. If userId is missing, skips the insert (FK NOT NULL) and returns { logged:false, reason }.
+- State Transitions: none
+- Calls Sub-Workflows: none
+
+---
+
+## Algorithm
+
+Step 1: Start — triggered by another workflow (e.g. WF-50, WF-01) with logging fields passed through.
+Step 2: Extract message data (code): normalize into { userId, consultationId, direction (default 'inbound'), messageType (default 'text'), content, whatsappMessageId, metadata:{ phoneNumber, rawMessage, timestamp (default now), contactName, success, error } }. Go to Step 3.
+Step 3: Check: is userId present (not null/undefined)?
+  - If YES → go to Step 4
+  - If NO → go to Step 5
+Step 4: INSERT INTO chinmay_astro.messages (user_id, consultation_id, direction, message_type, content, whatsapp_message_id, metadata, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, NOW()) RETURNING id. Go to Step 6.
+Step 5: Skip insert (code): return { logged:false, reason:'no userId — caller did not provide user identification' }. Per TD-NEW-026 this path exists for callers like WF-21 that send messages before a DB user row exists. Go to Step 7.
+Step 6: Done (code): return { logged:true, logId:<inserted id> }. Go to Step 7.
+Step 7: End.

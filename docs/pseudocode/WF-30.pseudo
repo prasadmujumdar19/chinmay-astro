@@ -1,0 +1,30 @@
+WF-30 — Payment Pending Intent Filter
+
+## Summary
+
+- Inputs: phoneNumber, userId, messageText, userStatus (from caller WF-01 routing payment_pending users)
+- Outputs: Either a WhatsApp payment reminder, or hand-off to WF-47 unsubscribe
+- State Transitions: none (stop_intent path delegates the change to WF-47)
+- Calls Sub-Workflows: WF-25 (Intent Classifier), WF-47 (Unsubscribe), WF-50 (Send WhatsApp)
+
+---
+
+## Algorithm
+
+Step 1: Start — Triggered by parent workflow with {phoneNumber, userId, messageText, userStatus}.
+Step 2: Call WF-25 with phoneNumber, userId, messageText, userStatus. Receive intentResult.
+Step 3: Check: Is intentResult NOT one of {garbage, malicious_abusive, inappropriate, stop_intent}?
+  - If YES (pass-through intent — e.g., wants_consultation, rebook_intent, general_query) → go to Step 4
+  - If NO → go to Step 7
+Step 4: Build contextual payment reminder message:
+  - If intentResult == "wants_consultation": prefix "Great! You're almost there. To confirm your consultation, please complete the payment below."
+  - Else if intentResult == "rebook_intent": prefix "For rebooking, please complete the pending payment first."
+  - Else: prefix "Happy to help! Once your payment is confirmed, Chinmay will be ready for your consultation."
+  - Append UPI block: ₹500 to +91-9653240263 (Chinmay Mujumdar), then "tap the Payment Completed button you received earlier."
+Step 5: Call WF-50 with phoneNumber and the assembled message (default text type).
+Step 6: End.
+Step 7: Check: Is intentResult == "stop_intent"?
+  - If YES → go to Step 8
+  - If NO (garbage / malicious / inappropriate) → go to Step 9
+Step 8: Call WF-47 (Unsubscribe) with phoneNumber, userId, userStatus. Then End.
+Step 9: End (silently drop garbage / abusive / inappropriate messages — no reply).

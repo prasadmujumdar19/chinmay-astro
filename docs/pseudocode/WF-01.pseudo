@@ -1,0 +1,49 @@
+WF-01 — Message Router
+
+## Summary
+
+- Inputs: Parsed WhatsApp message payload from WF-00 (phoneNumber, phoneNumberFormatted, messageType, messageContent, rawMessage, contactName, etc.)
+- Outputs: Either a silent reject, a deflection WA message, a forced route to WF-21 (for opted-out users), or a call to WF-02 with enriched user+message context
+- State Transitions: none (read-only — does not mutate user state)
+- Calls Sub-Workflows: WF-02, WF-21 (for opted_out re-engagement), WF-50 (non-text deflection)
+
+---
+
+## Algorithm
+
+Step 1: Start — triggered by another workflow (WF-00) with the parsed message payload.
+Step 2: Layer 1 — Country Filter. Check if phoneNumberFormatted starts with allowed country codes ('91' India or '61' Australia).
+  - If NOT allowed → set securityCheck='REJECTED', rejectReason='country_not_allowed', silent=true, go to Step 3.
+  - If allowed → set securityCheck='PASSED_COUNTRY', go to Step 3.
+Step 3: Check: securityCheck == 'REJECTED' (country)?
+  - If YES → go to Step 17 (silent reject, end).
+  - If NO → go to Step 4.
+Step 4: Layer 2 — Non-Text Message Filter. Check messageType against allowed list ['text', 'interactive'].
+  - Set messageTypeAllowed = true/false accordingly.
+Step 5: Check: messageTypeAllowed == true?
+  - If YES → go to Step 6.
+  - If NO → go to Step 18 (deflect via WF-50, end).
+Step 6: SELECT id, phone_number, status, blocked_reason FROM users WHERE phone_number = $phoneNumber AND status IN ('blocked', 'opted_out').
+Step 7: Layer 3 — Blacklist evaluation:
+  - If a row exists and status='opted_out' → set securityCheck='OPTED_OUT', silent=true.
+  - Else if a row exists (status='blocked') → set securityCheck='REJECTED', rejectReason='blacklisted', silent=true.
+  - Else → set securityCheck='PASSED_BLACKLIST'.
+Step 8: Check: securityCheck == 'REJECTED' (blacklist)?
+  - If YES → go to Step 19 (silent reject blacklist, end).
+  - If NO → go to Step 9.
+Step 9: Check: securityCheck == 'OPTED_OUT'?
+  - If YES → call WF-21 with {phoneNumber, messageText} so user is treated as new user (re-engagement). End.
+  - If NO → go to Step 10.
+Step 10: SELECT phone_number, contact_name, created_at FROM pending_users WHERE phone_number = $phoneNumber (look for in-flight onboarding).
+Step 11: SELECT id, phone_number, name, status, created_at, last_message_at, awaiting_feedback FROM users WHERE phone_number = $phoneNumber (full user record).
+Step 12: Prepare combined payload (Prepare User Data):
+  - pendingUser = row from Step 10 if any, else null.
+  - user = row from Step 11 if any (parse context JSON), else null.
+  - isNewUser = (user is null) AND (pendingUser is null).
+  - Carry forward messageId, phoneNumber, contactName, messageType, messageContent, messageContentUpper, rawMessage, timestamp, metadata.
+Step 13: Call WF-02 (User State Router) with the combined payload.
+Step 14: End.
+
+Step 17: Silent reject (country) — return {silentReject: true, reason: 'country_not_allowed'}. End.
+Step 18: Call WF-50 with phoneNumber and message "Please send text messages only. Images and audio are not supported." End.
+Step 19: Silent reject (blacklist) — return {silentReject: true, reason: 'blacklisted'}. End.

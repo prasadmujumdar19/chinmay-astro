@@ -1,0 +1,24 @@
+WF-34 — Payment Rejection Processor
+
+## Summary
+
+- Inputs: phoneNumber, rejectionReason (optional) — triggered by WF-11 command parser when admin sends "REJECT PAYMENT <phone>"
+- Outputs: Latest pending_verification payment row marked rejected; user status reset to payment_pending; WhatsApp interactive button ("Payment Completed") sent to user with retry instructions; Slack confirmation posted to chinmay-admin-commands channel
+- State Transitions: payment_submitted → payment_pending
+- Calls Sub-Workflows: WF-50 (Send WhatsApp). Posts Slack directly via Slack node to admin channel C0A5B0ZE81E.
+
+---
+
+## Algorithm
+
+Step 1: Start — Triggered by WF-11 with {phoneNumber, rejectionReason?}.
+Step 2: SELECT u.*, p.id as payment_id FROM chinmay_astro.users u LEFT JOIN chinmay_astro.payments p ON p.user_id=u.id AND p.status='pending_verification' WHERE u.phone_number=phoneNumber ORDER BY p.created_at DESC LIMIT 1. Capture user row + payment_id.
+Step 3: UPDATE chinmay_astro.payments SET status='rejected', rejected_at=NOW(), rejection_reason=COALESCE(rejectionReason, 'Payment not verified') WHERE id=payment_id RETURNING *.
+Step 4: UPDATE chinmay_astro.users SET status='payment_pending', updated_at=NOW() WHERE phone_number=phoneNumber.
+Step 5: Build interactive WhatsApp payload:
+  - phoneNumber = user.phone_number
+  - messageType = "interactive"
+  - interactivePayload = button type with body "We couldn't verify your payment. Please check the details and try again.\n\nPayment Instructions:\nAmount: ₹500\nUPI ID: payments@chinmay\nReference: Your name\n\nAfter payment, click the button below." and a single reply button {id: "payment_completed", title: "Payment Completed"}.
+Step 6: Call WF-50 with the interactive payload.
+Step 7: Post Slack message directly to chinmay-admin-commands (C0A5B0ZE81E): "❌ Payment rejected for <name or 'User'> (+<phone_number>). User notified to retry payment."
+Step 8: End.

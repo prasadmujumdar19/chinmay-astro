@@ -1,0 +1,35 @@
+WF-00 — Webhook Receiver
+
+## Summary
+
+- Inputs: Inbound WhatsApp webhook POST (Meta payload) at path /whatsapp-astro-webhook
+- Outputs: HTTP 200 response to Meta ({status: "processed"} or {status: "skipped"}); message ID recorded in Chinmay-Astro-Messages data table for dedup
+- State Transitions: none
+- Calls Sub-Workflows: WF-01
+
+---
+
+## Algorithm
+
+Step 1: Start — receive HTTP POST on /whatsapp-astro-webhook from Meta WhatsApp Cloud API.
+Step 2: Parse the webhook payload (extract body.entry[0].changes[0].value).
+  - If payload has no entry, changes, or messages → mark skip=true, go to Step 3.
+  - If message.from equals our own display phone (bot echo) → mark skip=true, go to Step 3.
+  - If type='text' and content is empty/whitespace → mark skip=true, go to Step 3.
+  - Otherwise extract: messageId, timestamp, phoneNumber, contactName, messageType, messageContent (text body, or interactive button_reply.id / list_reply.id), metadata (phone_number_id, display_phone_number). Set skip=false.
+Step 3: Check: skip == true?
+  - If YES → go to Step 11 (return skipped).
+  - If NO → go to Step 4.
+Step 4: Lookup messageId in Chinmay-Astro-Messages data table (dedup check).
+Step 5: Check: did the lookup return an existing row (duplicate)?
+  - If YES (id is not empty) → go to Step 11 (return skipped — already processed).
+  - If NO → go to Step 6.
+Step 6: Insert new row into Chinmay-Astro-Messages with messageId (records this message as seen).
+Step 7: Delete all rows in Chinmay-Astro-Messages where createdAt <= today - 3 days (housekeeping; sticky note labels "7 days" but actual filter is 3 days).
+Step 8: Pass parsed message payload forward (Gather Message Info — passthrough of parsed fields).
+Step 9: Call WF-01 (Message Router) with the parsed message payload.
+Step 10: Return HTTP 200 with {status: "processed"} to Meta.
+Step 11: Return HTTP 200 with {status: "skipped"} to Meta.
+Step 12: End.
+
+Note: Meta GET verification (hub.challenge) is handled by a separate webhook or n8n-side test config — not present as a branch in this workflow's connections.
