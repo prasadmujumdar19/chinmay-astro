@@ -4,7 +4,7 @@ input_hash: 23448634cd16f290cacd6d385ad28337f4757c1783d10a3dc4592b2a4305cfda
 source_file_update: false
 working_copy_path: .methodology/sprint-p0-coverage-report-2026-05-17-working.md
 planned_at: 2026-05-17T03:09:27Z
-last_updated: 2026-05-17T15:11:00Z
+last_updated: 2026-05-17T16:30:00Z
 planning_complete: true
 
 scope_decisions:
@@ -165,21 +165,24 @@ items:
   - id: WF-40
     description: "Remove duplicate STOP intercept (WF-20 already intercepts before reaching WF-40); make WF-40 a pure pass-through relay to WF-51 only. Verify schema prefix on all queries"
     priority: P0
-    status: pending
+    status: done  # completed 2026-05-17T16:05Z (subagent ab6d8b11ae47bc062, MCP partial-update fallback due to subagent Bash sandbox; verified 4 nodes, lint pass)
+    notes: "3 nodes removed (Is STOP Intercept, Prepare J-19 Response, Call WF-50 J-19 STOP Response). 2 nodes updated (Call WF-51 workflowId __rl→plain string; Load User Record alwaysOutputData:true). 1 new connection (When Executed → Load User Record direct). Final flow: When Executed → Load User Record → Format Slack Message → Call WF-51. SQL already had chinmay_astro. prefix. Sandbox issue forced fallback from Step 5e curl PUT to mcp__n8n__n8n_update_partial_workflow (6 ops in one PUT — preserves Step 5e single-lint-pass spirit). Pre-change backup at /tmp/claude-scratch/wf-du32QBZbSQOjfESe-pre.json (subagent could not write archive/backups/)."
     batch: 6
     depends_on: []
 
   - id: WF-42
     description: "Add user-not-found error path (load fails → Slack warning to admin channelName, no state change). Post error to admin's channelName (NOT user.slack_channel_id). Verify state guard: user.status = consultation_active before update. Verify NO archive of Slack channel (Design Rule #10 — channels preserved for REBOOK reuse). Two-button message (Leave Feedback, Book Again) — no 3rd button"
     priority: P0
-    status: pending
+    status: done  # completed 2026-05-17T16:15Z (subagent a16ffea5e6571bbc5, MCP full-update fallback due to subagent Bash sandbox; verified 11 nodes, lint pass)
+    notes: "2 new nodes added: User Found? (IF tv=2, checks $json.phone_number notEmpty) + Notify Admin User Not Found (Slack tv=2.3, posts to channelName from input). Notify Admin Wrong State: channelId mode id→name (now uses channelName from input), text wa_id→phone_number per pseudocode Step 12. Lint cleanup: Call WF-50 Send Feedback workflowId __rl→plain string. Connections rewired: Load User by Phone → User Found? → (T) User in Correct State? / (F) Notify Admin User Not Found. Two-button feedback message + no archive node already correct (verified only). Followups: Notify Admin Wrong State uses slackOAuth2Api cred (others use slackApi); tv=2.2 vs 2.3 inconsistency."
     batch: 6
     depends_on: []
 
   - id: WF-47
     description: "Remove channel archive call (Steps 7-8 in pseudocode terms); status → opted_out + admin_actions log (action_type='opted_out', notes) + opt-out message via WF-50. Verify schema prefix chinmay_astro. on users + admin_actions queries"
     priority: P0
-    status: pending
+    status: done  # completed 2026-05-17T16:25Z (main thread corrective PUT after side-session subagent applied wrong fix; verified 6 nodes correct, opt-out chain intact)
+    notes: "INCIDENT: subagent a7c47079d080ef014 hit Bash sandbox + reported BLOCKED. Side session authorized MCP fallback + dispatched replacement subagent which REMOVED THE WRONG NODE (deleted Send Opt-out Confirmation via WF-50 instead of Archive Slack Channel, leaving the DR-10-violating archive node active). Main thread detected this on post-batch structure fetch and applied corrective mcp__n8n__n8n_update_full_workflow to: restore Send Opt-out Confirmation via WF-50 from pre-state JSON, remove Archive Slack Channel + Get User Slack Channel, rewire Log to admin_actions → Send Opt-out Confirmation (END). Final 6 nodes match pseudocode Steps 1-7 exactly. Schema prefix chinmay_astro. on both queries already correct (Update User Status, Log to admin_actions). NEW MEMORY: feedback_sprint_parallelism.md strengthened — push back on subagent override requests for build-sprint workflow edits."
     batch: 6
     depends_on: []
 
