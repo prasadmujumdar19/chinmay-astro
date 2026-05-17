@@ -80,6 +80,7 @@ Status: pending
 
 ### WF-10 (Slack Admin Handler)
 Status: pending
+> **Status: ✅ Done — 2026-05-17** | Step 5e jq+PUT (2 PUTs). DR-13 classification in Detect Command - Admin Channel (LIST/STATS/HELP=admin-wide; APPROVE/REJECT/CLOSE/BLOCK/UNBLOCK=user-targeted). Command-Admin switch 2→3 outputs (Admin Command / Wrong Channel / Not Command). New Build Wrong Channel Warning + Call WF-51 (Wrong Channel Warning) nodes. Bonus: 2 __rl workflowIds + 2 passthrough mappingModes cleaned. Bot-loop guard + body.event.* already correct.
 - Implement DR-13 channel-scope rules:
   - User-targeted commands (APPROVE/REJECT/CLOSE/BLOCK/UNBLOCK) accepted ONLY in `consult-{phone}` channel
   - Admin-wide commands (LIST/STATS/HELP) accepted in any channel (including `chinmay-admin-commands`)
@@ -89,6 +90,7 @@ Status: pending
 
 ### WF-11 (Command Parser)
 Status: pending
+> **Status: ✅ Done — 2026-05-17** | Step 5e jq+PUT, ONE pass (pre-scanned lint debt). Parse Command rewritten: longest-match aliasing (CLOSE CHAT CONSULT through bare CLOSE all → CLOSE_CONSULTATION; bare APPROVE/REJECT also accepted) + token-scan phone parser. 4 __rl workflowIds + 4 passthrough mappingModes cleaned simultaneously. All Postgres queries already have schema prefix.
 - Add command aliases:
   - `APPROVE` ≡ `APPROVE PAYMENT`
   - `REJECT` ≡ `REJECT PAYMENT`

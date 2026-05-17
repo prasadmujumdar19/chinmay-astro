@@ -4,7 +4,7 @@ input_hash: 23448634cd16f290cacd6d385ad28337f4757c1783d10a3dc4592b2a4305cfda
 source_file_update: false
 working_copy_path: .methodology/sprint-p0-coverage-report-2026-05-17-working.md
 planned_at: 2026-05-17T03:09:27Z
-last_updated: 2026-05-17T14:30:00Z
+last_updated: 2026-05-17T15:05:00Z
 planning_complete: true
 
 scope_decisions:
@@ -119,14 +119,16 @@ items:
   - id: WF-10
     description: "Implement DR-13 channel-scope rules: user-targeted commands (APPROVE/REJECT/CLOSE/BLOCK/UNBLOCK) accepted ONLY in consult-{phone}; admin-wide commands (LIST/STATS/HELP) accepted in any channel. Reject user-targeted commands in chinmay-admin-commands with polite Slack reminder. Standardise event.* → body.event.* for Slack payload paths. Verify bot-loop guard: body.authorizations[0].user_id != body.event.user"
     priority: P0
-    status: pending
+    status: done  # completed 2026-05-17T14:55Z (main thread, build-workflow Step 5e)
+    notes: "Step 5e jq-transform + full PUT. Detect Command - Admin Channel jsCode rewritten with DR-13 categorisation (adminWide=[LIST,STATS,HELP] vs userTargeted=[APPROVE,REJECT,CLOSE,BLOCK,UNBLOCK]). Command - Admin Channel ? switch reshaped 2→3 outputs (Admin Command / Wrong Channel / Not Command). New nodes: Build Wrong Channel Warning (Code), Call WF-51 (Wrong Channel Warning) executeWorkflow tv=1.3. Switched 2 __rl workflowIds (Call WF-11, Call WF-41) to plain strings; switched 2 passthrough mappingModes to defineBelow with explicit camelCase fields. Bot-loop guard + body.event.* paths already correct (no change). User-channel detect unchanged (admin-wide commands also work there per DR-13). Took 2 PUTs (missed passthrough lint debt scan on pass 1). Lint: pass."
     batch: 4
     depends_on: []
 
   - id: WF-11
     description: "Add command aliases: bare REJECT ≡ REJECT PAYMENT; bare CLOSE ≡ CLOSE CONSULT ≡ CLOSE CONSULTATION ≡ CLOSE CHAT CONSULT; APPROVE ≡ APPROVE PAYMENT. Standardise dispatch payload to camelCase across boundary to WF-33/WF-34/WF-42/WF-46. Verify schema prefix chinmay_astro. on all queries (Steps 10/16/18)"
     priority: P0
-    status: pending
+    status: done  # completed 2026-05-17T15:00Z (main thread, build-workflow Step 5e, clean in 1 PUT)
+    notes: "Step 5e jq-transform + full PUT — clean in ONE pass (pre-scanned lint debt during inspection). Parse Command jsCode rewritten with longest-match aliasing (CLOSE CHAT CONSULT / CLOSE CONSULTATION / CLOSE CONSULT / CLOSE all → CLOSE_CONSULTATION; bare APPROVE/REJECT also accepted) + token-scan phone parser (first token matching /^\\+?\\d{10,15}$/; tokens after phone → reason). Normalized 4 __rl workflowIds (Call WF-33/34/42/46) to plain strings. Switched 4 passthrough mappingModes to defineBelow with explicit camelCase dispatch contract: {commandType, phoneNumber, targetPhone, reason, originalMessage, adminUserId, channelId, channelName}. All 4 Postgres queries already have chinmay_astro. schema prefix (Section B autonomous fix already live). Lint: pass."
     batch: 4
     depends_on:
       - id: WF-10
