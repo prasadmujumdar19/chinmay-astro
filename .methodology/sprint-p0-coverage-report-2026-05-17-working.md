@@ -37,16 +37,19 @@ Status: pending
 
 ### WF-21 (New User Welcome + Form)
 Status: pending
+> **Status: ✅ Done — 2026-05-17** | Build Welcome Message now reads `wasOptedOut` from trigger input; prepends welcome-back line + blank when true. Single combined interactive message preserved (no second send).
 - Accept `wasOptedOut` flag from caller (WF-01)
 - If `wasOptedOut === true`, prepend "Welcome back" acknowledgement to the welcome+form message
 
 ### WF-01 (Message Router)
 Status: pending
+> **Status: ✅ Done — 2026-05-17** | Route Opted-Out to WF-21 node now passes wasOptedOut=true plus phoneNumber/phoneNumberFormatted/contactName/messageId/messageContent/messageText. Other WF-21 callers do NOT pass the flag. Schema prefix verified — all three Postgres lookups (Steps 6/10/11) already use `chinmay_astro.`.
 - Pass `wasOptedOut: true` to WF-21 in Step 9 (opted_out re-engagement path) — call shape: `{phoneNumber, messageText, wasOptedOut: true}`
 - Verify `chinmay_astro.` schema prefix on Steps 6/10/11 queries (Section B autonomous fix already applied to pseudocode)
 
 ### WF-22 (Form Response Handler)
 Status: pending
+> **Status: ✅ Done — 2026-05-17** | Verified only — no changes needed. All 5 required changes already implemented: button glyph ✓; INSERT ON CONFLICT … RETURNING (xmax=0) AS inserted ✓; User Created? IF on $json.inserted ✓; WF-52 Success? branches correctly (TRUE→Save→Prepare→WF-50; FALSE→Build Admin Alert→Call WF-51→END) ✓; no encryption-svc ✓. Validation: 0 errors. Drifts logged to followups (User Created? IF redundant; 3 __rl workflowIds; deprecated continueOnFail).
 - Change button title from "Payment Completed" → "Payment Completed ✓" (glyph)
 - `ON CONFLICT DO UPDATE` for opted_out re-engagement (Theme 11A) — INSERT path must handle the case where users row already exists
 - Branch on WF-52 success using the new `isNew` flag from Batch 1

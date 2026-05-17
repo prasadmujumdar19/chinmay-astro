@@ -4,7 +4,7 @@ input_hash: 23448634cd16f290cacd6d385ad28337f4757c1783d10a3dc4592b2a4305cfda
 source_file_update: false
 working_copy_path: .methodology/sprint-p0-coverage-report-2026-05-17-working.md
 planned_at: 2026-05-17T03:09:27Z
-last_updated: 2026-05-17T13:40:00Z
+last_updated: 2026-05-17T14:10:00Z
 planning_complete: true
 
 scope_decisions:
@@ -59,14 +59,16 @@ items:
   - id: WF-21
     description: "Accept wasOptedOut flag from caller; if true, prepend 'Welcome back' acknowledgement to the welcome+form message"
     priority: P0
-    status: pending
+    status: done  # completed 2026-05-17T13:42Z (subagent af194d639fcb58a0f)
+    notes: "Welcome-back logic already in place exactly matching pseudocode. Only delta: normalized Call WF-50 Send WhatsApp workflowId from __rl object to plain string (lint compliance). Validation: 0 errors."
     batch: 2
     depends_on: []
 
   - id: WF-01
     description: "Pass wasOptedOut: true to WF-21 in Step 9 (opted_out re-engagement path); verify schema prefix chinmay_astro. on all queries in Steps 6/10/11 (Section B autonomous fix already applied to pseudocode)"
     priority: P0
-    status: pending
+    status: done  # verified 2026-05-17T14:02Z (main thread)
+    notes: "Verified only — no changes needed. Route Opted-Out to WF-21 already passes wasOptedOut: '={{ true }}'. All 3 Postgres queries (Load User, Lookup Blacklisted Users, Load Pending User) already have chinmay_astro. schema prefix. Drifts logged to followups: Load User SELECT missing 13 columns from pseudocode Step 11; 2 of 3 executeWorkflow nodes still use __rl shape; 7 pre-existing Code-node return-shape validator errors."
     batch: 2
     depends_on:
       - id: WF-21
@@ -76,7 +78,8 @@ items:
   - id: WF-22
     description: "Change button title to 'Payment Completed ✓' (glyph); ON CONFLICT DO UPDATE for opted_out re-engagement (per Theme 11A); branch on WF-52 success (use isNew flag); if WF-52 fails (non-name_taken error), admin-alert via WF-51 and abort (no payment instructions sent); rowCount-based check for inserted detection (Postgres xmax=0)"
     priority: P0
-    status: pending
+    status: done  # verified 2026-05-17T14:04Z (main thread)
+    notes: "Verified only — no changes needed. All 5 required changes already implemented in live: button title 'Payment Completed ✓' ✓; INSERT ON CONFLICT (phone_number) DO UPDATE … RETURNING (xmax = 0) AS inserted ✓; User Created? IF branches on $json.inserted ✓; WF-52 Success? IF branches on $json.success — TRUE→Save→Prepare→WF-50, FALSE→Build Admin Alert→Call WF-51→END ✓; no encryption-svc node ✓. Validation: 0 errors. Drift logged: User Created? IF redundant (both branches → same node); 3 executeWorkflow nodes use __rl shape; Create User Record uses deprecated continueOnFail."
     batch: 2
     depends_on:
       - id: WF-52
