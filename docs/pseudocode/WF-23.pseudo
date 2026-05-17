@@ -6,6 +6,8 @@ WF-23 — Pre-Form Intent Filter
 - Outputs: Either re-sends the Flow form via WF-50 with a contextual intro, routes user to WF-47 (unsubscribe), or hands off to WF-25's built-in garbage/abuse handling (which sends its own warning).
 - State Transitions: none directly (WF-47 may move user to opted_out).
 - Calls Sub-Workflows: WF-25 (Intent Classifier), WF-47 (Unsubscribe), WF-50 (Send WhatsApp)
+- **Ambiguities / Notes:**
+  - WF-23 passes `messageText` into WF-25, but WF-25's `Prepare Intent Request` reads `input.messageContent`. Possible latent bug — see WF-25 ambiguity. If the field is undefined, the Gemini prompt may classify on an empty string.
 
 ---
 

@@ -6,6 +6,8 @@ WF-34 — Payment Rejection Processor
 - Outputs: Latest pending_verification payment row marked rejected; user status reset to payment_pending; WhatsApp interactive button ("Payment Completed") sent to user with retry instructions; Slack confirmation posted to chinmay-admin-commands channel
 - State Transitions: payment_submitted → payment_pending
 - Calls Sub-Workflows: WF-50 (Send WhatsApp). Posts Slack directly via Slack node to admin channel C0A5B0ZE81E.
+- **Ambiguities / Notes:**
+  - Admin-side confirmation goes to `chinmay-admin-commands` (C0A5B0ZE81E), not the user's consult channel — asymmetric vs WF-33 which posts into the user's consult channel.
 
 ---
 

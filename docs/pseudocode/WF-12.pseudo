@@ -6,6 +6,8 @@ WF-12 — Admin → WhatsApp Relay
 - Outputs: WhatsApp text message sent to the user via WF-50
 - State Transitions: none
 - Calls Sub-Workflows: WF-50 (Send WhatsApp)
+- **Ambiguities / Notes:**
+  - **Likely legacy / dead workflow.** No caller currently routes to WF-12 per WF-10's dispatch graph — the active admin→user relay runs through WF-41. Inputs (`botMessage`, `messageText`) are inferred from this workflow's filter conditions, not from any live caller.
 
 ---
 

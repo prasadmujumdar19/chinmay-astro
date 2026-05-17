@@ -6,6 +6,9 @@ WF-00 — Webhook Receiver
 - Outputs: HTTP 200 response to Meta ({status: "processed"} or {status: "skipped"}); message ID recorded in Chinmay-Astro-Messages data table for dedup
 - State Transitions: none
 - Calls Sub-Workflows: WF-01
+- **Ambiguities / Notes:**
+  - Sticky note in the workflow says "Message Cleanup >7 Days" but the actual dedup filter is `$today.minus(3,'days')`. Treat the 3-day window as truth.
+  - The Meta webhook verification GET (`hub.challenge` echo) is not present in this workflow's connections — verify it lives elsewhere or is handled at the CF/n8n layer.
 
 ---
 

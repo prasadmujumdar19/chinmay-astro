@@ -6,6 +6,9 @@ WF-46 — User Blocker
 - Outputs: users row updated to blocked; Slack notification posted to chinmay-admin-commands; user's consult Slack channel archived
 - State Transitions: any → `blocked`
 - Calls Sub-Workflows: none
+- **Ambiguities / Notes:**
+  - **Contradicts CLAUDE.md Design Rule #10** ("consultation channels are intentionally never archived") — WF-46 archives the user's consult Slack channel. Documented as-implemented; flag for review.
+  - **No `admin_actions` INSERT in this workflow.** The F-02 fix expected an `INSERT INTO admin_actions(action_type, notes, …)` here for BLOCK actions; that audit log must be emitted by the caller (likely WF-11) instead, otherwise BLOCK is going unlogged.
 
 ---
 

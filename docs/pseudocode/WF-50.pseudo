@@ -6,6 +6,8 @@ WF-50 — Send WhatsApp
 - Outputs: WhatsApp message delivered via Meta Graph API; message logged via WF-60; return { success, messageId, error, phoneNumber, sentAt } to caller.
 - State Transitions: none
 - Calls Sub-Workflows: WF-60 (Message Logger)
+- **Ambiguities / Notes:**
+  - The empty-body guard in `Prepare Payload` returns `[]` for `text` messages with no/empty `messageContent`. That stops the branch entirely — no Meta call, no `Process Result`, and no WF-60 log is emitted for the silent-drop path. Caller gets no return payload.
 
 ---
 

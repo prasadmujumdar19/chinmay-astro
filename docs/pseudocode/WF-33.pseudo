@@ -6,6 +6,9 @@ WF-33 — Payment Approval Processor
 - Outputs: Payment row marked approved; user status moved to consultation_active; new consultations row; user.current_consultation_id set; WhatsApp template "consultation_activated" sent to user; Slack confirmation posted to user's consult channel. If user is in wrong state, only a Slack warning is posted.
 - State Transitions: payment_submitted → consultation_active (only if user is currently payment_submitted)
 - Calls Sub-Workflows: WF-50 (Send WhatsApp). Posts Slack directly via Slack node (does NOT call WF-51 here). Does NOT call WF-52 — channel already exists (created at WF-22).
+- **Ambiguities / Notes:**
+  - Slack posts go to the user's consult channel (`user.slack_channel_id`) for both success and wrong-state branches — consistent with the rule that `APPROVE PAYMENT` is issued from inside that channel.
+  - Slack messaging here bypasses WF-51. Compare WF-34, which posts to `chinmay-admin-commands` directly — minor asymmetry.
 
 ---
 

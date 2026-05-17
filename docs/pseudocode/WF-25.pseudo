@@ -6,6 +6,9 @@ WF-25 — Intent Classifier
 - Outputs: Returns the input payload extended with `intentResult` ∈ {wants_consultation, general_enquiry, rebook_intent, feedback_intent, stop_intent, garbage, malicious_abusive, inappropriate}. Side effects: for garbage sends a warning + notifies admin via Slack; for malicious_abusive / inappropriate sends a block warning + auto-blocks the user via WF-46.
 - State Transitions: none directly. WF-46 (called for abuse/inappropriate) transitions user to `blocked`.
 - Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack — admin notify), WF-46 (Auto-Block)
+- **Ambiguities / Notes:**
+  - **Field-name mismatch (likely latent bug):** `Prepare Intent Request` reads `input.messageContent`, but callers WF-20 and WF-23 pass the user's text as `messageText`. The Gemini prompt may receive an empty/undefined string from those callers.
+  - **Garbage and Auto-Block branches do not flow back to `Return to Caller`.** They terminate after sending the warning, so any caller that expected an `intentResult` for those classifications receives nothing — the calling chain halts silently.
 
 ---
 

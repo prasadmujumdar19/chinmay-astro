@@ -6,6 +6,8 @@ WF-52 — Slack Channel Manager
 - Outputs: Returns { success, channelId, channelName, channelUrl }. Creates a new private Slack channel `consult-<phoneNumber>` and invites the admin user (U0AGTECS1KR), OR if the channel already exists, returns the existing channel.
 - State Transitions: none (caller — WF-22 — persists slack_channel_id to users row)
 - Calls Sub-Workflows: none
+- **Ambiguities / Notes:**
+  - The error branch only handles `name_taken` (channel already exists → look up the existing channel). Any other Slack API error falls off the end of the workflow with no explicit return — caller (WF-22) sees no `success/channelId` payload and may proceed without a `slack_channel_id`.
 
 ---
 

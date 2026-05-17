@@ -6,6 +6,8 @@ WF-31 — Payment Submitted Handler
 - Outputs: WhatsApp "under review" reassurance to user AND a Slack relay of the user message into the user's consult channel; or hand-off to WF-47
 - State Transitions: none (stop_intent path delegates to WF-47)
 - Calls Sub-Workflows: WF-25 (Intent Classifier), WF-47 (Unsubscribe), WF-50 (Send WhatsApp), WF-51 (Send Slack)
+- **Ambiguities / Notes:**
+  - The trigger fans out into two parallel branches: an intent-classification branch and an unconditional Slack-relay branch. The Slack relay therefore fires for every inbound message in `payment_submitted` state — including `stop_intent` and `garbage` — independently of the intent path.
 
 ---
 

@@ -6,6 +6,9 @@ WF-30 — Payment Pending Intent Filter
 - Outputs: Either a WhatsApp payment reminder, or hand-off to WF-47 unsubscribe
 - State Transitions: none (stop_intent path delegates the change to WF-47)
 - Calls Sub-Workflows: WF-25 (Intent Classifier), WF-47 (Unsubscribe), WF-50 (Send WhatsApp)
+- **Ambiguities / Notes:**
+  - For intents in {garbage, malicious_abusive, inappropriate}, WF-25 already handles the response internally and does NOT return to caller. So those messages effectively terminate inside WF-25 — WF-30 sees nothing for that intent set.
+  - Only `stop_intent` (→ WF-47) and the pass-through intents (reminder branch) are observable in WF-30's output.
 
 ---
 

@@ -6,6 +6,9 @@ WF-41 — Admin -> User Relay (bi-directional)
 - Outputs: Slack post in consult channel (whatsapp_to_slack) OR WhatsApp text to user (slack_to_whatsapp)
 - State Transitions: none
 - Calls Sub-Workflows: WF-50 (Send WhatsApp)
+- **Ambiguities / Notes:**
+  - The Slack-post step references `user.name`, but `Prepare Channel Lookup` does not explicitly populate it — the value must be supplied by the upstream caller's payload.
+  - The Slack-side message field is `messagetext` (lowercase), distinct from `messageText`. Confirm WF-10 passes the field with this exact casing.
 
 ---
 

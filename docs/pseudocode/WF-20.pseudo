@@ -6,6 +6,8 @@ WF-20 — Keyword Handler
 - Outputs: Either routes user to WF-47 (unsubscribe), WF-45 (rebook), or sends a HELP message via WF-50. Otherwise returns `action=passthrough` so the caller continues normal routing.
 - State Transitions: none directly (downstream WF-47 sets `opted_out`, WF-45 may move user to `payment_pending`)
 - Calls Sub-Workflows: WF-47 (Unsubscribe), WF-45 (Rebook), WF-50 (Send WhatsApp)
+- **Ambiguities / Notes:**
+  - The keyword Switch has a 4th `extra` fallback output wired to `Set Passthrough`, but no downstream node consumes the `Set Passthrough` output. Documented behavior matches the intent (return `action=passthrough` so WF-01 continues normal routing), but the JSON doesn't visibly forward that result anywhere.
 
 ---
 

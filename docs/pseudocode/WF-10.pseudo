@@ -6,6 +6,9 @@ WF-10 — Slack Admin Handler
 - Outputs: HTTP 200 (with challenge echo on verification); dispatches recognized admin commands to WF-11, and Chinmay's free-text replies in active consultation channels to WF-41
 - State Transitions: none (delegates; downstream WFs mutate state)
 - Calls Sub-Workflows: WF-11 (Command Parser), WF-41 (Admin → User Relay)
+- **Ambiguities / Notes:**
+  - The "Admin Vs User Channel" switch has `fallbackOutput: none` — messages in non-matching channels silently terminate (no error, no log).
+  - Bot-loop guard (skip if `authorizations[0].user_id == event.user`) sits between `Respond 200 OK` and `Extract Required Fields`.
 
 ---
 
