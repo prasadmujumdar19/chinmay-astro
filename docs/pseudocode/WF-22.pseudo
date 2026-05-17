@@ -4,8 +4,9 @@ WF-22 — Form Response Handler
 
 - Inputs: phoneNumber, rawMessage (the inbound WhatsApp interactive payload containing nfm_reply.response_json with the Flow form fields). Called by WF-02 when a user submits the WhatsApp Flow form.
 - Outputs: First-ever `users` row (status=payment_pending), Slack consultation channel created and `slack_channel_id` saved, payment instructions message sent on WhatsApp.
-- State Transitions: [no record] → payment_pending. (If row already existed, no transition.)
-- Calls Sub-Workflows: WF-52 (Ensure Slack Channel Exists), WF-50 (Send WhatsApp)
+- State Transitions: [no record] → payment_pending. (If row already existed, no transition.) Opted_out → payment_pending (re-engagement re-submitting the form overwrites status).
+- Calls Sub-Workflows: WF-52 (Ensure Slack Channel Exists), WF-50 (Send WhatsApp), WF-51 (admin alert on WF-52 failure path only)
+- **Notes:** Form `response_json` is delivered cleartext (Flow `1408011897720771` is configured in send-only mode — no encryption-svc decryption needed; verified live 2026-05-17).
 
 ---
 
@@ -13,15 +14,15 @@ WF-22 — Form Response Handler
 
 Step 1: Start — workflow triggered by another workflow (WF-02) with phoneNumber and the rawMessage from WhatsApp.
 Step 2: Extract form data — parse rawMessage.interactive.nfm_reply.response_json as JSON and pull out: full_name, date_of_birth, time_of_birth, place_of_birth, consent (true if contains "agree"), flow_token. phoneNumber falls back to rawMessage.from.
-Step 3: INSERT INTO users (phone_number, name, date_of_birth, time_of_birth, place_of_birth, status, created_at, updated_at, last_message_at) VALUES (phoneNumber, full_name, date_of_birth, time_of_birth, place_of_birth, 'payment_pending', NOW(), NOW(), NOW()) ON CONFLICT (phone_number) DO NOTHING RETURNING id, name, phone_number, status, created_at. Per design rule, this is the first `users` write for this user.
-Step 4: Check: was a new user row created (id not empty)?
-  - If YES → go to Step 5
-  - If NO (conflict — user already existed) → go to Step 9
-Step 5: Call WF-52 (Ensure Slack Channel Exists) with the new user record. WF-52 creates a consultation Slack channel and returns channelId.
-Step 6: UPDATE users SET slack_channel_id = <channelId from WF-52>, updated_at = NOW() WHERE id = <new user id> RETURNING id, slack_channel_id.
+Step 3: INSERT INTO chinmay_astro.users (phone_number, name, date_of_birth, time_of_birth, place_of_birth, status, created_at, updated_at, last_message_at) VALUES (phoneNumber, full_name, date_of_birth, time_of_birth, place_of_birth, 'payment_pending', NOW(), NOW(), NOW()) ON CONFLICT (phone_number) DO UPDATE SET name=EXCLUDED.name, date_of_birth=EXCLUDED.date_of_birth, time_of_birth=EXCLUDED.time_of_birth, place_of_birth=EXCLUDED.place_of_birth, status='payment_pending', updated_at=NOW(), last_message_at=NOW() RETURNING id, name, phone_number, status, slack_channel_id, (xmax = 0) AS inserted. Per design rule, this is the first `users` write for this user. (Opted_out re-engagement: ON CONFLICT updates the existing row back to payment_pending — supersedes the previous status.)
+Step 4: Check: was a brand-new user row created (returned `inserted` flag == true, i.e., `xmax=0` Postgres trick)?
+  - If YES → go to Step 5 (new user — create Slack channel)
+  - If NO (existing user — opted_out re-engagement or rare duplicate submission) → go to Step 5b (channel may or may not exist; resolve via WF-52 idempotency)
+Step 5: Call WF-52 (Ensure Slack Channel Exists) with the new user record. WF-52 creates a consultation Slack channel and returns `{success, channelId, channelName, channelUrl, isNew}`. If WF-52 returns `success=false` → go to Step 5c.
+Step 5b: Call WF-52 with the existing user record. WF-52 will detect existing channel by name collision and return `isNew=false` with the existing channelId. If WF-52 returns `success=false` → go to Step 5c. Otherwise proceed to Step 6.
+Step 5c: WF-52 failure handler — call WF-51 with channelId='chinmay-admin-commands' (C0A5B0ZE81E) and messageText="❌ WF-52 failed to ensure Slack channel for new user phone=<phoneNumber>, name=<full_name>. Error: <error>. User has a DB row but no channel — manual intervention needed." DO NOT send payment instructions to the user (Step 7 skipped). End.
+Step 6: UPDATE chinmay_astro.users SET slack_channel_id = <channelId from WF-52>, updated_at = NOW() WHERE id = <user id> RETURNING id, slack_channel_id.
 Step 7: Prepare payment instructions message:
   - phoneNumber = user's phone, messageType = "interactive".
-  - interactivePayload: type="button", body="Thank you <name>! Your details have been received. Payment Information: Amount ₹500. Please send ₹500 via GPay / PhonePe / any UPI app to +91-9653240263 (Chinmay Mujumdar). Once done, tap the button below:", buttons=[{id:"payment_completed", title:"Payment Completed"}].
+  - interactivePayload: type="button", body="Thank you <name>! Your details have been received. Payment Information: Amount ₹500. Please send ₹500 via GPay / PhonePe / any UPI app to +91-9653240263 (Chinmay Mujumdar). Once done, tap the button below:", buttons=[{id:"payment_completed", title:"Payment Completed ✓"}].
 Step 8: Call WF-50 with the prepared phoneNumber, messageType, and interactivePayload. End.
-Step 9: Build "user already exists" reply — messageType="text", messageBody="We already have your details on file. Please continue with the instructions previously sent to you. If you need help, reply HELP. To stop messages, reply STOP."
-Step 10: Call WF-50 with phoneNumber, messageType=text, messageBody. End.

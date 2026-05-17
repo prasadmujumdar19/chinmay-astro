@@ -2,22 +2,32 @@ WF-50 — Send WhatsApp
 
 ## Summary
 
-- Inputs: phoneNumber, messageType ('text'|'interactive'|'template'), and one of: messageContent (text); interactivePayload {type:'flow'|'button', ...} (interactive); templateName + templateParams (template). Also: userId, inboundMessageId, userMessage (for logging).
-- Outputs: WhatsApp message delivered via Meta Graph API; message logged via WF-60; return { success, messageId, error, phoneNumber, sentAt } to caller.
+- Inputs: phoneNumber, messageType ('text'|'interactive'|'template'), consultationId (optional), and one of:
+    - text: messageContent
+    - interactive flow: interactivePayload = { type:'flow', flowId, flowCta, header:{text}, body:{text} }
+    - interactive button: interactivePayload = { type:'button', body:{text}, action:{buttons:[{id,title},...]} }
+    - template: templateName + templateParams
+  Also: userId, inboundMessageId, userMessage (for logging).
+- Outputs: WhatsApp message delivered via Meta Graph API; message logged via WF-60 (direction='outbound'); return { success, messageId, error, phoneNumber, sentAt } to caller. On null/empty body drop: also logs to WF-60 with success=false, error='empty_body_dropped', and returns the same structured error to the caller.
 - State Transitions: none
 - Calls Sub-Workflows: WF-60 (Message Logger)
-- **Ambiguities / Notes:**
-  - The empty-body guard in `Prepare Payload` returns `[]` for `text` messages with no/empty `messageContent`. That stops the branch entirely — no Meta call, no `Process Result`, and no WF-60 log is emitted for the silent-drop path. Caller gets no return payload.
+- **Notes:**
+  - Null/empty body guard (TD-033) applies to all three messageType paths: text body, interactive payload, and templateName.
+  - The guard always logs the drop attempt (success=false, error='empty_body_dropped') and returns a structured error to the caller — no silent drops.
 
 ---
 
 ## Algorithm
 
 Step 1: Start — triggered by another workflow with message-send parameters passed through.
-Step 2: Normalize payload (Prepare Payload code): pick phoneNumber from phoneNumber or phoneNumberFormatted; default messageType='text'; accept messageContent OR message OR messageBody for the body. Carry interactivePayload, templateName, templateParams, userId, inboundMessageId, userMessage forward.
-Step 3: Guard: messageType=='text' AND messageContent is empty/whitespace?
-  - If YES → return empty array (stop silently, no API call, no log). Go to Step 14.
-  - If NO → go to Step 4.
+Step 2: Normalize payload (Prepare Payload code): pick phoneNumber from phoneNumber or phoneNumberFormatted; default messageType='text'; accept messageContent OR message OR messageBody for the body. Carry consultationId, interactivePayload, templateName, templateParams, userId, inboundMessageId, userMessage forward.
+Step 3: Guard: detect missing/empty body per messageType:
+  - text → messageContent is null/empty/whitespace-only.
+  - interactive → interactivePayload is null/undefined, OR (interactivePayload.type is neither 'flow' nor 'button'), OR for flow: flowId is empty, OR for button: action.buttons is empty/missing.
+  - template → templateName is null/empty.
+  If ANY of the above is true: set success=false, error='empty_body_dropped'. Go to Step 3a (log drop) → Step 12 (return structured error).
+  Else → go to Step 4.
+Step 3a: Call WF-60 (Message Logger) with { userId, consultationId, phoneNumber, messageType, messageContent: '[empty_body_dropped]', messageId: null, direction='outbound', success: false, error: 'empty_body_dropped' }. Go to Step 12.
 Step 4: Route on messageType:
   - 'text' → go to Step 5
   - 'interactive' → go to Step 6
@@ -31,7 +41,11 @@ Step 7: POST https://graph.facebook.com/v22.0/1104226366097236/messages with the
 Step 8: Build template payload (Prepare Template Message code): build components from templateParams (type:'body' with text parameters) and assemble { messaging_product:'whatsapp', to, type:'template', template:{ name=templateName, language.code='en', components } }. Go to Step 9.
 Step 9: POST https://graph.facebook.com/v22.0/1104226366097236/messages with the template payload (timeout 10s). Go to Step 10.
 Step 10: Process API response (Process Result code): if response.messages[0] present → success=true, messageId=response.messages[0].id; else if response.error → success=false, error=response.error.message; else fallback success=true, messageId='unknown'. Carry phoneNumber, messageType, messageContent, userId, inboundMessageId, userMessage, sentAt=now. Go to Step 11.
-Step 11: Call WF-60 (Message Logger) with { userId, phoneNumber, messageType, messageContent, messageId, direction='outbound', success, error }. Go to Step 12.
+Step 11: Call WF-60 (Message Logger) with { userId, consultationId, phoneNumber, messageType,
+   messageContent: (messageType=='text' ? messageContent
+                  : messageType=='interactive' ? (interactivePayload.body?.text || JSON.stringify(interactivePayload))
+                  : 'template:' + templateName),
+   messageId, direction='outbound', success, error }. Go to Step 12.
 Step 12: Build return object (Return Status code): { success, messageId, error, phoneNumber, sentAt }. Go to Step 13.
 Step 13: Return that object to the calling workflow.
 Step 14: End.

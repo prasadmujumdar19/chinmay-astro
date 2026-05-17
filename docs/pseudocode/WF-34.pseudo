@@ -2,25 +2,32 @@ WF-34 — Payment Rejection Processor
 
 ## Summary
 
-- Inputs: phoneNumber, rejectionReason (optional) — triggered by WF-11 command parser when admin sends "REJECT PAYMENT <phone>"
-- Outputs: Latest pending_verification payment row marked rejected; user status reset to payment_pending; WhatsApp interactive button ("Payment Completed") sent to user with retry instructions; Slack confirmation posted to chinmay-admin-commands channel
-- State Transitions: payment_submitted → payment_pending
-- Calls Sub-Workflows: WF-50 (Send WhatsApp). Posts Slack directly via Slack node to admin channel C0A5B0ZE81E.
-- **Ambiguities / Notes:**
-  - Admin-side confirmation goes to `chinmay-admin-commands` (C0A5B0ZE81E), not the user's consult channel — asymmetric vs WF-33 which posts into the user's consult channel.
+- Inputs: phoneNumber, rejectionReason (optional), channelId (admin's channel where REJECT was typed) — triggered by WF-11 command parser when admin sends "REJECT <phone>" or "REJECT PAYMENT <phone>"
+- Outputs: Latest pending_verification payment row marked rejected; user status reset to payment_pending; WhatsApp interactive button ("Payment Completed ✓") sent to user with retry instructions; Slack confirmation posted via WF-51 to the user's consult channel. If user is in wrong state, only a Slack warning is posted.
+- State Transitions: payment_submitted → payment_pending (only if user is currently payment_submitted)
+- Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack)
+- **Notes:**
+  - Mirrors WF-33's state guard (Step 4 / Step 13) — REJECT only fires when user.status='payment_submitted'.
+  - Slack confirmation posts to the user's consult channel (via WF-51) for parity with WF-33.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — Triggered by WF-11 with {phoneNumber, rejectionReason?}.
+Step 1: Start — Triggered by WF-11 with {phoneNumber, rejectionReason?, channelId, channelName}.
 Step 2: SELECT u.*, p.id as payment_id FROM chinmay_astro.users u LEFT JOIN chinmay_astro.payments p ON p.user_id=u.id AND p.status='pending_verification' WHERE u.phone_number=phoneNumber ORDER BY p.created_at DESC LIMIT 1. Capture user row + payment_id.
-Step 3: UPDATE chinmay_astro.payments SET status='rejected', rejected_at=NOW(), rejection_reason=COALESCE(rejectionReason, 'Payment not verified') WHERE id=payment_id RETURNING *.
-Step 4: UPDATE chinmay_astro.users SET status='payment_pending', updated_at=NOW() WHERE phone_number=phoneNumber.
-Step 5: Build interactive WhatsApp payload:
+Step 3: Check: was a user found?
+  - If NO → call WF-51 with channelId=channelId (admin's channel), messageText="❌ REJECT failed — no user found for phone +<phoneNumber>. No changes made." End.
+  - If YES → go to Step 4.
+Step 4: Check: Is user.status == "payment_submitted"?
+  - If YES → go to Step 5.
+  - If NO → call WF-51 with channelId=user.slack_channel_id, messageText="❌ REJECT failed — user +<phone_number> is not in payment_submitted state (current: '<status>'). No changes made." End.
+Step 5: UPDATE chinmay_astro.payments SET status='rejected', rejected_at=NOW(), rejection_reason=COALESCE(rejectionReason, 'Payment not verified') WHERE id=payment_id RETURNING *.
+Step 6: UPDATE chinmay_astro.users SET status='payment_pending', updated_at=NOW() WHERE phone_number=phoneNumber.
+Step 7: Build interactive WhatsApp payload:
   - phoneNumber = user.phone_number
   - messageType = "interactive"
-  - interactivePayload = button type with body "We couldn't verify your payment. Please check the details and try again.\n\nPayment Instructions:\nAmount: ₹500\nUPI ID: payments@chinmay\nReference: Your name\n\nAfter payment, click the button below." and a single reply button {id: "payment_completed", title: "Payment Completed"}.
-Step 6: Call WF-50 with the interactive payload.
-Step 7: Post Slack message directly to chinmay-admin-commands (C0A5B0ZE81E): "❌ Payment rejected for <name or 'User'> (+<phone_number>). User notified to retry payment."
-Step 8: End.
+  - interactivePayload = button type with body "We couldn't verify your payment. Please check the details and try again.\n\nPayment Instructions:\nAmount: ₹500\nPlease send ₹500 via GPay / PhonePe / any UPI app to +91-9653240263 (Chinmay Mujumdar)\n\nAfter payment, tap the button below." and a single reply button {id: "payment_completed", title: "Payment Completed ✓"}.
+Step 8: Call WF-50 with the interactive payload.
+Step 9: Call WF-51 with channelId=user.slack_channel_id, messageText="❌ Payment rejected for <name or 'User'> (+<phone_number>). Reason: <rejectionReason or 'Payment not verified'>. User notified to retry payment."
+Step 10: End.

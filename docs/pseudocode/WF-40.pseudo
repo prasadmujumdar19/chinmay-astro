@@ -3,24 +3,21 @@ WF-40 — User -> Admin Relay
 ## Summary
 
 - Inputs: phoneNumber, messageContent (user's WhatsApp message text during an active consultation)
-- Outputs: Slack message posted to the user's consult channel; or a WhatsApp reply blocking STOP during consultation
+- Outputs: Slack message posted to the user's consult channel
 - State Transitions: none
-- Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack Message)
+- Calls Sub-Workflows: WF-51 (Send Slack Message)
+- **Notes:**
+  - Pure pass-through relay — NO LLM processing, NO STOP intercept (STOP/HELP/REBOOK are intercepted upstream at WF-20 → WF-47 per Design Rule #5).
+  - Inbound message logging is handled upstream by WF-00 → WF-60 (every inbound webhook is logged at the entry point); WF-40 does NOT call WF-60 to avoid duplicate rows.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — triggered by another workflow (typically WF-01 routing a message from a user in `consultation_active` state). Inputs: phoneNumber, messageContent.
-Step 2: Check: Is the trimmed, uppercased messageContent exactly "STOP"?
-  - If YES → go to Step 3
-  - If NO  → go to Step 6
-Step 3: Build a J-19 blocking response: phoneNumber, messageType=text, messageBody="Your consultation with Chinmay is currently active. STOP cannot be used during a live consultation — please continue your conversation here. If you would like to end the consultation, please ask Chinmay to close it."
-Step 4: Call WF-50 with phoneNumber, messageType=text, messageBody=<J-19 text>.
-Step 5: End (STOP intercepted, no relay).
-Step 6: SELECT id, name, phone_number, slack_channel_id FROM chinmay_astro.users WHERE phone_number = <phoneNumber> LIMIT 1.
-Step 7: Format Slack message:
+Step 1: Start — triggered by WF-02 routing a message from a user in `consultation_active` state. Inputs: phoneNumber, messageContent.
+Step 2: SELECT id, name, phone_number, slack_channel_id FROM chinmay_astro.users WHERE phone_number = <phoneNumber> LIMIT 1.
+Step 3: Format Slack message:
   - channelId = user.slack_channel_id
   - messageText = "📲 *<user.name>:* <messageContent>"
-Step 8: Call WF-51 with channelId, messageText (posts the user's words into the consult Slack channel).
-Step 9: End.
+Step 4: Call WF-51 with channelId, messageText (posts the user's words into the consult Slack channel).
+Step 5: End.

@@ -248,6 +248,10 @@ All workflows follow the WF-XX naming convention. The `workflow-registry.md` is 
 1. **No DB write before form submission.** First DB write = WF-22 (form callback). WF-21 sends welcome + form with no DB write.
 2. **Slack channel created at form submission (WF-22), not at "Payment Completed".** WF-22 calls WF-52 immediately after the DB write and stores `slack_channel_id`. WF-32 reads the existing channel ID from DB — it does NOT call WF-52. Do not revert this.
 3. **Admin sends `APPROVE PAYMENT <phone>` in the user's consult channel.** Not in `chinmay-admin-commands`. WF-10 captures all workspace events so commands work from any channel.
+3a. **Channel scope of admin commands (DR-13, added 2026-05-17):**
+    - **User-targeted commands** (carry a `<phone>` argument: APPROVE PAYMENT, REJECT, CLOSE CHAT CONSULT, BLOCK, UNBLOCK) are accepted ONLY in the user's `consult-{phone}` channel. WF-10 rejects them when typed elsewhere with a polite reminder.
+    - **Admin-wide commands** (no phone argument: LIST, STATS, HELP) work in ANY channel.
+    - WF-11 keyword parser accepts aliases: `APPROVE` ≡ `APPROVE PAYMENT`; `REJECT` ≡ `REJECT PAYMENT`; `CLOSE` ≡ `CLOSE CONSULT` ≡ `CLOSE CONSULTATION` ≡ `CLOSE CHAT CONSULT`.
 4. **`opted_out` ≠ `blocked`.** STOP keyword → `opted_out` (user-initiated, re-engages automatically). Admin BLOCK → `blocked` (admin/system action, requires UNBLOCK). WF-01 routes them differently.
 5. **WF-20 intercepts keywords (STOP/HELP/REBOOK) before the intent classifier runs.** Exact match, no LLM.
 6. **Every state accepting free-form text must run WF-25 first.** No state should blindly process user text without intent classification.

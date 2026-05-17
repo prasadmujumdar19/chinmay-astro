@@ -12,20 +12,20 @@ WF-11 — Command Parser
 ## Algorithm
 
 Step 1: Start — triggered by WF-10 with the parsed admin command payload.
-Step 2: Parse Command:
-  - Uppercase trimmed messageText; split on whitespace into [command, subCommand, arg1, arg2...].
-  - If arg1 matches digit pattern (10–15 digits, optional leading +), set phoneNumber = stripped digits.
-  - Determine commandType:
-    - 'APPROVE PAYMENT' → 'APPROVE_PAYMENT'
-    - 'REJECT PAYMENT' → 'REJECT_PAYMENT'
-    - 'CLOSE CONSULTATION' / 'CLOSE CONSULT' → 'CLOSE_CONSULTATION'
-    - 'UNBLOCK <phone>' → 'UNBLOCK_USER' (targetPhone = remainder after UNBLOCK)
-    - 'BLOCK <phone> [reason]' → 'BLOCK_USER' (phoneNumber = subCommand)
+Step 2: Parse Command (case-insensitive; accept canonical forms and aliases):
+  - Uppercase trimmed messageText; split on whitespace into tokens.
+  - Find the first token that matches digit pattern (10–15 digits, optional leading +): set phoneNumber = stripped digits. All tokens after the phone number form `reason` (concatenated).
+  - Determine commandType by matching the leading keyword sequence (longest match wins):
+    - 'APPROVE PAYMENT' OR 'APPROVE' → 'APPROVE_PAYMENT'
+    - 'REJECT PAYMENT' OR 'REJECT' → 'REJECT_PAYMENT'
+    - 'CLOSE CHAT CONSULT' OR 'CLOSE CONSULTATION' OR 'CLOSE CONSULT' OR 'CLOSE' → 'CLOSE_CONSULTATION'
+    - 'UNBLOCK' → 'UNBLOCK_USER' (targetPhone = phoneNumber)
+    - 'BLOCK' → 'BLOCK_USER'
     - 'LIST' → 'LIST'
     - 'STATS' → 'STATS'
     - 'HELP' → 'HELP'
     - else → 'UNKNOWN'
-  - Carry adminUserId, channelId, channelName, reason (concat of args from position 3), originalMessage.
+  - Carry adminUserId, channelId, channelName, phoneNumber, reason, originalMessage.
 Step 3: Switch on commandType:
   - 'APPROVE_PAYMENT' → go to Step 4.
   - 'REJECT_PAYMENT' → go to Step 5.
@@ -42,17 +42,17 @@ Step 6: Call WF-42 (Consultation Closer) passing through the parsed command.
 Step 7: Post to Slack channel (Parse Command channelId): "✅ Consultation closed for <phoneNumber>". End.
 Step 8: Call WF-46 (User Blocker) passing through the parsed command.
 Step 9: Post to Slack channel (Parse Command channelId): "🚫 User <phoneNumber> has been blocked. Reason: <reason or 'No reason provided'>". End.
-Step 10: SELECT u.id, u.name, u.phone_number, u.status, c.id, c.started_at, EXTRACT(EPOCH FROM (NOW() - c.started_at))/3600 AS hours_active FROM users u LEFT JOIN consultations c ON u.id=c.user_id AND c.status='active' WHERE u.status IN ('payment_submitted','consultation_active') ORDER BY u.status DESC, c.started_at DESC.
+Step 10: SELECT u.id, u.name, u.phone_number, u.status, c.id, c.started_at, EXTRACT(EPOCH FROM (NOW() - c.started_at))/3600 AS hours_active FROM chinmay_astro.users u LEFT JOIN chinmay_astro.consultations c ON u.id=c.user_id AND c.status='active' WHERE u.status IN ('payment_submitted','consultation_active') ORDER BY u.status DESC, c.started_at DESC.
 Step 11: Format the list into a Slack mrkdwn message (Pending Payment Verifications + Active Consultations). Post to Slack channel (channelName). End.
-Step 12: SELECT counts: total_users, active_consultations, pending_payments, completed_today, revenue_today (sum of approved payment amounts dated today), blocked_users.
+Step 12: SELECT counts from chinmay_astro tables: total_users, active_consultations, pending_payments (status='pending_verification'), completed_today, revenue_today (sum of approved payment amounts dated today), blocked_users.
 Step 13: Format stats message and post to Slack channel (channelName). End.
 Step 14: Build HELP text (list of all available commands and examples).
 Step 15: Post HELP text to Slack channel (channelName). End.
-Step 16: SELECT id, name, phone_number, status FROM users WHERE phone_number = $targetPhone AND status = 'blocked' LIMIT 1.
+Step 16: SELECT id, name, phone_number, status FROM chinmay_astro.users WHERE phone_number = $targetPhone AND status = 'blocked' LIMIT 1.
 Step 17: Check: did the query return a row (user exists and is blocked)?
   - If YES → go to Step 18.
   - If NO → go to Step 20.
-Step 18: UPDATE users SET status='consultation_closed', updated_at=NOW() WHERE phone_number=$targetPhone; INSERT INTO admin_actions (user_id, action_type, notes, created_at) VALUES (<id from lookup>, 'unblocked', 'Admin UNBLOCK command', NOW()).
+Step 18: UPDATE chinmay_astro.users SET status='consultation_closed', updated_at=NOW() WHERE phone_number=$targetPhone; INSERT INTO chinmay_astro.admin_actions (user_id, action_type, notes, created_at) VALUES (<id from lookup>, 'unblocked', 'Admin UNBLOCK command', NOW()).
 Step 19: Post to chinmay-admin-commands: "✅ User <name> (<targetPhone>) has been unblocked. Status is now consultation_closed. They can REBOOK when ready." End.
 Step 20: Post to chinmay-admin-commands: "❌ No blocked user found with number <targetPhone>". End.
 Step 21: Post to Slack channel (channelName): "❓ Unknown command: `<originalMessage>` Type `HELP` to see available commands." End.

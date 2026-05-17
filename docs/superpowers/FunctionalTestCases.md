@@ -1,6 +1,7 @@
 # Chinmay Astro — Functional Test Cases
 
 **Created:** 2026-05-13  
+**Revised:** 2026-05-17 — P0 verification pass. Amended TC-0104, TC-0201, TC-0301, TC-0304, TC-0305, TC-0508, TC-0604, TC-0606, TC-1009, TC-1010 based on live-workflow + pseudocode reconciliation.  
 **Source:** `docs/reference/user_journey_map.html` v2.0, `docs/workflow-registry.md` v2.7, `docs/Tech_Debts.md`  
 **Assumption:** Tech debts are evaluated as **closed** for test design purposes. Gaps covered by existing TDs are noted inline.  
 **Format:** Given / When / Then  
@@ -95,14 +96,14 @@
 **Given:** User has received the WhatsApp Flow form (no DB record yet, or pendingUser state).  
 **When:** User fills and submits the form with Name, Date of Birth, Time of Birth, and Place of Birth.  
 **Then:**
-1. Meta delivers an encrypted `nfm_reply` webhook.
+1. Meta delivers an `nfm_reply` webhook with cleartext `response_json` (Flow `1408011897720771` runs in send-only mode — no endpoint encryption configured, so no encryption-svc step is required; verified live 2026-05-17).
 2. WF-02 detects `messageType = interactive`, `interactive.type = nfm_reply` → routes DETAILS_FORM path to WF-22.
-3. WF-22 calls the encryption-svc Docker container to decrypt the payload (IV flipping).
-4. WF-22 creates a DB record: `status = payment_pending`, stores name, DOB, TOB, birth_place.
-5. WF-22 immediately calls WF-52 to create `consult-{phone}` Slack channel; saves `slack_channel_id` to DB.
+3. WF-22 parses `rawMessage.interactive.nfm_reply.response_json` as JSON (cleartext).
+4. WF-22 INSERTs into `chinmay_astro.users`: `status = payment_pending`, name, date_of_birth, time_of_birth, place_of_birth. ON CONFLICT updates the existing row (opted_out re-engagement path).
+5. WF-22 calls WF-52 to ensure consult-{phone} Slack channel exists; saves `slack_channel_id` to DB. If WF-52 fails (non-`name_taken` error), WF-22 alerts admin via WF-51 and aborts (no payment instructions sent).
 6. WF-22 sends payment instructions via WF-50: "Please send ₹500 via GPay / PhonePe / any UPI app to: +91-9653240263 (Chinmay Mujumdar). Once done, tap the button below." + "Payment Completed ✓" interactive button.
 
-**Preconditions:** encryption-svc running; Slack credential `WSds5JWe5b6N7myY` valid.
+**Preconditions:** Slack credential `WSds5JWe5b6N7myY` valid; WF-22, WF-52, WF-50 active.
 
 ---
 
@@ -185,15 +186,15 @@ The journey map documents a two-step flow: Welcome → wait for YES → send for
 **Priority:** 🔴 P0  
 **Owning WFs:** WF-00 → WF-01 → WF-02 (PAYMENT_CONFIRM) → WF-32 → WF-51 → WF-50
 
-**Given:** User has `status = payment_pending`; `slack_channel_id` is stored in DB (created at form submission).  
+**Given:** User has `status = payment_pending`; `slack_channel_id` is stored in DB (created at form submission). WF-02 PAYMENT_CONFIRM route now requires `user.status = payment_pending` (other button_reply types fall to UNHANDLED admin alert).  
 **When:** User taps the "Payment Completed ✓" interactive button in WhatsApp.  
 **Then:**
-1. WF-02 detects `messageType = interactive`, `interactive.type = button_reply` → routes PAYMENT_CONFIRM to WF-32.
-2. WF-32 creates a payment record in DB with `status = submitted`.
+1. WF-02 detects `messageType = interactive`, `interactive.type = button_reply`, AND `user.status = payment_pending` → routes PAYMENT_CONFIRM to WF-32.
+2. WF-32 creates a payment row in `chinmay_astro.payments` with `status = pending_verification` (canonical value).
 3. WF-32 updates user `status = payment_submitted`.
 4. WF-32 loads `slack_channel_id` from DB (does **not** call WF-52 again).
-5. WF-32 posts to the existing Slack channel: user birth details + `APPROVE PAYMENT <phone>` instruction.
-6. WF-32 sends user confirmation via WF-50: "Got it! Chinmay will review your payment and confirm shortly. Usually within a few minutes."
+5. WF-32 posts to the existing Slack channel via WF-51: user birth details + `APPROVE PAYMENT <phone>` instruction.
+6. WF-32 sends user confirmation via WF-50: "Thank you <name>! Your payment confirmation has been received. We'll verify your payment and activate your consultation within 24 hours."
 
 ---
 
@@ -283,18 +284,18 @@ The journey map documents a two-step flow: Welcome → wait for YES → send for
 **Priority:** 🔴 P0  
 **Owning WFs:** WF-10 → WF-11 (APPROVE) → WF-33 → WF-50 → WF-51
 
-**Given:** User has `status = payment_submitted`; admin is in the user's `consult-{phone}` Slack channel.  
-**When:** Admin types: `APPROVE PAYMENT 919876543210`  
+**Given:** User has `status = payment_submitted`; admin is in the user's `consult-{phone}` Slack channel (DR-13: APPROVE PAYMENT is a user-targeted command — accepted in consult-{phone} only, rejected in `chinmay-admin-commands`).  
+**When:** Admin types: `APPROVE PAYMENT 919876543210` (or `APPROVE 919876543210` — both aliases recognised).  
 **Then:**
-1. WF-10 captures the Slack event; routes to WF-11.
-2. WF-11 parses command as `APPROVE` with `targetPhone = 919876543210`.
-3. WF-33 loads user record; validates `status = payment_submitted`.
-4. WF-33 updates payment record: `status = approved`.
-5. WF-33 updates user: `status = consultation_active`.
-6. WF-33 sends user WhatsApp message via WF-50: "Your consultation has started! You can now ask Chinmay your astrology questions."
-7. WF-33 posts Slack confirmation with user birth details summary for admin reference.
+1. WF-10 captures the Slack event; verifies channel == consult-{phone}; routes to WF-11.
+2. WF-11 parses command as `APPROVE_PAYMENT` with `phoneNumber = 919876543210`.
+3. WF-33 loads user record; validates `status = payment_submitted` (otherwise Step 13 wrong-state Slack warning).
+4. WF-33 updates payment record: `status = approved`, `verified_at = NOW()`, `verified_by = adminUserId`.
+5. WF-33 updates user: `status = consultation_active`; inserts `consultations` row; sets `current_consultation_id`.
+6. WF-33 sends user WhatsApp via WF-50 (template `consultation_activated`).
+7. WF-33 posts Slack confirmation via WF-51 to the user's consult channel with birth details summary.
 
-**Note:** `APPROVE PAYMENT` — canonical form. WF-11 parses full command including "PAYMENT" keyword.
+**Note:** `APPROVE PAYMENT` and bare `APPROVE` both accepted (Theme 2 aliases). WF-11 normalises to commandType `APPROVE_PAYMENT`.
 
 ---
 
@@ -332,13 +333,15 @@ The journey map documents a two-step flow: Welcome → wait for YES → send for
 **Owning WFs:** WF-10 → WF-11 (REJECT) → WF-34 → WF-50  
 **Note:** **TD-001** (schema prefix `chinmay_astro.` missing in WF-34 — closure in progress).
 
-**Given:** User has `status = payment_submitted`.  
-**When:** Admin types: `REJECT 919876543210`  
+**Given:** User has `status = payment_submitted`; admin is in the user's `consult-{phone}` channel (DR-13).  
+**When:** Admin types: `REJECT 919876543210` (or `REJECT PAYMENT 919876543210` — both aliases recognised).  
 **Then:**
-1. WF-11 parses command as `REJECT`.
-2. WF-34 updates payment record: `status = rejected`.
-3. WF-34 updates user: `status = payment_pending`.
-4. WF-34 sends user WhatsApp message via WF-50: "We couldn't verify your payment. Please complete payment and tap the button again." + re-sends GPay instructions + "Payment Completed" button.
+1. WF-11 parses command as `REJECT_PAYMENT` with phoneNumber.
+2. WF-34 loads user + latest pending_verification payment; validates `user.status = payment_submitted` (otherwise Slack warning, no changes).
+3. WF-34 updates payment: `status = rejected`, `rejected_at = NOW()`, `rejection_reason = COALESCE(reason, 'Payment not verified')`.
+4. WF-34 updates user: `status = payment_pending`.
+5. WF-34 sends user WhatsApp via WF-50 (interactive button): "We couldn't verify your payment. Please check the details and try again. ... Payment Completed ✓" — this re-issues the payment instructions + button (matching the form-once-per-user design rule: button only reappears when WF-34 fires).
+6. WF-34 posts admin confirmation via WF-51 to user's consult channel with rejection reason.
 
 ---
 
@@ -350,16 +353,16 @@ The journey map documents a two-step flow: Welcome → wait for YES → send for
 - **TD-014** (WF-42 UPDATE uses non-existent `users` columns — closure in progress).  
 - **TD-015** (WF-42 sends unconfirmed Meta template instead of interactive buttons — closure in progress).
 
-**Given:** User has `status = consultation_active`; `consult-{phone}` channel is active in Slack.  
-**When:** Admin types: `CLOSE CHAT CONSULT 919876543210`  
+**Given:** User has `status = consultation_active`; `consult-{phone}` channel is active in Slack; admin is in the user's `consult-{phone}` channel (DR-13).  
+**When:** Admin types: `CLOSE CHAT CONSULT 919876543210` (or `CLOSE CONSULTATION 919876543210` / `CLOSE CONSULT 919876543210` / `CLOSE 919876543210` — all aliases recognised).  
 **Then:**
-1. WF-11 parses command as `CLOSE`.
-2. WF-42 disables relay mode.
-3. WF-42 updates consultation record: `status = closed`, `closed_at = now()`.
-4. WF-42 updates user: `status = consultation_closed`.
-5. WF-42 calls WF-52 to archive the `consult-{phone}` Slack channel.
-6. WF-42 sends user interactive button message via WF-50 with three options: "Provide Feedback", "Book Another Consultation", "I'm done, thank you".
-7. Admin receives Slack confirmation.
+1. WF-11 parses command as `CLOSE_CONSULTATION` with phoneNumber.
+2. WF-42 loads user; validates user found AND `user.status = consultation_active` (otherwise user-not-found OR wrong-state Slack warning, no changes).
+3. WF-42 updates consultations: `status = closed`, `ended_at = NOW()`, `closed_by = 'admin'`.
+4. WF-42 updates user: `status = consultation_closed`, `current_consultation_id = NULL`, `total_consultations += 1`.
+5. **WF-42 does NOT archive the Slack channel** (Design Rule #10: channels are preserved for REBOOK reuse; archival/deletion is a separate post-MVP maintenance workflow).
+6. WF-42 sends user interactive button message via WF-50 with two options: "Leave Feedback", "Book Again". (Third "I'm done, thank you" option was dropped per Theme 3 — users without a clear action just stop messaging; no farewell required.)
+7. Admin receives Slack confirmation in their channel.
 
 ---
 
@@ -698,19 +701,10 @@ The journey map documents a two-step flow: Welcome → wait for YES → send for
 
 ---
 
-### TC-0508 · User taps "I'm done, thank you" button
+### TC-0508 · User taps "I'm done, thank you" button — DROPPED FROM MVP
 **Journey:** J-11 — post-close option  
-**Priority:** 🟡 P2  
-**Owning WFs:** WF-02 → WF-43 (button handler)
-
-**Given:** User has `status = consultation_closed`; received post-consultation message with three buttons.  
-**When:** User taps "I'm done, thank you."  
-**Then:**
-1. WF-43 handles the button response.
-2. Sends a warm farewell: "Thank you for using Chinmay Astro! Wishing you all the best. 🙏"
-3. No state change.
-
-**Gap risk:** Journey map lists this third button option but it may not be implemented in WF-43's button routing logic.
+**Priority:** ⚪ P4 (deferred / not in MVP)  
+**Status:** **DROPPED** per Theme 3 decision (2026-05-17) — WF-42 sends only 2 buttons ("Leave Feedback", "Book Again"). The "I'm done, thank you" 3rd button is not implemented and not planned for MVP. Users without a clear action simply stop messaging.
 
 ---
 
@@ -769,8 +763,9 @@ The journey map documents a two-step flow: Welcome → wait for YES → send for
 1. WF-20 intercepts; calls WF-47.
 2. WF-47 confirms status is NOT `consultation_active`.
 3. Updates `status = opted_out` in `chinmay_astro.users`.
-4. Logs to `chinmay_astro.admin_actions`.
+4. Logs to `chinmay_astro.admin_actions` with action_type='opted_out', notes='User sent STOP keyword'.
 5. Sends opt-out confirmation via WF-50: "You have been unsubscribed from Chinmay Astro. No further messages will be sent. If you ever wish to consult again, simply message us."
+6. **Slack channel is NOT archived** (Design Rule #10 — preserved for potential REBOOK reuse; archival is a separate post-MVP maintenance workflow).
 
 ---
 
@@ -796,7 +791,8 @@ The journey map documents a two-step flow: Welcome → wait for YES → send for
 **Given:** User has `status = consultation_closed`.  
 **When:** User sends: "STOP"  
 **Then:**
-1. WF-47 sets `status = opted_out`; logs; sends opt-out confirmation.
+1. WF-47 sets `status = opted_out`; logs to `admin_actions`; sends opt-out confirmation via WF-50.
+2. **Slack channel is NOT archived** (Design Rule #10 — preserved for potential REBOOK reuse).
 
 ---
 
@@ -1150,20 +1146,24 @@ The journey map v2.0 documents a two-step onboarding:
 
 ---
 
-### TC-1009 · Admin types command in any Slack channel (cross-channel command routing)
-**Journey:** J-09/J-10/J-11 — channel agnosticism  
+### TC-1009 · Admin-wide commands (LIST, STATS, HELP) accepted in any channel
+**Journey:** Channel-scope design rule (DR-13)  
 **Priority:** 🟠 P1  
 **Owning WFs:** WF-10 → WF-11
 
-**Given:** Admin is in `chinmay-admin-commands` channel (not in user's consult channel).  
-**When:** Admin types: `APPROVE PAYMENT 919876543210`  
-**Then:**
-1. WF-10 captures all workspace events, including from `chinmay-admin-commands`.
-2. WF-11 parses the command correctly.
-3. WF-33 executes — finds user, updates status.
-4. Admin receives confirmation in the channel where they typed.
+**Channel-scope rule (DR-13, revised 2026-05-17):**
+- **User-targeted commands** (those carrying a `<phone>` argument: APPROVE PAYMENT, REJECT, CLOSE CHAT CONSULT, BLOCK, UNBLOCK) are accepted ONLY in the user's `consult-{phone}` Slack channel. When typed in `chinmay-admin-commands` they are rejected with a polite reminder.
+- **Admin-wide commands** (no phone argument: LIST, STATS, HELP) are accepted in ANY channel.
 
-**Note:** Per CLAUDE.md: "WF-10 captures all workspace events so commands work from any channel." This is the intended design; test confirms it works from chinmay-admin-commands.
+**Given:** Admin is in `chinmay-admin-commands` channel.  
+**When:** Admin types: `LIST` (or `STATS`, or `HELP`).  
+**Then:**
+1. WF-10 captures the Slack event from `chinmay-admin-commands`.
+2. WF-10 classifies the keyword as admin-wide → dispatches to WF-11.
+3. WF-11 executes the corresponding branch (LIST query, STATS query, or HELP text).
+4. Output posted to `chinmay-admin-commands`.
+
+**Counter-test:** Admin types `APPROVE PAYMENT 919876543210` in `chinmay-admin-commands` → WF-10 detects user-targeted command in wrong channel → posts "⚠️ APPROVE is a user-targeted command. Please type it inside the user's `consult-{phone}` channel." No state change; WF-11 not called.
 
 ---
 
@@ -1176,9 +1176,10 @@ The journey map v2.0 documents a two-step onboarding:
 **Given:** Any inbound or outbound message is processed.  
 **When:** WF-00 receives an inbound message OR WF-50 sends an outbound message.  
 **Then:**
-1. WF-60 is called with message details.
-2. WF-60 logs: direction, content, userId, timestamp (IST), inboundMessageId (for dedup).
-3. Record appears in `message_log` table.
+1. WF-60 is called with message details. (Inbound: from WF-00 — Theme 4 decision 2026-05-17. Outbound: from WF-50.)
+2. WF-60 applies inbound filters (TD-030 bot-echo, TD-034 whitespace-only); resolves userId by phone_number lookup if not provided.
+3. WF-60 logs: direction, message_type, content, user_id, consultation_id (if active), whatsapp_message_id, metadata, created_at.
+4. Record appears in `chinmay_astro.messages` table (canonical table name; older docs referred to "message_log" — verified live 2026-05-17). For pre-onboarding inbound (no `chinmay_astro.users` row yet), WF-60 skips the insert and returns `{logged:false, reason:'pre_onboarding_user'}` — gap acceptable for MVP (audit trail begins at WF-22 form submission).
 
 ---
 

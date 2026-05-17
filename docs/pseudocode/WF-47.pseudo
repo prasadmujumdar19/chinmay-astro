@@ -3,22 +3,21 @@ WF-47 — Unsubscribe Handler (STOP keyword)
 ## Summary
 
 - Inputs: phoneNumber, userStatus (current status of the user), userId (passed from caller WF-20)
-- Outputs: users row updated to opted_out; admin_actions row inserted; opt-out confirmation WhatsApp sent; consult Slack channel archived. If user is currently in consultation_active, a hold message is sent instead and no state change occurs.
+- Outputs: users row updated to opted_out; admin_actions row inserted; opt-out confirmation WhatsApp sent. If user is currently in consultation_active, a hold message is sent instead and no state change occurs.
 - State Transitions: any (non-consultation_active) → `opted_out`. consultation_active → no change.
-- Calls Sub-Workflows: WF-50 (Send WhatsApp) twice — once for hold message, once for opt-out confirmation.
+- Calls Sub-Workflows: WF-50 (Send WhatsApp) — once for hold message OR once for opt-out confirmation.
+- **Design rule (DR-10):** Slack channel is NOT archived on STOP. Channels are preserved for potential REBOOK reuse. Archival/deletion is a separate post-MVP maintenance workflow.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — triggered by another workflow (typically WF-20) with { phoneNumber, userStatus, userId, ... } passed through.
+Step 1: Start — triggered by WF-20 with { phoneNumber, userStatus, userId, ... } passed through.
 Step 2: Check: userStatus equals 'consultation_active'?
   - If YES → go to Step 3
   - If NO → go to Step 4
-Step 3: Call WF-50 with messageType=text, phoneNumber=<phoneNumber>, messageContent=<hold message explaining STOP cannot be processed during an active consultation>. Then go to Step 9 (End — no state change, no DB log).
+Step 3: Call WF-50 with messageType=text, phoneNumber=<phoneNumber>, messageContent=<hold message explaining STOP cannot be processed during an active consultation>. Then go to Step 7 (End — no state change, no DB log).
 Step 4: Update user status: UPDATE chinmay_astro.users SET status='opted_out', updated_at=NOW() WHERE phone_number=<phoneNumber>. Go to Step 5.
 Step 5: Insert admin action: INSERT INTO chinmay_astro.admin_actions (user_id, action_type, performed_by, notes, created_at) VALUES (<userId>, 'opted_out', 'system', 'User sent STOP keyword', NOW()). Go to Step 6.
 Step 6: Call WF-50 with messageType=text, phoneNumber=<phoneNumber>, messageContent=<opt-out confirmation message>. Go to Step 7.
-Step 7: Look up consult channel: SELECT slack_channel_id FROM chinmay_astro.users WHERE phone_number=<phoneNumber>. Go to Step 8.
-Step 8: Archive that Slack channel via Slack API (channels.archive on slack_channel_id). On error continue. Go to Step 9.
-Step 9: End.
+Step 7: End.

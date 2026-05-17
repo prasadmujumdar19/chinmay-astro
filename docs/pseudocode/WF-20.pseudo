@@ -2,31 +2,36 @@ WF-20 — Keyword Handler
 
 ## Summary
 
-- Inputs: phoneNumber, userId, userStatus, messageText (called as sub-workflow by WF-01)
-- Outputs: Either routes user to WF-47 (unsubscribe), WF-45 (rebook), or sends a HELP message via WF-50. Otherwise returns `action=passthrough` so the caller continues normal routing.
+- Inputs: phoneNumber, userId, userStatus, messageText (called as sub-workflow by WF-02 with the combined payload from WF-01)
+- Outputs: Either routes user to WF-47 (unsubscribe), WF-45 (rebook), or sends a HELP message via WF-50. Otherwise returns `{action: 'passthrough', phoneNumber, userId, messageText}` so the caller (WF-02 Step 5) continues normal routing.
 - State Transitions: none directly (downstream WF-47 sets `opted_out`, WF-45 may move user to `payment_pending`)
 - Calls Sub-Workflows: WF-47 (Unsubscribe), WF-45 (Rebook), WF-50 (Send WhatsApp)
 - **Ambiguities / Notes:**
-  - The keyword Switch has a 4th `extra` fallback output wired to `Set Passthrough`, but no downstream node consumes the `Set Passthrough` output. Documented behavior matches the intent (return `action=passthrough` so WF-01 continues normal routing), but the JSON doesn't visibly forward that result anywhere.
+  - The keyword Switch has a 4th `extra` fallback output that must be wired to a terminal Set / Code node returning `{action: 'passthrough', ...}`. In n8n, the `Set Passthrough` node MUST connect to the workflow's terminal output (otherwise WF-02 receives no payload back and the dispatch silently dies).
 
 ---
 
 ## Algorithm
 
-Step 1: Start — workflow triggered by another workflow (WF-01) with phoneNumber, userId, userStatus, messageText.
-Step 2: Normalize the input — set keyword = uppercase(trim(messageText)). Carry forward phoneNumber, userId, messageText.
+Step 1: Start — workflow triggered by WF-02 with combined payload. Read inputs:
+  - `phoneNumber` (from payload.phoneNumber)
+  - `userId` (from payload.user.id; may be null for new/pendingUser)
+  - `userStatus` (from payload.user.status; may be null for new/pendingUser — used to drive HELP contextual response)
+  - `messageText` (from payload.messageContent)
+Step 2: Normalize the input — set keyword = uppercase(trim(messageText)). Carry forward phoneNumber, userId, userStatus, messageText.
 Step 3: Check: keyword value?
   - If keyword == "HELP" → go to Step 4
   - If keyword == "STOP" → go to Step 5
   - If keyword == "REBOOK" → go to Step 6
   - Otherwise (no keyword match) → go to Step 7
-Step 4: Build a contextual help message based on userStatus:
+Step 4: Build a contextual help message based on userStatus (TC-1013 — 5 status-aware branches):
+  - If userStatus is null/undefined OR userStatus == "pendingUser" (no full DB record yet): "Welcome to Chinmay Astro. Tap the 'Fill Details' button on the form to get started. If you don't see the form, send 'Hi' to receive it again."
   - If userStatus == "payment_pending": tell user to pay ₹500 via UPI to +91-9653240263 and tap "Payment Completed ✓".
   - If userStatus == "payment_submitted": tell user payment is under review.
   - If userStatus == "consultation_active": tell user to just type their question.
   - If userStatus == "consultation_closed": tell user to type REBOOK.
-  - Otherwise: send generic menu listing REBOOK and STOP options.
+  - Otherwise (defensive — should not occur): send generic menu listing REBOOK and STOP options.
   Call WF-50 with phoneNumber and the chosen messageBody (text). End.
 Step 5: Call WF-47 (Unsubscribe) with phoneNumber, userId, userStatus. End.
 Step 6: Call WF-45 (Rebook) with phoneNumber, userId. End.
-Step 7: Set action = "passthrough" and return phoneNumber, userId, messageText to the caller so WF-01 continues normal routing. End.
+Step 7: Return `{action: 'passthrough', phoneNumber, userId, messageText}` to the caller so WF-02 (Step 5) sees `action='passthrough'` and continues normal routing. (Implementation note: in n8n, the `Set Passthrough` node must connect to the workflow's terminal output node — not be left orphaned.) End.

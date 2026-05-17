@@ -2,10 +2,12 @@ WF-51 — Send Slack Message
 
 ## Summary
 
-- Inputs: channelId (Slack channel ID), messageText
-- Outputs: Message posted to the given Slack channel
+- Inputs: channelId (Slack channel ID), messageText (plain text only — no blocks / attachments supported in this utility)
+- Outputs: Message posted to the given Slack channel; Slack API response returned to caller (includes message_ts)
 - State Transitions: none
 - Calls Sub-Workflows: none
+- **Notes:**
+  - Text-only utility. Callers needing rich Slack formatting (blocks, attachments) should extend WF-51 with optional fields rather than bypassing it. Outbound Slack posts are NOT logged to chinmay_astro.messages (intentional — message_log table audits WhatsApp traffic only).
 
 ---
 

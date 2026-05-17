@@ -2,13 +2,13 @@ WF-41 — Admin -> User Relay (bi-directional)
 
 ## Summary
 
-- Inputs: Either {phoneNumber, messageContent} (WhatsApp side) OR {channelname, messageText, messagetext} (Slack side from WF-10)
+- Inputs: Either {phoneNumber, messageContent} (WhatsApp side) OR {channelName, messageText, user} (Slack side from WF-10)
 - Outputs: Slack post in consult channel (whatsapp_to_slack) OR WhatsApp text to user (slack_to_whatsapp)
 - State Transitions: none
-- Calls Sub-Workflows: WF-50 (Send WhatsApp)
-- **Ambiguities / Notes:**
-  - The Slack-post step references `user.name`, but `Prepare Channel Lookup` does not explicitly populate it — the value must be supplied by the upstream caller's payload.
-  - The Slack-side message field is `messagetext` (lowercase), distinct from `messageText`. Confirm WF-10 passes the field with this exact casing.
+- Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack — whatsapp_to_slack branch only)
+- **Notes:**
+  - The Slack-side input field is `messageText` (camelCase) consistent with WF-10's output contract. No lowercase `messagetext` variant.
+  - The user.name and slack_channel_id are pulled from the DB via Step 8 SELECT (slack_to_whatsapp) or from the upstream payload (whatsapp_to_slack).
 
 ---
 
@@ -17,7 +17,7 @@ WF-41 — Admin -> User Relay (bi-directional)
 Step 1: Start — triggered by another workflow with passthrough input.
 Step 2: Detect direction:
   - If input has `phoneNumber` → direction = "whatsapp_to_slack"
-  - Else if input has `channelname` (and no phoneNumber) → direction = "slack_to_whatsapp"
+  - Else if input has `channelName` (and no phoneNumber) → direction = "slack_to_whatsapp"
 Step 3: Route by direction.
   - If "whatsapp_to_slack" → go to Step 4
   - If "slack_to_whatsapp" → go to Step 7
@@ -30,6 +30,6 @@ Step 8: SELECT * FROM chinmay_astro.users WHERE phone_number = <phoneNumber> AND
 Step 9: Check: Did the query return a user row?
   - If YES → go to Step 10
   - If NO  → End (user not in consultation_active; no relay).
-Step 10: Build WhatsApp payload: phoneNumber = user.phone_number, messageType = "text", messageContent = adminMessage (from Detect Direction's `messagetext` field).
+Step 10: Build WhatsApp payload: phoneNumber = user.phone_number, messageType = "text", messageContent = adminMessage (from input `messageText` field).
 Step 11: Call WF-50 (Send WhatsApp) with the payload.
 Step 12: End.

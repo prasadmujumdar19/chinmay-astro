@@ -6,9 +6,13 @@ WF-10 — Slack Admin Handler
 - Outputs: HTTP 200 (with challenge echo on verification); dispatches recognized admin commands to WF-11, and Chinmay's free-text replies in active consultation channels to WF-41
 - State Transitions: none (delegates; downstream WFs mutate state)
 - Calls Sub-Workflows: WF-11 (Command Parser), WF-41 (Admin → User Relay)
+- **Channel-scope design rule (DR-13, see workflow-registry.md):**
+  - **User-targeted commands** (carry a `<phone>` argument: APPROVE PAYMENT / APPROVE, REJECT PAYMENT / REJECT, CLOSE CHAT CONSULT / CLOSE CONSULTATION / CLOSE CONSULT, BLOCK, UNBLOCK) are accepted ONLY when typed in the user's `consult-{phone}` Slack channel. WF-10 rejects them (silently dropped or warned in-channel) when typed in `chinmay-admin-commands` or any other channel.
+  - **Admin-wide commands** (no phone argument: LIST, STATS, HELP) work in ANY channel.
 - **Ambiguities / Notes:**
-  - The "Admin Vs User Channel" switch has `fallbackOutput: none` — messages in non-matching channels silently terminate (no error, no log).
-  - Bot-loop guard (skip if `authorizations[0].user_id == event.user`) sits between `Respond 200 OK` and `Extract Required Fields`.
+  - Slack payload field paths use `$json.body.*` (Slack wraps the event under `body`).
+  - Bot-loop guard (skip if `body.authorizations[0].user_id == body.event.user`) sits between `Respond 200 OK` and `Extract Required Fields`.
+  - WF-10 passes `messageText` (camelCase) downstream to WF-11/WF-41 — input contract uses camelCase consistently across the dispatch boundary.
 
 ---
 
@@ -24,24 +28,28 @@ Step 4: Respond 200 OK immediately (acknowledge to Slack within 3s).
 Step 5: Check: body.authorizations[0].user_id != body.event.user (i.e., the message was sent by a human, not the bot itself)?
   - If YES → go to Step 6.
   - If NO (bot's own message) → End (loop prevention).
-Step 6: Extract fields: channel_id=event.channel, user_id=event.user, message_text=event.text, timestamp=event.ts.
-Step 7: Call Slack API channel.get on channel_id to retrieve channel name.
-Step 8: Merge the channel info (id, name) with the extracted message fields (combine by id == channel_id).
+Step 6: Extract fields: channelId=body.event.channel, adminUserId=body.event.user, messageText=body.event.text, timestamp=body.event.ts.
+Step 7: Call Slack API channel.get on channelId to retrieve channel name.
+Step 8: Merge the channel info (id, name) with the extracted message fields (combine by id == channelId).
 Step 9: Switch on channel name:
   - name == 'chinmay-admin-commands' → go to Step 10 (admin channel branch).
   - name starts with 'consult-' → go to Step 13 (user consultation channel branch).
   - Otherwise → End (channel not relevant).
-Step 10: Detect Command (admin channel) — strip mrkdwn formatting; uppercase; check if message starts with one of [APPROVE, REJECT, CLOSE, BLOCK, UNBLOCK, LIST, STATS, HELP]. Set isCommand accordingly. Pass forward {messageText, adminUserId, channelId, channelName, isCommand}.
-Step 11: Check: isCommand == true?
-  - If YES → call WF-11 (Command Parser) with this payload. End.
+Step 10: Detect Command (admin channel) — strip mrkdwn formatting; uppercase; trim. Classify:
+  - If message starts with one of admin-wide commands [LIST, STATS, HELP] (no phone argument) → set isAdminCommand=true, set commandHint=<keyword>. Allowed here.
+  - Else if message starts with one of user-targeted commands [APPROVE, APPROVE PAYMENT, REJECT, REJECT PAYMENT, CLOSE, CLOSE CONSULT, CLOSE CONSULTATION, CLOSE CHAT CONSULT, BLOCK, UNBLOCK] → set wrongChannel=true (user-targeted commands must be typed in the user's consult-{phone} channel, not chinmay-admin-commands).
+  - Else → set isAdminCommand=false (chatter; ignore).
+Step 11: Check: isAdminCommand == true?
+  - If YES → call WF-11 (Command Parser) with payload {messageText, adminUserId, channelId, channelName, commandHint}. End.
+  - If wrongChannel == true → post Slack reply to channelId: "⚠️ <commandHint> is a user-targeted command. Please type it inside the user's `consult-{phone}` channel." End.
   - If NO → End (ignore non-command chatter in admin channel).
 Step 12: (unused — admin channel has no relay branch.)
-Step 13: Detect Command (user consultation channel) — same logic as Step 10.
+Step 13: Detect Command (user consultation channel) — strip mrkdwn formatting; uppercase; trim. Check if message starts with one of [APPROVE, APPROVE PAYMENT, REJECT, REJECT PAYMENT, CLOSE, CLOSE CONSULT, CLOSE CONSULTATION, CLOSE CHAT CONSULT, BLOCK, UNBLOCK, LIST, STATS, HELP]. Set isCommand accordingly.
 Step 14: Check: isCommand == true?
-  - If YES → call WF-11 (Command Parser) with this payload. End. (This is how APPROVE PAYMENT/CLOSE/etc. work from inside the user's consult channel.)
+  - If YES → call WF-11 (Command Parser) with payload {messageText, adminUserId, channelId, channelName}. End. (User-targeted commands work here per the channel-scope design rule; admin-wide LIST/STATS/HELP also accepted here.)
   - If NO → go to Step 15.
-Step 15: SELECT status, channelName, messageText FROM users WHERE slack_channel_id = $channelId LIMIT 1.
-Step 16: Check: status == 'consultation_active'?
-  - If YES → call WF-41 (Admin → User Relay) with the message payload (Chinmay's text reply will be sent to the user via WhatsApp). End.
+Step 15: SELECT id, status, name, phone_number FROM chinmay_astro.users WHERE slack_channel_id = $channelId LIMIT 1.
+Step 16: Check: user found AND user.status == 'consultation_active'?
+  - If YES → call WF-41 (Admin → User Relay) with payload {messageText, channelId, channelName, user}. End. (Chinmay's text reply will be sent to the user via WhatsApp.)
   - If NO → End (channel is not currently in active consultation — drop).
 Step 20: Respond 200 fallback for unknown body types. End.

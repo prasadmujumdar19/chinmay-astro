@@ -23,7 +23,7 @@ Step 4: Layer 2 — Non-Text Message Filter. Check messageType against allowed l
 Step 5: Check: messageTypeAllowed == true?
   - If YES → go to Step 6.
   - If NO → go to Step 18 (deflect via WF-50, end).
-Step 6: SELECT id, phone_number, status, blocked_reason FROM users WHERE phone_number = $phoneNumber AND status IN ('blocked', 'opted_out').
+Step 6: SELECT id, phone_number, status, blocked_reason FROM chinmay_astro.users WHERE phone_number = $phoneNumber AND status IN ('blocked', 'opted_out').
 Step 7: Layer 3 — Blacklist evaluation:
   - If a row exists and status='opted_out' → set securityCheck='OPTED_OUT', silent=true.
   - Else if a row exists (status='blocked') → set securityCheck='REJECTED', rejectReason='blacklisted', silent=true.
@@ -32,13 +32,13 @@ Step 8: Check: securityCheck == 'REJECTED' (blacklist)?
   - If YES → go to Step 19 (silent reject blacklist, end).
   - If NO → go to Step 9.
 Step 9: Check: securityCheck == 'OPTED_OUT'?
-  - If YES → call WF-21 with {phoneNumber, messageText} so user is treated as new user (re-engagement). End.
+  - If YES → call WF-21 with {phoneNumber, messageText, wasOptedOut: true} so user is treated as new user (re-engagement). WF-21 uses `wasOptedOut` to prepend a "Welcome back" acknowledgement. End.
   - If NO → go to Step 10.
-Step 10: SELECT phone_number, contact_name, created_at FROM pending_users WHERE phone_number = $phoneNumber (look for in-flight onboarding).
-Step 11: SELECT id, phone_number, name, status, created_at, last_message_at, awaiting_feedback FROM users WHERE phone_number = $phoneNumber (full user record).
+Step 10: SELECT phone_number, contact_name, created_at FROM chinmay_astro.pending_users WHERE phone_number = $phoneNumber (look for in-flight onboarding).
+Step 11: SELECT id, phone_number, name, date_of_birth, time_of_birth, place_of_birth, status, current_consultation_id, total_consultations, context, created_at, updated_at, last_message_at, awaiting_feedback, slack_channel_id, stage, blocked_at, blocked_by, blocked_reason, feedback FROM chinmay_astro.users WHERE phone_number = $phoneNumber (full user record — projects every column read by downstream nodes / sub-workflows).
 Step 12: Prepare combined payload (Prepare User Data):
-  - pendingUser = row from Step 10 if any, else null.
-  - user = row from Step 11 if any (parse context JSON), else null.
+  - pendingUser = row from Step 10 if any (camelCase mapped: phoneNumber, contactName, createdAt), else null.
+  - user = row from Step 11 if any (parse `context` JSON to object; map snake_case columns → camelCase fields: id, phoneNumber, name, dateOfBirth, timeOfBirth, placeOfBirth, status, currentConsultationId, totalConsultations, context, createdAt, updatedAt, lastMessageAt, awaitingFeedback, slackChannelId, stage, blockedAt, blockedBy, blockedReason, feedback), else null.
   - isNewUser = (user is null) AND (pendingUser is null).
   - Carry forward messageId, phoneNumber, contactName, messageType, messageContent, messageContentUpper, rawMessage, timestamp, metadata.
 Step 13: Call WF-02 (User State Router) with the combined payload.
