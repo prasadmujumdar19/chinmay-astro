@@ -220,13 +220,36 @@ The pattern: **grep/search to locate → edit only the target → verify with a 
 
 ### Subagent Delegation
 
-Spawn an `Explore` subagent (via `Agent` tool) when a task requires many reads or tool calls
-whose intermediate output isn't needed in the main context. Only the summary returns.
+Subagents are useful but easy to misuse. Spawn them only when the work genuinely fits all six rules below. These rules are not meant to discourage subagent use — they prevent the failure modes (sandbox divergence, stuck retries, opaque mid-flight blockers, runaway cost) that the project has seen when subagents were dispatched without guardrails.
 
-Triggers:
-- Auditing all workflows for a pattern
-- Cross-document search across multiple files
-- Any task producing >500 lines of intermediate output before a conclusion
+**1. Surgical, technical, deterministic.** The subagent's task must be a tightly-scoped tool sequence (e.g. "fetch workflow X, apply jq transform Y, PUT result, verify with lint hook"). If the task includes "look at X and decide between Y or Z", it requires judgment — keep it inline.
+
+**2. Zero user intervention expected.** If there's any plausible decision point (ambiguous spec, missing data, sandbox permission failure) where the subagent would need to ask, the main thread must own it. A subagent that hits a question silently retries or fails, and the user can't intervene because the prompt never surfaces.
+
+**3. <1 minute of work.** Approximate target — small overrun is fine, but a subagent budgeted at 5+ minutes is the wrong tool. Token cost and visibility cost both scale with duration; inline execution wins on long tasks.
+
+**4. Compare against alternatives first.** Before dispatching, ask: would a bash script + loop in the main thread do this faster/cheaper? Often yes — `for id in $(...); do curl ... done` is one tool call with all outputs going to disk. Only choose a subagent when the work genuinely needs LLM reasoning per item (e.g. classification, pattern recognition) that a script can't do.
+
+**5. Active monitoring with a 2-minute abort budget.** Main thread polls the subagent transcript (via `Monitor` on the subagent output file) every 60s wallclock. On the 2nd check (≈2 min mark) if the work is still unfinished, send `TaskStop` and either re-classify the work as inline or break it into smaller pieces. This is non-negotiable: Claude Code's platform has a known 10-minute hardcoded subagent timeout and documented cascade-failure modes (GH `anthropics/claude-code#49150`, `#47936`). Anthropic does not ship a monitoring pattern of its own — defensive engineering is the controller's responsibility.
+
+**6. Always use Haiku for subagents.** Haiku is the default model for subagent dispatch (Anthropic also positions Haiku for "file discovery, simple lookups, transformations"). If the work genuinely needs Sonnet-level reasoning, **stop and ask the user first** before spawning — explain why Haiku won't suffice and seek approval. This is stricter than Anthropic's published guidance (which suggests Sonnet for implementation/review tasks); the strictness exists because Sonnet subagent cost is high and the user wants explicit sign-off.
+
+**7. Task-decomposition pre-check before dispatch.** Before spawning any subagent, ask two questions:
+
+   (a) *Is this task fully independent of other in-flight work?* (Does it need shared state, write-locks on a file another subagent is editing, or coordination with a parallel task?)
+   (b) *Does the parent thread need this output synchronously?* (If the next main-thread step blocks on the subagent's result, the parent is just sitting idle anyway — running the work inline avoids the dispatch + report overhead.)
+
+   If the answer to either is "yes," use a bash script + loop inline instead. Subagents pay off when work is genuinely parallel AND the parent has other meaningful work to do during the dispatch — otherwise the dispatch/report ceremony exceeds the work itself.
+
+**When subagents fit well:**
+- Auditing all workflows for a pattern (read-heavy, deterministic, <1 min, Haiku-suitable)
+- Cross-document search across multiple files (Explore subagent — same)
+- Any task producing >500 lines of intermediate output before a conclusion (Explore subagent — keeps main context lean)
+
+**When subagents don't fit (do this inline instead):**
+- n8n workflow edits during build-sprint (see [[feedback_sprint_parallelism]] memory and `n8n-whatsapp-methodology:build-sprint` Mode A/B/C — Mode D subagent dispatch is permitted only when all four of that skill's caveats hold, which mirror rules 1-3 + 5 above)
+- Plan execution / multi-step refactors (see [[feedback_inline_plan_execution]] memory — user values direct visibility into diffs and tool calls)
+- Anything the user has signalled they want to see step-by-step
 
 ### General Rules
 
