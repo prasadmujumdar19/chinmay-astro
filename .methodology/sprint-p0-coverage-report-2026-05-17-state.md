@@ -4,7 +4,7 @@ input_hash: 23448634cd16f290cacd6d385ad28337f4757c1783d10a3dc4592b2a4305cfda
 source_file_update: false
 working_copy_path: .methodology/sprint-p0-coverage-report-2026-05-17-working.md
 planned_at: 2026-05-17T03:09:27Z
-last_updated: 2026-05-17T14:10:00Z
+last_updated: 2026-05-17T14:30:00Z
 planning_complete: true
 
 scope_decisions:
@@ -96,7 +96,8 @@ items:
   - id: WF-00
     description: "Add WF-60 executeWorkflow node after Parse WhatsApp Message, with onError=continueRegularOutput (Theme 4: single inbound logging entry point). WF-60 receives parsed message; filters live in WF-60. Verify echo guard identifier source: message.from === value.metadata.display_phone_number.replace(/\\D/g, '')"
     priority: P0
-    status: pending
+    status: done  # completed 2026-05-17T14:15Z (main thread)
+    notes: "Added Call WF-60 Message Logger executeWorkflow node between Gather Message Info For Processing and Call WF-01 Message Router. typeVersion=1.3; workflowId='6H75p935FpBVBQtV' (plain string); onError='continueRegularOutput'; inputs={phoneNumber, messageType, messageContent, messageId, direction:'inbound'}. Bot-echo (TD-030) + whitespace-only (TD-034) guards already in Parse code per pseudocode. Also normalized pre-existing __rl workflowId on Call WF-01 Message Router to plain string (lint hook required). Lint: pass."
     batch: 3
     depends_on:
       - id: WF-60
@@ -106,7 +107,8 @@ items:
   - id: WF-02
     description: "Add user.status='payment_pending' guard before PAYMENT_CONFIRM routing (other button_reply types fall to UNHANDLED admin alert); add UNHANDLED → WF-51 admin alert; add user IS NOT NULL guards on all branches (lines 17-25 in pseudocode terms)"
     priority: P0
-    status: pending
+    status: done  # completed 2026-05-17T14:25Z (main thread)
+    notes: "15 operations applied. Detect Route jsCode rewritten with explicit 'user !== null' guards on every status branch; PAYMENT_CONFIRM now requires interactiveType='button_reply' AND user!=null AND userStatus='payment_pending' (orphan button_reply types fall to UNHANDLED). Route Switch grew from 8 to 9 rules (added UNHANDLED). Added Build UNHANDLED Alert code node (formats channelId='C0A5B0ZE81E' + warning messageText with phone/msgType/interactiveType/userStatus/pendingUser/content). Added Call WF-51 (UNHANDLED Alert) executeWorkflow (workflowId='wlZRK0YxnhP0b2RL', tv=1.3). Bonus cleanup: normalized all 9 pre-existing __rl workflowIds on existing Call WF-* nodes to plain strings (lint hook required). Lint: pass. 1 pre-existing Code-node return-shape validator error (unchanged)."
     batch: 3
     depends_on: []  # WF-51 is unchanged in this sprint — already available
 

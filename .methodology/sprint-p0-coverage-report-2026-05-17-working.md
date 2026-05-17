@@ -62,12 +62,14 @@ Status: pending
 
 ### WF-00 (Webhook Receiver)
 Status: pending
+> **Status: ✅ Done — 2026-05-17** | Added Call WF-60 Message Logger executeWorkflow (tv=1.3, onError='continueRegularOutput', plain-string workflowId) between Gather Message Info For Processing and Call WF-01. Inputs: {phoneNumber, messageType, messageContent, messageId, direction:'inbound'}. Parse code already has bot-echo + whitespace guards. Also normalized pre-existing __rl workflowId on Call WF-01 Message Router. Lint: pass.
 - Add `WF-60` `executeWorkflow` node after `Parse WhatsApp Message` (Theme 4: single inbound logging entry point)
 - `onError: "continueRegularOutput"` — logging failure must not block message processing
 - Verify echo guard identifier: `message.from === value.metadata.display_phone_number.replace(/\D/g, '')`
 
 ### WF-02 (User State Router)
 Status: pending
+> **Status: ✅ Done — 2026-05-17** | 15 operations. Detect Route rewritten with explicit user!=null guards on all status branches; PAYMENT_CONFIRM now requires button_reply+user!=null+payment_pending (other button_reply types → UNHANDLED). Route Switch 8→9 rules. New: Build UNHANDLED Alert (Code, formats C0A5B0ZE81E warning) + Call WF-51 (UNHANDLED Alert) (tv=1.3, plain-string workflowId). Bonus: 9 pre-existing __rl workflowIds normalized. Lint: pass.
 - Add `user.status='payment_pending'` guard before PAYMENT_CONFIRM routing (other `button_reply` types fall to UNHANDLED admin alert)
 - Add UNHANDLED → WF-51 admin alert (Theme 9)
 - Add `user IS NOT NULL` guards on all branches (lines 17-25 in pseudocode terms)
