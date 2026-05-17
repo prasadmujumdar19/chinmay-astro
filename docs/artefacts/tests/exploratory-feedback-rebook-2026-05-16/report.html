@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Test Report — test-exploratory-feedback-rebook-2026-05-16</title>
+<style>
+:root {
+  --bg: #0d1117; --bg-card: #161b22; --bg-card-2: #1c2128;
+  --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --border: #30363d;
+  --critical: #ff4d4f; --major: #ff9f43; --minor: #f1c40f; --ok: #27ae60;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--bg); color: var(--fg); }
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+nav { background: #010409; border-right: 1px solid var(--border); padding: 20px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; font-size: 13px; }
+nav h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 20px 0 6px; font-weight: 600; }
+nav h2:first-child { margin-top: 0; }
+nav a { display: block; color: var(--fg); text-decoration: none; padding: 5px 8px; border-radius: 4px; margin: 1px 0; }
+nav a:hover { background: var(--bg-card); color: var(--accent); }
+nav a.depth-1 { padding-left: 18px; color: var(--muted); }
+main { padding: 28px 40px 80px; max-width: 1100px; }
+header.page { border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 28px; }
+header.page h1 { margin: 0 0 4px; font-size: 22px; }
+header.page .meta { color: var(--muted); font-size: 13px; }
+section.layer { margin: 40px 0; }
+section.layer > h1 { font-size: 24px; margin: 0 0 4px; padding-bottom: 10px; border-bottom: 2px solid var(--accent); }
+section.layer > .layer-blurb { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+h2 { margin-top: 28px; font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+h3 { margin-top: 22px; font-size: 15.5px; color: var(--accent); }
+h4 { margin-top: 16px; font-size: 14px; }
+code { background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+pre { background: var(--bg-card); padding: 14px 16px; border-radius: 6px; overflow-x: auto; border: 1px solid var(--border); }
+pre code { background: transparent; padding: 0; font-size: 13px; }
+table { border-collapse: collapse; margin: 14px 0; width: 100%; font-size: 13.5px; }
+th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--bg-card); font-weight: 600; }
+tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+ul, ol { padding-left: 22px; }
+li { margin: 4px 0; }
+/* Story cards — each h3 in story section starts a card */
+#story h3 {
+  background: var(--bg-card-2); margin-top: 20px; padding: 12px 16px; border-radius: 6px 6px 0 0;
+  border: 1px solid var(--border); border-bottom: none; color: var(--fg); font-size: 15px;
+}
+#story h3 + p, #story h3 + p + p, #story h3 + p + p + p,
+#story h3 ~ p, #story h3 ~ pre, #story h3 ~ ul, #story h3 ~ ol {
+  /* default rendering — wrap will come from JS */
+}
+.story-card { background: var(--bg-card); border: 1px solid var(--border); border-top: none; padding: 14px 18px 4px; margin-bottom: 18px; border-radius: 0 0 6px 6px; }
+.story-card p:first-child { margin-top: 0; }
+/* Appendix collapsibles */
+details.appendix-item, details.appendix-section { border: 1px solid var(--border); border-radius: 6px; margin: 12px 0; background: var(--bg-card); }
+details summary { padding: 12px 16px; cursor: pointer; font-weight: 600; user-select: none; }
+details summary:hover { background: var(--bg-card-2); }
+details[open] summary { border-bottom: 1px solid var(--border); }
+details > *:not(summary) { padding: 0 18px; }
+details summary .src { color: var(--muted); font-weight: normal; font-size: 12px; margin-left: 6px; }
+/* Severity chips (applied via JS) */
+.sev-chip { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #0d1117; margin: 0 2px; }
+.status-ok { color: var(--ok); }
+.status-warn { color: var(--major); }
+</style>
+</head><body>
+<div class="layout">
+  <nav>
+    <h2>Report layers</h2>
+    <a href="#tldr">1. TL;DR</a>
+    <a href="#story">2. The Story</a>
+    <a href="#appendix">3. Appendix</a>
+    <h2>Story scenarios</h2>
+    <div id="nav-scenarios"></div>
+    <h2>Appendix</h2>
+    <a href="#appendix-session" class="depth-1">session.md</a>
+    
+  </nav>
+  <main>
+    <header class="page">
+      <h1>Test Report — test-exploratory-feedback-rebook-2026-05-16</h1>
+      <div class="meta">Generated 2026-05-16T22:49:28+00:00 · Folder <code>.methodology/test-exploratory-feedback-rebook-2026-05-16/</code></div>
+    </header>
+
+    <section class="layer" id="tldr">
+      <h1>1. TL;DR</h1>
+      <div class="layer-blurb">Verdict, bugs at a glance, scope, and tomorrow's queue. Skim this; the rest is detail.</div>
+      <p><strong>Verdict:</strong> ❌ All four attempted test cases (TC-0501/02 feedback, TC-0504/05/06 rebook, TC-0604 STOP, TC-0306 BLOCK) blocked by bugs. <strong>8 bugs identified — 1 critical root cause (BUG-F) explains multiple downstream symptoms.</strong> Full coverage is unreachable without the bundled fix; no manual workarounds applied in-session. Test user left in <code>payment_pending</code> (stuck, see remediation).</p>
+<h2>Bugs at a glance</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Sev</th>
+<th>Workflow</th>
+<th>What broke</th>
+<th>Fix outline</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>BUG-A</strong></td>
+<td><code>[major]</code></td>
+<td>WF-43</td>
+<td>"Provide Feedback" button branch writes WA prompt but never writes <code>stage='awaiting_feedback'</code> in <code>users</code>. Subsequent feedback text isn't recognized as feedback.</td>
+<td>Add UPDATE node in <code>Prompt for Feedback</code> branch (or just before WF-50 call) setting <code>stage='awaiting_feedback'</code>.</td>
+<td>Open</td>
+</tr>
+<tr>
+<td><strong>BUG-B</strong></td>
+<td><code>[critical]</code></td>
+<td>WF-43</td>
+<td><code>Gemini General Response</code> HTTP node — <code>jsonBody</code> interpolates <code>{{ $json.geminiPrompt }}</code> raw inside a JSON string. Any quote/newline/backslash in user text → "JSON parameter needs to be valid JSON". Reproduced exec 1075 and 1081.</td>
+<td>Replace with <code>={"contents":[{"parts":[{"text":{{ JSON.stringify($json.geminiPrompt) }}}]}],"generationConfig":{"temperature":0.7,"maxOutputTokens":200}}</code> (drop surrounding quotes around the placeholder).</td>
+<td>Open</td>
+</tr>
+<tr>
+<td><strong>BUG-C</strong></td>
+<td><code>[critical]</code></td>
+<td>WF-45</td>
+<td><code>Send Payment Instructions</code> executeWorkflow node — <code>parameters.workflowId</code> is a resource-locator object <code>{"__rl":true,"value":"BUVun38WEKb12zg9","mode":"id"}</code> on typeVersion 1. n8n throws "Workflow does not exist". Same regression class as F-04 (WF-47) supposedly fixed yesterday — lint hook missed it.</td>
+<td>Convert to plain string <code>"BUVun38WEKb12zg9"</code>. Audit ALL executeWorkflow nodes across all workflows for the same regression. <strong>Side effect:</strong> <code>Set status=payment_pending</code> runs before the failing node — user state mutated without any payment-prompt delivery.</td>
+<td>Open</td>
+</tr>
+<tr>
+<td><strong>BUG-D</strong></td>
+<td><code>[major]</code></td>
+<td>WF-30 / WF-45</td>
+<td>After rebook, the payment-instructions message tells user to "tap the Payment Completed button you received earlier" — that button is from the original consultation flow, days old. For a fresh rebook, user must receive a NEW interactive "Payment Completed ✓" button. Also: free-form messages while in payment_pending (e.g. "I've already paid") hit the same dead button.</td>
+<td>WF-45 must (re)send WF-50 with a fresh interactive button as part of payment instructions. WF-30 payment-pending re-prompt must also include a fresh button instead of referring to a stale one.</td>
+<td>Open</td>
+</tr>
+<tr>
+<td><strong>BUG-E</strong></td>
+<td><code>[major]</code></td>
+<td>WF-43</td>
+<td>Free-form rebook intent (TC-0506) has no dedicated reply. Operator-stated contract: respond with both options — <em>"To book another consultation, you can either tap the 'Book Again' button from your last message, or send REBOOK as a new message."</em></td>
+<td>Add a <code>rebook_intent</code> branch to WF-43 routing (post-WF-25 classification) that sends the two-options message via WF-50, no DB change.</td>
+<td>Open</td>
+</tr>
+<tr>
+<td><strong>BUG-F</strong></td>
+<td><code>[critical]</code> ⭐ root cause</td>
+<td>WF-20</td>
+<td><code>Normalize Keyword</code> Set node uses <code>={{ $json.messageText.trim().toUpperCase() }}</code>. The actual incoming field is <code>messageContent</code>. Result: <code>keyword</code> is always <code>null</code>, the <code>Match Keyword</code> switch always falls through to default <code>Set Passthrough</code>, and <strong>every keyword (STOP / HELP / REBOOK) is silently ignored.</strong> Confirmed exec 1113 runData.</td>
+<td>Change to <code>={{ ($json.messageContent || '').trim().toUpperCase() }}</code>. Also verify <code>phoneNumber</code> / <code>userId</code> mappings — runData shows <code>userId: null</code>, so other fields may have drifted too.</td>
+<td>Open</td>
+</tr>
+<tr>
+<td><strong>BUG-G</strong></td>
+<td><code>[major]</code></td>
+<td>WF-11</td>
+<td>Admin typing bare <code>BLOCK</code> in a <code>consult-&lt;phone&gt;</code> channel does not infer the target phone from the channel name. WF-11 emits <code>targetPhone=null, phoneNumber=""</code> and forwards to WF-46. The Slack convention is that commands in a consult channel target that channel's user implicitly.</td>
+<td>Either auto-extract phone from <code>channelName</code> when no phone token follows the command, or reject with a clear error message.</td>
+<td>Open</td>
+</tr>
+<tr>
+<td><strong>BUG-H</strong></td>
+<td><code>[major]</code></td>
+<td>WF-46</td>
+<td><code>Load User by Phone</code> Postgres node fails with <code>there is no parameter $1</code> when called with empty <code>phoneNumber</code>. Likely missing <code>queryReplacement</code> when the value is blank. Even after BUG-G is fixed, this node should fail closed gracefully instead of throwing a Postgres binding error.</td>
+<td>Audit the SQL + queryReplacement on <code>Load User by Phone</code>; add upstream guard to reject empty phoneNumber before the DB call.</td>
+<td>Open</td>
+</tr>
+</tbody>
+</table>
+<p>⭐ BUG-F is the highest-impact fix — it unlocks the entire universal-keyword surface (TC-06xx) in one change.</p>
+<h2>Test scope this session</h2>
+<table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>TC</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Feedback button tap</td>
+<td>TC-0501</td>
+<td>❌ — BUG-A (stage not written)</td>
+</tr>
+<tr>
+<td>Feedback text submission</td>
+<td>TC-0502</td>
+<td>❌ — BUG-B (Gemini JSON)</td>
+</tr>
+<tr>
+<td>Free-form rebook text</td>
+<td>TC-0506</td>
+<td>❌ — BUG-B + BUG-E (no rebook_intent branch)</td>
+</tr>
+<tr>
+<td>Rebook button tap</td>
+<td>TC-0504</td>
+<td>❌ — BUG-C (resource-locator object)</td>
+</tr>
+<tr>
+<td>REBOOK keyword</td>
+<td>TC-0505</td>
+<td>⚠️ partial — BUG-F (keyword not intercepted) + BUG-D (stale button)</td>
+</tr>
+<tr>
+<td>Free-form "I've already paid"</td>
+<td>n/a</td>
+<td>⚠️ — BUG-D (stale button referenced)</td>
+</tr>
+<tr>
+<td>STOP from payment_pending</td>
+<td>TC-0604</td>
+<td>❌ — BUG-F (keyword not intercepted; WF-47 never called)</td>
+</tr>
+<tr>
+<td>Admin BLOCK from consult channel</td>
+<td>TC-0306</td>
+<td>❌ — BUG-G + BUG-H</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Deferred to next session</strong> (after fix sprint):
+- TC-0607 — re-engagement after opt-out (blocked by BUG-F)
+- TC-0307 — admin UNBLOCK (depends on TC-0306 succeeding)
+- TC-0702 — blocked-user message dropped
+- TC-0304 REJECT, TC-0202 duplicate Payment Completed tap, TC-0205 payment_submitted free-form, TC-0703 webhook dedup, TC-0314 unknown command fallback, TC-0309/0310 LIST/STATS</p>
+<h2>State carry-forward</h2>
+<p>Test user 61466927921 is left in <code>status=payment_pending, stage=null, slack_channel_id=C0B3SA9JALX</code>. This is an artificial state caused by BUG-C's partial run. Before the next live test, either reset to <code>consultation_closed</code> in DB, or have the BUG-C fix re-deliver a fresh "Payment Completed" button so the existing state can be exercised through the legitimate path.</p>
+<h2>Tomorrow's queue</h2>
+<ol>
+<li>Run the <strong>fix sprint</strong> for BUG-A through BUG-H (one workflow per build-workflow invocation, in dependency order: BUG-F first → BUG-C → BUG-B → BUG-A → BUG-E → BUG-D → BUG-G/H).</li>
+<li>Re-baseline live testing from the resulting state and run TC-0604 → TC-0607 → TC-0306 → TC-0702 → TC-0307 → TC-0304 → TC-0205 → TC-0202.</li>
+<li>Cross-cutting audit: grep every WF for executeWorkflow nodes still using resource-locator objects (BUG-C class) and for field-name drift between WF-02 outputs and downstream Set nodes (BUG-F class). Both classes should be added to the post-workflow-lint hook.</li>
+</ol>
+    </section>
+
+    <section class="layer" id="story">
+      <h1>2. The Story</h1>
+      <div class="layer-blurb">Each scenario as a card with narrative + fix snippets. Tells you what happened without making you read raw logs.</div>
+      <h3>TC-0501 — Tap "Provide Feedback" button  ❌</h3>
+<p>Operator tapped the Provide Feedback button from yesterday's consultation-closure message. WF-43 ran cleanly through <code>Is Button Reply? → Is Rebook Button? → Prompt for Feedback → Send Feedback Prompt via WF-50</code> and the WhatsApp prompt landed. But the <code>users</code> row never moved — <code>stage</code> stayed <code>null</code> instead of flipping to <code>awaiting_feedback</code>. There is no UPDATE node anywhere on the Prompt-for-Feedback branch, so the system has no idea the next message should be treated as feedback. This is BUG-A: a missing DB write, not a logic error elsewhere.</p>
+<hr />
+<h3>TC-0502 — Submit feedback text  ❌</h3>
+<p>Operator typed actual feedback. WF-43 routed it into its generic Gemini path (because BUG-A meant <code>stage</code> wasn't <code>awaiting_feedback</code>), and the <code>Gemini General Response</code> HTTP node immediately threw <code>JSON parameter needs to be valid JSON</code>. The cause is BUG-B: the jsonBody interpolates <code>{{ $json.geminiPrompt }}</code> as raw text inside a JSON string, so any user-typed quote, newline, or backslash breaks the JSON before the HTTP call is made. Reproduced twice — exec 1075 (feedback text) and exec 1081 (free-form rebook text) — same node, same error.</p>
+<pre><code class="language-diff">- ={&quot;contents&quot;:[{&quot;parts&quot;:[{&quot;text&quot;:&quot;{{ $json.geminiPrompt }}&quot;}]}],&quot;generationConfig&quot;:{&quot;temperature&quot;:0.7,&quot;maxOutputTokens&quot;:200} }
++ ={&quot;contents&quot;:[{&quot;parts&quot;:[{&quot;text&quot;:{{ JSON.stringify($json.geminiPrompt) }}}]}],&quot;generationConfig&quot;:{&quot;temperature&quot;:0.7,&quot;maxOutputTokens&quot;:200}}
+</code></pre>
+<hr />
+<h3>TC-0506 — Free-form "I want another consultation"  ❌</h3>
+<p>Same BUG-B crash as above (exec 1081). But the bigger finding is BUG-E: even with the JSON fixed, there is no dedicated <code>rebook_intent</code> reply in WF-43. Operator's intended contract — capture this verbatim for the fix sprint — is that free-form rebook intent must reply with both options: <em>"To book another consultation, you can either tap the 'Book Again' button from your last message, or send REBOOK as a new message."</em> That branch needs to be wired into WF-43 post-classification by WF-25.</p>
+<hr />
+<h3>TC-0504 — Tap "Book Again" button  ❌</h3>
+<p>WF-43 correctly routed the <code>btn_rebook</code> button to WF-45. Inside WF-45, <code>Load User Record</code> and <code>Set status=payment_pending</code> ran successfully, then <code>Send Payment Instructions</code> died with "Workflow does not exist." This is BUG-C: the executeWorkflow node holds a resource-locator object instead of a plain string — exactly the F-04 class that was supposedly fixed yesterday for WF-47 but never audited across other WFs. The lint hook missed it. The damaging side effect is that the DB mutation happens <em>before</em> the failing call, leaving the user stuck in <code>payment_pending</code> with no payment prompt ever delivered.</p>
+<pre><code class="language-diff">- &quot;workflowId&quot;: {&quot;__rl&quot;: true, &quot;value&quot;: &quot;BUVun38WEKb12zg9&quot;, &quot;mode&quot;: &quot;id&quot;}
++ &quot;workflowId&quot;: &quot;BUVun38WEKb12zg9&quot;
+</code></pre>
+<hr />
+<h3>TC-0505 — REBOOK keyword  ⚠️ misleadingly "worked"</h3>
+<p>Operator sent the bare keyword <code>REBOOK</code>. The system replied with payment instructions — looked like success. But the message referenced "the Payment Completed button you received earlier", which is the days-old button from the original consultation, long gone. Investigation showed the keyword was never actually intercepted by WF-20: it fell through to WF-30's payment-pending intent filter, which re-emitted the generic payment reminder. This is two bugs at once — BUG-F (WF-20 silently ignored the keyword; see below) and BUG-D (the payment-pending re-prompt content needs a fresh interactive button, not a reference to a stale one).</p>
+<hr />
+<h3>TC-0604 — STOP from payment_pending  ❌ → revealed root cause</h3>
+<p>Operator sent <code>STOP</code>. Expected: status → <code>opted_out</code>, WF-47 opt-out confirmation. Observed: WF-20 ran, then WF-30 ran, then a generic payment reminder was sent — WF-47 was never called and the user's state was unchanged. Drilling into WF-20's exec 1113 runData revealed BUG-F: the <code>Normalize Keyword</code> Set node reads <code>$json.messageText.trim().toUpperCase()</code>, but the incoming payload from WF-02 uses <code>messageContent</code>. The expression evaluates to <code>null</code>, the <code>Match Keyword</code> switch always lands on its default <code>Set Passthrough</code> branch, and the entire keyword interception layer is silently broken. This single bug explains every "keyword silently ignored" symptom across STOP, HELP, and REBOOK — fixing it should unlock the full TC-06xx surface in one change.</p>
+<pre><code class="language-diff">- ={{ $json.messageText.trim().toUpperCase() }}
++ ={{ ($json.messageContent || '').trim().toUpperCase() }}
+</code></pre>
+<hr />
+<h3>TC-0306 — Admin BLOCK in consult channel  ❌</h3>
+<p>Operator typed <code>BLOCK</code> (bare keyword, no phone) in the user's consult channel C0B3SA9JALX. WF-11 parsed it as <code>command=BLOCK, targetPhone=null, phoneNumber=""</code> and forwarded to WF-46. WF-46's <code>Load User by Phone</code> Postgres node then crashed with <code>there is no parameter $1</code>. Two bugs interacting: BUG-G is WF-11 not inferring the target phone from the consult channel name (the documented convention per CLAUDE.md Design Rule #3), and BUG-H is WF-46's <code>Load User by Phone</code> node not failing closed when given an empty phoneNumber — it throws a Postgres binding error instead of a clean validation message. Both are quick fixes but they're independent; both need to land.</p>
+<hr />
+<h3>Where we ended the session</h3>
+<p>Eight bugs identified across the post-consultation, payment, keyword, and admin-command surfaces. The test user is left in an artificially-induced <code>payment_pending</code> state (BUG-C side effect) — should be reset to <code>consultation_closed</code> in DB before the next live test, or the BUG-C fix should be made to re-emit a fresh button when called against an already-<code>payment_pending</code> row. Operator is now moving into a bundled fix sprint covering BUG-A through BUG-H; deferred TCs (TC-0607 re-engagement, TC-0307 UNBLOCK, TC-0702 blocked-message-drop, plus TC-0304 REJECT and TC-0202/0205) will be exercised once the fixes land.</p>
+    </section>
+
+    <section class="layer" id="appendix">
+      <h1>3. Appendix</h1>
+      <div class="layer-blurb">Full raw artefacts. Click to expand. The session log is verbatim — use it to grep, re-trace, or audit.</div>
+      <details class="appendix-item" id="appendix-session">
+        <summary>Session log <span class="src">(session.md — raw chronological)</span></summary>
+        <h1>Exploratory Test — Feedback + Rebook validation</h1>
+<p><strong>Date:</strong> 2026-05-16 (evening)
+<strong>Operator:</strong> prasadmujumdar
+<strong>Test phone:</strong> 61466927921
+<strong>Test type:</strong> exploratory
+<strong>Prior session (not mixed in):</strong> <code>.methodology/test-exploratory-pre-smoke-test-2026-05-16/</code></p>
+<h2>Design docs referenced</h2>
+<ul>
+<li>docs/superpowers/FunctionalTestCases.md (TC-0501–0508, TC-0504, TC-0505, TC-1001)</li>
+<li>docs/reference/user_journey_map.html (J-15, J-16, J-17, J-20)</li>
+<li>docs/workflow-registry.md (WF-43, WF-44, WF-45, WF-25, WF-50, WF-52)</li>
+</ul>
+<h2>Watch surface</h2>
+<ul>
+<li>n8n executions: all active workflows</li>
+<li>Postgres tables: chinmay_astro.users, chinmay_astro.admin_actions, chinmay_astro.message_log</li>
+<li>Slack channels: C0B3SA9JALX (consult-61466927921), C0A5B0ZE81E (chinmay-admin-commands)</li>
+<li>Latency threshold: 5000 ms</li>
+</ul>
+<h2>Baselines</h2>
+<ul>
+<li>exec-cursor: 1076</li>
+<li>time-cursor: 2026-05-16T22:15:40Z</li>
+<li>DB user state (pre-test): status=consultation_closed, stage=null, feedback=null, slack_channel_id=C0B3SA9JALX, updated_at=2026-05-16T07:01:57.531Z</li>
+</ul>
+<h2>Carried-over findings from prior session (will be confirmed/extended here, fixed together at end)</h2>
+<ul>
+<li><strong>BUG-A · WF-43 TC-0501 (button "Provide Feedback"):</strong> Branch sends WA prompt but does not write <code>stage='awaiting_feedback'</code> to chinmay_astro.users. Verified via exec 1065 node trace: <code>Is Button Reply? → Is Rebook Button? → Prompt for Feedback → Send Feedback Prompt via WF-50</code> — no UPDATE node.</li>
+<li><strong>BUG-B · WF-43 TC-0502 (free-form feedback text):</strong> Routed to <code>Gemini General Response</code> instead of WF-44. HTTP node fails with <code>JSON parameter needs to be valid JSON</code> because <code>{{ $json.geminiPrompt }}</code> is interpolated raw into a JSON string. Fix: use <code>{{ JSON.stringify($json.geminiPrompt) }}</code> and drop surrounding quotes. Verified via exec 1075 at 2026-05-16T22:04:33Z.</li>
+</ul>
+<h3>Tick — 2026-05-16T22:18Z (Feedback + Rebook actions)</h3>
+<p><strong>Actions performed by operator:</strong>
+1. Sent free-form text "I want another consultation"
+2. Tapped "Book Again" button (btn_rebook) from yesterday's consultation-closure message
+3. Sent keyword "REBOOK"</p>
+<p><strong>New executions:</strong> 22 (1077–1098). 8 errored, 14 succeeded.</p>
+<p><strong>Per-action breakdown:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Execs</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 — "I want another consultation"</td>
+<td>WF-00→WF-01→WF-02→WF-43(err 1081)</td>
+<td>❌ — WF-43 hit <code>Gemini General Response</code>, same JSON-interpolation bug (BUG-B)</td>
+</tr>
+<tr>
+<td>2 — Tap "Book Again" button</td>
+<td>WF-00→WF-02→WF-43(err 1086)→WF-45(err 1087)</td>
+<td>❌ — WF-43 route node fine; WF-45 <code>Set status=payment_pending</code> succeeded then <code>Send Payment Instructions</code> failed with "Workflow does not exist." User left stuck in <code>payment_pending</code> despite no payment-prompt delivered.</td>
+</tr>
+<tr>
+<td>3 — "REBOOK" keyword</td>
+<td>WF-00→WF-01→WF-02→WF-20→WF-30→WF-25→WF-50</td>
+<td>✅ technically — but content is wrong (see BUG-E)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Bugs (this tick):</strong></p>
+<ul>
+<li><strong>BUG-C [critical] · WF-45 (<code>MUG7rPgSHc7UtAE9</code>) · <code>Send Payment Instructions</code> executeWorkflow node.</strong> <code>parameters.workflowId</code> is a resource-locator object <code>{"__rl":true,"value":"BUVun38WEKb12zg9","mode":"id"}</code> on a <code>typeVersion: 1</code> node — n8n throws "Workflow does not exist." Same class as F-04 (WF-47 hold/opt-out messages, fixed yesterday). Lint hook should have caught this. Verified exec 1087, 2026-05-16T22:17:29Z.</li>
+<li>
+<p><strong>Side effect:</strong> <code>Set status=payment_pending</code> node ran <em>before</em> the failing node, so <code>users.status</code> flipped from <code>consultation_closed</code> → <code>payment_pending</code> (updated_at 22:17:29Z) without any payment instructions ever leaving the system. User is in an inconsistent state.</p>
+</li>
+<li>
+<p><strong>BUG-D [major] · WF-20/WF-30 · REBOOK keyword from <code>consultation_closed</code> is not routed to WF-45.</strong> After BUG-C left user in <code>payment_pending</code>, sending "REBOOK" was handled by WF-20 (keyword handler) → WF-30 (payment-pending intent filter), which produced a payment-instructions message referring to "the Payment Completed button you received earlier." That button is the original one from days ago — for a fresh rebook the user needs a NEW button. WF-20 must dispatch REBOOK → WF-45 from both <code>consultation_closed</code> <em>and</em> <code>payment_pending</code> states, and WF-45 must always emit a fresh interactive button via WF-50.</p>
+</li>
+<li>
+<p>Even if BUG-C is fixed, BUG-D still applies once a user accidentally types REBOOK while already in <code>payment_pending</code> (e.g. forgot they tapped the button).</p>
+</li>
+<li>
+<p><strong>BUG-E [major · design gap] · Free-form rebook intent has no dedicated reply.</strong> TC-0506 expects WF-43 + WF-25 (rebook_intent) → reply: <em>"To book another consultation, just send REBOOK."</em> That branch does not exist in WF-43 today — the message falls into the generic Gemini path. Operator's intended contract (capture this):</p>
+<blockquote>
+<p>For a <code>consultation_closed</code> user who expresses rebook intent in free-form text (not the button, not the exact keyword), WF-43 must respond with a SHORT message offering BOTH options: <em>"To book another consultation, you can either tap the 'Book Again' button from your last message, or send REBOOK as a new message."</em></p>
+</blockquote>
+</li>
+<li>
+<p><strong>BUG-B confirmed reproducible</strong> — exec 1081 failed at the same <code>Gemini General Response</code> node, same <code>JSON parameter needs to be valid JSON</code>. Same fix as previously written prompt (<code>JSON.stringify</code>).</p>
+</li>
+<li>
+<p><strong>BUG-A still latent</strong> — feedback button branch still has no <code>UPDATE stage='awaiting_feedback'</code> (not re-tested this tick; carrying over).</p>
+</li>
+</ul>
+<p><strong>DB delta on <code>users</code>:</strong>
+- 61466927921: <code>status</code> consultation_closed → <strong>payment_pending</strong> (22:17:29Z) via WF-45 partial run. <strong>stage</strong> still null. <strong>slack_channel_id</strong> still C0B3SA9JALX (correctly unchanged per Design Rule #10). Recovery action TBD — see remediation list.</p>
+<p><strong>Slack:</strong> none expected; none observed in C0B3SA9JALX (correct).</p>
+<p><strong>Latency:</strong> all sub-WFs &lt;2s. No slow execs.</p>
+<h3>Observation — 2026-05-16T22:24Z</h3>
+<p>Operator (while waiting) sent free-form "I've already paid" while in <code>payment_pending</code>. System replied with the same payment-instructions message that asks user to tap "the Payment Completed button you received earlier" — same stale-button problem as BUG-D. Reinforces that the payment-pending free-form reply (WF-30) needs to either (a) re-send a fresh interactive button or (b) clarify how to recover when the old button is gone. Logging as evidence for BUG-D scope; not a separate bug.</p>
+<h3>Action queue — 2026-05-16T22:24Z</h3>
+<p>Operator will now exercise, in order:
+1. TC-0604 — send "STOP" from <code>payment_pending</code> → expect status <code>payment_pending</code> → <code>opted_out</code>, WF-47 opt-out confirmation message
+2. TC-0607 — send any message after opt-out → expect WF-01 routes opted_out → WF-21 (welcome + form re-sent), DB record retained
+3. TC-0306 — admin <code>BLOCK 61466927921</code> from Slack → expect status → <code>blocked</code>, admin confirmation, silent to user
+4. TC-0307 — admin <code>UNBLOCK 61466927921</code> → expect status <code>blocked</code> → <code>consultation_closed</code>
+5. TC-0702 — between BLOCK and UNBLOCK, send a user message → expect silent drop (HTTP 200, no response, admin_actions log)</p>
+<h3>Tick — 2026-05-16T22:38Z (STOP from payment_pending)</h3>
+<p><strong>Action:</strong> sent "STOP" (and earlier "I have already paid").
+<strong>New execs:</strong> 22 (1099–1120). Two webhook batches.</p>
+<p><strong>Findings — ROOT CAUSE of multiple prior bugs:</strong></p>
+<ul>
+<li><strong>BUG-F [critical] · WF-20 Keyword Handler · field-name mismatch.</strong> The <code>Normalize Keyword</code> Set node has expression <code>={{ $json.messageText.trim().toUpperCase() }}</code>. The actual incoming field from WF-02 is <strong><code>messageContent</code></strong> (or <code>messageContentUpper</code> already pre-uppercased). <code>$json.messageText</code> is <code>null</code>, so <code>keyword</code> becomes <code>null</code>, the <code>Match Keyword</code> switch falls through to the default <code>Set Passthrough</code> branch, and <strong>every keyword (STOP/HELP/REBOOK) silently passes through to the state-based handler</strong> — verified in exec 1113 runData (<code>keyword: null, messageText: null</code> despite <code>messageContent: "STOP"</code>).</li>
+<li><strong>This is the root cause of:</strong><ul>
+<li>The "STOP not working" symptom observed in this tick — WF-47 was never called, user state still <code>payment_pending</code>.</li>
+<li>The earlier "REBOOK worked but with stale-button message" symptom (REBOOK never routed to WF-45; fell through to WF-30 payment-pending intent filter).</li>
+<li>Likely the same is true for HELP from any state.</li>
+</ul>
+</li>
+<li><strong>Fix:</strong> in WF-20 <code>Normalize Keyword</code>, change <code>={{ $json.messageText.trim().toUpperCase() }}</code> to <code>={{ ($json.messageContent || '').trim().toUpperCase() }}</code> (and same for <code>messageText</code> mapping field if present). Also update <code>phoneNumber</code> / <code>userId</code> mappings if they reference wrong field names (output shows <code>userId: null</code> too — verify input shape).</li>
+<li>
+<p><strong>Demotes BUG-D</strong> to a downstream consequence — once BUG-F is fixed, REBOOK from <code>consultation_closed</code> will route to WF-45 cleanly. BUG-D's "fresh button must be sent" remains valid but is contingent on BUG-C fix.</p>
+</li>
+<li>
+<p><strong>STOP from payment_pending — actual observed flow:</strong> WF-00 → WF-01 → WF-02 → WF-20 (default pass-through due to BUG-F) → WF-30 (payment intent filter) → WF-25 → WF-50 (payment reminder). User state unchanged.</p>
+</li>
+</ul>
+<p><strong>DB delta:</strong> none. <code>status</code> still <code>payment_pending</code>, <code>stage</code> still <code>null</code>, <code>updated_at</code> still 22:17:29Z.</p>
+<p><strong>Slack:</strong> none observed (correct — no admin notification expected).</p>
+<p><strong>TC-0604 verdict:</strong> ❌ — STOP did not transition user to <code>opted_out</code>. Blocked behind BUG-F.</p>
+<h3>Tick — 2026-05-16T22:44Z (BLOCK from admin Slack)</h3>
+<p><strong>Action:</strong> Admin typed <code>BLOCK</code> in consult-61466927921 channel (C0B3SA9JALX).
+<strong>New execs:</strong> 3 (1121 WF-10 error, 1122 WF-11 error, 1123 WF-46 error).</p>
+<p><strong>Findings:</strong></p>
+<ul>
+<li>
+<p><strong>BUG-G [major] · WF-11 · BLOCK in consult channel does not infer phone from channel name.</strong> Admin typed bare <code>BLOCK</code> (no phone). WF-11 parsed: <code>command=BLOCK, targetPhone=null, phoneNumber=""</code>. The Slack-side convention is that commands in a <code>consult-&lt;phone&gt;</code> channel target that phone implicitly (see CLAUDE.md Design Rule #3 + WF-10 captures all workspace events). WF-11 must either (a) auto-extract phone from <code>channelName</code> when no phone token is present, or (b) reply with a clear error like "BLOCK requires a phone number, or run it in the user's consult channel."</p>
+</li>
+<li>
+<p><strong>BUG-H [major] · WF-46 · <code>Load User by Phone</code> Postgres node throws <code>there is no parameter $1</code>.</strong> Error fires before reaching the user lookup. Symptom suggests the SQL contains <code>$1</code> but <code>queryReplacement</code> is missing/empty when <code>phoneNumber=""</code>. Even with BUG-G fixed (real phone passed in), the node has a brittle structure — should be reviewed alongside BUG-G fix. Verified exec 1123, lastNode=<code>Load User by Phone</code>.</p>
+</li>
+</ul>
+<p><strong>TC-0306 verdict:</strong> ❌ — admin BLOCK does not work from the consult channel without an explicit phone.</p>
+<p><strong>DB delta:</strong> none (user still <code>payment_pending</code>).</p>
+<hr />
+<h2>Session conclusion — 2026-05-16T22:44Z</h2>
+<p>Operator concluded testing here. Next step: a full bundled sprint to fix all bugs found across this and prior session.</p>
+<p><strong>Final DB state of test user 61466927921:</strong>
+- <code>status</code> = payment_pending (stuck — left over from BUG-C partial run)
+- <code>stage</code> = null
+- <code>slack_channel_id</code> = C0B3SA9JALX
+- <code>feedback</code> = null</p>
+<p>Recovery prior to next live test: either DB reset (<code>status='consultation_closed'</code> to resume from the post-consult flow) or proceed through the legitimate happy path once BUG-C is fixed.</p>
+      </details>
+      
+    </section>
+
+  </main>
+</div>
+<script>
+// 1) Severity chip styling for [critical] / [major] / [minor]
+const sevColors = { critical: "#ff4d4f", major: "#ff9f43", minor: "#f1c40f", slow: "#e67e22" };
+function chipifySeverity(root) {
+  root.querySelectorAll("td, p, li, h3, h4").forEach(el => {
+    const html = el.innerHTML;
+    const newHtml = html.replace(/`?\[(critical|major|minor|slow)\]`?/gi, (s, k) => {
+      const key = k.toLowerCase();
+      return `<span class="sev-chip" style="background:${sevColors[key]}">${k}</span>`;
+    });
+    if (newHtml !== html) el.innerHTML = newHtml;
+  });
+}
+chipifySeverity(document);
+
+// 2) Wrap story h3 + following content into card containers
+(function wrapStoryCards() {
+  const story = document.getElementById("story");
+  if (!story) return;
+  const h3s = Array.from(story.querySelectorAll("h3"));
+  h3s.forEach(h3 => {
+    const card = document.createElement("div");
+    card.className = "story-card";
+    let next = h3.nextSibling;
+    while (next && !(next.nodeType === 1 && (next.tagName === "H3" || next.tagName === "HR" || next.tagName === "H2"))) {
+      const cur = next;
+      next = next.nextSibling;
+      card.appendChild(cur);
+    }
+    h3.after(card);
+  });
+  // remove <hr> separators since cards already provide separation
+  story.querySelectorAll("hr").forEach(hr => hr.remove());
+})();
+
+// 3) Build scenario nav from h3s in story section
+(function buildScenarioNav() {
+  const nav = document.getElementById("nav-scenarios");
+  if (!nav) return;
+  document.querySelectorAll("#story h3").forEach((h3, i) => {
+    const id = "scenario-" + (h3.textContent.match(/TC-\d+/)?.[0] || ("sc" + i)).toLowerCase();
+    h3.id = id;
+    const a = document.createElement("a");
+    a.href = "#" + id;
+    a.className = "depth-1";
+    a.textContent = h3.textContent.replace(/\s*[✅❌→].*/g, "").trim();
+    nav.appendChild(a);
+  });
+})();
+
+// 4) Color ✅ / ❌ in story headings
+document.querySelectorAll("#story h3").forEach(h3 => {
+  h3.innerHTML = h3.innerHTML
+    .replace(/✅/g, '<span class="status-ok">✅</span>')
+    .replace(/❌/g, '<span class="status-warn">❌</span>');
+});
+</script>
+</body></html>

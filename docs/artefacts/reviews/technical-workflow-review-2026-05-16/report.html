@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Technical Workflow Review — Chinmay Astro — 2026-05-16</title>
+<style>
+  :root {
+    --red: #dc2626; --red-bg: #fef2f2; --red-border: #fca5a5;
+    --orange: #ea580c; --orange-bg: #fff7ed; --orange-border: #fed7aa;
+    --yellow: #ca8a04; --yellow-bg: #fefce8; --yellow-border: #fde047;
+    --green: #16a34a; --green-bg: #f0fdf4; --green-border: #86efac;
+    --blue: #2563eb; --blue-bg: #eff6ff; --blue-border: #93c5fd;
+    --gray: #6b7280; --gray-bg: #f9fafb; --gray-border: #d1d5db;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: #f1f5f9; color: #1e293b; line-height: 1.6; }
+  .header { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white; padding: 40px 48px; }
+  .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .header .meta { opacity: 0.7; font-size: 14px; display: flex; gap: 24px; flex-wrap: wrap; }
+  .header .meta span { display: flex; align-items: center; gap: 6px; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card { background: white; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; text-align: center; }
+  .stat-card .num { font-size: 36px; font-weight: 800; line-height: 1; }
+  .stat-card .label { font-size: 12px; color: var(--gray); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-card.red .num { color: var(--red); }
+  .stat-card.orange .num { color: var(--orange); }
+  .stat-card.yellow .num { color: var(--yellow); }
+  .stat-card.green .num { color: var(--green); }
+  .section { background: white; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px; overflow: hidden; }
+  .section-header { padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; }
+  .section-header:hover { background: #f8fafc; }
+  .section-header h2 { font-size: 17px; font-weight: 600; flex: 1; }
+  .section-header .badge { padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+  .badge.pass { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .badge.fail { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+  .badge.warn { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-border); }
+  .badge.info { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-border); }
+  .section-body { padding: 24px; }
+  .section-body.hidden { display: none; }
+  .chevron { transition: transform 0.2s; font-size: 18px; color: var(--gray); }
+  .chevron.open { transform: rotate(180deg); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { background: #f8fafc; text-align: left; padding: 10px 14px; font-weight: 600; color: #475569; border-bottom: 2px solid #e2e8f0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+  .sev { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; white-space: nowrap; }
+  .sev.red { color: var(--red); }
+  .sev.orange { color: var(--orange); }
+  .sev.yellow { color: var(--yellow); }
+  .sev.green { color: var(--green); }
+  .sev.gray { color: var(--gray); }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 12px; color: #7c3aed; }
+  .fix-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; }
+  .fix-tag.critical { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+  .fix-tag.verify { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow-border); }
+  .fix-tag.defer { background: var(--gray-bg); color: var(--gray); border: 1px solid var(--gray-border); }
+  .finding { padding: 16px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid; }
+  .finding.red { background: var(--red-bg); border-color: var(--red); }
+  .finding.orange { background: var(--orange-bg); border-color: var(--orange); }
+  .finding.yellow { background: var(--yellow-bg); border-color: var(--yellow); }
+  .finding h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .finding p { font-size: 13px; color: #374151; }
+  .finding code { font-size: 11px; }
+  .fix-box { margin-top: 10px; padding: 10px 14px; background: white; border-radius: 6px; font-size: 13px; color: #374151; }
+  .fix-box strong { color: #111; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } .header { padding: 24px; } }
+  .wf-chip { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; margin: 2px; }
+  .clean-list { list-style: none; }
+  .clean-list li { padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+  .clean-list li:last-child { border-bottom: none; }
+  .toc { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 32px; }
+  .toc a { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; font-size: 14px; color: #1e293b; text-decoration: none; display: flex; align-items: center; gap: 8px; transition: all 0.15s; }
+  .toc a:hover { border-color: #93c5fd; background: var(--blue-bg); }
+  @media (max-width: 600px) { .toc { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔬 Technical Workflow Review</h1>
+  <div class="meta">
+    <span>📅 2026-05-16</span>
+    <span>🏗 n8n 2.1.4</span>
+    <span>📋 28 workflows scanned</span>
+    <span>🚦 6 confirmed runtime bugs</span>
+    <span>💾 2 DB schema mismatches</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Summary Cards -->
+  <div class="summary-grid">
+    <div class="stat-card red">
+      <div class="num">6</div>
+      <div class="label">Confirmed runtime bugs</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="num">7</div>
+      <div class="label">SQL expression bugs</div>
+    </div>
+    <div class="stat-card red">
+      <div class="num">2</div>
+      <div class="label">DB schema mismatches</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="num">14</div>
+      <div class="label">Needs UI verification</div>
+    </div>
+    <div class="stat-card green">
+      <div class="num">10</div>
+      <div class="label">Fully clean workflows</div>
+    </div>
+    <div class="stat-card green">
+      <div class="num">0</div>
+      <div class="label">Disabled nodes</div>
+    </div>
+    <div class="stat-card green">
+      <div class="num">0</div>
+      <div class="label">Invalid connections</div>
+    </div>
+  </div>
+
+  <!-- Critical path impact callout -->
+  <div class="finding red" style="margin-bottom: 24px;">
+    <h4>⚠️ Critical Path Broken By Confirmed Bugs</h4>
+    <p>The following user journeys will fail at runtime due to confirmed bugs: <strong>STOP keyword</strong> (WF-47 broken in 3 ways), <strong>HELP/REBOOK keywords</strong> (WF-20 v2 nodes), <strong>Admin→WhatsApp relay</strong> (WF-12 v2 node), <strong>Rebook flow</strong> (WF-45: v2 + missing stage column + SQL expression), <strong>Feedback save</strong> (WF-44: missing stage column), <strong>UNBLOCK command</strong> (WF-11: SQL expression + wrong column names).</p>
+  </div>
+
+  <!-- Check 1: Disabled Nodes -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>✅ Check 1 — Disabled / Inactive Nodes</h2>
+      <span class="badge pass">PASS</span>
+      <span class="chevron open">▾</span>
+    </div>
+    <div class="section-body">
+      <p>Zero disabled nodes found across all 28 workflow exports. Every node in every workflow is enabled.</p>
+    </div>
+  </div>
+
+  <!-- Check 2: Orphaned Nodes -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>✅ Check 2 — Orphaned Nodes</h2>
+      <span class="badge pass">PASS (harmless)</span>
+      <span class="chevron open">▾</span>
+    </div>
+    <div class="section-body">
+      <p>Three sticky notes found with no connections: <span class="wf-chip">WF-00</span> <span class="wf-chip">WF-02</span> <span class="wf-chip">WF-50</span>. Sticky notes are documentation-only and never execute. No action required.</p>
+    </div>
+  </div>
+
+  <!-- Check 3: TypeVersion -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🔴 Check 3 — Node TypeVersion Compatibility</h2>
+      <span class="badge fail">3 WORKFLOWS BROKEN</span>
+      <span class="chevron open">▾</span>
+    </div>
+    <div class="section-body">
+      <div class="finding red">
+        <h4>executeWorkflow@v2 exceeds maximum supported version in n8n 2.1.4 (max: v1.3)</h4>
+        <p>These nodes will throw a runtime error and halt the execution branch.</p>
+      </div>
+      <table>
+        <thead><tr><th>Workflow</th><th>Node</th><th>Version</th><th>Impact</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="wf-chip">WF-20</span> Keyword Handler</td>
+            <td><code>Send HELP Response</code></td>
+            <td><code>v2</code></td>
+            <td>HELP keyword → no WhatsApp message sent</td>
+            <td><span class="fix-tag critical">F-03</span></td>
+          </tr>
+          <tr>
+            <td><span class="wf-chip">WF-20</span> Keyword Handler</td>
+            <td><code>Route to Rebook</code></td>
+            <td><code>v2</code></td>
+            <td>REBOOK keyword via WF-20 → fails</td>
+            <td><span class="fix-tag critical">F-03</span></td>
+          </tr>
+          <tr>
+            <td><span class="wf-chip">WF-45</span> Rebook Handler</td>
+            <td><code>Send Payment Instructions</code></td>
+            <td><code>v2</code></td>
+            <td>No payment instructions sent to user after rebook</td>
+            <td><span class="fix-tag critical">F-03</span></td>
+          </tr>
+          <tr>
+            <td><span class="wf-chip">WF-12</span> Admin→WhatsApp Relay</td>
+            <td><code>Call WF-50 Send WhatsApp</code></td>
+            <td><code>v2</code></td>
+            <td>All admin relay messages silently fail</td>
+            <td><span class="fix-tag critical">F-03</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="fix-box" style="margin-top: 16px;"><strong>Fix F-03:</strong> For each node: open in n8n UI → in Execute Workflow node settings → downgrade typeVersion to 1 (or 1.3), save. Alternatively use <code>n8n_update_partial_workflow</code> with <code>patchNodeField</code>.</div>
+      <br>
+      <p style="color: var(--gray); font-size: 13px;">Minor version drift (e.g. Postgres@v2.5 → latest v2.6) is widespread but non-breaking in n8n 2.1.4. No action needed before go-live.</p>
+    </div>
+  </div>
+
+  <!-- Check 4: Expression Format -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🟠 Check 4 — Expression Format Errors (Missing = Prefix)</h2>
+      <span class="badge fail">7 NODES AFFECTED</span>
+      <span class="chevron open">▾</span>
+    </div>
+    <div class="section-body">
+      <div class="finding orange">
+        <h4>Postgres <code>query</code> fields with <code>{{ expression }}</code> inside literal text require an <code>=</code> prefix</h4>
+        <p>Without the prefix, the entire field is treated as a literal string — the expression is not evaluated. The SQL sent to Postgres contains <code>{{ $json.phoneNumber }}</code> as text, causing either zero rows matched or a query error.</p>
+        <div class="fix-box"><strong>Note:</strong> Project CLAUDE.md warns "= prefix breaks base64 encoding" — this applies specifically to WhatsApp Flows fields, not Postgres query fields. These are different node types.</div>
+      </div>
+      <table>
+        <thead><tr><th>Severity</th><th>Workflow</th><th>Node</th><th>Impact</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="sev red">🔴 Critical</span></td>
+            <td><span class="wf-chip">WF-45</span> Rebook Handler</td>
+            <td><code>Load User Record</code></td>
+            <td>User lookup returns 0 rows → rebook has no user data</td>
+            <td><span class="fix-tag critical">F-05</span></td>
+          </tr>
+          <tr>
+            <td><span class="sev red">🔴 Critical</span></td>
+            <td><span class="wf-chip">WF-45</span> Rebook Handler</td>
+            <td><code>Set status=payment_pending</code></td>
+            <td>UPDATE affects 0 rows → user status not changed</td>
+            <td><span class="fix-tag critical">F-05</span></td>
+          </tr>
+          <tr>
+            <td><span class="sev orange">🟠 High</span></td>
+            <td><span class="wf-chip">WF-11</span> Command Parser</td>
+            <td><code>Lookup Blocked User</code></td>
+            <td>UNBLOCK lookup returns 0 rows → command silently fails</td>
+            <td><span class="fix-tag critical">F-05</span></td>
+          </tr>
+          <tr>
+            <td><span class="sev orange">🟠 High</span></td>
+            <td><span class="wf-chip">WF-11</span> Command Parser</td>
+            <td><code>Unblock User</code></td>
+            <td>UPDATE and INSERT both no-op</td>
+            <td><span class="fix-tag critical">F-05</span></td>
+          </tr>
+          <tr>
+            <td><span class="sev orange">🟠 High</span></td>
+            <td><span class="wf-chip">WF-40</span> User→Admin Relay</td>
+            <td><code>Load User Record</code></td>
+            <td>Relay has no user context (name, channel)</td>
+            <td><span class="fix-tag critical">F-05</span></td>
+          </tr>
+          <tr>
+            <td><span class="sev orange">🟠 High</span></td>
+            <td><span class="wf-chip">WF-46</span> User Blocker</td>
+            <td><code>Get User Slack Channel</code></td>
+            <td>Channel ID not retrieved → archive step fails</td>
+            <td><span class="fix-tag critical">F-05</span></td>
+          </tr>
+          <tr>
+            <td><span class="sev orange">🟠 High</span></td>
+            <td><span class="wf-chip">WF-47</span> Unsubscribe Handler</td>
+            <td><code>Get User Slack Channel</code></td>
+            <td>Channel ID not retrieved → archive step fails</td>
+            <td><span class="fix-tag critical">F-05</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="fix-box" style="margin-top: 16px;"><strong>Fix F-05:</strong> For each Postgres node, prefix the <code>query</code> field value with <code>=</code>. Example: change <code>SELECT ... WHERE phone = '{{ $json.phoneNumber }}'</code> to <code>=SELECT ... WHERE phone = '{{ $json.phoneNumber }}'</code>.</div>
+    </div>
+  </div>
+
+  <!-- Check 5: Structural -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🔴 Check 5 — Structural / Schema Errors</h2>
+      <span class="badge fail">CRITICAL + MEDIUM</span>
+      <span class="chevron open">▾</span>
+    </div>
+    <div class="section-body">
+
+      <div class="finding red">
+        <h4>WF-47: workflowId must be a string, got object <span class="fix-tag critical">F-04</span></h4>
+        <p>The <code>Send Hold Message via WF-50</code> and <code>Send Opt-out Confirmation via WF-50</code> executeWorkflow nodes have a malformed <code>workflowId</code> — a resource locator object was stored instead of a plain ID string. Both STOP paths (consultation_active hold message, and opt-out confirmation) will throw at runtime.</p>
+        <div class="fix-box"><strong>Fix F-04:</strong> Open WF-47 in n8n UI → click each affected node → re-select WF-50 from the workflow dropdown → save.</div>
+      </div>
+
+      <div class="finding orange">
+        <h4>WF-43: Unmatched expression brackets in Gemini node <span class="fix-tag critical">F-06</span></h4>
+        <p>The <code>Gemini General Response</code> HTTP Request node has a <code>jsonBody</code> field with mismatched <code>{{</code> <code>}}</code> brackets (1 opening, 2 closing). The Gemini general-response path for <code>consultation_closed</code> users will throw a parse error.</p>
+        <div class="fix-box"><strong>Fix F-06:</strong> Open WF-43 → <code>Gemini General Response</code> node → inspect <code>jsonBody</code> expression → find and remove the extra closing <code>}}</code>.</div>
+      </div>
+
+      <div class="finding yellow">
+        <h4>Invalid mappingMode: passthrough — 3 workflows <span class="fix-tag verify">F-08</span></h4>
+        <p>The strict validator rejects <code>passthrough</code> as a valid <code>mappingMode</code> for <code>executeWorkflow</code> nodes. Since these were built and tested in sessions 3–5, this is likely a schema version mismatch between the validator and n8n 2.1.4. <strong>Verify in smoke test.</strong></p>
+        <p>Affected: <span class="wf-chip">WF-10</span> (→WF-11, →WF-41) &nbsp; <span class="wf-chip">WF-11</span> (→WF-33, →WF-34, →WF-42, →WF-46) &nbsp; <span class="wf-chip">WF-33</span> (→WF-50)</p>
+      </div>
+
+      <div class="finding yellow">
+        <h4>Invalid Slack node operation — 7 workflows <span class="fix-tag verify">F-07</span></h4>
+        <p>Multiple Slack nodes have an <code>operation</code> value the strict validator does not recognise. Likely a schema version mismatch (Slack node v2.3 in n8n 2.1.4 vs. newer validator schema). Open each in the UI — if the dropdown shows a valid operation and fields are populated, it is functional.</p>
+        <table style="margin-top:12px;">
+          <thead><tr><th>Workflow</th><th>Affected nodes</th></tr></thead>
+          <tbody>
+            <tr><td><span class="wf-chip">WF-11</span></td><td>Confirm Consultation Closure, Confirm User Blocked, Send List To Admin, Send Stats To Admin ×2, Unknown Command Response, Confirm User Unblocked, No Blocked User Found</td></tr>
+            <tr><td><span class="wf-chip">WF-33</span></td><td>Notify Admin in Channel</td></tr>
+            <tr><td><span class="wf-chip">WF-34</span></td><td>Send a message</td></tr>
+            <tr><td><span class="wf-chip">WF-41</span></td><td>Post to Slack Channel</td></tr>
+            <tr><td><span class="wf-chip">WF-42</span></td><td>Notify Admin in Slack</td></tr>
+            <tr><td><span class="wf-chip">WF-46</span></td><td>Send a message</td></tr>
+            <tr><td><span class="wf-chip">WF-51</span></td><td>Post to Slack</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Check 6: Webhook -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🟡 Check 6 — Webhook Response Configuration</h2>
+      <span class="badge warn">2 WEBHOOKS</span>
+      <span class="chevron open">▾</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Workflow</th><th>Node</th><th>Issue</th><th>Impact</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="wf-chip">WF-00</span></td>
+            <td><code>WhatsApp Webhook</code></td>
+            <td><code>responseNode</code> mode requires <code>onError: "continueRegularOutput"</code></td>
+            <td>Processing error → no 200 to Meta → Meta retries → duplicate processing</td>
+            <td><span class="fix-tag verify">F-09</span></td>
+          </tr>
+          <tr>
+            <td><span class="wf-chip">WF-10</span></td>
+            <td><code>Webhook</code></td>
+            <td>Same missing <code>onError</code> property</td>
+            <td>Processing error → no 200 to Slack → Slack retries commands</td>
+            <td><span class="fix-tag verify">F-09</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Check 7: Connections -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>✅ Check 7 — Connection Integrity</h2>
+      <span class="badge pass">PASS</span>
+      <span class="chevron open">▾</span>
+    </div>
+    <div class="section-body">
+      <p>Zero invalid connections across all 28 workflows. All node wiring is structurally sound.</p>
+    </div>
+  </div>
+
+  <!-- Check 8: UI -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>⚪ Check 8 — UI Rendering (cachedResultName)</h2>
+      <span class="badge info">COSMETIC — DEFER</span>
+      <span class="chevron open">▾</span>
+    </div>
+    <div class="section-body">
+      <p><code>cachedResultName</code> is missing on ~40+ <code>executeWorkflow</code> node <code>workflowId</code> fields across most workflows. In the n8n canvas, affected dropdowns show <strong>"Choose..."</strong> instead of the workflow name, making editing confusing.</p>
+      <p style="margin-top:10px; color: var(--gray); font-size: 13px;"><strong>Runtime impact: None.</strong> Workflows execute correctly. Tag as <span class="fix-tag defer">F-10 — post-MVP</span>.</p>
+    </div>
+  </div>
+
+  <!-- Check 9: DB Schema -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🔴 Check 9 — Postgres Schema vs. Workflow SQL</h2>
+      <span class="badge fail">2 CRITICAL MISMATCHES</span>
+      <span class="chevron open">▾</span>
+    </div>
+    <div class="section-body">
+
+      <div class="finding red">
+        <h4>Missing column: <code>users.stage</code> <span class="fix-tag critical">F-01</span></h4>
+        <p>The <code>chinmay_astro.users</code> table has no <code>stage</code> column. Two workflows reference it in UPDATE queries — both will throw <code>column "stage" does not exist</code> at runtime.</p>
+        <table style="margin-top: 12px;">
+          <thead><tr><th>Workflow</th><th>Node</th><th>SQL</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="wf-chip">WF-44</span> Feedback Recorder</td>
+              <td><code>Save Feedback to DB</code></td>
+              <td><code>SET feedback = $1, stage = NULL, ...</code></td>
+            </tr>
+            <tr>
+              <td><span class="wf-chip">WF-45</span> Rebook Handler</td>
+              <td><code>Set status=payment_pending</code></td>
+              <td><code>SET status = 'payment_pending', stage = NULL, ...</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="fix-box" style="margin-top:12px;">
+          <strong>Option A (preferred):</strong> <code>ALTER TABLE chinmay_astro.users ADD COLUMN stage VARCHAR(50);</code> — aligns with the registry's "two-dimensional state" design (status + stage).<br>
+          <strong>Option B:</strong> Strip <code>stage = NULL</code> from both UPDATE queries if stage tracking is not yet implemented.
+        </div>
+      </div>
+
+      <div class="finding red">
+        <h4>Wrong column names in <code>admin_actions</code> INSERTs <span class="fix-tag critical">F-02</span></h4>
+        <p>The <code>admin_actions</code> table has columns <code>action_type</code> and <code>notes</code>. Two workflows INSERT using wrong column names, causing SQL errors on every admin action log attempt.</p>
+        <table style="margin-top: 12px;">
+          <thead><tr><th>Workflow</th><th>Node</th><th>Wrong</th><th>Correct</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="wf-chip">WF-47</span> Unsubscribe Handler</td>
+              <td>opt-out INSERT</td>
+              <td><code>action</code></td>
+              <td><code>action_type</code></td>
+            </tr>
+            <tr>
+              <td><span class="wf-chip">WF-11</span> Command Parser</td>
+              <td>UNBLOCK INSERT</td>
+              <td><code>action</code>, <code>reason</code></td>
+              <td><code>action_type</code>, <code>notes</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="fix-box" style="margin-top:12px;"><strong>Fix F-02:</strong> Update the INSERT SQL in both nodes to use <code>action_type</code> and <code>notes</code>. Alternatively, add alias columns to the table — but fixing the queries is cleaner.</div>
+      </div>
+
+      <div class="finding yellow">
+        <h4>✅ Status CHECK constraint — correct</h4>
+        <p>The <code>users.status</code> CHECK constraint correctly includes all 7 valid values: <code>new</code>, <code>payment_pending</code>, <code>payment_submitted</code>, <code>consultation_active</code>, <code>consultation_closed</code>, <code>blocked</code>, <code>opted_out</code>. The <code>opted_out</code> value added in session 5 is enforced. ✅</p>
+      </div>
+
+      <div class="finding yellow">
+        <h4>✅ All required indexes present</h4>
+        <p>All performance-critical indexes confirmed: <code>idx_users_phone</code>, <code>idx_users_status</code>, <code>idx_users_blocked</code>, <code>idx_messages_user_id</code>, <code>idx_messages_whatsapp_message_id</code> (deduplication). ✅</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Check 10: Data Health -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🟡 Check 10 — Database Data Health</h2>
+      <span class="badge warn">1 CONCERN</span>
+      <span class="chevron open">▾</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>Table</th><th>Rows</th><th>Finding</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>users</code></td>
+            <td>1</td>
+            <td>One test user (phone <code>61466927921</code>, status <code>consultation_closed</code>, <code>awaiting_feedback: false</code>). Clean test state.</td>
+            <td>✅ None</td>
+          </tr>
+          <tr>
+            <td><code>pending_users</code></td>
+            <td>2</td>
+            <td>Stale records — WhatsApp Flow form received but never submitted. Accumulate over time.</td>
+            <td>WF-73 (post-MVP cleanup job) will handle. No action now.</td>
+          </tr>
+          <tr>
+            <td><code>messages</code></td>
+            <td><strong style="color:var(--red)">0</strong></td>
+            <td><strong>Zero messages logged</strong> despite 1 completed consultation. WF-60's <code>Done</code> Code node returns a non-array value — WF-60 is silently failing on every execution. Deduplication in WF-00 relies on <code>messages</code> — empty table means Meta webhook retries are not caught.</td>
+            <td><span class="fix-tag defer">F-12 — verify WF-60</span></td>
+          </tr>
+          <tr>
+            <td><code>admin_actions</code></td>
+            <td>0</td>
+            <td>No admin actions logged — consistent with the <code>action</code> vs <code>action_type</code> column mismatch. All admin action INSERTs have been failing silently.</td>
+            <td><span class="fix-tag critical">F-02</span> will restore logging</td>
+          </tr>
+          <tr>
+            <td><code>consultations</code></td>
+            <td>1</td>
+            <td>One test consultation. Clean.</td>
+            <td>✅ None</td>
+          </tr>
+          <tr>
+            <td><code>payments</code></td>
+            <td>1</td>
+            <td>One test payment. Clean.</td>
+            <td>✅ None</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Clean Workflows -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>✅ Fully Clean Workflows (No Errors)</h2>
+      <span class="badge pass">10 WORKFLOWS</span>
+      <span class="chevron open">▾</span>
+    </div>
+    <div class="section-body">
+      <p style="margin-bottom:12px; color: var(--gray); font-size: 14px;">These 10 workflows passed strict validation with zero errors:</p>
+      <ul class="clean-list">
+        <li>✅ <strong>WF-02</strong> User State Router (16 nodes)</li>
+        <li>✅ <strong>WF-21</strong> New User Welcome + Form (4 nodes)</li>
+        <li>✅ <strong>WF-22</strong> Form Response Handler (10 nodes)</li>
+        <li>✅ <strong>WF-23</strong> Pre-Form Intent Filter (7 nodes)</li>
+        <li>✅ <strong>WF-25</strong> Intent Classifier (13 nodes)</li>
+        <li>✅ <strong>WF-30</strong> Payment Pending Intent Filter (7 nodes)</li>
+        <li>✅ <strong>WF-31</strong> Payment Submitted Handler (10 nodes)</li>
+        <li>✅ <strong>WF-32</strong> Payment Confirmation Receiver (11 nodes)</li>
+        <li>✅ <strong>WF-44</strong> Feedback Recorder (9 nodes) — <em>note: valid structurally but SQL will fail due to missing stage column (F-01)</em></li>
+        <li>✅ <strong>WF-52</strong> Slack Channel Manager (9 nodes)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Fix List -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🔧 Consolidated Fix List</h2>
+      <span class="badge info">12 FIXES</span>
+      <span class="chevron open">▾</span>
+    </div>
+    <div class="section-body">
+      <p style="margin-bottom: 16px; font-weight: 600;">Must fix before go-live:</p>
+      <table>
+        <thead><tr><th>ID</th><th>Fix</th><th>Workflow(s)</th><th>Type</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="fix-tag critical">F-01</span></td>
+            <td>Add <code>stage VARCHAR(50)</code> to <code>users</code> table <em>or</em> remove <code>stage = NULL</code> from UPDATE queries</td>
+            <td><span class="wf-chip">WF-44</span> <span class="wf-chip">WF-45</span></td>
+            <td>DB migration or Surgical</td>
+          </tr>
+          <tr>
+            <td><span class="fix-tag critical">F-02</span></td>
+            <td>Fix <code>admin_actions</code> INSERTs: <code>action</code>→<code>action_type</code>, <code>reason</code>→<code>notes</code></td>
+            <td><span class="wf-chip">WF-47</span> <span class="wf-chip">WF-11</span></td>
+            <td>Surgical</td>
+          </tr>
+          <tr>
+            <td><span class="fix-tag critical">F-03</span></td>
+            <td>Downgrade <code>executeWorkflow</code> nodes from v2 → v1 (or v1.3)</td>
+            <td><span class="wf-chip">WF-20</span> <span class="wf-chip">WF-45</span> <span class="wf-chip">WF-12</span></td>
+            <td>Surgical</td>
+          </tr>
+          <tr>
+            <td><span class="fix-tag critical">F-04</span></td>
+            <td>Re-select WF-50 in the two broken <code>executeWorkflow</code> nodes (workflowId type error)</td>
+            <td><span class="wf-chip">WF-47</span></td>
+            <td>Surgical</td>
+          </tr>
+          <tr>
+            <td><span class="fix-tag critical">F-05</span></td>
+            <td>Add <code>=</code> prefix to all Postgres <code>query</code> fields with mixed expressions</td>
+            <td><span class="wf-chip">WF-45</span> <span class="wf-chip">WF-11</span> <span class="wf-chip">WF-40</span> <span class="wf-chip">WF-46</span> <span class="wf-chip">WF-47</span></td>
+            <td>Batch Surgical</td>
+          </tr>
+          <tr>
+            <td><span class="fix-tag critical">F-06</span></td>
+            <td>Fix unmatched <code>{{ }}</code> brackets in Gemini node <code>jsonBody</code></td>
+            <td><span class="wf-chip">WF-43</span></td>
+            <td>Surgical</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style="margin: 20px 0 16px; font-weight: 600;">Verify before go-live (may work, may not):</p>
+      <table>
+        <thead><tr><th>ID</th><th>Fix</th><th>Workflow(s)</th><th>How to verify</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="fix-tag verify">F-07</span></td>
+            <td>Check Slack node operations render correctly in UI</td>
+            <td><span class="wf-chip">WF-11</span> <span class="wf-chip">WF-33</span> <span class="wf-chip">WF-34</span> <span class="wf-chip">WF-41</span> <span class="wf-chip">WF-42</span> <span class="wf-chip">WF-46</span> <span class="wf-chip">WF-51</span></td>
+            <td>Open each node → if operation dropdown shows blank, re-select <code>post</code> → save</td>
+          </tr>
+          <tr>
+            <td><span class="fix-tag verify">F-08</span></td>
+            <td>Verify <code>mappingMode: passthrough</code> nodes pass data correctly</td>
+            <td><span class="wf-chip">WF-10</span> <span class="wf-chip">WF-11</span> <span class="wf-chip">WF-33</span></td>
+            <td>Run admin command smoke test — APPROVE/REJECT/CLOSE/BLOCK should pass data to sub-workflows</td>
+          </tr>
+          <tr>
+            <td><span class="fix-tag verify">F-09</span></td>
+            <td>Add <code>onError: "continueRegularOutput"</code> to webhook nodes</td>
+            <td><span class="wf-chip">WF-00</span> <span class="wf-chip">WF-10</span></td>
+            <td>Confirm Meta/Slack always receives HTTP 200 even if processing errors occur</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style="margin: 20px 0 16px; font-weight: 600;">Defer to post-MVP:</p>
+      <table>
+        <thead><tr><th>ID</th><th>Fix</th><th>Workflow(s)</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="fix-tag defer">F-10</span></td>
+            <td>Add <code>cachedResultName</code> to all <code>executeWorkflow</code> workflowId fields (UI cosmetic)</td>
+            <td>All (~40 nodes across most workflows)</td>
+          </tr>
+          <tr>
+            <td><span class="fix-tag defer">F-11</span></td>
+            <td>Update n8n instance from 2.1.4 → latest (2.20.9) on VPS</td>
+            <td>Instance-level — requires VPS session</td>
+          </tr>
+          <tr>
+            <td><span class="fix-tag defer">F-12</span></td>
+            <td>Fix WF-60 <code>Done</code> code node — return array to restore message logging</td>
+            <td><span class="wf-chip">WF-60</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggle(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.chevron');
+  const isHidden = body.classList.contains('hidden');
+  body.classList.toggle('hidden', !isHidden);
+  chevron.classList.toggle('open', isHidden);
+}
+// All open by default — nothing to do
+</script>
+
+</body>
+</html>

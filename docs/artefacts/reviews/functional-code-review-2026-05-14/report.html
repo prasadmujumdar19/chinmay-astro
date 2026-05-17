@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Functional Code Review — Chinmay Astro — 2026-05-14</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--accent:#58a6ff;--gap:#f85149;--unc:#d29922;--ok:#3fb950;--gap-bg:#3b1418;--unc-bg:#3a2d10;--p0:#f85149;--p1:#f0883e;}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5}
+header{padding:24px 32px;border-bottom:1px solid var(--border);background:var(--panel)}
+h1{margin:0 0 4px;font-size:22px}
+.sub{color:var(--muted);font-size:12px}
+.container{padding:24px 32px;max-width:none}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:16px}
+.card h3{margin:0 0 8px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.card .v{font-size:28px;font-weight:600}
+.card.ok .v{color:var(--ok)}
+.card.gap .v{color:var(--gap)}
+.card.unc .v{color:var(--unc)}
+.blockers{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:16px 20px;margin-bottom:24px}
+.blockers h2{margin:0 0 12px;font-size:14px}
+.blockers ul{margin:0;padding-left:20px}
+.blockers li{margin-bottom:4px}
+.blockers .tc{color:var(--accent);font-family:ui-monospace,monospace}
+.controls{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+button{background:var(--panel);color:var(--text);border:1px solid var(--border);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px}
+button:hover{border-color:var(--accent)}
+button.active{background:var(--accent);color:#0d1117;border-color:var(--accent);font-weight:600}
+.domain-section{margin-bottom:24px;background:var(--panel);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.domain-head{padding:12px 16px;background:#1f2937;cursor:pointer;display:flex;justify-content:space-between;align-items:center;user-select:none}
+.domain-head h2{margin:0;font-size:14px}
+.domain-head .toggle{color:var(--muted);font-size:12px}
+.domain-body{padding:0}
+.domain-body.collapsed{display:none}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#1f2937;text-align:left;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;font-weight:600;position:sticky;top:0;white-space:nowrap}
+th:hover{color:var(--accent)}
+th .arr{color:var(--muted);font-size:10px;margin-left:4px}
+td{padding:10px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+tr.gap{background:var(--gap-bg)}
+tr.unc{background:var(--unc-bg)}
+tr.hidden{display:none}
+.tc-id{font-family:ui-monospace,monospace;color:var(--accent);white-space:nowrap;font-weight:600}
+.pri-p0{color:var(--p0);font-weight:600;white-space:nowrap}
+.pri-p1{color:var(--p1);font-weight:600;white-space:nowrap}
+.cell{max-width:280px}
+.cell.narrow{max-width:160px}
+.cell.wide{max-width:340px}
+.code{font-family:ui-monospace,monospace;font-size:11px;color:var(--muted)}
+.gap-text{color:#ffa198}
+.ok-text{color:var(--ok)}
+.unc-text{color:#e3b341}
+footer{padding:16px 32px;color:var(--muted);font-size:11px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div style="background:#0d2818;border-bottom:2px solid #3fb950;padding:12px 32px;font-size:12px;color:#3fb950;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+✅ INTERACTIVE REVIEW COMPLETE — 2026-05-15. All 11 gaps/uncertain items reviewed against live n8n code. Real gaps requiring action: TC-0304 (P0, fix before go-live), TC-0102 (P1, fix before go-live). Reassessed with verification actions pending: TC-0107/TC-0205/TC-0802 (phoneNumber wiring check). Deferred post-MVP: TC-0305 (doc-only), TC-0702 (blocked user logging, P2). False positives confirmed: TC-0704, TC-0306, TC-0312, TC-0313.
+
+CLAUDE INSTRUCTIONS FOR THIS REVIEW SESSION:
+• For every gap: after recording the reviewer's decision in the HTML, ALSO log it to .methodology/sprint-tech-debt-2026-05-14-followups.md
+• If the decision involves a code fix → log as a fix action with the specific workflow and change needed
+• If the decision involves documentation → log which docs need updating (user_journey_map.html, CLAUDE.md, workflow-registry.md, etc.)
+• If the decision defers to post-MVP → log as tech debt with priority P2/P3
+• Do NOT move to the next gap until the user explicitly says so
+• Always verify claims against live n8n code (fetch workflows fresh) — never hallucinate behavior
+• ⚠️ CRITICAL LESSON (TC-0704): The original gap report said WF-00 lacked an echo guard — live code showed it was already there. The subagent reviewed the dedup node and stopped, missing an earlier check in the parse node. FOR EVERY GAP: before presenting it to the user or recording a fix, fetch the workflow and trace the FULL node list — not just the node the report cited. A gap that "obviously should be there" may already be fixed. False positives waste user time and erode trust in the review.
+</div>
+<header>
+<h1>Functional Code Review — Chinmay Astro</h1>
+<div class="sub">WhatsApp Vedic Astrology Consultation Service · Review Date: 2026-05-14 · 31 P0+P1 test cases across 4 domains · Static n8n workflow inspection (read-only)</div>
+</header>
+
+<div class="container">
+
+<div class="summary">
+<div class="card"><h3>Total TCs</h3><div class="v">31</div></div>
+<div class="card ok"><h3>✅ No Gap</h3><div class="v" id="cntOk">25</div></div>
+<div class="card gap"><h3>⚠️ Gaps</h3><div class="v" id="cntGap">6</div></div>
+<div class="card unc"><h3>❓ Uncertain</h3><div class="v" id="cntUnc">0</div></div>
+</div>
+
+<div class="blockers">
+<h2>🔴 P0 Blockers (must fix before go-live)</h2>
+<ul>
+<li><span class="tc">TC-0304</span> — WF-34 does not UPDATE <code>users.status</code> on REJECT; user remains in <code>payment_submitted</code> after rejection, breaking rebook flow.</li>
+<li><span class="tc">TC-0704</span> — <s>WF-00 lacks sender-phone bot-echo guard.</s> <strong style="color:#3fb950;">FALSE POSITIVE — guard already exists in live code (verified 2026-05-15). No action needed.</strong></li>
+<li><span class="tc">TC-0305</span> — <em>Reclassified:</em> WF-42 omits Slack channel archival. D3 confirmed channel reuse is intentional and load-bearing for WF-45 rebook (WF-45 reuses existing <code>slack_channel_id</code> without calling WF-52). Action: document the design intent in CLAUDE.md / workflow-registry rather than patching code.</li>
+</ul>
+<h2 style="margin-top:16px">🟠 P1 Functional Gaps</h2>
+<ul>
+<li><span class="tc">TC-0102</span> — WF-01 rejection path for image/audio is a dead-end with no WF-50 deflection message.</li>
+<li><span class="tc">TC-0107</span> — WF-23 "Is Pass-Through Intent?" has no branch for <code>malicious_abusive</code>; dead-ends without calling WF-46 / WF-51 / WF-50.</li>
+<li><span class="tc">TC-0205 / TC-0802</span> — WF-31 routes <code>malicious_abusive</code> to WF-47 (opt-out, status=opted_out) instead of WF-46 (block, status=blocked). Cross-cutting with TC-0107.</li>
+<li><span class="tc" style="text-decoration:line-through;color:#3fb950">TC-0306</span> <span style="color:#3fb950">FALSE POSITIVE — WF-46 already has Archive Slack Channel node (live code verified 2026-05-15). Gap report saw no WF-52 call but WF-46 uses a direct Slack API node — no sub-workflow needed.</span></li>
+<li><span class="tc" style="text-decoration:line-through;color:#3fb950">TC-0312</span> <span style="color:#3fb950">FALSE POSITIVE — status guard exists in WF-10 upstream (TD-023). WF-41 only called after User Consultation Active? IF passes. Verified 2026-05-15.</span></li>
+<li><span class="tc" style="text-decoration:line-through;color:#3fb950">TC-0313</span> <span style="color:#3fb950">FALSE POSITIVE — WF-10 routes admin-channel traffic on a separate path that never reaches WF-41. Admin non-commands dead-end at WF-10 switch. Verified 2026-05-15.</span></li>
+</ul>
+<h2 style="margin-top:16px">⏳ Deferred (post-MVP)</h2>
+<ul>
+<li><span class="tc">TC-0702</span> — Blocked user attempt not logged to admin_actions. <span style="color:#3fb950">Live code verified 2026-05-15: silent drop is correct; audit trail logging is missing but not a go-live requirement. Deferred post-MVP / P2.</span></li>
+</ul>
+</div>
+
+<div class="controls">
+<button class="active" data-filter="all">All (31)</button>
+<button data-filter="p0">P0 only</button>
+<button data-filter="p1">P1 only</button>
+<button data-filter="gap">Gaps only</button>
+<button data-filter="unc">Uncertain only</button>
+</div>
+
+<div id="domains"></div>
+
+</div>
+
+<div class="container" id="gap-summary-section" style="margin-top:32px;border-top:2px solid var(--border);padding-top:24px;">
+<h2 style="font-size:16px;margin-bottom:4px;">Functional Review — User-Friendly Gap Summary</h2>
+<p style="color:var(--muted);font-size:11px;margin-bottom:16px;">Only ⚠️ gaps and ❓ uncertain items. Updated as reviewer walks through each gap. Business language only.</p>
+<table id="gap-summary-table" style="width:100%;border-collapse:collapse;font-size:12px;">
+<thead><tr style="background:#1f2937;">
+<th style="padding:10px 8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;">TC ID</th>
+<th style="padding:10px 8px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;">Priority</th>
+<th style="padding:10px 8px;text-align:left;border-bottom:1px solid var(--border);">Journey</th>
+<th style="padding:10px 8px;text-align:left;border-bottom:1px solid var(--border);max-width:160px;">Scenario</th>
+<th style="padding:10px 8px;text-align:left;border-bottom:1px solid var(--border);max-width:220px;">Intended Behavior</th>
+<th style="padding:10px 8px;text-align:left;border-bottom:1px solid var(--border);max-width:220px;">Actual Behavior</th>
+<th style="padding:10px 8px;text-align:left;border-bottom:1px solid var(--border);max-width:220px;">Reviewer Expectation</th>
+<th style="padding:10px 8px;text-align:left;border-bottom:1px solid var(--border);max-width:200px;">Remarks</th>
+</tr></thead>
+<tbody id="gap-summary-body"></tbody>
+</table>
+</div>
+
+<footer>
+Generated from per-domain code-review files (D1/D2/D3/D4 .md) on 2026-05-14. Authoritative sources: live n8n workflow JSONs via API + live Postgres schema. Docs treated as starting hypotheses only.
+</footer>
+
+<script>
+const DATA = [
+{d:"D1",id:"TC-0101",pri:"P0",sev:"ok",scenario:"First message from brand-new user (text)",journey:"J-01",intended:"WF-00 validates webhook; WF-01 country+blacklist; WF-02 routes NEW_USER → WF-21 sends combined welcome (policy URL + ₹500 + Flow form). No users DB write.",path:"WF-00 → WF-01 → WF-02 → WF-21 → WF-50",actual:"WF-02 detects !userStatus && !pendingUser → route=NEW_USER. WF-21 builds welcome + flowId 1408011897720771 (CTA 'Fill Details'), INSERTs into pending_users, calls WF-50.",db:"SELECT users; SELECT pending_users; INSERT pending_users(phone, contact_name)",ext:"Meta /me/messages (interactive flow)",gap:"✅ No gap",remarks:"Design rule #1 honored — no users-row write until WF-22.",reviewerExpectation:""},
+{d:"D1",id:"TC-0102",pri:"P1",sev:"gap",scenario:"First message — image or audio",journey:"J-21",intended:"WF-00 detects non-text; sends deflection 'Please send text only'; no DB write.",path:"WF-00 → WF-01 → [Silent Reject]",actual:"WF-00 parses non-text with skip=false. WF-01 Layer 2 'Non-Text Message Filter' sets messageTypeAllowed=false → routes to 'Silent Reject (Message Type)' which is a DEAD-END node — no WF-50 call.",db:"None",ext:"None (silent drop)",gap:"⚠️ [WF-01 'Message Accepted?'] Expected: WF-50 deflection message. Actual: dead-end node, no response sent.",remarks:"User confused — silent drop deviates from TC spec which explicitly requires deflection.",reviewerExpectation:"FIX before go-live. Wire the non-text rejection path in WF-01 to WF-50 with a simple deflection message: 'Please send text messages only. Images and audio are not supported.' Affects all users in all states. One connection + one text node. Agreed as stated. Logged in sprint-tech-debt-2026-05-14-followups.md."},
+{d:"D1",id:"TC-0104",pri:"P0",sev:"ok",scenario:"User submits WhatsApp Flow form (birth details)",journey:"J-03",intended:"WF-22 decrypts nfm_reply, creates users row (status=payment_pending), calls WF-52 to create consult-{phone} channel, saves slack_channel_id, sends payment prompt.",path:"WF-00 → WF-01 → WF-02 → WF-22 → WF-52 → WF-50 → WF-60",actual:"WF-02 routes interactive+nfm_reply → DETAILS_FORM → WF-22. WF-22 'Extract Form Data' calls encryption-svc; INSERT users ON CONFLICT (phone) DO NOTHING RETURNING; 'Ensure Slack Channel Exists (WF-52)' executes WF-52; UPDATE users SET slack_channel_id; WF-50 sends payment button.",db:"INSERT users(...status='payment_pending') ON CONFLICT DO NOTHING; UPDATE users SET slack_channel_id; INSERT messages",ext:"encryption-svc; WF-52 (Slack create); Meta /me/messages",gap:"✅ No gap",remarks:"Design rule #2 honored — channel created at form submission, not at payment approval.",reviewerExpectation:""},
+{d:"D1",id:"TC-0105",pri:"P1",sev:"ok",scenario:"User re-submits form when already payment_pending",journey:"(duplicate-submit branch)",intended:"WF-22 detects existing record via ON CONFLICT, follows 'User Already Exists' branch, re-sends payment prompt without duplicate row or duplicate channel.",path:"WF-00 → WF-01 → WF-02 → WF-22 (User Already Exists) → WF-50",actual:"INSERT ... ON CONFLICT (phone_number) DO NOTHING with RETURNING returns 0 rows → 'User Created?' IF false → 'User Already Exists' code node reconstructs payment message and calls WF-50.",db:"INSERT users ON CONFLICT DO NOTHING (returns 0 rows)",ext:"WF-50 re-sends payment button",gap:"✅ No gap",remarks:"Idempotent. WF-52 not re-called on re-submission (channel already exists).",reviewerExpectation:""},
+{d:"D1",id:"TC-0107",pri:"P1",sev:"gap",scenario:"Pre-form free-form — malicious/abusive intent",journey:"J-05 (garbage/abusive)",intended:"WF-23 → WF-25 classifies malicious_abusive → WF-46 blocks, WF-51 notifies admin, WF-50 warns user.",path:"WF-00 → WF-01 → WF-02 → WF-23 → WF-25 → [WF-46 + WF-51 + WF-50]",actual:"WF-23 'Is Pass-Through Intent?' IF only recognizes wants_consultation/general_enquiry/rebook_intent/feedback_intent. malicious_abusive falls to FALSE branch which is a DEAD-END — no WF-46/WF-51/WF-50 call.",db:"No DB write (pending_users remains)",ext:"WF-25 (Gemini classify) only",gap:"⚠️ [WF-23 'Is Pass-Through Intent?'] Expected: malicious branch routes to WF-46 + WF-51 + WF-50. Actual: dead-end.",remarks:"Cross-cutting with TC-0205 / TC-0802 — malicious routing missing across multiple state handlers.",reviewerExpectation:"REASSESSED (code-verified in interactive review). WF-25 is NOT a pure classifier — it handles negative intents internally. malicious_abusive/inappropriate → WF-25 blocks user (Prepare Block Warning → Send Block Warning → Auto-Block via WF-46) and ends without returning to caller. garbage → WF-25 sends warning + notifies admin and ends. State handlers' dead-end false branches are by design — WF-25 already acted. ACTION: Verify that all state handlers (WF-23, WF-30, WF-31) pass phoneNumber correctly when calling WF-25, as WF-25's block path reads phoneNumber from input. Logged in sprint-tech-debt-2026-05-14-followups.md."},
+{d:"D1",id:"TC-0108",pri:"P1",sev:"ok",scenario:"First message from non-India number",journey:"J-23",intended:"WF-01 country filter rejects non-+91/+61. Silent drop is acceptable per spec.",path:"WF-00 → WF-01 (Country Filter) → [Silent Reject]",actual:"WF-01 Layer 1 'Country Filter' checks phoneNumberFormatted.startsWith('91'|'61'). Non-India → securityCheck='REJECTED', silent=true → 'Silent Reject (Country)' dead-end.",db:"None",ext:"None",gap:"✅ No gap",remarks:"Spec permits silent drop OR rejection message; current code chose silent — acceptable.",reviewerExpectation:""},
+
+{d:"D2",id:"TC-0201",pri:"P0",sev:"ok",scenario:"User taps 'Payment Completed' button",journey:"J-06",intended:"WF-32 creates payments row, UPDATE user status=payment_submitted, posts to Slack, sends WhatsApp confirmation.",path:"WF-00 → WF-01 → WF-02 → WF-32 → WF-51 + WF-50",actual:"'Already Payment Submitted?' IF false → 'Create Payment Record' INSERT; 'Update User Status' UPDATE status='payment_submitted'; 'Load User Channel from DB'; WF-51 admin notify; WF-50 user confirmation.",db:"INSERT payments(status='submitted'); UPDATE users SET status='payment_submitted'; SELECT slack_channel_id",ext:"WF-51 → consult-{phone}; WF-50 → user",gap:"✅ No gap",remarks:"Idempotency guard present.",reviewerExpectation:""},
+{d:"D2",id:"TC-0202",pri:"P1",sev:"ok",scenario:"Duplicate 'Payment Completed' tap",journey:"J-06 (dup edge)",intended:"WF-32 detects status already payment_submitted, sends reassurance only.",path:"WF-32 → 'Already Payment Submitted?' (true) → 'Prepare Reassurance' → WF-50",actual:"IF status==='payment_submitted' TRUE branch → reassurance message only. False branch (Create Payment Record) skipped.",db:"None (no duplicate INSERT/UPDATE)",ext:"WF-50 reassurance",gap:"✅ No gap",remarks:"Fully idempotent.",reviewerExpectation:""},
+{d:"D2",id:"TC-0205",pri:"P1",sev:"gap",scenario:"payment_submitted user sends free-form text",journey:"J-08",intended:"WF-31 calls WF-25; on safe intent sends 'under review' via WF-50 + relays to Slack via WF-51; on malicious_abusive blocks via WF-46.",path:"WF-00 → WF-01 → WF-02 → WF-31 → WF-25 → [WF-50 + WF-51] or [WF-47]",actual:"WF-31 pass-through check: safe intents → WF-50 + WF-51. malicious_abusive / inappropriate / stop_intent ALL route to WF-47 (Unsubscribe Handler) which sets status='opted_out'.",db:"SELECT users; UPDATE users SET status='opted_out' (via WF-47, incorrect for malicious)",ext:"WF-25 classify; WF-50 / WF-51 on safe path; WF-47 on negative path",gap:"⚠️ [WF-31] Expected: malicious_abusive → WF-46 (block, status=blocked). Actual: routes to WF-47 (opt-out, status=opted_out).",remarks:"Same misrouting confirmed in TC-0107 (WF-23) and TC-0802.",reviewerExpectation:"REASSESSED (code-verified in interactive review). WF-25 handles malicious_abusive/inappropriate internally (Prepare Block Warning → Send Block Warning → Auto-Block via WF-46 → END, without returning to WF-31). WF-31's routing of malicious → WF-47 may be an artefact of static analysis — WF-25 acts first and does not return for negative intents. ACTION: Verify that WF-31 passes phoneNumber correctly to WF-25 so the internal block executes. Also verify whether WF-31's 'Is Pass-Through Intent?' false branch can ever fire for malicious after WF-25 has already ended the execution. Logged in sprint-tech-debt-2026-05-14-followups.md."},
+{d:"D2",id:"TC-0301",pri:"P0",sev:"ok",scenario:"Admin approves payment — happy path",journey:"J-09",intended:"WF-33 validates status=payment_submitted, UPDATE payments=approved + users=consultation_active, INSERT consultations, notifies both sides.",path:"WF-10 → WF-11 → WF-33 → WF-50 + WF-51",actual:"WF-11 parses APPROVE; WF-33 'Load User by Phone'; 'Payment Status Validation?' IF status='payment_submitted' true → UPDATE payments approved; UPDATE users consultation_active; INSERT consultations.",db:"SELECT users; UPDATE payments SET status='approved'; UPDATE users SET status='consultation_active'; INSERT consultations",ext:"WF-50 user, WF-51 Slack",gap:"✅ No gap",remarks:"Validation guard prevents invalid transitions.",reviewerExpectation:""},
+{d:"D2",id:"TC-0302",pri:"P1",sev:"ok",scenario:"Admin approves — wrong phone number",journey:"J-09 error",intended:"WF-33 finds no user, sends Slack error, no state change.",path:"WF-10 → WF-11 → WF-33 → 'User Found?' false → Slack error",actual:"'Load User by Phone' returns 0 rows → 'User Found?' IF false → error response via WF-51.",db:"SELECT users (0 rows)",ext:"WF-51 admin error",gap:"✅ No gap",remarks:"Guard in place.",reviewerExpectation:""},
+{d:"D2",id:"TC-0303",pri:"P1",sev:"ok",scenario:"Admin APPROVE on already consultation_active",journey:"J-09 error",intended:"WF-33 status validation fails, sends Slack error.",path:"WF-33 → 'Payment Status Validation?' false → error",actual:"IF status='payment_submitted' false → error branch; no UPDATE/INSERT executed.",db:"SELECT users only",ext:"WF-51 error",gap:"✅ No gap",remarks:"State machine guard enforced.",reviewerExpectation:""},
+{d:"D2",id:"TC-0304",pri:"P0",sev:"gap",scenario:"Admin rejects payment (REJECT)",journey:"J-10",intended:"WF-34 marks payment rejected AND resets user.status to payment_pending; re-sends GPay instructions + Payment Completed button.",path:"WF-10 → WF-11 → WF-34 → WF-50",actual:"WF-34 nodes: Load User, Update Payment Record (status='rejected'), Prepare Rejection Message, Call WF-50, Slack message. NO UPDATE on users.status — user remains payment_submitted.",db:"SELECT users; UPDATE payments SET status='rejected'; <strong>missing UPDATE users SET status='payment_pending'</strong>",ext:"WF-50 rejection message",gap:"⚠️ [WF-34] Expected: UPDATE users.status='payment_pending'. Actual: only payments table updated. Breaks rebook flow.",remarks:"P0 BLOCKER. Per TC-0304 spec WF-34 must reset users.status.",reviewerExpectation:"FIX before go-live. Single fix needed: add UPDATE users SET status='payment_pending' to rejection handler. Fresh interactive button is already included in the rejection message (code-verified). Free-form benign text during payment_pending (e.g. 'I just paid', 'I dont want to proceed') is handled correctly by WF-30: safe intents → payment reminder; stop_intent → unsubscribe (opt-out). Malicious/garbage dead-end in WF-30 is the same cross-cutting bug covered in TC-0107/TC-0205/TC-0802 — same fix applies. Non-text messages (images/reactions) in all states covered by TC-0102 gap."},
+{d:"D2",id:"TC-0305",pri:"P0",sev:"gap",scenario:"Admin closes consultation (CLOSE CHAT CONSULT)",journey:"J-11",intended:"WF-42 closes consultation row, sets user=consultation_closed, archives Slack channel, sends post-consult feedback buttons.",path:"WF-10 → WF-11 → WF-42 → WF-50",actual:"WF-42 'User in Correct State?' IF true → UPDATE consultations status='closed'; UPDATE users status='consultation_closed'; WF-50 feedback. NO WF-52 archive call.",db:"SELECT users; UPDATE consultations; UPDATE users SET status='consultation_closed'",ext:"WF-50 feedback buttons (no WF-52 archive)",gap:"⚠️ [WF-42] Expected per TC spec: WF-52 archive consult channel. Actual: not called. <strong>RECLASSIFIED:</strong> D3 confirmed channel reuse is intentional — WF-45 reuses existing slack_channel_id for rebook. Treat as 'design intent undocumented', not as functional gap.",remarks:"Action: document channel-reuse design in CLAUDE.md / workflow-registry instead of patching WF-42.",reviewerExpectation:"NO CODE CHANGE. Documentation-only action: (1) Update user_journey_map.html J-11 to remove 'Archive Slack channel' step and add note that channel is intentionally kept open for rebook reuse. (2) Add explicit note in CLAUDE.md Design Rules: consultation channels are never archived — same channel is reused on rebook (WF-45). Do not add archival to close flow. (3) Add note in workflow-registry.md for WF-42 and WF-45 explaining the channel-reuse design. Logged in sprint-tech-debt-2026-05-14-followups.md."},
+{d:"D2",id:"TC-0306",pri:"P1",sev:"ok",scenario:"Admin blocks a user (BLOCK)",journey:"J-12",intended:"WF-46 sets status=blocked, logs to admin_actions, archives Slack channel if user was consultation_active, silent to user.",path:"WF-10 → WF-11 → WF-46",actual:"WF-46 'Load User by Phone'; UPDATE users SET status='blocked', blocked_at=NOW(); 'Get User Slack Channel' SELECT slack_channel_id; admin Slack confirm. Archive Slack Channel (direct Slack node). Full path: Trigger → Load User → Update to Blocked → Send Slack Confirm → Get User Slack Channel → Archive Slack Channel.",db:"SELECT users; UPDATE users SET status='blocked'; SELECT slack_channel_id",ext:"Slack (archive channel directly — no WF-52 sub-workflow needed)",gap:"✅ FALSE POSITIVE — live code verified 2026-05-15. WF-46 uses a direct Slack 'Archive Slack Channel' node. Gap report expected a WF-52 sub-workflow call, but Slack channel archival can be done directly. The channel IS archived on BLOCK.",remarks:"Gap report erroneously expected a WF-52 call. WF-46 archives directly via Slack node — equivalent result. Note: no null-channel guard (Get User Slack Channel → Archive is linear with no IF for null slack_channel_id); edge case if user is blocked before form submission, but non-critical for MVP.",reviewerExpectation:"FALSE POSITIVE — no action needed. Live code verified: WF-46 already has Archive Slack Channel node as last step in its execution chain. Gap report expected WF-52 sub-workflow call but direct Slack node achieves same result. Minor edge case: no null-channel guard if user blocked before completing form (no slack_channel_id). Not a blocker for MVP."},
+{d:"D2",id:"TC-0311",pri:"P0",sev:"ok",scenario:"Admin plain text in consult channel (relay)",journey:"J-14",intended:"WF-10 detects non-command → WF-41 relays admin text verbatim to user's WhatsApp via WF-50; logged via WF-60.",path:"WF-10 → WF-41 → WF-50 → WF-60",actual:"WF-41 'Detect Direction' = slack_to_whatsapp; 'Extract Phone from Channel'; 'Load User by Phone'; 'Prepare WhatsApp Message'; WF-50 send.",db:"SELECT users WHERE slack_channel_id=$ch",ext:"WF-50; WF-60 log",gap:"✅ No gap",remarks:"Happy-path relay works.",reviewerExpectation:""},
+{d:"D2",id:"TC-0312",pri:"P1",sev:"ok",scenario:"Admin plain text when user NOT consultation_active",journey:"(relay guard edge)",intended:"WF-41 checks status='consultation_active' before relay; otherwise drops/warns.",path:"WF-10 → WF-41 → [should guard]",actual:"FALSE POSITIVE — guard exists in WF-10 (upstream), not WF-41. WF-10 path: Command-User Channel? output 1 (non-command) → Load User Status → User Consultation Active? IF → true: Call WF-41 / false: dead-end. WF-41 is only ever invoked for confirmed consultation_active users.",db:"SELECT users WHERE slack_channel_id=$ch with status check in WF-10",ext:"WF-50 only invoked after WF-10 status guard passes",gap:"✅ FALSE POSITIVE — live code verified 2026-05-15. Status guard implemented in WF-10 (TD-023 May 2026) — 'Load User Status' → 'User Consultation Active?' IF gate before calling WF-41.",remarks:"Guard placed at WF-10 (caller) rather than WF-41 (callee) — architecturally cleaner since WF-10 is the gatekeeper for all Slack-originated events.",reviewerExpectation:"FALSE POSITIVE — no action needed. Status guard (consultation_active check) was added to WF-10 upstream as TD-023. WF-41 is only called after WF-10 confirms user is consultation_active. Gap report examined WF-41 in isolation and missed the guard in the calling workflow."},
+{d:"D2",id:"TC-0313",pri:"P1",sev:"ok",scenario:"Admin plain text in chinmay-admin-commands",journey:"(channel isolation edge)",intended:"WF-41 detects no user matches channel ID, silently drops.",path:"WF-10 → WF-41 → [should drop]",actual:"FALSE POSITIVE — WF-10 routes admin channel messages through a separate path that never reaches WF-41. Admin Vs User Channel? Switch → admin path: Detect Command-Admin Channel → Command-Admin Channel? → only commands reach WF-11, non-commands dead-end. WF-41 is only reachable from the user channel path after User Consultation Active? IF passes.",db:"Admin channel text never queries users table for relay",ext:"WF-41 never invoked for admin-commands channel",gap:"✅ FALSE POSITIVE — live code verified 2026-05-15. WF-10 separates admin channel and user channel into distinct routing branches. Admin channel text that isn't a command dead-ends in 'Command - Admin Channel ?' switch — WF-41 is unreachable from that path.",remarks:"Same root as TC-0312 — both gaps assume WF-41 is the guard point. The guard is in WF-10 (routing layer). Admin-channel isolation is achieved by WF-10's Admin Vs User Channel? split, not by WF-41 null checks.",reviewerExpectation:"FALSE POSITIVE — no action needed. WF-10 routes admin channel traffic entirely separately from user channel relay traffic. Admin channel non-commands dead-end at the WF-10 switch. WF-41 cannot be reached from the admin channel path."},
+{d:"D2",id:"TC-0315",pri:"P0",sev:"ok",scenario:"Bot-loop prevention in Slack relay",journey:"J-14 bot-loop",intended:"WF-10 checks authorizations[0].user_id ≠ event.user, drops bot's own messages.",path:"WF-10 → [bot-loop check] → [drop]",actual:"$json.body.authorizations[0].user_id vs $json.body.event.user comparison present; bot-origin events dead-ended before WF-41.",db:"None",ext:"None",gap:"✅ No gap",remarks:"Per CLAUDE.md gotcha — correct guard in place.",reviewerExpectation:""},
+
+{d:"D3",id:"TC-0401",pri:"P0",sev:"ok",scenario:"consultation_active user text → Slack relay",journey:"J-13",intended:"WF-02 RELAY → WF-40 loads user, formats message, WF-51 posts to Slack; WF-60 logs as inbound.",path:"WF-00 → WF-01 → WF-02 → WF-40 → WF-51",actual:"WF-02 routes consultation_active → RELAY → WF-40. SELECT users WHERE phone_number; 'Format Slack Message'; 'Call WF-51 (Post to Slack)' with channelId + messageText.",db:"SELECT id, name, phone_number, slack_channel_id FROM chinmay_astro.users WHERE phone_number=$",ext:"WF-51 → Slack",gap:"✅ No gap",remarks:"[UNCERTAIN] WF-60 logging trigger on inbound relay not confirmed; WF-40 contains 'Is STOP Intercept' IF whose purpose is unclear.",reviewerExpectation:""},
+{d:"D3",id:"TC-0403",pri:"P1",sev:"ok",scenario:"consultation_active user sends STOP",journey:"J-19 active-guard",intended:"WF-20 intercepts STOP → WF-47 → hold message, NO state change.",path:"WF-00 → WF-01 → WF-02 → WF-20 → WF-47 → WF-50",actual:"WF-20 'Match Keyword' switch STOP rule → 'Call WF-47 Unsubscribe'. WF-47 'Check If Consultation Active' IF status='consultation_active' true → 'Send Hold Message via WF-50'; no UPDATE.",db:"None on true branch",ext:"WF-50 hold message",gap:"✅ No gap",remarks:"Status-aware STOP handling correct.",reviewerExpectation:""},
+{d:"D3",id:"TC-0504",pri:"P1",sev:"ok",scenario:"User taps 'Book Another Consultation' button",journey:"J-16",intended:"consultation_closed + button_reply → WF-43 → WF-45 sets status=payment_pending and (per TC) creates new Slack channel via WF-52.",path:"WF-00 → WF-01 → WF-02 → WF-43 → WF-45 → WF-50",actual:"WF-02 routes button_reply on consultation_closed → POST_CONSULT_TEXT → WF-43. btn_rebook → WF-45. WF-45 has 4 nodes: Trigger, Load User, UPDATE users status='payment_pending' stage=NULL, Call WF-50 payment instructions. NO WF-52 call — channel reused.",db:"SELECT users; UPDATE users SET status='payment_pending', stage=NULL, updated_at=NOW()",ext:"WF-50 payment instructions",gap:"✅ No gap (design intent — channel reuse)",remarks:"WF-42 never archives channel; existing slack_channel_id stays valid. Document this design in CLAUDE.md to avoid TC/code mismatch.",reviewerExpectation:""},
+{d:"D3",id:"TC-0505",pri:"P1",sev:"ok",scenario:"REBOOK keyword from consultation_closed",journey:"J-20",intended:"WF-20 intercepts REBOOK → WF-45 same as TC-0504.",path:"WF-00 → WF-01 → WF-02 → WF-20 → WF-45 → WF-50",actual:"WF-20 'Match Keyword' switch REBOOK (rule idx 2) → 'Route to Rebook' executeWorkflow WF-45. WF-45 same as TC-0504.",db:"UPDATE users SET status='payment_pending'",ext:"WF-50 payment instructions",gap:"✅ No gap",remarks:"Same channel-reuse design as TC-0504.",reviewerExpectation:""},
+
+{d:"D4",id:"TC-0604",pri:"P0",sev:"ok",scenario:"STOP from payment_pending (regulatory opt-out)",journey:"J-19",intended:"WF-20 intercept STOP → WF-47 → status=opted_out, log admin_action, WF-50 confirmation.",path:"WF-00 → WF-01 → WF-02 → WF-20 → WF-47 → WF-50",actual:"WF-20 'Match Keyword' STOP → 'Call WF-47'. WF-47 'Check If Consultation Active' false → 'Update User Status to opted_out' UPDATE; 'Log to admin_actions' INSERT; 'Send Opt-out Confirmation via WF-50'.",db:"UPDATE users SET status='opted_out'; INSERT admin_actions",ext:"WF-50 confirmation; Slack archive attempt (onError continue)",gap:"✅ No gap",remarks:"",reviewerExpectation:""},
+{d:"D4",id:"TC-0605",pri:"P1",sev:"ok",scenario:"STOP from consultation_active (hold)",journey:"J-19",intended:"WF-47 detects consultation_active, sends hold, NO state change.",path:"WF-20 → WF-47 → WF-50 (hold)",actual:"WF-47 'Check If Consultation Active' true → 'Send Hold Message via WF-50'. UPDATE skipped.",db:"None",ext:"WF-50 hold message",gap:"✅ No gap",remarks:"",reviewerExpectation:""},
+{d:"D4",id:"TC-0606",pri:"P0",sev:"ok",scenario:"STOP from consultation_closed",journey:"J-19",intended:"WF-47 not-active branch → opted_out + log + WF-50.",path:"WF-20 → WF-47 → WF-50",actual:"Same as TC-0604 path; user transitioned to opted_out.",db:"UPDATE users SET status='opted_out'; INSERT admin_actions",ext:"WF-50 confirmation; Slack archive attempt",gap:"✅ No gap",remarks:"",reviewerExpectation:""},
+{d:"D4",id:"TC-0607",pri:"P1",sev:"ok",scenario:"opted_out user messages again (re-engagement)",journey:"J-21",intended:"WF-01 differentiates opted_out vs blocked; opted_out routed to WF-21 (treat as new user).",path:"WF-00 → WF-01 → WF-21 → WF-50",actual:"WF-01 Layer 3 SELECT users WHERE status IN ('blocked','opted_out') → for opted_out sets securityCheck='OPTED_OUT'. 'Blacklisted?' false → 'Opted Out?' true → 'Route Opted-Out to WF-21'. WF-21 sends welcome+form.",db:"SELECT users",ext:"WF-50 welcome+form",gap:"✅ No gap",remarks:"Design rule #4 honored — opt-out ≠ block.",reviewerExpectation:""},
+{d:"D4",id:"TC-0702",pri:"P1",sev:"gap",scenario:"Blocked user sends message",journey:"J-22",intended:"WF-01 silent drop + log attempt to admin_actions.",path:"WF-00 → WF-01 → Silent Reject (Blacklist)",actual:"WF-01 'Blacklisted?' true → 'Silent Reject (Blacklist)' — DEAD-END, no outgoing connections. WF-00 has no admin_actions logging either. Verified live: neither WF-00 nor WF-01 has any INSERT to admin_actions or WF-51 call on the blocked user path.",db:"SELECT users only; no admin_actions INSERT",ext:"None (silent drop confirmed — no admin notification)",gap:"⚠️ [WF-01 'Silent Reject (Blacklist)'] Confirmed real gap. Drop is correct (blocked user gets no reply). Missing: audit log of the blocked user's attempt in admin_actions.",remarks:"Silent drop behavior is correct. Only the audit trail is missing. Deferred post-MVP — Chinmay already knows who he blocked; logging repeated attempts is useful but not operationally critical for go-live.",reviewerExpectation:"DEFERRED — post-MVP, low priority. Silent drop is working correctly (blocked user gets no reply). The missing admin_actions log is a nice-to-have audit trail, not a go-live requirement. Fix: add one Postgres INSERT node after 'Silent Reject (Blacklist)' in WF-01 logging phone + timestamp + event='block_attempt' to admin_actions. Post-MVP / P2."},
+{d:"D4",id:"TC-0703",pri:"P1",sev:"ok",scenario:"Duplicate webhook delivery (deduplication)",journey:"(infra reliability)",intended:"WF-00 dedup by inboundMessageId via n8n data table; duplicate dropped.",path:"WF-00 dedup",actual:"WF-00 has dedup against public.data_table_user_gZCekRseitJEAX1g keyed on inboundMessageId.",db:"SELECT/INSERT n8n data table",ext:"None on dup",gap:"✅ No gap",remarks:"",reviewerExpectation:""},
+{d:"D4",id:"TC-0704",pri:"P0",sev:"ok",scenario:"WhatsApp message from bot's own number (echo)",journey:"(bot-loop)",intended:"WF-00 detects sender phone = bot WABA (+919653240263) and drops before routing.",path:"WF-00 sender-phone guard",actual:"WF-00 dedup is by messageId only. Echo from Meta has a DISTINCT id and passes dedup, re-entering routing chain. TD-030 tracks this but is OPEN.",db:"None (would proceed to routing without guard)",ext:"Risk of WF-50→Meta→WF-00 echo loop",gap:"✅ FALSE POSITIVE — gap does not exist. Live code verification (2026-05-15) found the echo guard already in Parse WhatsApp Message: reads botPhone from value.metadata.display_phone_number, compares with message.from, returns skip:true if matched. Dynamic — not hardcoded. Original review inspected the dedup table node and missed this earlier check.",remarks:"Original report marked as P0 BLOCKER — INCORRECT. Guard is present and correct. No action needed.",reviewerExpectation:"FALSE POSITIVE confirmed by live code re-verification in interactive review session (2026-05-15). Guard exists: const botPhone = value.metadata.display_phone_number.replace(/\\D/g, ''); if (message.from === botPhone) return {skip:true}. No fix needed. Lesson: always verify live code before trusting gap report."},
+{d:"D4",id:"TC-0802",pri:"P1",sev:"gap",scenario:"malicious_abusive intent — auto-block",journey:"(Intent filter)",intended:"WF-25 classify → calling workflow routes to WF-46 (block) + WF-51 admin + WF-50 warn.",path:"State handlers → WF-25 → WF-46/WF-51/WF-50",actual:"WF-31 (payment_submitted handler) routes malicious_abusive to WF-47 (opt-out) instead of WF-46 (block). Confirmed cross-cutting with TC-0107 (WF-23) and TC-0205.",db:"Should UPDATE users SET status='blocked'; actually UPDATEs status='opted_out'",ext:"WF-47 opt-out path instead of WF-46 block",gap:"⚠️ [WF-31] Expected: malicious → WF-46. Actual: → WF-47.",remarks:"Cross-cutting routing fix needed in WF-23, WF-31 (and any other handler classifying intent).",reviewerExpectation:"REASSESSED (code-verified in interactive review). WF-25 handles malicious_abusive/inappropriate entirely internally — it blocks the user via WF-46 and warns them via WF-50 without returning to the state handler. The state handlers do not need their own malicious branch. Original gap report (routing to WF-47) may be a static-analysis artefact. ACTION: Verify all state handler callers pass phoneNumber to WF-25 correctly. Confirm end-to-end by checking that a malicious message from a payment_submitted user results in status=blocked (not opted_out) in the DB. Logged in sprint-tech-debt-2026-05-14-followups.md."}
+];
+
+const domains = {D1:"D1 — Onboarding (6 TCs)",D2:"D2 — Payment + Admin (13 TCs)",D3:"D3 — Relay + Post-Consult (4 TCs)",D4:"D4 — Keywords + Edge + Intent (8 TCs)"};
+
+function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"})[c]);}
+
+function rowHtml(r){
+  const cls=r.sev==='gap'?'gap':r.sev==='unc'?'unc':'';
+  const priCls=r.pri==='P0'?'pri-p0':'pri-p1';
+  const priLabel=r.pri==='P0'?'🔴 P0':'🟠 P1';
+  const gapCls=r.sev==='gap'?'gap-text':r.sev==='unc'?'unc-text':'ok-text';
+  return `<tr class="${cls}" data-pri="${r.pri}" data-sev="${r.sev}">
+    <td class="tc-id">${r.id}</td>
+    <td class="${priCls}">${priLabel}</td>
+    <td class="cell">${esc(r.scenario)}</td>
+    <td class="cell narrow code">${esc(r.journey)}</td>
+    <td class="cell wide">${esc(r.intended)}</td>
+    <td class="cell narrow code">${esc(r.path)}</td>
+    <td class="cell wide">${esc(r.actual)}</td>
+    <td class="cell code">${esc(r.db)}</td>
+    <td class="cell narrow code">${esc(r.ext)}</td>
+    <td class="cell wide ${gapCls}">${esc(r.gap)}</td>
+    <td class="cell">${esc(r.remarks)}</td>
+    <td class="cell" style="background:${r.reviewerExpectation?'#1a2a1a':'transparent'};font-style:${r.reviewerExpectation?'normal':'italic'};color:${r.reviewerExpectation?'#3fb950':'#4a5170'};">${esc(r.reviewerExpectation||'—')}</td>
+  </tr>`;
+}
+
+function renderDomains(){
+  const root=document.getElementById('domains');
+  const cols=["TC","Priority","Scenario","Journey","Intended","Code Path","Actual","DB","External","Gap","Remarks","Reviewer Expectation"];
+  const keys=["id","pri","scenario","journey","intended","path","actual","db","ext","gap","remarks","reviewerExpectation"];
+  let html='';
+  for(const d of Object.keys(domains)){
+    const rows=DATA.filter(r=>r.d===d);
+    const okN=rows.filter(r=>r.sev==='ok').length;
+    const gapN=rows.filter(r=>r.sev==='gap').length;
+    const uncN=rows.filter(r=>r.sev==='unc').length;
+    html+=`<div class="domain-section">
+      <div class="domain-head" onclick="toggle('${d}')">
+        <h2>${domains[d]} — ✅ ${okN} · ⚠️ ${gapN} · ❓ ${uncN}</h2>
+        <span class="toggle" id="tog-${d}">▼ collapse</span>
+      </div>
+      <div class="domain-body" id="body-${d}">
+        <table data-domain="${d}">
+          <thead><tr>${cols.map((c,i)=>`<th onclick="sortTable('${d}',${i},'${keys[i]}')">${c}<span class="arr"></span></th>`).join('')}</tr></thead>
+          <tbody>${rows.map(rowHtml).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+  root.innerHTML=html;
+}
+
+function toggle(d){
+  const b=document.getElementById('body-'+d);
+  const t=document.getElementById('tog-'+d);
+  b.classList.toggle('collapsed');
+  t.textContent=b.classList.contains('collapsed')?'▶ expand':'▼ collapse';
+}
+
+let sortState={};
+function sortTable(d,colIdx,key){
+  const table=document.querySelector(`table[data-domain="${d}"]`);
+  const tbody=table.tBodies[0];
+  const rows=Array.from(tbody.rows);
+  const k=d+':'+colIdx;
+  const asc=sortState[k]!=='asc';
+  sortState={[k]:asc?'asc':'desc'};
+  rows.sort((a,b)=>{
+    const av=a.cells[colIdx].textContent.trim();
+    const bv=b.cells[colIdx].textContent.trim();
+    return asc?av.localeCompare(bv):bv.localeCompare(av);
+  });
+  rows.forEach(r=>tbody.appendChild(r));
+  table.querySelectorAll('th .arr').forEach((s,i)=>s.textContent=i===colIdx?(asc?'▲':'▼'):'');
+}
+
+function applyFilter(f){
+  document.querySelectorAll('tbody tr').forEach(tr=>{
+    const pri=tr.dataset.pri;const sev=tr.dataset.sev;
+    let show=true;
+    if(f==='p0')show=pri==='P0';
+    else if(f==='p1')show=pri==='P1';
+    else if(f==='gap')show=sev==='gap';
+    else if(f==='unc')show=sev==='unc';
+    tr.classList.toggle('hidden',!show);
+  });
+}
+
+document.querySelectorAll('.controls button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.controls button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    applyFilter(b.dataset.filter);
+  });
+});
+
+renderDomains();
+
+// Gap summary table (plain-English, business-language descriptions)
+const GAP_META = {
+  "TC-0304": {journey:"J-10",scenario:"Admin rejects a user's payment",intended:"After rejecting the payment, the system resets the user back to 'payment pending' so they can try again and tap 'Payment Completed' once more.",actual:"The system marks the payment as rejected but leaves the user stuck in 'payment submitted' state — the user cannot re-attempt payment without manual admin intervention.",remarks:"P0 blocker — must fix before go-live. Simple one-line fix: add an UPDATE to reset the user's status after recording the rejection."},
+  "TC-0704": {journey:"(bot-loop)",scenario:"The bot receives its own WhatsApp message back from Meta",intended:"The bot detects that the incoming message was sent by its own phone number and silently discards it — preventing an infinite loop.",actual:"The bot only deduplicates by message ID. When Meta echoes the bot's own outbound message back, it has a new message ID and passes the check, risking an infinite loop.",remarks:"P0 blocker. Requires a one-line check: if the sender's phone number equals the bot's own WABA number, drop the message immediately."},
+  "TC-0305": {journey:"J-11",scenario:"Admin closes a consultation",intended:"Journey map specifies the Slack channel should be archived when the consultation closes.",actual:"The channel is NOT archived. However, this turns out to be intentional design: the same channel is reused when the user books again (no re-creation needed), so archiving would break rebook.",remarks:"Reclassified — not a code bug, but an undocumented design decision. Action: add a note to the design docs explaining that channels are intentionally kept open for rebook reuse."},
+  "TC-0102": {journey:"J-21",scenario:"A new user sends an image or audio message",intended:"The bot replies with a polite message: 'Please send text messages only.' No data is saved.",actual:"The message is silently dropped — no reply is sent to the user, leaving them confused about why nothing happened.",remarks:"Easy fix: connect the 'reject non-text' path to the WA sender so a deflection message is sent."},
+  "TC-0107": {journey:"J-05",scenario:"A new user (pre-form) sends abusive or threatening messages",intended:"The bot detects abusive intent, blocks the user, sends an internal admin notification, and warns the user.",actual:"The intent classifier correctly identifies the message as abusive, but the routing logic has a dead-end — nothing happens after classification. No block, no notification, no response.",remarks:"Cross-cutting issue also affecting TC-0205 and TC-0802. The fix is the same in all cases: add the 'malicious → block' routing branch."},
+  "TC-0205": {journey:"J-08",scenario:"A user who has submitted payment sends abusive messages while waiting for admin approval",intended:"Abusive intent should trigger an automatic block (status = blocked).",actual:"The abusive user is routed to the 'unsubscribe' handler and gets status = opted_out instead of blocked. opted_out can re-engage freely; blocked cannot.",remarks:"Same root cause as TC-0107 / TC-0802. One cross-cutting fix covers all three."},
+  "TC-0306": {journey:"J-12",scenario:"Admin blocks a user who is currently in an active consultation",intended:"Blocking should archive the user's Slack consultation channel.",actual:"FALSE POSITIVE — WF-46 already archives the channel via a direct Slack node. No gap exists.",remarks:"Live code verified 2026-05-15. The gap report expected a WF-52 sub-workflow call but a direct Slack archive node achieves the same result."},
+  "TC-0312": {journey:"J-14",scenario:"Chinmay accidentally types a message in a Slack channel for a user who is NOT in an active consultation (e.g., payment_pending)",intended:"The relay should only forward messages to users who are currently in an active consultation. Others should be ignored.",actual:"FALSE POSITIVE — WF-10 has 'Load User Status' → 'User Consultation Active?' IF gate before calling WF-41. Only consultation_active users are relayed.",remarks:"Guard is in WF-10 (caller), not WF-41 (callee). Implemented as TD-023 May 2026."},
+  "TC-0313": {journey:"(channel isolation)",scenario:"Chinmay types in the admin commands Slack channel (not a consultation channel)",intended:"Messages in the admin channel should never be forwarded to any WhatsApp user.",actual:"FALSE POSITIVE — WF-10 routes admin channel and user channels into separate branches. Admin channel non-commands dead-end before reaching WF-41. Null phone crash cannot occur.",remarks:"WF-10 Admin Vs User Channel? switch provides isolation. WF-41 is only reachable from the user channel path."},
+  "TC-0802": {journey:"(Intent filter)",scenario:"A user sends abusive content in any state and the AI classifier flags it as malicious",intended:"The system automatically blocks the user and notifies the admin via Slack.",actual:"The system routes the user to 'unsubscribe' (opted_out) instead of 'block'. Opted-out users can re-engage freely; blocked users cannot.",remarks:"Same root cause as TC-0107 / TC-0205. One fix covers all three cases."},
+  "TC-0702": {journey:"J-22",scenario:"A blocked user tries to message",intended:"Message is silently dropped and the attempt is logged to the audit trail (admin_actions table).",actual:"Drop confirmed working. Logging confirmed MISSING — live code verified WF-00 and WF-01: neither has an admin_actions INSERT on the blocked user path. 'Silent Reject (Blacklist)' is a dead-end with no outgoing connections.",remarks:"DEFERRED post-MVP. Silent drop is correct. Audit trail logging is a nice-to-have, not a go-live requirement. Post-MVP fix: one Postgres INSERT after 'Silent Reject (Blacklist)' in WF-01."}
+};
+
+function buildGapSummary(){
+  const gapRows=DATA.filter(r=>r.sev==='gap'||r.sev==='unc');
+  const order=["TC-0304","TC-0704","TC-0305","TC-0102","TC-0107","TC-0205","TC-0306","TC-0312","TC-0313","TC-0802","TC-0702"];
+  const sorted=order.map(id=>gapRows.find(r=>r.id===id)).filter(Boolean);
+  const tbody=document.getElementById('gap-summary-body');
+  if(!tbody)return;
+  const rowColor={gap:'var(--gap-bg)',unc:'var(--unc-bg)'};
+  tbody.innerHTML=sorted.map(r=>{
+    const meta=GAP_META[r.id]||{journey:r.journey,scenario:r.scenario,intended:r.intended,actual:r.actual,remarks:r.remarks};
+    const priCls=r.pri==='P0'?'pri-p0':'pri-p1';
+    const priLabel=r.pri==='P0'?'🔴 P0':'🟠 P1';
+    const revCell=r.reviewerExpectation?`<td style="padding:10px 8px;vertical-align:top;background:#1a2a1a;color:#3fb950;">${esc(r.reviewerExpectation)}</td>`
+      :`<td style="padding:10px 8px;vertical-align:top;color:#4a5170;font-style:italic;">—</td>`;
+    return `<tr style="background:${rowColor[r.sev]||''};border-bottom:1px solid var(--border);">
+      <td style="padding:10px 8px;vertical-align:top;font-family:ui-monospace,monospace;color:var(--accent);font-weight:600;white-space:nowrap;">${r.id}</td>
+      <td style="padding:10px 8px;vertical-align:top;" class="${priCls}">${priLabel}</td>
+      <td style="padding:10px 8px;vertical-align:top;font-family:ui-monospace,monospace;color:var(--muted);white-space:nowrap;">${esc(meta.journey)}</td>
+      <td style="padding:10px 8px;vertical-align:top;max-width:160px;">${esc(meta.scenario)}</td>
+      <td style="padding:10px 8px;vertical-align:top;max-width:220px;">${esc(meta.intended)}</td>
+      <td style="padding:10px 8px;vertical-align:top;max-width:220px;">${esc(meta.actual)}</td>
+      ${revCell}
+      <td style="padding:10px 8px;vertical-align:top;max-width:200px;color:var(--muted);">${esc(meta.remarks)}</td>
+    </tr>`;
+  }).join('');
+}
+buildGapSummary();
+</script>
+</body>
+</html>

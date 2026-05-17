@@ -14,7 +14,7 @@ WhatsApp-based Vedic astrology consultation service. Users message a WhatsApp bo
 |----------|-------------|
 | `docs/CONTEXT.md` | Every session — lean entry point with architecture, DB schema, admin commands, entry points |
 | `docs/workflow-registry.md` | Before touching any workflow — WF-XX master list, current status, WIP action list, all n8n IDs |
-| `.methodology/handoff-*.md` | Start of each session — stopping point + next action from last session (written by `handoff` skill) |
+| `docs/artefacts/sprints/<slug>/handoffs/*.md` (active sprint) or `docs/artefacts/handoffs/*.md` (no active sprint) | Start of each session — stopping point + next action from last session (written by `handoff` skill) |
 | `docs/INFRA.md` | When working on infrastructure — CF Tunnel setup, firewall, SSH, Docker, DB backup plan |
 | `docs/STATUS.md` | When checking what's working/broken — infra status per component, tech debt items |
 
@@ -27,11 +27,14 @@ WhatsApp-based Vedic astrology consultation service. Users message a WhatsApp bo
 | Session/intermediate scripts, scratch files | `/tmp/claude-scratch/` — deleted at session end |
 | Operational scripts (export, backup, DB migrations) | `scripts/` — committed to GitHub |
 | Project documentation | `docs/` |
-| Implementation plans | `docs/superpowers/plans/` |
-| Design specs | `docs/superpowers/specs/` |
+| Implementation plans | `docs/artefacts/plans/` |
+| Design specs | `docs/artefacts/specs/` |
+| Sprint / test / review / handoff artefacts | `docs/artefacts/` — one folder per unit of work (sprints/, tests/, reviews/, handoffs/) |
 | Reference material (journey maps, integration guides) | `docs/reference/` |
 | Generated artifacts (`dependency-map.md`) | `docs/` |
 | Superseded/archived items | `archive/` — use dated filenames |
+
+**Skill output paths.** When invoking `superpowers:brainstorming`, write design specs to `docs/artefacts/specs/` (override the skill's default of `docs/superpowers/specs/`). When invoking `superpowers:writing-plans`, write implementation plans to `docs/artefacts/plans/` (override the skill's default of `docs/superpowers/plans/`). All `n8n-whatsapp-methodology` plugin skills (≥v1.13.0) write directly to `docs/artefacts/<category>/`.
 
 **Session cleanup:** A Stop hook checks these boundaries at session end. Address any warnings before ending the session.
 
