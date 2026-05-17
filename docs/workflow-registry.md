@@ -1,6 +1,10 @@
 # Chinmay Astro — Workflow Registry
-**Version:** 2.7 | **Last Updated:** 24 Apr 2026 (session 7)
+**Version:** 2.8 | **Last Updated:** 17 May 2026 (smoke-test-post-p0-review)
 **Source:** user_journey_map.html v2.1 + live n8n audit (Mumbai VPS, Apr 2026) + design clarifications sessions 3–4
+
+### 2026-05-17 — Post-P0 smoke test fixes
+- **47 executeWorkflow nodes across 14 workflows** restored to canonical n8n 2.1.4 tv-1.2 shape: `source:"database" + operation:"call_workflow" + mode:"once" + workflowId:{__rl,value,mode:"list",cachedResultUrl} + workflowInputs:{mappingMode:"passthrough",...}`. Required by n8n 2.1.4 — prior P0 sprint had stripped `__rl` workflowId objects to plain strings per a stale lint hook, causing "No information about the workflow to execute found" errors at runtime. Workflows touched: WF-00, WF-01, WF-02, WF-10, WF-11, WF-21, WF-22, WF-33, WF-34, WF-42, WF-50, plus 3 sub-workflows (3va0M06kijgyLejf, 6PzJRZsF7k2d9hV7, UV62An60fzflU0uD).
+- **WF-00 wiring fix** — Gather Message Info now branches in parallel to both Call WF-60 (fire-and-forget log) and Call WF-01 (routing), matching pseudocode Step 8a/9 intent. Previous P0 sprint had wired Call WF-60 → Call WF-01 inline, causing WF-01 to receive `{logged: true}` instead of the parsed message data.
 
 ---
 

@@ -2,6 +2,7 @@
 
 **Created:** 2026-05-13  
 **Revised:** 2026-05-17 — P0 verification pass. Amended TC-0104, TC-0201, TC-0301, TC-0304, TC-0305, TC-0508, TC-0604, TC-0606, TC-1009, TC-1010 based on live-workflow + pseudocode reconciliation.  
+**Revised:** 2026-05-17 (smoke-test-post-p0-review) — TC-0101 + TC-0108 amended: WF-01 `Layer 1: Country Filter` allows BOTH `91` and `61` (India + Australia). TC-0101 no longer says "+91 only"; TC-0108 reframed as "disallowed country code" with US/UK examples; the "or polite rejection message" wording is removed — actual code does a silent drop.  
 **Source:** `docs/reference/user_journey_map.html` v2.0, `docs/workflow-registry.md` v2.7, `docs/Tech_Debts.md`  
 **Assumption:** Tech debts are evaluated as **closed** for test design purposes. Gaps covered by existing TDs are noted inline.  
 **Format:** Given / When / Then  
@@ -46,11 +47,11 @@
 **Priority:** 🔴 P0  
 **Owning WFs:** WF-00 → WF-01 → WF-21
 
-**Given:** A phone number with India (+91) prefix has no DB record and has not previously messaged.  
+**Given:** A phone number whose country code is in the allowed list (currently `['91','61']` — India + Australia, per WF-01 `Layer 1: Country Filter`) has no DB record and has not previously messaged.  
 **When:** User sends any text message (e.g., "Hi", "I want astrology advice", "Namaste").  
 **Then:**
 1. WF-00 receives the webhook, validates Meta signature, deduplicates by `inboundMessageId`.
-2. WF-01 performs country check (+91 passes), blocked-user check (not blocked), loads DB — no record found.
+2. WF-01 performs country check (phone must start with `91` or `61`), blocked-user check (not blocked), loads DB — no record found.
 3. WF-01 routes to WF-21.
 4. WF-21 sends a single free-form WhatsApp message containing: policy URL, service description, ₹500 fee, and the WhatsApp Flow form (Flow ID: `1408011897720771`, CTA: "Fill Details").
 5. **No DB record is created at this point.**
@@ -154,17 +155,18 @@
 
 ---
 
-### TC-0108 · First message from non-India number
+### TC-0108 · First message from disallowed country code
 **Journey:** J-23  
 **Priority:** 🟠 P1  
 **Owning WFs:** WF-01
 
-**Given:** Phone number does not start with +91.  
+**Given:** Phone number's country code is NOT in WF-01's `ALLOWED_COUNTRY_CODES` list (currently `['91','61']` — India + Australia; verified 2026-05-17). Example: a US number (`1…`) or UK (`44…`).  
 **When:** User sends any message.  
 **Then:**
-1. WF-01 performs country code check — fails.
-2. Message silently dropped OR user receives: "This service is currently available only in India."
-3. No DB write. No further routing.
+1. WF-01 `Layer 1: Country Filter` evaluates `phone.startsWith(code)` against each entry in `ALLOWED_COUNTRY_CODES`; no match.
+2. Returns `{ securityCheck: 'REJECTED', rejectReason: 'country_not_allowed', silent: true }`.
+3. `Country Rejected?` IF → `Silent Reject (Country)` — message silently dropped (no user-facing response).
+4. No DB write. No further routing.
 
 ---
 

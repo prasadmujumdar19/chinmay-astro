@@ -108,13 +108,35 @@ The bot token reuses the same Slack app credential already used by n8n (`WSds5JW
 Postgres is accessed via the **Postgres MCP server** (`mcp__postgres__query` tool), configured at user scope.
 Requires the SSH tunnel to be open with port 5432 forwarded (see tunnel command above).
 
-**Available tools:** `mcp__postgres__query` — runs any SQL query (SELECT, INSERT, UPDATE, DELETE). The `n8n` DB user has full privileges.
+**Available tools:** `mcp__postgres__query` — **read-only**, accepts SELECT only. For writes (INSERT/UPDATE/DELETE) use the docker-exec pattern below.
 
-**Use cases:** Inspect user state, debug data issues, verify workflow writes, and fix stuck/corrupted user state directly via SQL.
+**Use cases:** Inspect user state, debug data issues, verify workflow writes.
 
-**Key tables:**
-- `data_table_user_gZCekRseitJEAX1g` — the custom n8n data table holding user state (wa_id, state, name, etc.)
-- `execution_entity` / `execution_data` — n8n workflow execution history
+**Write path (DELETE/UPDATE/INSERT):** MCP is read-only. Pipe SQL into the postgres container via SSH:
+
+```bash
+ssh root@45.79.125.184 'docker exec -i $(docker ps --format "{{.Names}}" | grep -i postgres | head -1) psql -U n8n -d n8n -v ON_ERROR_STOP=1' <<'EOF'
+<your SQL here>
+EOF
+```
+
+**Key tables (live schema, verified 2026-05-17):**
+- `chinmay_astro.users` — canonical user state (phone_number PK-like, status, slack_channel_id, name, DOB, etc.). **There is no `data_table_user_gZCekRseitJEAX1g`** — that table name in prior notes is stale; the live state table is `chinmay_astro.users`.
+- `chinmay_astro.pending_users` — pre-onboarding record (phone_number + contact_name); written by WF-21 before the form is submitted. **No FK to `users`** — keyed on phone_number.
+- `chinmay_astro.consultations` / `messages` / `payments` — per-user history; **FK to users.id with ON DELETE CASCADE**.
+- `chinmay_astro.admin_actions` — audit log; FK to users.id with **ON DELETE NO ACTION** (will block a users DELETE if any rows exist for that user_id).
+- `execution_entity` / `execution_data` — n8n workflow execution history.
+
+**Clean-slate wipe for one test phone:**
+```sql
+-- 1. Clear admin_actions first (NO ACTION FK blocks otherwise)
+DELETE FROM chinmay_astro.admin_actions WHERE user_id = (SELECT id FROM chinmay_astro.users WHERE phone_number = '<phone>');
+-- 2. Delete user (cascades to consultations/messages/payments)
+DELETE FROM chinmay_astro.users WHERE phone_number = '<phone>';
+-- 3. Clear pending_users separately (no FK, keyed on phone)
+DELETE FROM chinmay_astro.pending_users WHERE phone_number = '<phone>';
+```
+The Slack consultation channel is **never** archived automatically (Design Rule #10) — delete it manually in Slack if you need WF-52 to exercise the create-new path on the next form submission.
 
 **Write caution:** Direct SQL writes bypass n8n business logic (Slack channel creation, WA messages, etc.) — only write directly when a user is stuck in a state that n8n workflows can't recover from. For normal state transitions, prefer n8n workflows.
 
