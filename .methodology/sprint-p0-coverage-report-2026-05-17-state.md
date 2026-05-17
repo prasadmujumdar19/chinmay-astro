@@ -4,8 +4,18 @@ input_hash: 23448634cd16f290cacd6d385ad28337f4757c1783d10a3dc4592b2a4305cfda
 source_file_update: false
 working_copy_path: .methodology/sprint-p0-coverage-report-2026-05-17-working.md
 planned_at: 2026-05-17T03:09:27Z
-last_updated: 2026-05-17T16:30:00Z
+last_updated: 2026-05-17T16:40:00Z
 planning_complete: true
+
+batch_7_execution_plan:
+  assessed_at: 2026-05-17T16:40:00Z
+  reason: "Batch has 4 items mixing change types (verify, export, doc regen, git push) → Step 2a required"
+  modes:
+    VERIFY-ALL: "Mode C combined with EXPORT-JSON — single bash+curl loop fetches 15 WFs to disk, then jq+lint verify from disk. Avoids fetching twice; honors CLAUDE.md token rule (no MCP for bulk)."
+    EXPORT-JSON: "Mode C combined with VERIFY-ALL — see above. Includes cleanup of stray 0-byte file in workflows/ with mashed-name."
+    REGEN-MD: "Mode B inline-inherit — bash+jq script regenerates 15 .md files from workflows/<id>.json. Deterministic transform; .pseudo files immutable."
+    GIT-PUSH: "Mode A full wrapper — standard project clone+copy+secrets-scan+commit+push procedure per CLAUDE.md. False-positive filter for state-file grep literals (per handoff)."
+  subagents_dispatched: "None — last-session WF-47 incident makes Mode D unsuitable for any item in this batch."
 
 scope_decisions:
   drift_scan: "Only the 15 already identified (no broad scan of remaining 13 WFs)"
@@ -193,7 +203,8 @@ items:
   - id: VERIFY-ALL
     description: "Per-WF pseudocode↔JSON re-comparison for all 15 touched workflows. For each WF: fetch live JSON via mcp__n8n__n8n_get_workflow, compare nodes/parameters against .pseudo file algorithm; any drift becomes a fix-and-re-export cycle. Output: alignment report listing PASS/DRIFT for each of the 15. DRIFT items require return to that WF's batch and re-fix"
     priority: P0
-    status: pending
+    status: done  # completed 2026-05-17T16:50Z (Mode C combined with EXPORT-JSON)
+    notes: "All 15 PASS. Verified via per-WF jq-on-disk drift checks + n8n .issues lint (0 issues across all 15). Drift checks confirm sprint-state notes for each WF: WF-00 (calls WF-60), WF-01 (passes wasOptedOut), WF-02 (UNHANDLED + payment_pending guard), WF-10 (DR-13 categorisation), WF-11 (CLOSE aliases), WF-21 (Welcome back), WF-22 (✓ glyph + ON CONFLICT + xmax), WF-33 (calls WF-51), WF-34 (User Found + User in Correct State + WF-51 routes), WF-40 (exactly 4 nodes), WF-42 (User Found + no Archive), WF-47 (exactly 6 nodes + no Archive), WF-50 (empty_body_dropped + interactivePayload), WF-52 (isNew), WF-60 (Filter Skip honors upstream skip flag — TD-030/TD-034 detection lives in WF-00 Parse code, correct division of responsibility per pseudocode). Mandatory secrets scan on workflows/*.json: 0 hits."
     batch: 7
     depends_on:
       - id: WF-60
@@ -245,7 +256,8 @@ items:
   - id: EXPORT-JSON
     description: "Export live JSON for the 15 touched workflows from n8n to /workflows/<n8n-id>.json. Use bash+curl script (per CLAUDE.md token discipline — never use mcp__n8n__* for bulk export). Mandatory secrets scan: grep -rn 'AIzaSy\\|sk-\\|xoxb-\\|AKIA\\|?key=' workflows/ → must be empty. Map WF-XX → n8n ID from docs/workflow-registry.md"
     priority: P0
-    status: pending
+    status: done  # completed 2026-05-17T16:50Z (Mode C combined with VERIFY-ALL)
+    notes: "15/15 exported successfully via bash+curl loop to workflows/<id>.json (sizes 6KB-43KB). Stray 0-byte file with mashed-together name removed before export. Secrets scan: 0 hits (clean)."
     batch: 7
     depends_on:
       - id: VERIFY-ALL
@@ -255,7 +267,8 @@ items:
   - id: REGEN-MD
     description: "Regenerate docs/pseudocode/WF-XX.md for the 15 touched WFs only. Script reads workflows/<id>.json and emits markdown matching existing format (header: # WF-XX <Name>; metadata: ID/Active/Nodes count; per-node section: ### <name>, type, parameters JSON block). Use jq for JSON extraction. Pseudocode .pseudo files NOT touched"
     priority: P0
-    status: pending
+    status: done  # completed 2026-05-17T16:55Z (Mode B inline-inherit)
+    notes: "15/15 regenerated via bash+jq script (/tmp/claude-scratch/regen-md.sh). Output sizes 40-192 lines per WF. Format matches existing WF-00.md template (header + metadata + ## Nodes + per-node alphabetically sorted with type/typeVersion/parameters JSON block). Pseudocode .pseudo files untouched (timestamps confirm — last touched 12:30-12:40 during sprint authoring, .md regenerated at 16:16)."
     batch: 7
     depends_on:
       - id: EXPORT-JSON
