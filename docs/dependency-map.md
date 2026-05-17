@@ -1,5 +1,5 @@
 # Workflow Dependency Map
-Generated: 2026-05-17 16:55
+Generated: 2026-05-17 17:22
 
 ## Diagram
 ```mermaid
@@ -58,6 +58,7 @@ graph TD
   emUOLWVZiNVxcOe3["WF-32 Payment Confirmation Receiver"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   fdlIpl67amL2Ho6U["BACKUP_20260412_WF-25 Post-Consultation Options (SUPERSEDED)"] --> aJoquwuEUbz8bI1B["aJoquwuEUbz8bI1B"]
   fx70vqyJtRdF2DgR["WF-42 Consultation Closer"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
+  fx70vqyJtRdF2DgR["WF-42 Consultation Closer"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   gGJBY5fJha0Let8I["WF-30 Payment Pending Intent Filter"] --> eTV1lUcYrXBg2q2T["WF-25 Intent Classifier"]
   gGJBY5fJha0Let8I["WF-30 Payment Pending Intent Filter"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   gGJBY5fJha0Let8I["WF-30 Payment Pending Intent Filter"] --> 2U7mxHMyqA41ROKX["WF-47 Unsubscribe Handler"]
@@ -99,7 +100,7 @@ graph TD
   "eTV1lUcYrXBg2q2T": { "name": "WF-25 Intent Classifier", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL", "UV62An60fzflU0uD"] },
   "emUOLWVZiNVxcOe3": { "name": "WF-32 Payment Confirmation Receiver", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
   "fdlIpl67amL2Ho6U": { "name": "BACKUP_20260412_WF-25 Post-Consultation Options (SUPERSEDED)", "calls": ["aJoquwuEUbz8bI1B"] },
-  "fx70vqyJtRdF2DgR": { "name": "WF-42 Consultation Closer", "calls": ["BUVun38WEKb12zg9"] },
+  "fx70vqyJtRdF2DgR": { "name": "WF-42 Consultation Closer", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
   "gGJBY5fJha0Let8I": { "name": "WF-30 Payment Pending Intent Filter", "calls": ["eTV1lUcYrXBg2q2T", "BUVun38WEKb12zg9", "2U7mxHMyqA41ROKX"] },
   "hYGNM97sXvdo1WmI": { "name": "WF-01 Message Router", "calls": ["PubCsNTOspF3xqXZ", "zM8WbxSdt9nXRoLZ", "BUVun38WEKb12zg9"] },
   "se82n3MUQ9xE5aEr": { "name": "WF-34 Payment Rejection Processor", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
