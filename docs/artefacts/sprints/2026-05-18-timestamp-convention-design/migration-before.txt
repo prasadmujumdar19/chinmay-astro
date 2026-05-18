@@ -1,0 +1,40 @@
+# Pre-migration spot-check values (P2-2.2)
+
+Captured: 2026-05-18T14:43Z, immediately before applying scripts/migrations/2026-05-18-timestamptz-phase2.sql.
+
+Postgres session TZ at capture time: UTC (already flipped per P2-2.1).
+However the historical values in these `timestamp without time zone` columns were inserted while session TZ was Asia/Kolkata, so the literal values stored are IST wall-clock.
+
+Per D2 (decisions.md): default sample = earliest, latest, plus one row with non-null verified_at per column. With only 3 rows in total across both tables, capturing all 3 rows is exhaustive and supersedes the default sample.
+
+## chinmay_astro.consultations
+
+| id | column       | before_text (IST wall-clock as stored) | expected_after_text (timestamptz, UTC instant) |
+|----|--------------|----------------------------------------|------------------------------------------------|
+|  9 | started_at   | 2026-05-17 21:35:37.997896             | 2026-05-17 16:05:37.997896+00                  |
+|  9 | ended_at     | 2026-05-18 08:50:36.341155             | 2026-05-18 03:20:36.341155+00                  |
+|  9 | created_at   | 2026-05-17 21:35:37.997896             | 2026-05-17 16:05:37.997896+00                  |
+
+## chinmay_astro.payments
+
+| id | column       | before_text (IST wall-clock as stored) | expected_after_text (timestamptz, UTC instant) |
+|----|--------------|----------------------------------------|------------------------------------------------|
+| 10 | created_at   | 2026-05-17 19:57:58.142039             | 2026-05-17 14:27:58.142039+00                  |
+| 10 | verified_at  | 2026-05-17 21:35:37.983532             | 2026-05-17 16:05:37.983532+00                  |
+| 10 | rejected_at  | NULL                                   | NULL                                            |
+| 11 | created_at   | 2026-05-18 09:08:21.956362             | 2026-05-18 03:38:21.956362+00                  |
+| 11 | verified_at  | NULL                                   | NULL                                            |
+| 11 | rejected_at  | NULL                                   | NULL                                            |
+
+## Validation rule (P2-2.2 step 6)
+
+For each (id, column) pair above, post-migration:
+```sql
+SELECT id, <col>::text AS after_text,
+       (<col> AT TIME ZONE 'Asia/Kolkata')::text AS as_ist
+  FROM chinmay_astro.<table> WHERE id = <id>;
+```
+- `as_ist` must match `before_text` byte-for-byte.
+- `after_text` (which is timestamptz rendered in session TZ = UTC) must match `expected_after_text` byte-for-byte.
+
+NULL rows: no validation needed (NULLs survive the conversion as NULLs).

@@ -5,8 +5,8 @@ input_hash: 7233a9fed5c89733e5f01418134488bfb4bef2f502e217bfa421301e6207c5d1
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/2026-05-18-timestamp-convention-design/working.md
 planned_at: 2026-05-18T14:05:17Z
-last_updated: 2026-05-18T14:34:06Z
-batch_2_commit_status: "All 6 pre-flight items complete. PF-1 verified Phase 1 commit d11c3ae on main. PF-2 confirmed pre-go-live (1 test user, 0 non-AU). PF-3 verified n8n + postgres tunnel reachability. PF-4 + PF-5 decisions captured in decisions.md. PF-6 pg_dump backup taken (28K, /tmp/claude-scratch/chinmay_astro-pre-phase2-20260518T143332Z.dump). No commit needed for Batch 2 — only artefacts produced are sprint state + decisions.md, both committed at sprint close."
+last_updated: 2026-05-18T14:49:12Z
+batch_2_commit_status: "All 6 pre-flight items complete. Committed + pushed as 04ec7a6 (d11c3ae..04ec7a6) on 2026-05-18T14:36:00Z. PF-1 verified Phase 1 commit d11c3ae on main. PF-2 confirmed pre-go-live (1 test user, 0 non-AU). PF-3 verified n8n + postgres tunnel reachability. PF-4 + PF-5 decisions captured in decisions.md. PF-6 pg_dump backup taken (28K, /tmp/claude-scratch/chinmay_astro-pre-phase2-20260518T143332Z.dump)."
 batch_1_commit_status: "Phase 1 committed and pushed as d11c3ae (4bf62f2..d11c3ae) on 2026-05-18T14:16:29Z. 6 files changed, 808 insertions. Gate for P2-PF-1 now satisfied."
 planning_complete: true
 scope_note: |
@@ -205,8 +205,21 @@ items:
   - id: P2-2.1
     description: "Flip docker-compose TZ env on n8n + postgres from Asia/Kolkata to UTC; restart both"
     priority: P0
-    status: pending
+    status: done
+    completed_at: 2026-05-18T14:43:19Z
     batch: 3
+    plan_deviations: |
+      1. Target file was .env.production (referenced via env_file: in docker-compose.yml), NOT docker-compose.yml itself. Spec §5 audit was inaccurate about the location of the TZ env vars. Edit was `sed -i.tmp` on .env.production lines 15 (TZ=Asia/Kolkata→UTC) and 26 (GENERIC_TIMEZONE=Asia/Kolkata→UTC). Backup taken as /mnt/chinmay-astro-data/.env.production.bak-20260518T144018Z.
+      2. After container restart, Postgres session TZ remained Asia/Kolkata because postgresql.conf in the persisted volume /mnt/chinmay-data/postgres/ had `timezone = 'Asia/Kolkata'` baked in. Container env only seeds initdb; on subsequent starts postgresql.conf wins. Fix applied: `ALTER SYSTEM SET timezone = 'UTC'; ALTER SYSTEM SET log_timezone = 'UTC'; SELECT pg_reload_conf();` — postgres-native, writes to postgresql.auto.conf which overrides. No volume edit needed.
+      3. Original docker-compose.yml.bak-20260518T143759Z snapshot from the no-op sed attempt remains on the VPS as audit trail (empty diff confirms no real change to that file).
+    verification: |
+      - VPS containers: postgres-prod (healthy, TZ=UTC, GENERIC_TIMEZONE=UTC), n8n-prod (running, TZ=UTC, GENERIC_TIMEZONE=UTC).
+      - docker exec postgres-prod date / date -u → both UTC, match.
+      - docker exec n8n-prod date / date -u → both UTC, match.
+      - mcp__postgres__query: SHOW timezone → 'UTC'; now()::text → '2026-05-18 14:43:07.386841+00'; now() AT TIME ZONE 'Asia/Kolkata' → '2026-05-18 20:13:07.386841' (correct +5:30 conversion).
+      - mcp__n8n__n8n_health_check → status=ok, apiUrl=http://localhost:5678.
+      - AC-P2-1 (SHOW timezone returns 'UTC') satisfied.
+      - AC-P2-4 modified: docker-compose.yml unchanged (no TZ= lines); .env.production now shows TZ=UTC + GENERIC_TIMEZONE=UTC on lines 15 and 26.
     target_file: /mnt/chinmay-astro-data/docker-compose.yml (on VPS)
     depends_on:
       - id: P2-PF-1
@@ -275,8 +288,18 @@ items:
   - id: P2-2.2
     description: "Migrate 6 timestamp cols to timestamptz with USING (col AT TIME ZONE 'Asia/Kolkata')"
     priority: P0
-    status: pending
+    status: done
+    completed_at: 2026-05-18T14:46:32Z
     batch: 3
+    artefacts:
+      - scripts/migrations/2026-05-18-timestamptz-phase2.sql
+      - docs/artefacts/sprints/2026-05-18-timestamp-convention-design/migration-before.txt
+      - docs/artefacts/sprints/2026-05-18-timestamp-convention-design/migration-after.txt
+    migration_result: "BEGIN / DO / 2× ALTER TABLE / COMMIT (clean). Pre-flight assertion confirmed session TZ=UTC."
+    verification: |
+      Post-state types: all 6 columns now 'timestamp with time zone' (was 'timestamp without time zone').
+      Spot-check (exhaustive — 3 rows total in pre-go-live state): 9 (col,row) combinations all match before-text byte-for-byte under (col AT TIME ZONE 'Asia/Kolkata')::text; all match expected UTC instants under (col)::text. NULLs preserved as NULLs.
+      Loss-free confirmed. AC-P2-2 satisfied for the 6 migrated columns.
     target_file: scripts/migrations/2026-05-18-timestamptz-phase2.sql (new) + 6 cols in consultations + payments
     depends_on:
       - id: P2-2.1
@@ -348,8 +371,15 @@ items:
   - id: P2-2.3
     description: "Drop AT TIME ZONE 'Asia/Kolkata' wrapper from 3 column defaults; use plain now()"
     priority: P1
-    status: pending
+    status: done
+    completed_at: 2026-05-18T14:49:12Z
     batch: 3
+    artefacts:
+      - scripts/migrations/2026-05-18-normalize-defaults-phase2.sql
+    migration_result: "BEGIN / 3× ALTER TABLE / COMMIT (clean)."
+    verification: |
+      Post-state: 3 columns (consultations.created_at, messages.created_at, payments.created_at) now have default `now()` (no AT TIME ZONE wrapper). Zero columns in chinmay_astro schema still have 'Asia/Kolkata' in default — AC-P2-3 satisfied.
+      Functional smoke: INSERT INTO messages (user_id=28, direction='outbound', message_type='text', content='phase2-smoke-marker-...') succeeded; returned created_at='2026-05-18 14:48:16.991087+00' inside the wallclock bracket [14:48:13Z, 14:48:16Z]. UTC end-to-end. Sentinel deleted, total_messages back to 0. AC-P2-5 demonstrated.
     target_file: scripts/migrations/2026-05-18-normalize-defaults-phase2.sql (new) + messages/consultations/payments .created_at
     depends_on:
       - id: P2-2.2

@@ -1,0 +1,74 @@
+# Post-migration spot-check (P2-2.2)
+
+Captured: 2026-05-18T14:44Z, immediately after applying scripts/migrations/2026-05-18-timestamptz-phase2.sql.
+
+Migration result: BEGIN / DO / 2× ALTER TABLE / COMMIT (clean).
+Postgres session TZ: UTC (confirmed by pre-flight assertion inside migration).
+
+Column-type check (information_schema.columns):
+
+| table | column | data_type (before) | data_type (after) |
+|---|---|---|---|
+| consultations | started_at  | timestamp without time zone | timestamp with time zone |
+| consultations | ended_at    | timestamp without time zone | timestamp with time zone |
+| consultations | created_at  | timestamp without time zone | timestamp with time zone |
+| payments      | created_at  | timestamp without time zone | timestamp with time zone |
+| payments      | verified_at | timestamp without time zone | timestamp with time zone |
+| payments      | rejected_at | timestamp without time zone | timestamp with time zone |
+
+All 6 columns migrated. Defaults still carry `AT TIME ZONE 'Asia/Kolkata'` wrappers (cosmetic — corrected by P2-2.3).
+
+## Value validation — byte-for-byte match against migration-before.txt
+
+### chinmay_astro.consultations id=9
+
+| column     | as_ist (after) | before_text | match | after_text (UTC) | expected_after | match |
+|------------|----------------|-------------|-------|------------------|-----------------|-------|
+| started_at | 2026-05-17 21:35:37.997896 | 2026-05-17 21:35:37.997896 | ✓ | 2026-05-17 16:05:37.997896+00 | 2026-05-17 16:05:37.997896+00 | ✓ |
+| ended_at   | 2026-05-18 08:50:36.341155 | 2026-05-18 08:50:36.341155 | ✓ | 2026-05-18 03:20:36.341155+00 | 2026-05-18 03:20:36.341155+00 | ✓ |
+| created_at | 2026-05-17 21:35:37.997896 | 2026-05-17 21:35:37.997896 | ✓ | 2026-05-17 16:05:37.997896+00 | 2026-05-17 16:05:37.997896+00 | ✓ |
+
+### chinmay_astro.payments id=10
+
+| column      | as_ist (after) | before_text | match | after_text (UTC) | expected_after | match |
+|-------------|----------------|-------------|-------|------------------|-----------------|-------|
+| created_at  | 2026-05-17 19:57:58.142039 | 2026-05-17 19:57:58.142039 | ✓ | 2026-05-17 14:27:58.142039+00 | 2026-05-17 14:27:58.142039+00 | ✓ |
+| verified_at | 2026-05-17 21:35:37.983532 | 2026-05-17 21:35:37.983532 | ✓ | 2026-05-17 16:05:37.983532+00 | 2026-05-17 16:05:37.983532+00 | ✓ |
+| rejected_at | NULL                       | NULL                       | ✓ | NULL                          | NULL                          | ✓ |
+
+### chinmay_astro.payments id=11
+
+| column      | as_ist (after) | before_text | match | after_text (UTC) | expected_after | match |
+|-------------|----------------|-------------|-------|------------------|-----------------|-------|
+| created_at  | 2026-05-18 09:08:21.956362 | 2026-05-18 09:08:21.956362 | ✓ | 2026-05-18 03:38:21.956362+00 | 2026-05-18 03:38:21.956362+00 | ✓ |
+| verified_at | NULL                       | NULL                       | ✓ | NULL                          | NULL                          | ✓ |
+| rejected_at | NULL                       | NULL                       | ✓ | NULL                          | NULL                          | ✓ |
+
+## Verdict
+
+All 9 (col, row) combinations validated. Migration is loss-free. AC-P2-2 (0 columns of type 'timestamp without time zone' in chinmay_astro schema) satisfied for the 6 migrated columns; full-schema verification deferred to acceptance check at sprint close.
+
+## Validation query (reproducible)
+
+```sql
+SELECT 'consultations' AS tbl, id,
+  started_at::text AS started_at_after,
+  (started_at AT TIME ZONE 'Asia/Kolkata')::text AS started_at_as_ist,
+  ended_at::text AS ended_at_after,
+  (ended_at AT TIME ZONE 'Asia/Kolkata')::text AS ended_at_as_ist,
+  created_at::text AS created_at_after,
+  (created_at AT TIME ZONE 'Asia/Kolkata')::text AS created_at_as_ist
+FROM chinmay_astro.consultations WHERE id = 9
+UNION ALL
+SELECT 'payments id=10', id,
+  created_at::text, (created_at AT TIME ZONE 'Asia/Kolkata')::text,
+  verified_at::text, (verified_at AT TIME ZONE 'Asia/Kolkata')::text,
+  COALESCE(rejected_at::text, 'NULL'), COALESCE((rejected_at AT TIME ZONE 'Asia/Kolkata')::text, 'NULL')
+FROM chinmay_astro.payments WHERE id = 10
+UNION ALL
+SELECT 'payments id=11', id,
+  created_at::text, (created_at AT TIME ZONE 'Asia/Kolkata')::text,
+  COALESCE(verified_at::text, 'NULL'), COALESCE((verified_at AT TIME ZONE 'Asia/Kolkata')::text, 'NULL'),
+  COALESCE(rejected_at::text, 'NULL'), COALESCE((rejected_at AT TIME ZONE 'Asia/Kolkata')::text, 'NULL')
+FROM chinmay_astro.payments WHERE id = 11;
+```
