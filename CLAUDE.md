@@ -51,6 +51,22 @@ WhatsApp-based Vedic astrology consultation service. Users message a WhatsApp bo
 
 **Before every `git commit` or GitHub push:** run `grep -rn 'AIzaSy\|sk-\|xoxb-\|AKIA' <files>` and verify zero hits.
 
+## Timestamp Convention — Strict UTC Everywhere
+
+Every timestamp Claude writes into any artefact in this repo (sprint `state.md`, handoff files, working copies, design specs, code comments, CHANGELOG, audit notes) is UTC with a `Z` suffix.
+
+| Rule | Detail |
+|------|--------|
+| Source command | `date -u +%Y-%m-%dT%H:%M:%SZ` (or `scripts/now-utc.sh` if installed) |
+| Format | `YYYY-MM-DDTHH:MM:SSZ` — write the literal output, no offset, no reformat |
+| Never | Tag a Sydney/IST wall-clock with `Z`. Construct a `Z`-suffixed string from local time |
+| Transcribing | When the source is `gh api`, `git log --format='%aI'`, or the n8n REST API (`updatedAt`, `createdAt`, execution timestamps), quote the API value verbatim |
+| Historical | Pre-convention timestamps in older sprint `state.md` files are Sydney AEDT/AEST. Do not retroactively rewrite — audit trail |
+
+User-facing displays in WhatsApp/Slack are unaffected — they apply explicit display-time TZ conversion at the message-render boundary (separate concern; see Phase 2.5 of the timestamp spec).
+
+**Rationale + full design:** `docs/artefacts/specs/2026-05-18-timestamp-convention-design.md`. Backing memory: `feedback_timestamp_convention.md`.
+
 ## Infrastructure
 
 ```
