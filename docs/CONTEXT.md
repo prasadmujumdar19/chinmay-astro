@@ -141,7 +141,7 @@ All commands can be sent in the user's consultation channel (`consult-{phone}`) 
 |-------|------|
 | User texts "Hi" (organic) | WF-00 → WF-01 → WF-02 → WF-21 → sends Welcome + Consent |
 | User clicks Facebook ad | Lands in WhatsApp Flow → WF-00 → WF-01 → WF-02 → WF-22 |
-| Admin types in Slack channel | WF-10 → WF-11 (command) or WF-12 (relay) |
+| Admin types in Slack channel | WF-10 → WF-11 (command) or WF-41 (plain-text relay) |
 
 ---
 

@@ -5,9 +5,11 @@ input_hash: 29fbefe7d45034c5f64e9d512175a138270d21f680d4574035db003bc5f5afb4
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/smoke-post-p0-review-tc04xx-2026-05-18/working.md
 planned_at: 2026-05-18T07:29:15Z
-last_updated: 2026-05-18T20:50Z
+last_updated: 2026-05-18T23:10 IST
+batch_3_commit_status: "Post-batch regression PASS 2026-05-18T23:08 IST. Orphan scan across all 27 active workflows found WF-00 + WF-10 as the only uncalled (both legitimate external trigger entries — webhook/Slack events); no other orphaned-active workflows remain. PLUGIN-03 (orphaned-active-workflow guardrail) deferred to Batch 4 per user decision and logged in followups.md. Batch 3 ready for commit + push."
 planning_complete: true
-batch_1_commit_status: "Post-batch regression PASS 2026-05-18T20:45Z. User deferred commit/push to after Batch 2 (BUG-04 unlikely to revisit Batch 1 workflows, but consolidating commits is cleaner if it does)."
+batch_1_commit_status: "Post-batch regression PASS 2026-05-18T20:45 IST. Committed + pushed in prior session as part of combined commit 2a33905 (Batches 1+2)."
+batch_2_commit_status: "Post-batch regression PASS 2026-05-18T22:30 IST. Siblings re-checked this session: (1) no workflow references broken httpQueryAuth cred ZkLShpFmp8Mi1gZl; (2) no HTTP node uses httpQueryAuth auth type; (3) both Gemini-calling workflows (WF-25, WF-43) use googlePalmApi predefined cred. Committed + pushed in prior session as part of combined commit 2a33905 (Batches 1+2). Verified via gh api on 2026-05-18 — all 7 workflow JSONs + docs + sprint artefacts present in commit. No further action needed for Batches 1+2."
 slug_derivation_note: "Strict rule on report.html → 'report' (too generic). Used parent folder name instead. Resume build-sprint with --slug=smoke-post-p0-review-tc04xx-2026-05-18."
 parser_warnings: []
 n8n_verification:
@@ -146,7 +148,24 @@ items:
     description: "WF-12 (Admin → WhatsApp Relay) is active in n8n but has no callers (WF-41 superseded it). Deactivate WF-12; reconcile workflow-registry.md, CONTEXT.md, STATUS.md to remove the four-way doc inconsistency. Add an orphaned-active-workflow guardrail to the technical-workflow-review skill."
     priority: P1
     severity: major
-    status: pending
+    status: done
+    started_at: 2026-05-18T22:35 IST
+    completed_at: 2026-05-18T23:05 IST
+    completion_note: "Classified as Structural-lite (workflow-level activation toggle, abridged impact analysis — orphan status pre-verified by report and dependency-map.md showing 0 callers). Backup written archive/backups/RjwHs9Dx5cK8Q5wD-2026-05-18-22-59.json. Deactivated via POST /workflows/RjwHs9Dx5cK8Q5wD/deactivate (the dedicated activate/deactivate endpoint, not standard PUT — n8n's PUT body excludes the `active` flag). Verified live: active=false, 3 nodes preserved. Docs reconciled: workflow-registry.md row 84 → 🟡 Deactivated with full resurrect-path note; row 140 (WF-51) updated to mark WF-12 historically; row 259 (WF-12 sync table) → 🟡 Deactivated. CONTEXT.md:144 routing reference changed to WF-41. STATUS.md:109 row updated to deactivated with cross-ref; STATUS.md:133 summary updated; STATUS.md:158 post-go-live item 11 marked resolved. Final grep `WF-12.*Not Built` returns only historical artefacts (the BUG-05 spec itself + the test report describing the original bug) — no live doc still claims Not Built. Plugin guardrail (orphaned-active-workflow detector) deferred to followups for Batch 4 per user decision."
+    files_changed:
+      - "workflows/RjwHs9Dx5cK8Q5wD.json (WF-12 — active: true → false)"
+      - "docs/workflow-registry.md (3 row updates: WF-12 status, WF-51 dependency note, WF-12 sync table row)"
+      - "docs/CONTEXT.md (routing reference WF-12 → WF-41)"
+      - "docs/STATUS.md (4 line updates: row 109, summary 133, post-go-live item 158)"
+    batch: 3
+    workflow: WF-12
+    workflow_id: RjwHs9Dx5cK8Q5wD
+    change_type: structural-lite + documentation
+    blast_radius: low
+    fix_pattern: "1) Deactivate WF-12 in n8n via API (PUT with active=false, preserving content). 2) Update workflow-registry.md WF-12 row → 🟡 Deactivated. 3) Edit CONTEXT.md:144 and STATUS.md:109,133,158 to remove 'Not Built' / stale claims. 4) Plugin work (orphaned-workflow guardrail) split into PLUGIN-03 if scoped separately, otherwise tracked under BUG-05's followup."
+    depends_on: []
+    blocks: []
+    verification_after_build: "WF-12 shows active=false in n8n; docs grep for 'WF-12.*Not Built' returns zero; orphaned-workflow detector added to technical-workflow-review (if in-scope)."
     batch: 3
     workflow: WF-12
     workflow_id: RjwHs9Dx5cK8Q5wD
