@@ -1,0 +1,31 @@
+# Well-known downstream sub-workflows for technical-workflow-review C12 input-contract validation.
+#
+# When an executeWorkflow node calls one of these sub-workflows in passthrough mode,
+# C12 checks that the immediately-upstream node is producing the required input shape
+# (or flags it for manual review if upstream is a postgres/if/switch/executeWorkflow/
+# httpRequest node that almost never produces the contract).
+#
+# Add new entries here when introducing a sub-workflow with a strict input contract.
+
+well_known_downstreams:
+  - workflowId: BUVun38WEKb12zg9   # WF-50 Send WhatsApp
+    name: WF-50 Send WhatsApp
+    required_keys: [phoneNumber, messageType]
+    # Note: content key varies by messageType (messageContent for text, interactivePayload
+    # for interactive, templateName + templateParams for template). WF-50's Prepare Payload
+    # node aliases input.message and input.messageBody → messageContent and defaults
+    # messageType='text', but callers should still pass the canonical shape explicitly.
+
+  - workflowId: wlZRK0YxnhP0b2RL   # WF-51 Send Slack Message
+    name: WF-51 Send Slack Message
+    required_keys: [channelId, messageText]
+
+  - workflowId: IO5BZLUxuVmjzk5I   # WF-52 Slack Channel Manager
+    name: WF-52 Slack Channel Manager
+    required_keys: [phoneNumber, userName]
+    # Optional: userId (integer). Returns {channelId, channelName, isNew}. Idempotent.
+    # See workflow-registry.md line for WF-52 — only called by WF-22 today.
+
+# WF-60 Message Logger (6H75p935FpBVBQtV) intentionally omitted until its
+# canonical input contract is confirmed by inspecting the workflow itself —
+# add when known. Same for any other sub-workflow added later.

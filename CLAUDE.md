@@ -210,6 +210,18 @@ Applies to every type of artifact — files, n8n workflows, database rows, GitHu
 
 The pattern: **grep/search to locate → edit only the target → verify with a second grep**. No full reads unless you genuinely need to reason about the whole artifact.
 
+### Workflow Representation Freshness
+
+**Before reading any `docs/pseudocode/WF-XX.md` for reasoning:** run `scripts/assert-md-fresh.sh WF-XX`.
+
+- Exit 0 → safe to load.
+- Exit 2 → stale or missing; regenerate via `python3 $PLUGIN/scripts/generate-workflow-md.py workflows docs/pseudocode` first.
+- Exit 1 → arg/env/network error; resolve before proceeding.
+
+The script (provided by the n8n-whatsapp-methodology plugin ≥1.16.0) prefers `live_updated_at` from the `.md`'s YAML frontmatter — hermetic against `cp`, `rsync`, Google Drive resync, and `git checkout` rewriting inodes. Skipping the check risks reasoning over a `.md` that's behind live n8n state, leading to decisions based on a workflow shape that no longer exists.
+
+The check is cheap (one curl + one mtime/awk read). Run it every time, not just "when in doubt."
+
 ### MCP/Tool Output Discipline
 
 - **Targeted over bulk:** Always use IDs and filters to fetch only what's needed.
