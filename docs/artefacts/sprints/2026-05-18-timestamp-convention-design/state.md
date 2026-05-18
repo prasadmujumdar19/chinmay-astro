@@ -5,7 +5,8 @@ input_hash: 7233a9fed5c89733e5f01418134488bfb4bef2f502e217bfa421301e6207c5d1
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/2026-05-18-timestamp-convention-design/working.md
 planned_at: 2026-05-18T14:05:17Z
-last_updated: 2026-05-18T14:49:12Z
+last_updated: 2026-05-18T15:02:20Z
+batch_3_commit_status: "Phase 2 core migration committed + pushed as eb54dae (04ec7a6..eb54dae) on 2026-05-18T14:51:13Z. 5 files changed, 204 insertions. Captures both migration SQL files + before/after audit + sprint state updates. Acceptance: AC-P2-1/2/3 fully satisfied; AC-P2-4 modified-target (.env.production); AC-P2-5 demonstrated via sentinel."
 batch_2_commit_status: "All 6 pre-flight items complete. Committed + pushed as 04ec7a6 (d11c3ae..04ec7a6) on 2026-05-18T14:36:00Z. PF-1 verified Phase 1 commit d11c3ae on main. PF-2 confirmed pre-go-live (1 test user, 0 non-AU). PF-3 verified n8n + postgres tunnel reachability. PF-4 + PF-5 decisions captured in decisions.md. PF-6 pg_dump backup taken (28K, /tmp/claude-scratch/chinmay_astro-pre-phase2-20260518T143332Z.dump)."
 batch_1_commit_status: "Phase 1 committed and pushed as d11c3ae (4bf62f2..d11c3ae) on 2026-05-18T14:16:29Z. 6 files changed, 808 insertions. Gate for P2-PF-1 now satisfied."
 planning_complete: true
@@ -428,8 +429,12 @@ items:
   - id: P2-2.4
     description: "Re-export all 28 workflow JSONs as post-container-flip baseline"
     priority: P2
-    status: pending
+    status: done
+    completed_at: 2026-05-18T15:00:11Z
     batch: 4
+    method: "Plugin's scripts/export-all-workflows.sh (n8n-whatsapp-methodology 1.17.0). Reads N8N_API_KEY + N8N_BASE_URL from project .env. 28 JSONs written to workflows/."
+    diff_result: "Canonical diff vs main (deleting volatile fields updatedAt/createdAt/versionId/versionCounter/meta/triggerCount/pinData/staticData/activeVersion/activeVersionId/shared/tags) shows 0 structural diffs across all 28 workflows. All 28 diffs are meta-only (lastActiveAt date roll, version-history updatedAt, versionCounter increment). Container restart did NOT mutate workflow content — as plan predicted."
+    secrets_scan: "Clean. 0 hits for AIzaSy/sk-/xoxb-/AKIA across workflows/*.json. 0 hits for inline ?key=/api_key/apikey/access_token. CLAUDE.md mandate satisfied."
     target_file: workflows/*.json
     depends_on:
       - id: P2-2.1
@@ -458,8 +463,13 @@ items:
   - id: P2-2.5
     description: "Audit 8 message-send workflows for displayed-timestamp expressions"
     priority: P1
-    status: pending
+    status: done
+    completed_at: 2026-05-18T14:55:02Z
     batch: 4
+    artefacts:
+      - docs/artefacts/sprints/2026-05-18-timestamp-convention-design/task-5-audit.md
+    audit_method: "jq-flatten each node's parameters per workflow (local cache workflows/<id>.json, dated 18 May 22:24 — pre-Batch-3 but workflow content unchanged in Batch 3) → grep for display-timestamp patterns: toISOString|toLocaleString|setZone|toFormat|DateTime.fromISO|Asia/Kolkata|Asia/Sydney|$now|new Date("
+    findings: "Zero display-timestamp hits across 7 of 8 workflows. WF-50 has 2 hits — both `new Date().toISOString()` for internal `sentAt` field passed to WF-60 logger, not user-facing. Classification: internal-no-action. SQL NOW() usage is purely INSERT/UPDATE to timestamptz columns — internal. No workflow embeds a timestamp value in a WhatsApp body or Slack text. No code change required. D1 governs any future timestamp-display additions."
     target_file: docs/artefacts/sprints/2026-05-18-timestamp-convention-design/task-5-audit.md (new)
     depends_on:
       - id: P2-PF-4
@@ -508,8 +518,16 @@ items:
   - id: P2-2.6
     description: "Run technical-workflow-review C8 (Postgres schema alignment)"
     priority: P2
-    status: pending
+    status: done
+    completed_at: 2026-05-18T15:02:20Z
     batch: 4
+    method: "Targeted C8 check (not full technical-workflow-review skill invocation) — for each of the 6 migrated columns, found all SQL references in workflows/*.json via jq + grep, then assessed compatibility with timestamptz."
+    c8_strict_findings: 0
+    c8_strict_summary: "All SQL references to migrated columns are compatible with timestamptz. NOW() returns timestamptz; INSERT/UPDATE into timestamptz columns: ✓. SELECT/ORDER BY timestamptz columns: ✓. EXTRACT(EPOCH FROM (NOW() - col))/3600 duration arithmetic: ✓ (TZ-independent)."
+    adjacent_findings: 1
+    adjacent_finding_detail: "WF-11 STATS uses DATE(ended_at)=CURRENT_DATE and DATE(verified_at)=CURRENT_DATE. Pre-Batch-3 with session TZ=IST, both sides were IST-today. Post-Batch-3 with session TZ=UTC, both sides are UTC-today — semantic shift in admin's 'today' boundary. Not a schema/type issue (so C8-strict is still 0), but a workflow-level semantic side-effect of the TZ flip. Logged to followups.md FU-1 for a future build-workflow Surgical fix that anchors both predicates to IST via AT TIME ZONE 'Asia/Kolkata'."
+    artefacts:
+      - docs/artefacts/sprints/2026-05-18-timestamp-convention-design/followups.md
     target_file: docs/artefacts/reviews/technical-workflow-review-<YYYY-MM-DD>/
     depends_on:
       - id: P2-2.2
