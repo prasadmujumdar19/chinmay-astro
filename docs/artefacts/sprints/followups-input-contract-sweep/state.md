@@ -5,7 +5,11 @@ input_hash: 3e2971cd639f9382bdce52dd49b059bb1f397c3884fd8014bc7173b954ac74b3
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/followups-input-contract-sweep/working.md
 planned_at: 2026-05-18T00:00:00Z
-last_updated: 2026-05-18T11:32:00Z
+last_updated: 2026-05-18T11:55:00Z
+batch_4_5_execution_plan:
+  mode: B  # inline-inherit per build-sprint Step 2a
+  rationale: "10th-13th application of identical 'insert Prepare WF-XX Payload Code node' pattern in this sprint. Pattern proven across WF-33/34/42/46/01. Per-item build-workflow Skill re-invocation is redundant ceremony — apply discipline (backup, change, verify lint, update sprint-state, regen pseudocode) inline in main thread. ICF-002+003 are same-workflow siblings on WF-47 → must run sequentially."
+  order: [ICF-001, ICF-002, ICF-003, ICF-004]
 planning_complete: true
 deferred_commits:
   - batch: 1
@@ -22,6 +26,12 @@ deferred_commits:
     user_decision: "Commit Batches 1+2+3 together after Batch 3 lands (asked 2026-05-18T10:00:00Z)."
     commit_pushed: c959389
     pushed_at: 2026-05-18T10:08:00Z
+  - batch: 6
+    completed_at: 2026-05-18T11:32:00Z
+    items_done: [ICV-001, ICV-002, ICV-003, ICV-004, ICV-005, ICV-006, ICV-007, ICV-008, ICV-010, ICV-011, ICV-012, ICV-013, ICV-014, ICV-015, ICV-016, ICV-017, ICV-018, ICV-019]
+    user_decision: "Commit Batch 6 + ICV-001 fix immediately (asked 2026-05-18T11:00:00Z)."
+    commit_pushed: a16d649
+    pushed_at: 2026-05-18T11:33:00Z
   combined_files_to_commit:
     - workflows/NcHZedq9ycnAQ9SW.json   # WF-33 — Batch 1 ICF-005 + Batch 2 ICF-006
     - workflows/se82n3MUQ9xE5aEr.json   # WF-34 — Batch 1 ICF-007 + Batch 2 ICF-008/009
@@ -265,7 +275,9 @@ items:
     upstream_type: n8n-nodes-base.postgres
     fix_pattern: "Insert 'Prepare WF-50 Payload' Set node; populate phoneNumber + messageType=text + messageContent (or appropriate field-name; see plugin-improvement note on field-name drift)."
     priority: P2
-    status: pending
+    status: done
+    completed_at: 2026-05-18T11:55:00Z
+    completion_note: "Added Code node 'Prepare WF-50 Payload (Rebook Payment)' (v2) at [752,304] between Set status=payment_pending and Send Payment Instructions. Pulls user from Load User Record; emits interactive button payload (Welcome back name + UPI ₹500 instructions + 'Payment Completed' reply). Lint clean, live verified."
     batch: 4
     depends_on: []
 
@@ -279,7 +291,9 @@ items:
     upstream_type: n8n-nodes-base.if
     fix_pattern: "Insert 'Prepare WF-50 Payload' Set node on the IF true-branch; populate phoneNumber + messageType=text + messageContent."
     priority: P2
-    status: pending
+    status: done
+    completed_at: 2026-05-18T11:55:00Z
+    completion_note: "Added Code node 'Prepare WF-50 Payload (Hold Message)' (v2) at [-100,0] on Check If Consultation Active true-branch. Uses trigger.phoneNumber (no Load User in WF-47); messageContent explains STOP received but consultation continues + how to STOP after it ends. Lint clean, live verified."
     batch: 4
     depends_on:
       - id: ICF-003
@@ -296,7 +310,9 @@ items:
     upstream_type: n8n-nodes-base.postgres
     fix_pattern: "Insert 'Prepare WF-50 Payload' Set node; populate phoneNumber + messageType=text + messageContent."
     priority: P2
-    status: pending
+    status: done
+    completed_at: 2026-05-18T11:55:00Z
+    completion_note: "Added Code node 'Prepare WF-50 Payload (Opt-out Confirmation)' (v2) at [360,224] between Log to admin_actions and Send Opt-out Confirmation. Uses trigger.phoneNumber; messageContent confirms opt-out + how to re-engage. Lint clean, live verified."
     batch: 4
     depends_on:
       - id: ICF-002
@@ -316,7 +332,9 @@ items:
     upstream_type: n8n-nodes-base.executeWorkflow
     fix_pattern: "Insert 'Prepare WF-51 Payload' Set node; populate channelId + messageText. Note: this is the only WF-25 fix in this sprint; ICV-004/005 are read-only verifications of OTHER WF-25 call sites and intentionally separate."
     priority: P3
-    status: pending
+    status: done
+    completed_at: 2026-05-18T11:55:00Z
+    completion_note: "Added Code node 'Prepare WF-51 Payload (Garbage Admin)' (v2) at [736,-240] between Send Garbage Warning and Notify Admin of Garbage. channelId=C0A5B0ZE81E (chinmay-admin-commands); messageText includes phoneNumber/userId/status + first 280 chars of offending message. Lint clean, live verified."
     batch: 5
     depends_on: []
 
