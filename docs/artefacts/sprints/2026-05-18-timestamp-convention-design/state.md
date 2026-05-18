@@ -5,7 +5,9 @@ input_hash: 7233a9fed5c89733e5f01418134488bfb4bef2f502e217bfa421301e6207c5d1
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/2026-05-18-timestamp-convention-design/working.md
 planned_at: 2026-05-18T14:05:17Z
-last_updated: 2026-05-18T14:10:08Z
+last_updated: 2026-05-18T14:34:06Z
+batch_2_commit_status: "All 6 pre-flight items complete. PF-1 verified Phase 1 commit d11c3ae on main. PF-2 confirmed pre-go-live (1 test user, 0 non-AU). PF-3 verified n8n + postgres tunnel reachability. PF-4 + PF-5 decisions captured in decisions.md. PF-6 pg_dump backup taken (28K, /tmp/claude-scratch/chinmay_astro-pre-phase2-20260518T143332Z.dump). No commit needed for Batch 2 — only artefacts produced are sprint state + decisions.md, both committed at sprint close."
+batch_1_commit_status: "Phase 1 committed and pushed as d11c3ae (4bf62f2..d11c3ae) on 2026-05-18T14:16:29Z. 6 files changed, 808 insertions. Gate for P2-PF-1 now satisfied."
 planning_complete: true
 scope_note: |
   Single sprint covering BOTH phases of the timestamp-convention work.
@@ -79,7 +81,9 @@ items:
   - id: P1-1.5
     description: "Commit + push Phase 1 changes to `main`. This is the gate for P2-PF-1."
     priority: P0
-    status: pending
+    status: done
+    completed_at: 2026-05-18T14:16:29Z
+    commit_sha: d11c3ae
     batch: 1
     target_file: GitHub main
     depends_on:
@@ -106,7 +110,9 @@ items:
   - id: P2-PF-1
     description: "Verify Phase 1 commit is on main branch via gh api"
     priority: P0
-    status: pending
+    status: done
+    completed_at: 2026-05-18T14:17:09Z
+    verification_result: "gh api repos/prasadmujumdar19/chinmay-astro/commits/main returned sha=d11c3ae55d11cc05c6213071e75a302af9f1eabe, author_date=2026-05-18T14:15:57Z, message begins 'docs: establish strict-UTC timestamp convention (Phase 1)'. Match confirmed."
     batch: 2
     target_file: (verification only)
     depends_on:
@@ -121,7 +127,9 @@ items:
   - id: P2-PF-2
     description: "Confirm pre-go-live — no real users in chinmay_astro.users"
     priority: P0
-    status: pending
+    status: done
+    completed_at: 2026-05-18T14:30:39Z
+    verification_result: "users_total=1 (only test phone 61466927921, AU, name='Abcs'), users_non_au=0. Other tables: consultations=1, payments=2, messages=0, pending_users=2 — all tied to the single test user. Pre-go-live confirmed. Safe to proceed with Phase 2 migration."
     batch: 2
     target_file: (verification only)
     depends_on: []
@@ -135,7 +143,9 @@ items:
   - id: P2-PF-3
     description: "SSH tunnel up + n8n + postgres reachable"
     priority: P0
-    status: pending
+    status: done
+    completed_at: 2026-05-18T14:30:39Z
+    verification_result: "n8n_health_check status=ok, apiUrl=http://localhost:5678, version 2.53.2 up-to-date. mcp__postgres__query SELECT 1 returned 1 row; session TIMEZONE=Asia/Kolkata (expected pre-Phase-2.1); now() returned valid timestamp."
     batch: 2
     target_file: (verification only)
     depends_on: []
@@ -150,31 +160,32 @@ items:
   - id: P2-PF-4
     description: "Record §9 Q2 decision — admin Slack display TZ (Sydney AEDT/AEST vs IST)"
     priority: P0
-    status: needs-decision
+    status: done
+    completed_at: 2026-05-18T14:28:12Z
     batch: 2
     target_file: docs/artefacts/sprints/2026-05-18-timestamp-convention-design/decisions.md
     depends_on: []
-    decision_required: |
-      Spec §9 Q2: For admin Slack "Paid at X" messages — target Sydney
-      AEDT/AEST or IST (matching what user sees)?
-      Blocks P2-2.5 only.
+    decision_made: "D1 (see decisions.md): Prefer relative phrasing ('just now') in Slack message bodies, leveraging Slack's own delivery timestamp as the absolute reference. Where an absolute timestamp must remain, use IST (Asia/Kolkata) — NOT Sydney. Rationale: post-go-live admin is the customer 'Chinmay Astro' (IST-based), not Prasad. P2-2.5 audit classification gains a 'relative-rewrite' bucket as preferred fix over IST conversion."
 
   - id: P2-PF-5
     description: "Record §9 Q3 decision — migration spot-check row selection"
     priority: P1
-    status: needs-decision
+    status: done
+    completed_at: 2026-05-18T14:28:12Z
     batch: 2
     target_file: docs/artefacts/sprints/2026-05-18-timestamp-convention-design/decisions.md
     depends_on: []
-    decision_required: |
-      Spec §9 Q3: Spot-check rows for P2-2.2 — confirm default proposal
-      "earliest, latest, plus one row with non-null verified_at" per
-      affected column, or substitute.
+    decision_made: "D2 (see decisions.md): Default — earliest, latest, plus one row with non-null verified_at, per affected column. If <3 non-null rows exist for a column, sample whatever non-null rows exist and note in migration-before.txt. Per-column sampling table recorded in decisions.md."
 
   - id: P2-PF-6
     description: "Take pg_dump backup of chinmay_astro schema (rollback artefact)"
     priority: P0
-    status: pending
+    status: done
+    completed_at: 2026-05-18T14:34:06Z
+    backup_path: /tmp/claude-scratch/chinmay_astro-pre-phase2-20260518T143332Z.dump
+    backup_size_bytes: 28672
+    backup_method: "SSH to root@45.79.125.184 -> docker exec postgres pg_dump -U n8n -d n8n -n chinmay_astro --no-owner --no-acl -F c, streamed binary over SSH stdout to local file. Exit 0, no stderr."
+    backup_retention_note: "File is in /tmp/claude-scratch which is normally session-cleaned. Until Phase 2 verification passes, the dump is needed; at session end (if Phase 2 complete + verified) it can be deleted, otherwise move to a more permanent location (e.g. archive/migration-backups/) before cleanup."
     batch: 2
     target_file: /tmp/claude-scratch/chinmay_astro-pre-phase2-<ts>.dump
     depends_on:
