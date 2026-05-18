@@ -31,3 +31,5 @@ Items discovered during sprint execution that were not part of the original plan
 - **Reference decision:** D1 in `decisions.md` — admin display TZ is IST. This fix aligns the STATS report with that.
 - **Priority:** P2 (cosmetic; admin can still see counts, just on UTC-day boundaries until fixed).
 - **Not addressed in-sprint:** This is a code change to WF-11 not in the sprint scope. The sprint scope ended at the schema migration + audit; touching workflow content here would expand the sprint past its design.
+
+- **Decision (2026-05-18T15:08Z, user direction):** **Accepted as-is. Will not fix.** Rationale: the post-go-live admin (Chinmay Astro) does not check STATS before 06:00 IST. The bug only manifests in the 00:00–05:30 IST window (when UTC date != IST date). Even if a query happens to land in that window, the only visible effect is "completed_today / revenue_today" briefly showing zero or the prior day's tail; all other STATS counters are unaffected and the admin's stated tolerance for that specific discrepancy is high. No build-workflow follow-up planned. Do NOT re-flag this in future audits or session-starts — refer back to this decision.
