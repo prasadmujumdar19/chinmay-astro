@@ -5,7 +5,7 @@ input_hash: 3e2971cd639f9382bdce52dd49b059bb1f397c3884fd8014bc7173b954ac74b3
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/followups-input-contract-sweep/working.md
 planned_at: 2026-05-18T00:00:00Z
-last_updated: 2026-05-18T10:06:00Z
+last_updated: 2026-05-18T11:32:00Z
 planning_complete: true
 deferred_commits:
   - batch: 1
@@ -16,6 +16,12 @@ deferred_commits:
     completed_at: 2026-05-18T09:35:00Z
     items_done: [ICF-006, ICF-008, ICF-009, ICF-011]
     user_decision: "Stop sprint here at Batch 2 boundary; do not commit (asked 2026-05-18T09:38:00Z)."
+  - batch: 3
+    completed_at: 2026-05-18T10:05:00Z
+    items_done: [ICF-012]
+    user_decision: "Commit Batches 1+2+3 together after Batch 3 lands (asked 2026-05-18T10:00:00Z)."
+    commit_pushed: c959389
+    pushed_at: 2026-05-18T10:08:00Z
   combined_files_to_commit:
     - workflows/NcHZedq9ycnAQ9SW.json   # WF-33 — Batch 1 ICF-005 + Batch 2 ICF-006
     - workflows/se82n3MUQ9xE5aEr.json   # WF-34 — Batch 1 ICF-007 + Batch 2 ICF-008/009
@@ -329,7 +335,11 @@ items:
     caller_node: "Send Non-Text Deflection via WF-50"
     upstream_node: "Silent Reject (Message Type)"
     priority: P4
-    status: pending
+    status: done
+    decision_required: "WF-01 Silent Reject (Message Type) → Send Non-Text Deflection via WF-50: Code node returns {silentReject, reason} with no phoneNumber/content; WF-50 drops silently. Design intent contradictory."
+    decision_made: "Option B (send deflection) — 2026-05-18T11:00:00Z. Rationale: caller node name 'Send Non-Text Deflection' matched intent; user benefits from feedback when sending images/audio."
+    completed_at: 2026-05-18T11:30:00Z
+    completion_note: "Replaced jsCode to return {phoneNumber, message: '⚠️ Sorry, we only handle text messages right now. Please type your question.'}. Uses WF-50 alias (message → messageContent, defaulted messageType=text). Surgical change, lint clean, live verified."
     batch: 6
     depends_on: []
 
@@ -340,7 +350,9 @@ items:
     caller_node: "Call WF-50 Send WhatsApp"
     upstream_node: "Build Welcome Message"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Verified: Code node emits required keys per heuristic + spot-check."
     batch: 6
     depends_on: []
 
@@ -351,7 +363,9 @@ items:
     caller_node: "Call 'WF-50 Send WhatsApp'"
     upstream_node: "Prepare Payment Instructions"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Verified: Code node emits required keys per heuristic + spot-check."
     batch: 6
     depends_on:
       - id: ICV-017
@@ -365,7 +379,9 @@ items:
     caller_node: "Send Garbage Warning"
     upstream_node: "Prepare Garbage Warning"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Heuristic flag (no messageType) resolved: WF-50 Prepare Payload defaults messageType='text' and aliases input.message → messageContent. Output {phoneNumber, message} works correctly."
     batch: 6
     depends_on:
       - id: ICV-005
@@ -379,7 +395,9 @@ items:
     caller_node: "Send Block Warning"
     upstream_node: "Prepare Block Warning"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Same as ICV-004 — WF-50 alias handles {phoneNumber, message} shape."
     batch: 6
     depends_on:
       - id: ICV-004
@@ -393,7 +411,9 @@ items:
     caller_node: "Send Under Review via WF-50"
     upstream_node: "Prepare Under Review Message"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Heuristic flag (no messageType) resolved: WF-50 Prepare Payload defaults messageType='text' and aliases input.message → messageContent. Output {phoneNumber, message} works correctly."
     batch: 6
     depends_on:
       - id: ICV-018
@@ -407,7 +427,9 @@ items:
     caller_node: "Call WF-50 (Already Submitted)"
     upstream_node: "Prepare Reassurance Message"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Same as ICV-004 — WF-50 alias handles {phoneNumber, message} shape."
     batch: 6
     depends_on:
       - id: ICV-008
@@ -424,7 +446,9 @@ items:
     caller_node: "Call WF-50 (Send Payment Confirmation Received Message)"
     upstream_node: "Prepare User Confirmation"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Verified: Code node emits required keys per heuristic + spot-check."
     batch: 6
     depends_on:
       - id: ICV-007
@@ -453,7 +477,9 @@ items:
     caller_node: "Call WF-50 WhatsApp Sender"
     upstream_node: "Prepare Rejection Message"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Verified: Code node emits required keys per heuristic + spot-check."
     batch: 6
     depends_on: []
 
@@ -464,7 +490,9 @@ items:
     caller_node: "WF-50 (Send WhatsApp)"
     upstream_node: "Prepare WhatsApp Message"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Verified: Code node emits required keys per heuristic + spot-check."
     batch: 6
     depends_on: []
 
@@ -475,7 +503,9 @@ items:
     caller_node: "Call WF-50 Send Feedback"
     upstream_node: "Prepare Feedback Message"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Verified: Code node emits required keys per heuristic + spot-check."
     batch: 6
     depends_on: []
 
@@ -486,7 +516,9 @@ items:
     caller_node: "Send Gemini Reply via WF-50"
     upstream_node: "Extract Gemini Reply"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Verified: Code node emits required keys per heuristic + spot-check."
     batch: 6
     depends_on:
       - id: ICV-014
@@ -500,7 +532,9 @@ items:
     caller_node: "Send Feedback Prompt via WF-50"
     upstream_node: "Prompt for Feedback"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Verified: Code node emits required keys per heuristic + spot-check."
     batch: 6
     depends_on:
       - id: ICV-013
@@ -514,7 +548,9 @@ items:
     caller_node: "Call WF-51 (UNHANDLED Alert)"
     upstream_node: "Build UNHANDLED Alert"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Same as ICV-004 — WF-50 alias handles {phoneNumber, message} shape (returns phoneNumber + message from prevData/geminiResp)."
     batch: 6
     depends_on: []
 
@@ -525,7 +561,9 @@ items:
     caller_node: "Call WF-51 (Wrong Channel Warning)"
     upstream_node: "Build Wrong Channel Warning"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Verified: Code node emits required keys per heuristic + spot-check."
     batch: 6
     depends_on: []
 
@@ -536,7 +574,9 @@ items:
     caller_node: "Call WF-51 Admin Alert"
     upstream_node: "Build Admin Alert"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Verified: Code node emits required keys per heuristic + spot-check."
     batch: 6
     depends_on:
       - id: ICV-003
@@ -550,7 +590,9 @@ items:
     caller_node: "Relay to Admin Slack"
     upstream_node: "Prepare Admin Relay"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Verified: Code node emits required keys per heuristic + spot-check."
     batch: 6
     depends_on:
       - id: ICV-006
@@ -564,7 +606,9 @@ items:
     caller_node: "Call WF-51 (Notify Admin)"
     upstream_node: "Prepare Admin Notification"
     priority: P4
-    status: pending
+    status: done
+    completed_at: 2026-05-18T10:10:00Z
+    completion_note: "Same as ICV-004 — WF-50 alias handles {phoneNumber, message} shape."
     batch: 6
     depends_on:
       - id: ICV-007
