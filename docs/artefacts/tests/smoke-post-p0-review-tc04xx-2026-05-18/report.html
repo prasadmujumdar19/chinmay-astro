@@ -1,0 +1,833 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Test Report — smoke-post-p0-review-tc04xx-2026-05-18</title>
+<style>
+:root {
+  --bg: #0d1117; --bg-card: #161b22; --bg-card-2: #1c2128;
+  --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --border: #30363d;
+  --critical: #ff4d4f; --major: #ff9f43; --minor: #f1c40f; --ok: #27ae60;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--bg); color: var(--fg); }
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+nav { background: #010409; border-right: 1px solid var(--border); padding: 20px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; font-size: 13px; }
+nav h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 20px 0 6px; font-weight: 600; }
+nav h2:first-child { margin-top: 0; }
+nav a { display: block; color: var(--fg); text-decoration: none; padding: 5px 8px; border-radius: 4px; margin: 1px 0; }
+nav a:hover { background: var(--bg-card); color: var(--accent); }
+nav a.depth-1 { padding-left: 18px; color: var(--muted); }
+main { padding: 28px 40px 80px; max-width: 1100px; }
+header.page { border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 28px; }
+header.page h1 { margin: 0 0 4px; font-size: 22px; }
+header.page .meta { color: var(--muted); font-size: 13px; }
+section.layer { margin: 40px 0; }
+section.layer > h1 { font-size: 24px; margin: 0 0 4px; padding-bottom: 10px; border-bottom: 2px solid var(--accent); }
+section.layer > .layer-blurb { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+h2 { margin-top: 28px; font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+h3 { margin-top: 22px; font-size: 15.5px; color: var(--accent); }
+h4 { margin-top: 16px; font-size: 14px; }
+code { background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+pre { background: var(--bg-card); padding: 14px 16px; border-radius: 6px; overflow-x: auto; border: 1px solid var(--border); }
+pre code { background: transparent; padding: 0; font-size: 13px; }
+table { border-collapse: collapse; margin: 14px 0; width: 100%; font-size: 13.5px; }
+th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--bg-card); font-weight: 600; }
+tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+ul, ol { padding-left: 22px; }
+li { margin: 4px 0; }
+/* Story cards — each h3 in story section starts a card */
+#story h3 {
+  background: var(--bg-card-2); margin-top: 20px; padding: 12px 16px; border-radius: 6px 6px 0 0;
+  border: 1px solid var(--border); border-bottom: none; color: var(--fg); font-size: 15px;
+}
+#story h3 + p, #story h3 + p + p, #story h3 + p + p + p,
+#story h3 ~ p, #story h3 ~ pre, #story h3 ~ ul, #story h3 ~ ol {
+  /* default rendering — wrap will come from JS */
+}
+.story-card { background: var(--bg-card); border: 1px solid var(--border); border-top: none; padding: 14px 18px 4px; margin-bottom: 18px; border-radius: 0 0 6px 6px; }
+.story-card p:first-child { margin-top: 0; }
+/* Appendix collapsibles */
+details.appendix-item, details.appendix-section { border: 1px solid var(--border); border-radius: 6px; margin: 12px 0; background: var(--bg-card); }
+details summary { padding: 12px 16px; cursor: pointer; font-weight: 600; user-select: none; }
+details summary:hover { background: var(--bg-card-2); }
+details[open] summary { border-bottom: 1px solid var(--border); }
+details > *:not(summary) { padding: 0 18px; }
+details summary .src { color: var(--muted); font-weight: normal; font-size: 12px; margin-left: 6px; }
+/* Severity chips (applied via JS) */
+.sev-chip { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #0d1117; margin: 0 2px; }
+.status-ok { color: var(--ok); }
+.status-warn { color: var(--major); }
+</style>
+</head><body>
+<div class="layout">
+  <nav>
+    <h2>Report layers</h2>
+    <a href="#tldr">1. TL;DR</a>
+    <a href="#story">2. The Story</a>
+    <a href="#appendix">3. Appendix</a>
+    <h2>Story scenarios</h2>
+    <div id="nav-scenarios"></div>
+    <h2>Appendix</h2>
+    <a href="#appendix-session" class="depth-1">session.md</a>
+    <a href="#appendix-followups-wf10-postgres-comma-truncation" class="depth-1">followups-wf10-postgres-comma-truncation.md</a><a href="#appendix-followups-wf12-orphaned-and-doc-inconsistency" class="depth-1">followups-wf12-orphaned-and-doc-inconsistency.md</a><a href="#appendix-followups-wf43-feedback-chain" class="depth-1">followups-wf43-feedback-chain.md</a>
+  </nav>
+  <main>
+    <header class="page">
+      <h1>Test Report — smoke-post-p0-review-tc04xx-2026-05-18</h1>
+      <div class="meta">Generated 2026-05-18T15:36:52+00:00 · Folder <code>docs/artefacts/tests/smoke-post-p0-review-tc04xx-2026-05-18/</code></div>
+    </header>
+
+    <section class="layer" id="tldr">
+      <h1>1. TL;DR</h1>
+      <div class="layer-blurb">Verdict, bugs at a glance, scope, and tomorrow's queue. Skim this; the rest is detail.</div>
+      <h2>Verdict</h2>
+<p><strong>6 of 8 scenarios PASS, 2 FAIL (1 critical + 2 critical-cascade) — all FAILs subsequently FIXED &amp; verified.</strong> Critical-path workflows for consultation messaging, close, rebook, and payment submission all green at test time. The two failures were localised to (a) admin→user relay text containing commas, and (b) free-text feedback after a consultation closes. Both received full root-cause analysis here, then were fixed in the follow-up <code>smoke-post-p0-review-tc04xx-2026-05-18</code> sprint (plus a <code>timestamp-convention</code> sprint that added strict-UTC across schema + container TZ). <strong>Post-sprint static verification on 2026-05-18T15:32Z confirms all 5 bugs + the TZ work resolved in live n8n + Postgres</strong> — see the verification table at the bottom of <code>session.md</code> in the appendix.</p>
+<h2>Bugs at a glance</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Sev</th>
+<th>Workflow</th>
+<th>What broke</th>
+<th>Fix applied</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUG-01</td>
+<td>[critical]</td>
+<td>WF-10</td>
+<td>Admin→user relay truncates text at first <code>,</code> because <code>Load User Status</code> Postgres node uses <code>queryReplacement</code> as a comma-separated expression string and the splitter doesn't escape comma-containing values</td>
+<td>Array-form <code>queryReplacement</code> <code>={{ [a,b,c] }}</code> (sprint Batch 1, commit 2a33905)</td>
+<td>✅ Fixed &amp; verified 2026-05-18T15:32Z</td>
+</tr>
+<tr>
+<td>BUG-02</td>
+<td>[critical]</td>
+<td>WF-43</td>
+<td><code>Gemini General Response</code> HTTP node — <code>jsonBody</code> raw-string template embeds <code>{{ $json.geminiPrompt }}</code> inside a JSON string literal, so any prompt with <code>\n</code>, <code>"</code>, or <code>\</code> produces invalid JSON and the node throws</td>
+<td>Object-interpolation <code>jsonBody</code> <code>={{ {contents:[...]} }}</code> (sprint Batch 1, commit 2a33905)</td>
+<td>✅ Fixed &amp; verified</td>
+</tr>
+<tr>
+<td>BUG-03</td>
+<td>[critical]</td>
+<td>WF-43</td>
+<td><code>Prepare Gemini Response Prompt</code> writes literal <code>User: undefined</code> into the prompt — wrong variable reference, never reads the user's text</td>
+<td>Template literal <code>User: ${d.messageContent}</code> (sprint Batch 1, commit 2a33905)</td>
+<td>✅ Fixed &amp; verified</td>
+</tr>
+<tr>
+<td>BUG-04</td>
+<td>[major]</td>
+<td>WF-25</td>
+<td>Intent classifier returned <code>intent: null</code> for "Amazing service"; routed the free-text feedback to the broken Gemini fallback path instead of the proper feedback-save path. Re-prioritised: previously P3, now feedback-path P0</td>
+<td>Deeper root cause discovered: Gemini cred had query-param NAME literal <code>"Gemini n8n Key"</code> (should be <code>key</code>) → HTTP 400 every call. Fixed by switching Classify Intent + WF-43 Gemini auth to predefined <code>googlePalmApi</code> cred, hardening <code>userStatus</code> input contract, and adding <code>consultation_closed → feedback_intent</code> fallback in <code>Handle Gemini Error</code> (sprint Batch 2, commit 2a33905)</td>
+<td>✅ Fixed &amp; verified</td>
+</tr>
+<tr>
+<td>BUG-05</td>
+<td>[major]</td>
+<td>WF-12 + 4 doc surfaces</td>
+<td>WF-12 is active in n8n but has no caller (WF-41 superseded it); registry, CONTEXT.md, STATUS.md all wrong in different ways</td>
+<td>WF-12 deactivated (<code>active: false</code>); zero callers across 28 live workflows (sprint Batch 3, commit 3451197)</td>
+<td>✅ Fixed &amp; verified</td>
+</tr>
+<tr>
+<td>TZ-NEW</td>
+<td>n/a</td>
+<td>schema + container</td>
+<td>(Out of original scope — surfaced during sprint follow-up) Mixed-TZ confusion: Postgres columns were <code>timestamp</code> (no TZ); n8n container TZ assumed-IST; UTC vs IST drift in execution timestamps vs admin-facing times</td>
+<td>All 13 <code>chinmay_astro.*</code> timestamp columns migrated to <code>timestamptz</code>; n8n container <code>n8n-prod</code> set to <code>TZ=UTC</code>; Postgres session <code>SHOW TIMEZONE</code> = <code>UTC</code>; CLAUDE.md "Strict UTC Everywhere" section + spec <code>docs/artefacts/specs/2026-05-18-timestamp-convention-design.md</code> (commits d11c3ae, 04ec7a6, eb54dae, 464fa6b, c128b1e)</td>
+<td>✅ Fixed &amp; verified</td>
+</tr>
+</tbody>
+</table>
+<h2>Test scope</h2>
+<ul>
+<li><strong>Phone:</strong> <code>61466927921</code> (test user id=28, name "Abcs")</li>
+<li><strong>Scenarios exercised:</strong> TC-0401 user→admin, TC-0402 admin→user (Hi back), TC-0402b.1 user→admin with emoji, TC-0402b.2 admin→user with comma (failed), TC-0403 CLOSE CONSULT, TC-0404a feedback button, TC-0404b free-text feedback (failed), TC-0501 REBOOK, TC-0801 Payment Completed</li>
+<li><strong>Scenarios deferred:</strong> TC-0303 admin APPROVE PAYMENT for the new payment (would exercise WF-33 second-time consultation), TC-06xx STOP/HELP, TC-07xx BLOCK/UNBLOCK, TC-0802 REJECT PAYMENT, full TC-0404 happy path (depends on BUG-02/03/04 fixes)</li>
+</ul>
+<h2>State carry-forward</h2>
+<p>User id=28 ends in <code>payment_submitted</code> with <code>payments.id=11</code> (₹500, pending_verification). Admin Slack has an outstanding approve-payment notification in <code>consult-61466927921</code>. Either admin can APPROVE next session to exercise the second-time consultation path, or wipe the user per <code>CLAUDE.md</code> clean-slate SQL before re-running onboarding.</p>
+<h2>Sprint fix list — STATUS</h2>
+<p>The original ordered fix list from this report (BUG-02 → BUG-01 → BUG-03 → BUG-04 → BUG-05 → plugin improvements → end-to-end re-test → optional TC-0303 regression) was executed across two sprints. Items 1–5 + the surfaced TZ-NEW work all completed and statically verified live; items 7–8 (end-to-end WhatsApp re-test + TC-0303 second-approve regression) were explicitly excluded by the user during sprint planning. See the verification table at the bottom of <code>session.md</code> (in the appendix) for the live-state evidence.</p>
+<h3>Open items not closed by this round</h3>
+<ul>
+<li><strong>PLUGIN-01 / PLUGIN-02</strong> (<code>technical-workflow-review</code> static checks for the BUG-02 jsonBody-string pattern and BUG-01 queryReplacement-comma pattern) — landing in the plugin is tracked separately and should be verified via the plugin's own changelog rather than this smoke-test report.</li>
+<li><strong>Gemini 2.5-flash-lite 503 transients</strong> (CLAUDE.md TD-NEW-016) — <code>retryOnFail=true</code> mitigates; watch the rate.</li>
+<li><strong>WF-23 / WF-30 / WF-44 input-contract</strong> — these call WF-25 in <code>defineBelow</code> mode mapping <code>userStatus: {{ $json.userStatus }}</code> which resolves to undefined in their upstream context, so their prompts render <code>Status: unknown</code>. Not BUG-04 scope (their routing doesn't depend on <code>consultation_closed</code>), but a separate input-contract followup worth its own sprint item.</li>
+<li><strong>WF-11 STATS day-boundary</strong> (<code>DATE(col)=CURRENT_DATE</code> in UTC session vs IST admin) — explicitly accepted as won't-fix per project decision; not re-flagging.</li>
+</ul>
+    </section>
+
+    <section class="layer" id="story">
+      <h1>2. The Story</h1>
+      <div class="layer-blurb">Each scenario as a card with narrative + fix snippets. Tells you what happened without making you read raw logs.</div>
+      <h3>TC-0401 — User→admin relay ("hi" lands in Slack)  ✅</h3>
+<p>User sent "hi" from 61466927921. The WF-00 → WF-01 → WF-02 → WF-20 (no keyword) → WF-40 → WF-51 pipeline executed in 700 ms, posting <code>📲 *Abcs:* Hi</code> into <code>consult-61466927921</code>. Bot-loop guard correctly suppressed WF-10's re-fire on the bot's own post. User state unchanged as expected for a plain relay.</p>
+<hr />
+<h3>TC-0402 — Admin→user relay ("Hi back" reaches phone)  ✅</h3>
+<p>Operator typed "Hi back" in the consult channel. WF-10 → WF-41 Admin→User Relay → WF-50 sent the WhatsApp; three Meta delivery callbacks followed within 2 s. Operator confirmed message arrived intact. During investigation surfaced a documentation issue — handoff said WF-12 but the live relay is WF-41 — captured as BUG-05.</p>
+<hr />
+<h3>TC-0402b.1 — User→admin relay with emoji  ✅</h3>
+<p>Subsequent user message carried a smiley emoji. Same pipeline as TC-0401, emoji preserved end-to-end into Slack. No tweaks needed on the encoding side.</p>
+<hr />
+<h3>TC-0402b.2 — Admin→user relay loses text after first comma  ❌ → BUG-01</h3>
+<p>Operator typed <code>Back to you, ready to close</code>. The user received only <code>Back to you</code>. All n8n executions reported <code>status=success</code> — failure was silent. Trace through WF-10 showed the comma split happening at the <code>Load User Status</code> Postgres node:</p>
+<pre><code class="language-json">options.queryReplacement: &quot;={{ $json.channelId }}, {{ $('Find Channel').item.json.name }}, {{ $json.messageText }}&quot;
+</code></pre>
+<p>n8n v2.5's Postgres node evaluates each expression then naïvely splits the resulting concatenated string on <code>,</code> to map to <code>$1/$2/$3</code>. With <code>messageText="Back to you, ready to close"</code>, the splitter produces FOUR tokens; the third (<code>Back to you</code>) wins, the rest is dropped. Same pattern likely exists elsewhere — sweep required. Fix: switch the node to per-parameter Query Parameters.</p>
+<hr />
+<h3>TC-0403 — CLOSE CONSULT  ✅</h3>
+<p>Operator typed <code>CLOSE CONSULT 61466927921</code>. WF-10 → WF-11 Command Parser → WF-42 Consultation Closer → WF-50 sent the feedback prompt template with two buttons. DB transitions clean: <code>users.status</code> → <code>consultation_closed</code>, <code>current_consultation_id</code> → null, <code>consultations.id=9.ended_at</code> set. Identified two new workflow IDs (WF-11 = <code>GoTYo0GS2y8qjjkw</code>, WF-42 = <code>fx70vqyJtRdF2DgR</code>) — registry already had these mapped; this just confirms.</p>
+<hr />
+<h3>TC-0404a — Feedback button tap  ✅</h3>
+<p>User tapped the first feedback button. WF-43 Post-Consultation Handler routed via <code>Is Button Reply?</code> → ack message sent back via WF-50. ~3.2 s end-to-end. Button-payload path works.</p>
+<hr />
+<h3>TC-0404b — Free-text feedback produces nothing  ❌ → BUG-02 + BUG-03 + BUG-04</h3>
+<p>User then typed "Amazing service". User received nothing back. Three bugs cascade:</p>
+<ol>
+<li><strong>BUG-04</strong>: WF-25 intent classifier returned <code>intent: null</code> (instead of <code>feedback</code>), so WF-43's routing IFs all fell through to the default Gemini fallback branch.</li>
+<li><strong>BUG-03</strong>: <code>Prepare Gemini Response Prompt</code> built the prompt as <code>…\nUser: undefined</code> — wrong variable reference, user's actual text never reaches the prompt.</li>
+<li><strong>BUG-02</strong>: <code>Gemini General Response</code> HTTP node tries to send the prompt inside a raw-string <code>jsonBody</code>. The literal <code>\n</code> in the prompt becomes an unescaped newline inside a JSON string, which is invalid per RFC 8259. n8n's HTTP v4.2 validates jsonBody before sending and throws <code>"JSON parameter needs to be valid JSON"</code>. Error propagates up through WF-02/01/00 — all marked failed in executions list.</li>
+</ol>
+<p>Fix sequence: BUG-02 (object-interpolation pattern, biggest blast radius), BUG-03 (one variable), BUG-04 (its own sprint). With BUG-02 fixed the failure mode would surface as wrong content rather than total silence — still wrong, but louder. Also confirmed during this scenario that <code>awaiting_feedback</code> is button-payload-driven by design: free-text feedback relies entirely on WF-25 intent classification, which re-prioritises WF-25 reliability from P3 to a feedback-path P0.</p>
+<hr />
+<h3>TC-0501 — REBOOK via "Book again" button  ✅</h3>
+<p>User tapped the "Book again" button surfaced after the feedback flow. WF-43 → <strong>WF-45 Rebook Handler</strong> (newly identified id <code>MUG7rPgSHc7UtAE9</code>) → WF-50 sent the payment instructions with "Payment Completed" button. ~700 ms. User state moved to <code>payment_pending</code> (transit; updated again on next click within the same second so not visible as a distinct DB observation).</p>
+<hr />
+<h3>TC-0801 — Payment Completed button → admin notification  ✅</h3>
+<p>User tapped the "Payment Completed" button. WF-00 → WF-01 → WF-02 → <strong>WF-32 Payment Confirmation Receiver</strong> (newly identified id <code>emUOLWVZiNVxcOe3</code>) → WF-50 ack to user → WF-51 posted approve-payment request into <code>consult-61466927921</code>. ~1.2 s. DB confirms <code>users.status=payment_submitted</code>, new <code>payments.id=11</code> row with <code>status=pending_verification, amount=500.00</code>. Admin Slack now has the pending approval, leaving the carry-forward state ready for an admin APPROVE PAYMENT in a future session to exercise WF-33's second-time consultation create path.</p>
+<hr />
+<h3>POST-SPRINT — Static verification of all 5 bugs + TZ work  ✅</h3>
+<p>On 2026-05-18T15:32Z, after the <code>smoke-post-p0-review-tc04xx-2026-05-18</code> sprint (commits 2a33905, 3451197, 4bf62f2) and the follow-on <code>timestamp-convention</code> sprint (commits d11c3ae, 04ec7a6, eb54dae, 464fa6b, c128b1e), every fix was re-inspected against the live n8n + Postgres. WF-10's <code>Load User Status</code> now uses array-form <code>queryReplacement</code> (BUG-01 gone — no splitter ambiguity). WF-43's Gemini node uses object-interpolation jsonBody and reads <code>messageContent</code> (BUG-02, BUG-03 gone). WF-25's deeper root cause turned out to be a Gemini credential with the query-param NAME set to literal <code>"Gemini n8n Key"</code> instead of <code>key</code> — sprint scope expanded with user approval to switch both WF-25 and WF-43 to the predefined <code>googlePalmApi</code> cred, harden the <code>userStatus</code> input contract, and add a <code>consultation_closed → feedback_intent</code> fallback in <code>Handle Gemini Error</code> (BUG-04 gone, plus a defensive net against future Gemini outages). WF-12 is now <code>active: false</code> with zero callers across all 28 live workflows (BUG-05 gone). The follow-on TZ sprint migrated all 13 <code>chinmay_astro.*</code> timestamp columns to <code>timestamptz</code>, set the n8n container to <code>TZ=UTC</code>, and codified the strict-UTC rule in CLAUDE.md.</p>
+<pre><code class="language-text">verification table at session.md → &quot;Post-sprint static verification — 2026-05-18T15:32Z&quot;
+end-to-end WhatsApp re-test of BUG-02/03/04 + TC-0303 second-approve regression: not run (user-excluded)
+</code></pre>
+<hr />
+    </section>
+
+    <section class="layer" id="appendix">
+      <h1>3. Appendix</h1>
+      <div class="layer-blurb">Full raw artefacts. Click to expand. The session log is verbatim — use it to grep, re-trace, or audit.</div>
+      <details class="appendix-item" id="appendix-session">
+        <summary>Session log <span class="src">(session.md — raw chronological)</span></summary>
+        <h1>Smoke Test — Post-P0-Review, TC-04xx Resume</h1>
+<p><strong>Type:</strong> smoke
+<strong>Slug:</strong> post-p0-review-tc04xx
+<strong>Date:</strong> 2026-05-18
+<strong>Operator:</strong> prasadmujumdar
+<strong>Continuation of:</strong> <code>docs/artefacts/tests/smoke-post-p0-review-2026-05-17/</code> (fresh folder per skill rule; prior session paused after TC-0303)</p>
+<h2>Design / expected-behavior references</h2>
+<ul>
+<li><code>docs/artefacts/tests/smoke-post-p0-review-2026-05-17/handoff-resume-tc-04xx-2026-05-18.md</code> — TC-04xx flow, pre-resume state</li>
+<li><code>CLAUDE.md</code> — design rules, state machine, workflow architecture</li>
+<li><code>docs/workflow-registry.md</code> — workflow IDs and current status</li>
+</ul>
+<h2>Watch surface</h2>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>n8n executions</td>
+<td>All active workflows (focus: WF-00/01/02/40/51 for user→admin; WF-10/12/50 for admin→user; WF-42/43/44 for close + feedback)</td>
+</tr>
+<tr>
+<td>Postgres tables</td>
+<td><code>chinmay_astro.users</code>, <code>consultations</code>, <code>messages</code>, <code>admin_actions</code>, <code>payments</code></td>
+</tr>
+<tr>
+<td>Slack channels</td>
+<td><code>consult-61466927921</code> (C0B567A175W), <code>chinmay-admin-commands</code> (C0A5B0ZE81E)</td>
+</tr>
+<tr>
+<td>Latency threshold</td>
+<td>5000 ms</td>
+</tr>
+</tbody>
+</table>
+<h2>Baselines</h2>
+<table>
+<thead>
+<tr>
+<th>Cursor</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>n8n exec-cursor</td>
+<td><code>1214</code></td>
+</tr>
+<tr>
+<td>time-cursor (UTC)</td>
+<td><code>2026-05-18T03:07:10Z</code></td>
+</tr>
+<tr>
+<td><code>users</code></td>
+<td>1 row, max updated_at = 2026-05-17 21:35:38 IST</td>
+</tr>
+<tr>
+<td><code>consultations</code></td>
+<td>1 row (id=9, active), started 2026-05-17 21:35:37</td>
+</tr>
+<tr>
+<td><code>messages</code></td>
+<td><strong>0 rows</strong> — WF-60 logger known broken (P1, see prior session's <code>followups-wf60-logger-broken.md</code>); do NOT treat empty messages table as a TC-04xx bug</td>
+</tr>
+<tr>
+<td><code>admin_actions</code></td>
+<td>0 rows</td>
+</tr>
+<tr>
+<td><code>payments</code></td>
+<td>1 row, last updated 2026-05-17 19:57:58</td>
+</tr>
+</tbody>
+</table>
+<h3>Live user state (pre-test)</h3>
+<pre><code>users.id=28 phone=61466927921 name=Abcs
+  status=consultation_active
+  slack_channel_id=C0B567A175W
+  current_consultation_id=9
+</code></pre>
+<p>Matches handoff exactly. Smoke test safe to resume.</p>
+<h2>Carried-forward caveats</h2>
+<ol>
+<li><strong>WF-60 broken</strong> — messages table will stay at 0 during this run; not a TC-04xx failure.</li>
+<li><strong>WF-25 intent classifier</strong> — intermittent Gemini errors; defaults to <code>general_enquiry</code>. May surface during free-form text TCs.</li>
+<li>Slack cursor per channel: bump on first tick (will use channel current ts at first observation).</li>
+</ol>
+<h2>Planned test sequence</h2>
+<ol>
+<li><strong>TC-0401</strong> — user→admin relay (send "hi" from 61466927921) → expect WF-00→01→02→40→51 → message lands in C0B567A175W</li>
+<li><strong>TC-0402</strong> — admin→user relay (operator posts in consult channel) → expect WF-10→12→50 → message arrives on phone</li>
+<li><strong>TC-0403</strong> — <code>CLOSE CONSULT 61466927921</code> in consult channel → expect WF-10→11→42 → status=consultation_closed, ended_at set, feedback prompt to user, ack in Slack</li>
+<li><strong>TC-0404</strong> — feedback reply from user → expect WF-43→44 → ack + log</li>
+<li>Later: TC-05xx REBOOK, TC-06xx STOP/HELP, TC-07xx BLOCK/UNBLOCK, TC-08xx PG rejection</li>
+</ol>
+<hr />
+<h2>Actions / Ticks / Observations / Issues</h2>
+<h3>Action — 2026-05-18T03:09Z — TC-0401 user→admin relay</h3>
+<p>User sent "hi" from 61466927921. Expected: WF-00→01→02→40→51, message lands in C0B567A175W.</p>
+<h3>Tick — 2026-05-18T03:10Z</h3>
+<p><strong>Trigger:</strong> user said "check" after TC-0401 send.
+<strong>New executions:</strong> 8 (8 ok, 0 failed, 0 slow)
+- 1215 WF-00 Webhook Receiver — success — webhook entry
+- 1216 WF-60 Message Logger — success (but see caveat: status=success doesn't prove INSERT landed; messages table delta below confirms still 0)
+- 1217 WF-01 Message Router — success
+- 1218 WF-02 User State Router — success
+- 1219 WF-20 Keyword Handler — success (no keyword match, passthrough)
+- 1220 WF-40 User→Admin Relay — success
+- 1221 WF-51 Send Slack Message — success
+- 1222 WF-10 Slack Admin Handler — success (fired on bot's own Slack post — expected, bot-loop guard should suppress further action)</p>
+<p>All 8 executions completed within a 700 ms window (03:09:14.935 → 03:09:17.091). No latency flags.</p>
+<p><strong>DB deltas:</strong>
+- <code>users</code>: 0 rows changed (expected — relay doesn't mutate user state)
+- <code>messages</code>: 0 rows changed (expected per WF-60 caveat)
+- <code>consultations</code> / <code>admin_actions</code> / <code>payments</code>: unchanged</p>
+<p><strong>Slack (<code>consult-61466927921</code> C0B567A175W):</strong>
+- 1 new bot message ts=1779073755.531099 (03:09:15 UTC) — "📲 <em>Abcs:</em> Hi" — posted by WF-51</p>
+<p><strong>Cross-check vs expected:</strong>
+- ✅ WF-00→01→02→40 fired in order
+- ✅ WF-51 posted to consult Slack channel with correct user attribution ("Abcs:") and content ("Hi")
+- ✅ Bot-loop guard held (WF-10 fired on its own post but no downstream cascade)
+- ✅ User state unchanged (still consultation_active)
+- ⚠️ WF-60 execution succeeded but messages table remains 0 — consistent with carried-forward P1 caveat, not a TC-0401 regression</p>
+<p><strong>Verdict:</strong> TC-0401 PASS.</p>
+<h3>Action — 2026-05-18T03:12Z — TC-0402 admin→user relay</h3>
+<p>Operator (U0A4175DJ5D) posted "Hi back" in <code>consult-61466927921</code> at 03:12:57 UTC. Expected: Slack event → WF-10 → admin→user relay workflow → WF-50 → message arrives on phone 61466927921.</p>
+<h3>Tick — 2026-05-18T03:13Z</h3>
+<p><strong>Trigger:</strong> user said "check" after TC-0402 Slack post.
+<strong>New executions:</strong> 7 (7 ok, 0 failed, 0 slow)
+- 1223 WF-10 Slack Admin Handler — success — webhook entry from Slack event
+- 1224 <strong>WF-41 Admin→User Relay</strong> — success (handoff said "WF-12" — see observation below)
+- 1225 WF-50 Send WhatsApp — success
+- 1226 WF-60 Message Logger — success (table still 0; carried caveat)
+- 1227/1228/1229 WF-00 Webhook Receiver — success ×3 (Meta delivery/read status callbacks for the outbound WhatsApp)</p>
+<p>End-to-end relay window: 03:12:59.109 → 03:13:00.878 = <strong>1.77 s</strong>. No latency flags.</p>
+<p><strong>DB deltas:</strong> <code>users</code> 0, <code>messages</code> 0, <code>consultations</code>/<code>admin_actions</code>/<code>payments</code> unchanged.</p>
+<p><strong>Slack (<code>consult-61466927921</code>):</strong>
+- 1 new operator message ts=1779073977.254699 — "Hi back" by U0A4175DJ5D (the trigger; no bot reply expected — admin→user relays do not ack in-channel)</p>
+<p><strong>Observation:</strong> Handoff referenced <code>WF-12</code> for admin→user relay. Live workflow is <code>WF-41 Admin→User Relay</code> (id <code>6PzJRZsF7k2d9hV7</code>). Documentation drift, not a bug. Worth a registry check.</p>
+<p><strong>Cross-check vs expected:</strong>
+- ✅ WF-10 fired on Slack event (operator post, not bot — bot-loop guard correctly let it through)
+- ✅ Admin→user relay workflow (WF-41, not WF-12 per handoff) fired
+- ✅ WF-50 sent WhatsApp
+- ✅ Meta acknowledged delivery (3 follow-up WF-00 hits for delivery status)
+- ⏳ Awaiting operator confirmation that "Hi back" actually arrived on the test phone</p>
+<p><strong>Pending verification:</strong> confirm message receipt on WhatsApp before declaring PASS.</p>
+<h3>Observation — 2026-05-18T03:15Z — confirmation + WF-12 vs WF-41 deep-dive</h3>
+<p>Operator confirmed: "Hi back" arrived on test phone. <strong>TC-0402 PASS.</strong></p>
+<p>Investigated the WF-12 vs WF-41 inconsistency surfaced in the prior tick. Findings written to <code>followups-wf12-orphaned-and-doc-inconsistency.md</code>. Summary:
+- WF-41 (id <code>6PzJRZsF7k2d9hV7</code>) is the canonical admin→user relay — WF-10 calls it (<code>pseudocode/WF-10.md:42</code>).
+- WF-12 (id <code>RjwHs9Dx5cK8Q5wD</code>) is <strong>active in n8n but orphaned</strong> — no caller, thinner path (skips <code>consultation_active</code> check).
+- Doc surfaces disagree: registry says active+used, CONTEXT.md still points to WF-12 as the relay, STATUS.md says "Not Built" (false), pseudocode/INDEX.md correctly flags WF-12 as legacy.
+- Recommended: deactivate WF-12, reconcile docs in one sweep, add an orphaned-workflow guardrail to <code>technical-workflow-review</code>. Filed for next cleanup sprint — not fixing here.</p>
+<h3>Issues found</h3>
+<ul>
+<li><code>[major]</code> — <strong>WF-12 orphaned active workflow + 4-way doc inconsistency.</strong> See <code>followups-wf12-orphaned-and-doc-inconsistency.md</code>. No runtime impact today, but a silent risk if a future workflow ever points at WF-12 (bypasses status check). Recommended action: deactivate + reconcile.</li>
+</ul>
+<h3>Action — 2026-05-18T03:19Z — TC-0402b extra exchange + TC-0403 close</h3>
+<p>Operator narration (one combined check):
+1. User sent WhatsApp message with emoji → landed in Slack ✅
+2. Operator replied in Slack: <code>Back to you, ready to close</code> → <strong>only "Back to you" arrived on WhatsApp</strong> ❌ (comma + rest dropped)
+3. Operator typed <code>CLOSE CONSULT 61466927921</code> → WhatsApp received closure message with 2 buttons ✅</p>
+<h3>Tick — 2026-05-18T03:21Z</h3>
+<p><strong>Trigger:</strong> combined check after three actions.
+<strong>New executions:</strong> 26 (26 ok, 0 failed, 0 slow). Grouped into three subflows below.</p>
+<p><strong>TC-0402b.1 (user→admin, emoji) — 1230–1237</strong>
+- 1230 WF-00 → 1231 WF-60 → 1232 WF-01 → 1233 WF-02 → 1234 WF-20 → 1235 WF-40 → 1236 WF-51 (Slack post) → 1237 WF-10 (bot loop, suppressed)
+- All success, ~370 ms end-to-end. Emoji preserved. <strong>PASS</strong> ✅</p>
+<p><strong>TC-0402b.2 (admin→user, "Back to you, ready to close") — 1238–1244</strong>
+- 1238 WF-10 (Slack event) → 1239 WF-41 → 1240 WF-50 → 1241 WF-60 → 1242–1244 WF-00 (Meta delivery callbacks)
+- All executions success, but <strong>payload corrupted in-flight</strong>. See bug below. <strong>FAIL</strong> ❌</p>
+<p><strong>TC-0403 (CLOSE CONSULT) — 1245–1255</strong>
+- 1245 WF-10 (Slack event) → 1246 WF-11 Command Parser → 1247 WF-42 Consultation Closer → 1248 WF-50 (feedback prompt to user) → 1249 WF-60 → 1250 WF-51 (Slack ack) → 1251–1253 WF-00 (Meta callbacks) → 1254/1255 WF-10 (bot loop on ack, suppressed)
+- Identified two previously-unknown workflow IDs: <code>fx70vqyJtRdF2DgR = WF-42 Consultation Closer</code>, <code>GoTYo0GS2y8qjjkw = WF-11 Command Parser</code>.</p>
+<p><strong>DB deltas (Postgres):</strong>
+- <code>users.id=28</code>: <code>status</code> <code>consultation_active</code> → <code>consultation_closed</code>, <code>current_consultation_id</code> <code>9</code> → <code>null</code>, <code>updated_at</code> = 2026-05-18T03:20:36Z ✅
+- <code>consultations.id=9</code>: <code>status</code> <code>active</code> → <code>closed</code>, <code>ended_at</code> = 2026-05-17T22:50:36Z ✅
+- <code>users.awaiting_feedback</code> is <code>false</code> and <code>stage</code> is <code>null</code> — flagging because the feedback prompt was just sent; would expect a flag indicating the next inbound is a feedback response. May or may not matter depending on how TC-0404 routing works (could be button-payload-driven, not state-driven). Investigate at TC-0404.</p>
+<p><strong>Slack:</strong> ack message and ops trail visible in consult channel (not re-fetched; observed via the bot-loop WF-10 executions firing on the bot's own ack post).</p>
+<p><strong>Cross-check vs expected:</strong>
+- ✅ TC-0402b.1 user→admin relay (emoji-safe)
+- ❌ TC-0402b.2 admin→user relay — text truncated at first comma. <strong>Critical bug, root cause identified.</strong>
+- ✅ TC-0403 close consult — state transitions + feedback prompt delivered</p>
+<h3>Issues found</h3>
+<ul>
+<li><code>[critical]</code> — <strong>WF-10 truncates admin→user relay messages at the first comma.</strong> Root cause: <code>Load User Status</code> Postgres node uses <code>options.queryReplacement</code> as a comma-separated expression list; when the messageText expression evaluates to a value containing a comma, n8n splits on that comma too, producing extra tokens and silently dropping the tail. See <code>followups-wf10-postgres-comma-truncation.md</code> — full diagnosis, fix options (recommend switching to per-parameter <code>Query Parameters</code>), blast-radius sweep plan, and verification steps. <strong>Pre-go-live blocker.</strong></li>
+<li><code>[minor]</code> — <strong><code>awaiting_feedback</code> not set on close.</strong> After WF-42 sent the feedback prompt, <code>users.awaiting_feedback</code> is still <code>false</code>. May be intentional (button-payload routing) or may break free-text feedback. Defer judgment to TC-0404.</li>
+</ul>
+<h3>Action — 2026-05-18T03:32Z — TC-0404 feedback</h3>
+<p>Operator narration: tapped first feedback button → got a response. Then sent free-text "Amazing service" → no reply received.</p>
+<h3>Tick — 2026-05-18T03:33Z</h3>
+<p><strong>Trigger:</strong> "check" after two-step feedback test.
+<strong>New executions:</strong> 17 — split into two flows.</p>
+<p><strong>TC-0404a (button tap) — 1256–1265, ~03:32:17 UTC</strong>
+- WF-00 → WF-60 → WF-01 → WF-02 → <strong>WF-43 Post-Consultation Handler</strong> (id <code>3va0M06kijgyLejf</code>, newly identified) → WF-50 (response back to user) → WF-60 → 3× WF-00 (Meta callbacks)
+- All success. ~3.2 s end-to-end. Button-payload path works. <strong>PASS</strong> ✅</p>
+<p><strong>TC-0404b (free-text "Amazing service") — 1266–1272, ~03:32:29 UTC</strong>
+- WF-00 (error) ← WF-01 (error) ← WF-02 (error) ← WF-43 (error) ← Gemini General Response HTTP node throws <code>"JSON parameter needs to be valid JSON"</code>
+- WF-60, WF-20, WF-25 ran to success in parallel — failure is on the Gemini routing branch only.
+- <strong>FAIL</strong> ❌. Three cascading bugs identified.</p>
+<p><strong>DB deltas:</strong>
+- <code>users.id=28</code>: unchanged since 03:20:36 — <code>feedback</code> still <code>null</code>. Free-text feedback was NOT persisted.
+- <code>consultations.id=9</code>: unchanged.</p>
+<p><strong>Cross-check vs expected:</strong>
+- ✅ Button-payload path delivers ack
+- ❌ Free-text path silently fails: user gets nothing, DB captures nothing, error is internal-only</p>
+<h3>Issues found</h3>
+<ul>
+<li><code>[critical]</code> — <strong>WF-43 Gemini General Response HTTP node throws on multi-line prompts</strong> — <code>jsonBody</code> is a raw-string template with <code>{{ $json.geminiPrompt }}</code> injected inside a JSON string literal; unescaped <code>\n</code> from the prompt makes the body invalid JSON. Breaks for ANY structured prompt (newlines/quotes/backslashes). Fix: interpolate an object via <code>={{ {...} }}</code> so n8n JSON-encodes correctly. See <code>followups-wf43-feedback-chain.md</code>.</li>
+<li><code>[critical]</code> — <strong>WF-43 <code>Prepare Gemini Response Prompt</code> resolves user input as <code>undefined</code></strong> — geminiPrompt literally contains <code>User: undefined</code>. Wrong variable reference in the prompt template. Even with the JSON bug fixed, Gemini would never see what the user said. Same followup.</li>
+<li><code>[major]</code> — <strong>WF-25 returned <code>intent: null</code> for "Amazing service"</strong> — proximate trigger; if intent were correctly <code>feedback</code>, the proper feedback-saving path would have fired and the two Gemini bugs would never have surfaced. Matches carried-forward caveat #2 (<code>followups-wf25-intent-classifier.md</code> from prior session). Worth its own sprint.</li>
+<li><code>[minor]</code> resolved → confirmed: <code>awaiting_feedback</code> is button-payload-driven by design (interpretation 1 in followup); free-text feedback routing relies entirely on WF-25 intent classification. This re-prioritises WF-25 reliability from P3 nuisance to feedback-path blocker.</li>
+</ul>
+<h3>Action — 2026-05-18T03:37Z — TC-0501 (book again button) + TC-0801 (payment completed button)</h3>
+<p>Operator narration:
+1. Tapped "Book again" button (from feedback flow) → received payment instructions message with a "Payment Completed" button. ✅
+2. Tapped "Payment Completed" → admin Slack received approve-payment request. ✅</p>
+<h3>Tick — 2026-05-18T03:39Z</h3>
+<p><strong>Trigger:</strong> "check" after combined rebook + payment-completed flow.
+<strong>New executions:</strong> 23 (23 ok, 0 failed, 0 slow).</p>
+<p><strong>TC-0501 (REBOOK) — 1273–1283, ~03:37:38 UTC</strong>
+- WF-00 → WF-60 → WF-01 → WF-02 → WF-43 Post-Consultation Handler → <strong>WF-45 Rebook Handler</strong> (id <code>MUG7rPgSHc7UtAE9</code>, newly identified) → WF-50 (payment instructions with button) → WF-60 → 3× WF-00 (Meta callbacks)
+- All success. ~700 ms end-to-end. <strong>PASS</strong> ✅</p>
+<p><strong>TC-0801 (Payment Completed button) — 1284–1295, ~03:38:21 UTC</strong>
+- WF-00 → WF-60 → WF-01 → WF-02 → <strong>WF-32 Payment Confirmation Receiver</strong> (id <code>emUOLWVZiNVxcOe3</code>, newly identified) → WF-50 (ack to user) → WF-60 → WF-51 (post to admin Slack) → WF-10 (bot loop suppressed) → 3× WF-00 (Meta callbacks)
+- All success. ~1.2 s end-to-end. <strong>PASS</strong> ✅</p>
+<p><strong>DB deltas:</strong>
+- <code>users.id=28.status</code>: <code>consultation_closed</code> → <code>payment_submitted</code> (transit through <code>payment_pending</code> between the two button taps was correct; not observed as a separate row because the second tap updated within the same second)
+- <code>users.current_consultation_id</code>: still <code>null</code> (consultation will be created on admin APPROVE)
+- New <code>payments.id=11</code>: <code>status=pending_verification</code>, <code>amount=500.00</code>, <code>created_at=2026-05-17T23:08:21Z</code> IST = 2026-05-18T03:38:21Z UTC ✅</p>
+<p><strong>Cross-check vs expected:</strong>
+- ✅ REBOOK button drives user back to payment_pending and presents payment template
+- ✅ Payment Completed button promotes to payment_submitted and notifies admin
+- ✅ Two more workflow IDs mapped (WF-45, WF-32)</p>
+<p><strong>Verdict:</strong> TC-0501 + TC-0801 PASS. Smoke test session ending here per operator request.</p>
+<h3>End-of-session state carry-forward</h3>
+<ul>
+<li><code>users.id=28</code> left in <code>payment_submitted</code> with <code>payments.id=11</code> pending verification.</li>
+<li>Admin Slack consult channel <code>C0B567A175W</code> has an outstanding approve-payment notification.</li>
+<li>To resume a future test: either admin APPROVE PAYMENT 61466927921 in the consult channel (exercises WF-33 path), OR wipe per CLAUDE.md "Clean-slate wipe for one test phone" SQL block.</li>
+</ul>
+<hr />
+<h2>Post-sprint static verification — 2026-05-18T15:32Z</h2>
+<p>Resumed after <code>smoke-post-p0-review-tc04xx-2026-05-18</code> sprint (commits 2a33905, 3451197, 4bf62f2) and <code>timestamp-convention</code> sprint (commits d11c3ae, 04ec7a6, eb54dae, 464fa6b, c128b1e). Static check of each fix against live n8n + Postgres.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Item</th>
+<th>Pre-state (this report)</th>
+<th>Post-state (verified live)</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUG-01</td>
+<td>WF-10 <code>Load User Status</code> Postgres <code>queryReplacement</code></td>
+<td>comma-separated string <code>={{ $json.channelId }}, {{ ... }}, {{ $json.messageText }}</code> — splitter ate commas in values</td>
+<td>array expression <code>={{ [$json.channelId, $('Find Channel').item.json.name, $json.messageText] }}</code> — values atomic, no string splitting</td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td>BUG-02</td>
+<td>WF-43 <code>Gemini General Response</code> <code>jsonBody</code></td>
+<td>raw-string template embedding <code>{{ $json.geminiPrompt }}</code> inside a JSON string literal — broke on <code>\n</code>/<code>"</code>/<code>\</code></td>
+<td>object-interpolation <code>={{ {contents:[{parts:[{text:$json.geminiPrompt}]}],generationConfig:{...}} }}</code> — n8n serialises via JSON.stringify, escapes correctly</td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td>BUG-03</td>
+<td>WF-43 <code>Prepare Gemini Response Prompt</code></td>
+<td>wrote <code>User: undefined</code> — wrong variable reference</td>
+<td>template literal <code>User: ${d.messageContent}</code> — reads correct field</td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td>BUG-04</td>
+<td>WF-25 reliability</td>
+<td>symptom: <code>intent: null</code> from Gemini; deeper root cause discovered during sprint: HTTP 400 from Gemini due to credential <code>Gemini API Key (Query Auth)</code> having its query-param NAME set to literal <code>"Gemini n8n Key"</code> instead of <code>key</code>; also <code>userStatus</code> not flowing into prompt</td>
+<td>(A) Classify Intent + WF-43 Gemini auth switched from <code>httpQueryAuth</code> cred <code>ZkLShpFmp8Mi1gZl</code> to predefined <code>googlePalmApi</code> cred <code>zT7defyXYEvxWwZm</code> (auth class removed entirely). (B) Prepare Intent Request reads <code>userStatus</code> from <code>input.userStatus \|\| input.user?.status \|\| 'unknown'</code>. (C) Handle Gemini Error now returns <code>intent='feedback_intent'</code> when <code>userStatus==='consultation_closed'</code>, else <code>general_enquiry</code> — defensive fallback for Gemini outages.</td>
+<td>✅ Fixed (scope grew with explicit approval)</td>
+</tr>
+<tr>
+<td>BUG-05</td>
+<td>WF-12 orphaned active workflow + 4-way doc inconsistency</td>
+<td><code>active=true</code>, zero callers in graph</td>
+<td><code>active=false</code> (confirmed live); sweep across all 28 workflows shows zero <code>executeWorkflow</code> references to <code>RjwHs9Dx5cK8Q5wD</code> (only self-reference inside WF-12's own JSON, which is the same workflow ID appearing in its own export, not a real caller)</td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td>TZ-NEW</td>
+<td>Timezone convention (out of original scope, surfaced + fixed during follow-up sprint)</td>
+<td>Postgres columns were <code>timestamp without time zone</code>; n8n container TZ presumably IST; mixed-TZ confusion in execution timestamps vs IST-displayed times</td>
+<td>All 13 <code>chinmay_astro.*</code> timestamp columns are now <code>timestamp with time zone</code> (timestamptz). n8n container <code>n8n-prod</code> reports <code>TZ=UTC</code> and <code>date -u</code> = <code>date</code>. Postgres session <code>SHOW TIMEZONE</code> = <code>UTC</code>. New CLAUDE.md section "Timestamp Convention — Strict UTC Everywhere" codifies the rule; spec at <code>docs/artefacts/specs/2026-05-18-timestamp-convention-design.md</code>.</td>
+<td>✅ Fixed</td>
+</tr>
+</tbody>
+</table>
+<h3>Items intentionally NOT re-tested (per sprint state)</h3>
+<ul>
+<li>Re-test BUG-02/03/04 end-to-end via WhatsApp — sprint state notes user excluded this with "ignore the verifications".</li>
+<li>Optional TC-0303 admin APPROVE PAYMENT regression against carry-forward payment id=11 — same exclusion.</li>
+<li>WF-11 STATS <code>DATE(col)=CURRENT_DATE</code> UTC-session vs IST-admin day-boundary issue — explicitly accepted as won't-fix per project decision (memory <code>project_wf11_stats_day_boundary_accepted</code>). Not re-flagging.</li>
+</ul>
+<h3>Followups still open from the BUG-04 investigation</h3>
+<ul>
+<li><strong>Gemini 503 transient capacity errors</strong> on <code>gemini-2.5-flash-lite</code> — tracked as TD-NEW-016 in CLAUDE.md. Existing <code>retryOnFail=true</code> on the HTTP node mitigates. Worth monitoring; possible fallback to <code>gemini-2.0-flash-lite</code> if 503 rate climbs.</li>
+<li><strong>WF-23 / WF-30 / WF-44</strong> call WF-25 in <code>defineBelow</code> mode with <code>userStatus: {{ $json.userStatus }}</code> which resolves to undefined in their upstream context — prompt renders <code>Status: unknown</code>. Not BUG-04 scope (their downstream routing doesn't depend on consultation_closed branch), but a separate input-contract followup worth its own sprint item.</li>
+</ul>
+<h3>Sprint-discovered scope items NOT separately re-verified here</h3>
+<ul>
+<li>Plugin improvements PLUGIN-01 (HTTP JSON-string interpolation check) and PLUGIN-02 (Postgres queryReplacement comma check) — whether these landed in the plugin should be verified via the plugin's own changelog rather than this smoke-test artefact.</li>
+</ul>
+<h3>Verdict</h3>
+<p><strong>All 5 smoke-test bugs + the surfaced timezone work are fixed in live n8n and live Postgres.</strong> This round of testing closes here.</p>
+      </details>
+      <div id="appendix-followups-wf10-postgres-comma-truncation"><details class="appendix-item"><summary>Followup — Wf10 Postgres Comma Truncation <span class="src">(followups-wf10-postgres-comma-truncation.md)</span></summary><h1>Followup — WF-10 truncates relay messages at the first comma (Postgres queryReplacement bug)</h1>
+<p><strong>Severity:</strong> [critical]
+<strong>Found during:</strong> TC-0402b (admin→user relay extra exchange), 2026-05-18 03:19 UTC
+<strong>Impact:</strong> Any admin Slack message containing a <code>,</code> is silently truncated at the first comma before being relayed to the user via WhatsApp. The user receives only the prefix. <strong>Pre-go-live blocker.</strong></p>
+<h2>Reproduction</h2>
+<ol>
+<li>Operator typed in <code>consult-61466927921</code> (Slack): <code>Back to you, ready to close</code></li>
+<li>User received on WhatsApp: <code>Back to you</code> (truncated at first comma)</li>
+</ol>
+<h2>Root cause (verified against live workflow JSON + execution data)</h2>
+<p>In WF-10 (<code>wMh0oBRtJbvhLgOf</code>), node <code>Load User Status</code> (Postgres v2.5):</p>
+<pre><code class="language-json">{
+  &quot;operation&quot;: &quot;executeQuery&quot;,
+  &quot;query&quot;: &quot;SELECT status, $2 as channelName, $3 as messageText FROM chinmay_astro.users WHERE slack_channel_id = $1 LIMIT 1&quot;,
+  &quot;options&quot;: {
+    &quot;queryReplacement&quot;: &quot;={{ $json.channelId }}, {{ $('Find Channel').item.json.name }}, {{ $json.messageText }}&quot;
+  }
+}
+</code></pre>
+<p>n8n's Postgres node v2.5 <code>queryReplacement</code> field takes a comma-separated string of expressions, evaluates each expression, then <strong>splits the resulting concatenated string on <code>,</code> to map tokens to <code>$1, $2, $3</code></strong>. When <code>$json.messageText = "Back to you, ready to close"</code>, the post-evaluation string is:</p>
+<pre><code>C0B567A175W, consult-61466927921, Back to you, ready to close
+</code></pre>
+<p>The splitter produces FOUR tokens, mapping:
+- <code>$1</code> ← <code>C0B567A175W</code>
+- <code>$2</code> ← <code>consult-61466927921</code>
+- <code>$3</code> ← <code>Back to you</code>  ← <strong>truncated here</strong>
+- <code>ready to close</code> ← extra, dropped</p>
+<p>Hence the query projects <code>messageText = 'Back to you'</code> and that value flows downstream into WF-41 → WF-50 → WhatsApp.</p>
+<p>Verified by inspecting execution 1239 (WF-41 input) — the entry node <code>When Executed by Another Workflow</code> already received <code>messagetext: "Back to you"</code>. The earlier WF-10 nodes (<code>Webhook</code>, <code>Extract Required Fields</code>, <code>Merge Message n Channel</code>) all show full text under <code>message_text</code>. The first node to show the truncated value is <code>Load User Status</code>.</p>
+<h2>Why this slipped through</h2>
+<ul>
+<li>All prior smoke-test relay messages happened to contain no commas (<code>Hi</code>, <code>Hi back</code>).</li>
+<li>The truncation is silent — n8n Postgres <code>executeQuery</code> succeeds; downstream nodes see a well-formed object; nothing fails.</li>
+<li>The field name change <code>message_text</code> → <code>messagetext</code> in the Postgres output also obscures the trail.</li>
+</ul>
+<h2>Fix options</h2>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Effort</th>
+<th>Risk</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A. Switch to per-parameter Query Parameters</strong> (Postgres node has a separate <code>Query Parameters</code> collection where each <code>$n</code> gets its own value field)</td>
+<td>Low</td>
+<td>Low</td>
+<td>Cleanest. No splitting, no escaping concerns. The right answer for v2.5+.</td>
+</tr>
+<tr>
+<td><strong>B. Embed expressions directly in the SQL</strong> (e.g. <code>WHERE slack_channel_id = '{{ $json.channelId }}'</code>)</td>
+<td>Low</td>
+<td><strong>High</strong> — SQL injection vector if any value is user-controlled (messageText IS user-controlled here)</td>
+<td>Do not choose.</td>
+</tr>
+<tr>
+<td><strong>C. Bump node typeVersion to 2.6 and use the new parameterization UI</strong></td>
+<td>Medium</td>
+<td>Low</td>
+<td>Same end-state as A but with a node upgrade. Verify schema is preserved.</td>
+</tr>
+<tr>
+<td><strong>D. Encode commas in expressions</strong> (e.g. <code>{{ $json.messageText.replace(/,/g, '\\,') }}</code> if n8n's splitter respects escapes)</td>
+<td>Low</td>
+<td>Uncertain — depends on whether splitter honors escaping</td>
+<td>Workaround at best.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommended: A.</strong> Same node, switch from <code>Options → Query Replacement</code> to a per-<code>$n</code> parameter list.</p>
+<h2>Other potential blast-radius sites</h2>
+<p>The same <code>queryReplacement</code> comma-split pattern may exist in other workflows. Worth a project-wide sweep before go-live:</p>
+<pre><code class="language-bash">grep -rln 'queryReplacement' workflows/
+# then for each hit:
+#   - if the value contains 2+ expressions separated by &quot;, &quot;
+#   - and any of those expressions can hold a comma-containing value (user input, free text)
+#   - flag as same bug
+</code></pre>
+<p>This deserves its own sprint item similar to the recent <code>followups-input-contract-sweep</code>.</p>
+<h2>Verification plan after fix</h2>
+<ol>
+<li>Send admin Slack message containing multiple commas and special chars: <code>Back to you, ready to close, and one more thing!</code></li>
+<li>Confirm full text arrives on WhatsApp.</li>
+<li>Repeat with a SQL-special-char message (<code>O'Brien, that's $5,000</code>) to confirm parameterization not concatenation.</li>
+<li>Re-run TC-0402 in the next smoke test.</li>
+</ol>
+<h2>Note on the wider Postgres <code>queryReplacement</code> pattern</h2>
+<p>This is a well-known n8n footgun — the <code>queryReplacement</code> field documentation does not warn that comma-separation conflicts with comma-containing values. Plugin improvement candidate: add a check to <code>technical-workflow-review</code> that flags any Postgres node with <code>options.queryReplacement</code> containing <code>,</code> between expression boundaries AND any of those expressions referencing a user-input field.</p></details></div><div id="appendix-followups-wf12-orphaned-and-doc-inconsistency"><details class="appendix-item"><summary>Followup — Wf12 Orphaned And Doc Inconsistency <span class="src">(followups-wf12-orphaned-and-doc-inconsistency.md)</span></summary><h1>Followup — WF-12 is an orphaned active workflow; multiple docs disagree on its status</h1>
+<p><strong>Severity:</strong> P2 (no runtime impact today, but live-but-unused workflow is a foot-gun + doc inconsistency erodes trust in the registry)
+<strong>Found during:</strong> TC-0402 (admin→user relay), 2026-05-18</p>
+<h2>What's true (verified against live n8n + JSON)</h2>
+<ul>
+<li><code>WF-41 Admin -&gt; User Relay</code> (id <code>6PzJRZsF7k2d9hV7</code>, 9 nodes) is the <strong>real</strong> admin→user relay path. WF-10 calls it (see <code>docs/pseudocode/WF-10.md:42</code>, node <code>Call WF-41 (Admin-&gt;User Relay)</code>). Fired live in TC-0402 (exec 1224).</li>
+<li><code>WF-12 Admin -&gt; WhatsApp Relay</code> (id <code>RjwHs9Dx5cK8Q5wD</code>, 3 nodes) is <strong>active in n8n</strong> but <strong>not called by anyone</strong>. It's a vestigial simpler relay (<code>Skip Bots and Commands</code> → <code>Call WF-50</code>). No <code>executeWorkflow</code> reference to <code>RjwHs9Dx5cK8Q5wD</code> exists in any current workflow JSON.</li>
+</ul>
+<h2>What each doc says (inconsistent)</h2>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Claim about WF-12</th>
+<th>Reality</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>docs/workflow-registry.md</code></td>
+<td>🟢 Active, P2, "Relays plain-text messages typed by admin in user's Slack channel → WhatsApp during consultation_active. Distinct from command handling. Calls WF-50. Built + activated session 4."</td>
+<td>Built &amp; active in n8n — yes. Actually used — <strong>no</strong>. WF-10 routes to WF-41, not WF-12.</td>
+</tr>
+<tr>
+<td><code>docs/pseudocode/INDEX.md:16</code></td>
+<td>"Admin → WhatsApp Relay (legacy) — Admin — direct relay path (likely superseded by WF-41)"</td>
+<td>Correct — this doc has it right.</td>
+</tr>
+<tr>
+<td><code>docs/CONTEXT.md:144</code></td>
+<td>"Admin types in Slack channel → WF-10 → WF-11 (command) or WF-12 (relay)"</td>
+<td><strong>Wrong.</strong> Should be WF-41.</td>
+</tr>
+<tr>
+<td><code>docs/STATUS.md:109</code></td>
+<td>"WF-12 Admin Message Relay ❌ Not Built"</td>
+<td><strong>Wrong.</strong> It IS built and active in n8n. Stale snapshot.</td>
+</tr>
+<tr>
+<td><code>docs/STATUS.md:133,158</code></td>
+<td>"WF-12, WF-51 never built (to assess if still needed)" + "Assess WF-12, WF-51 — still needed or superseded?"</td>
+<td>The "never built" claim is wrong; the "still needed?" question is the right one to resolve.</td>
+</tr>
+<tr>
+<td><code>docs/Tech_Debts.md:156</code></td>
+<td>"WF-12 confirmed to have no Postgres lookup and no status check before calling WF-50."</td>
+<td>Accurate technical observation; reinforces that WF-12 is a thinner, older path.</td>
+</tr>
+</tbody>
+</table>
+<h2>Why this matters</h2>
+<ol>
+<li><strong>Orphaned active workflow</strong> = silent risk. If any future workflow accidentally points at <code>RjwHs9Dx5cK8Q5wD</code>, WF-12 will fire — bypassing WF-41's <code>consultation_active</code> status check (per <code>Tech_Debts.md:156</code>). That's a data-integrity hole waiting for a typo to trigger.</li>
+<li><strong>Doc disagreement</strong> kills the value of having a registry. The pseudocode/INDEX is right; registry, CONTEXT, and STATUS are each wrong in different ways.</li>
+<li><strong>Operator confusion</strong> — during the smoke test, the handoff itself said "WF-10 → WF-12" because it inherited the wrong mental model from CONTEXT.md.</li>
+</ol>
+<h2>Recommended remediation (separate sprint, not blocking smoke test)</h2>
+<ol>
+<li><strong>Decide WF-12's fate.</strong> Two options:</li>
+<li><strong>Deactivate + archive</strong> (recommended) — WF-41 is the canonical relay; no caller wants WF-12's thin path. Mark <code>active=false</code> in n8n, move pseudocode to <code>archive/</code>, remove from registry.</li>
+<li><strong>Repurpose</strong> — only if a real need surfaces for a relay that skips the consultation_active gate (e.g., admin override broadcasts). No such need known today.</li>
+<li><strong>Reconcile docs in one pass:</strong></li>
+<li><code>workflow-registry.md</code> — flip WF-12 row to 🔴 Orphaned (or remove if deactivated) and add a note: "WF-41 is the live admin→user relay."</li>
+<li><code>CONTEXT.md:144</code> — change <code>WF-12 (relay)</code> → <code>WF-41 (relay)</code>.</li>
+<li><code>STATUS.md:109,133,158</code> — remove "Not Built" claim; either close the "still needed?" item or reflect the deactivation decision.</li>
+<li><code>pseudocode/INDEX.md</code> — already correct, no action.</li>
+<li><strong>Add a guardrail check</strong> to <code>technical-workflow-review</code>: flag any workflow that is <code>active=true</code> in n8n but has zero inbound <code>executeWorkflow</code> references AND is not a webhook entrypoint. WF-12 would have been caught by this.</li>
+</ol>
+<h2>Out of scope here</h2>
+<p>Not fixing in this session — too far from TC-04xx critical path. Filed for the next cleanup sprint.</p></details></div><div id="appendix-followups-wf43-feedback-chain"><details class="appendix-item"><summary>Followup — Wf43 Feedback Chain <span class="src">(followups-wf43-feedback-chain.md)</span></summary><h1>Followup — Three cascading bugs prevent free-text feedback from being captured (WF-43 chain)</h1>
+<p><strong>Severity:</strong> [critical] (no free-text feedback can be saved today)
+<strong>Found during:</strong> TC-0404 (post-consultation feedback), 2026-05-18 03:32 UTC
+<strong>Trigger:</strong> User typed "Amazing service" after a successful CLOSE CONSULT. Expected: WF-43 → WF-44 → feedback saved + ack. Actual: WF-43 failed silently, user got nothing back.</p>
+<h2>Failure trace</h2>
+<pre><code>WF-00 (1266 error) ← propagated from below
+└── WF-01 (1268 error) ← propagated
+    └── WF-02 (1269 error) ← propagated
+        └── WF-43 Post-Consultation Handler (1271 error) ← actual failure
+            └── Gemini General Response (HTTP node) ← throws &quot;JSON parameter needs to be valid JSON&quot;
+</code></pre>
+<p>The trigger executions (1267 WF-60, 1270 WF-20, 1272 WF-25) ran to success in parallel; the failure is on the routing→Gemini branch.</p>
+<h2>Three distinct bugs, in cascade order</h2>
+<h3>Bug 1 — WF-25 returned <code>intent: null</code> (intermittent, pre-known)</h3>
+<p>Per execution 1271 input snapshot, <code>Call WF-25 Intent Classifier</code> returned the original payload unchanged, with <code>intent</code> not populated. Classifier defaulted/failed.</p>
+<p>This matches the <strong>carried-forward caveat #2</strong> from the resume handoff: "WF-25 Gemini intent classifier intermittent errors — defaults to <code>general_enquiry</code> when Gemini fails. Also has <code>userStatus</code> not flowing into prompt (P3 input-contract bug)."</p>
+<p>Because intent was null, WF-43's routing IFs (<code>Feedback Intent?</code>, <code>Rebook Intent?</code>, <code>Stop Intent?</code>) all fell through to the default <code>Gemini General Response</code> branch.</p>
+<p><strong>If WF-25 were reliable</strong>, "Amazing service" would have been classified as <code>feedback</code>, the proper feedback-saving path would have fired, and Bugs 2 + 3 below would never have been hit. So WF-25 is the proximate trigger.</p>
+<h3>Bug 2 — <code>Prepare Gemini Response Prompt</code> puts <code>User: undefined</code> into the prompt</h3>
+<p>Inspection of the <code>Prepare Gemini Response Prompt</code> node output (exec 1271):</p>
+<pre><code>geminiPrompt: &quot;You are a helpful assistant for Chinmay's Vedic astrology consultation service on WhatsApp. Answer this question briefly and warmly in 2-3 sentences. If they seem interested in booking, mention they can start fresh by messaging us.\nUser: undefined&quot;
+</code></pre>
+<p>The user's actual message ("Amazing service") sits in <code>$json.messageContent</code> on the same item — but the template references some other field that resolves to <code>undefined</code>. Even if Bug 3 were fixed, Gemini would receive an empty user question and produce a generic reply unrelated to what the user said.</p>
+<p><strong>Fix:</strong> find the variable reference in the node's <code>jsCode</code> (or Set field) and point it to <code>messageContent</code> or <code>rawMessage.text.body</code>.</p>
+<h3>Bug 3 — <code>Gemini General Response</code> HTTP node — <code>jsonBody</code> doesn't escape the prompt</h3>
+<p>Node config:</p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;n8n-nodes-base.httpRequest&quot;,
+  &quot;typeVersion&quot;: 4.2,
+  &quot;parameters&quot;: {
+    &quot;jsonBody&quot;: &quot;={\&quot;contents\&quot;:[{\&quot;parts\&quot;:[{\&quot;text\&quot;:\&quot;{{ $json.geminiPrompt }}\&quot;}]}],\&quot;generationConfig\&quot;:{\&quot;temperature\&quot;:0.7,\&quot;maxOutputTokens\&quot;:200} }&quot;
+  }
+}
+</code></pre>
+<p><code>$json.geminiPrompt</code> contains a real <code>\n</code> character between the system prompt and <code>User: undefined</code>. When interpolated raw into the JSON template, the resulting jsonBody has an unescaped newline INSIDE a JSON string literal. JSON spec (RFC 8259) does not permit raw control chars (<code>U+000A</code>) in strings — they must be escaped as <code>\n</code>. n8n's HttpRequest v4.2 validates jsonBody before sending and rightly throws <code>"JSON parameter needs to be valid JSON"</code>.</p>
+<p>This breaks for ANY multi-line prompt, ANY prompt with a literal double quote, and ANY prompt with a backslash. It's not specific to the <code>User: undefined</code> case — it would fire on any normally-constructed prompt with structure.</p>
+<p><strong>Fix options (recommend A):</strong>
+- <strong>A.</strong> Replace <code>jsonBody</code> raw-string template with the structured <code>bodyParameters</code> UI form, or use an expression that returns a JS object: <code>={{ {"contents":[{"parts":[{"text": $json.geminiPrompt}]}], "generationConfig":{"temperature":0.7,"maxOutputTokens":200}} }}</code>. n8n then JSON-encodes the object correctly, escaping the prompt string.
+- <strong>B.</strong> Escape the prompt manually: <code>{{ JSON.stringify($json.geminiPrompt).slice(1,-1) }}</code> inside the template. Brittle and easy to miss in code review.
+- <strong>C.</strong> Switch to the dedicated Google Gemini node (if available in the n8n version in use), which handles serialization internally.</p>
+<h2>DB confirms feedback was not captured</h2>
+<pre><code>users.id=28
+  status=consultation_closed
+  awaiting_feedback=false
+  feedback=null            ← user's &quot;Amazing service&quot; never persisted
+  current_consultation_id=null
+</code></pre>
+<p><code>consultations.id=9.feedback</code> (if exists as a column) — not checked here; worth verifying that no other table captured it either.</p>
+<h2>Adjacent observation — <code>awaiting_feedback</code> semantics</h2>
+<p><code>users.awaiting_feedback</code> is still <code>false</code> after WF-42 sent the feedback prompt with 2 buttons. Three possible interpretations:</p>
+<ol>
+<li>The flag is button-payload-driven only (set on button tap, not on prompt send) — then free-text feedback was never intended to be routed via this flag, and the design relies entirely on WF-25 intent classification. This would mean WF-25 reliability is structurally critical to the feedback flow.</li>
+<li>WF-42 was supposed to set the flag at prompt-send time but doesn't — a bug.</li>
+<li>The flag is unused/legacy.</li>
+</ol>
+<p>Reading WF-43's <code>Is Button Reply?</code> IF + <code>Feedback Intent?</code> IF suggests interpretation 1 is the design. If so, WF-25 unreliability is not just a P3 nuisance — it's a P0 for the feedback path.</p>
+<h2>Recommended fix order</h2>
+<ol>
+<li><strong>Fix Bug 3 first</strong> (HTTP JSON escape) — biggest blast radius, also surfaces clearer errors when downstream tests run.</li>
+<li><strong>Fix Bug 2</strong> (<code>User: undefined</code>) — small, contained.</li>
+<li><strong>Investigate WF-25 reliability</strong> (Bug 1) — this is the same <code>followups-wf25-intent-classifier.md</code> referenced in the resume handoff. May need its own sprint.</li>
+<li><strong>Re-test TC-0404</strong> with two cases:</li>
+<li>Free-text feedback ("Amazing service") → expect WF-25 returns <code>feedback</code> → WF-43 → WF-44 → DB persists → user gets ack</li>
+<li>Off-topic free-text in <code>consultation_closed</code> ("when is mercury retrograde") → expect WF-25 returns <code>general_enquiry</code> → WF-43 Gemini path runs without errors and replies sensibly</li>
+</ol>
+<h2>Plugin improvement candidates from this finding</h2>
+<ul>
+<li><code>technical-workflow-review</code> should flag any HTTP node where <code>specifyBody=json</code> AND <code>jsonBody</code> is a raw string template containing <code>{{ ... }}</code> directly inside a JSON string literal — the safe pattern is to interpolate an object via <code>={{ ... }}</code> not a string.</li>
+<li><code>technical-workflow-review</code> should flag Set/Code nodes building prompt-like strings where one of the values is <code>undefined</code> in the most recent execution. (Harder — needs execution data, not just JSON.) Worth considering for a runtime audit pass rather than static.</li>
+</ul></details></div>
+    </section>
+
+  </main>
+</div>
+<script>
+// 1) Severity chip styling for [critical] / [major] / [minor]
+const sevColors = { critical: "#ff4d4f", major: "#ff9f43", minor: "#f1c40f", slow: "#e67e22" };
+function chipifySeverity(root) {
+  root.querySelectorAll("td, p, li, h3, h4").forEach(el => {
+    const html = el.innerHTML;
+    const newHtml = html.replace(/`?\[(critical|major|minor|slow)\]`?/gi, (s, k) => {
+      const key = k.toLowerCase();
+      return `<span class="sev-chip" style="background:${sevColors[key]}">${k}</span>`;
+    });
+    if (newHtml !== html) el.innerHTML = newHtml;
+  });
+}
+chipifySeverity(document);
+
+// 2) Wrap story h3 + following content into card containers
+(function wrapStoryCards() {
+  const story = document.getElementById("story");
+  if (!story) return;
+  const h3s = Array.from(story.querySelectorAll("h3"));
+  h3s.forEach(h3 => {
+    const card = document.createElement("div");
+    card.className = "story-card";
+    let next = h3.nextSibling;
+    while (next && !(next.nodeType === 1 && (next.tagName === "H3" || next.tagName === "HR" || next.tagName === "H2"))) {
+      const cur = next;
+      next = next.nextSibling;
+      card.appendChild(cur);
+    }
+    h3.after(card);
+  });
+  // remove <hr> separators since cards already provide separation
+  story.querySelectorAll("hr").forEach(hr => hr.remove());
+})();
+
+// 3) Build scenario nav from h3s in story section
+(function buildScenarioNav() {
+  const nav = document.getElementById("nav-scenarios");
+  if (!nav) return;
+  document.querySelectorAll("#story h3").forEach((h3, i) => {
+    const id = "scenario-" + (h3.textContent.match(/TC-\d+/)?.[0] || ("sc" + i)).toLowerCase();
+    h3.id = id;
+    const a = document.createElement("a");
+    a.href = "#" + id;
+    a.className = "depth-1";
+    a.textContent = h3.textContent.replace(/\s*[✅❌→].*/g, "").trim();
+    nav.appendChild(a);
+  });
+})();
+
+// 4) Color ✅ / ❌ in story headings
+document.querySelectorAll("#story h3").forEach(h3 => {
+  h3.innerHTML = h3.innerHTML
+    .replace(/✅/g, '<span class="status-ok">✅</span>')
+    .replace(/❌/g, '<span class="status-warn">❌</span>');
+});
+</script>
+</body></html>
