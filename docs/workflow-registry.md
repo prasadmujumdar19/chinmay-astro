@@ -1,6 +1,19 @@
 # Chinmay Astro — Workflow Registry
-**Version:** 2.9 | **Last Updated:** 18 May 2026 (canonical-executeworkflow-shape-sweep)
+**Version:** 2.10 | **Last Updated:** 18 May 2026 (smoke-post-p0-review-tc04xx — BUG-01..05 fixes + plugin v1.17.0)
 **Source:** user_journey_map.html v2.1 + live n8n audit (Mumbai VPS, Apr 2026) + design clarifications sessions 3–4
+
+### 2026-05-18 — Smoke-post-p0-review-tc04xx sprint (5 bugs + 3 plugin guardrails)
+
+Closed the smoke-test-derived P0/P1 backlog (sprint slug `smoke-post-p0-review-tc04xx-2026-05-18`, all four batches done; sprint state at `docs/artefacts/sprints/smoke-post-p0-review-tc04xx-2026-05-18/state.md`):
+
+- **BUG-02 (WF-43):** `Gemini General Response` HTTP node — jsonBody converted from raw-string interpolation to whole-body object-expression `={{ {contents:[...]} }}` so n8n JSON-encodes natively. Fixes "JSON parameter needs to be valid JSON" on prompts containing quotes/newlines/braces. Sweep showed only WF-43 had the anti-pattern.
+- **BUG-01 (WF-10, WF-21, WF-22, WF-34, WF-60):** Postgres `options.queryReplacement` converted from comma-separated expression string to JS-array form `={{ [a, b, c] }}` on 5 user-controlled-text nodes. Pre-existing lint debt swept in the same PUTs (WF-22 3 executeWorkflow nodes canonical-1.2 fields; WF-34 `User Found?` IF singleValue:true).
+- **BUG-03 (WF-43):** `Prepare Gemini Response Prompt` jsCode — `${d.messageText}` → `${d.messageContent}` (callers pass messageContent; prior reference produced literal "User: undefined" in the Gemini prompt).
+- **BUG-04 (WF-25, WF-43):** Root cause was a misconfigured query-auth credential, not "null intent" as the smoke-test report hypothesised. (a) Both Gemini HTTP nodes switched from generic httpQueryAuth to predefined `googlePalmApi` cred. (b) WF-25 Prepare Intent Request now reads userStatus from `input.userStatus || input.user?.status || 'unknown'`. (c) Parse Intent + Handle Gemini Error route `consultation_closed + uncertain → feedback_intent` (defensive fallback for genuine Gemini outages).
+- **BUG-05 (WF-12):** Admin → WhatsApp Relay deactivated — orphaned (0 callers in dependency-map.md), superseded by WF-41. Doc reconcile across `workflow-registry.md`, `CONTEXT.md:144`, and `STATUS.md:109,133,158` to remove the prior four-way "Not Built" / "Active" disagreement.
+- **Plugin v1.17.0 — three new technical-workflow-review guardrails** (C13 HTTP raw-string jsonBody, C14 Postgres comma-string queryReplacement, C15 orphaned-active-workflow detector). Each encodes the corresponding bug class as a pre-go-live static check. Plugin commit 456513a; active cache rolled to 1.17.0.
+
+Commits: `2a33905` (Batches 1+2: BUG-01/02/03/04), `3451197` (Batch 3: BUG-05).
 
 ### 2026-05-18 — Canonical executeWorkflow shape sweep (residual 10 workflows)
 - **26 executeWorkflow nodes across 10 workflows** rolled to canonical n8n 2.1.4 tv-1.2 shape via idempotent jq roller. Same pattern as 2026-05-17 sweep (`source:"database" + operation:"call_workflow" + mode:"once" + workflowId:{__rl,value,mode:"list",cachedResultUrl} + workflowInputs:{mappingMode:"passthrough",...}`) — this sprint covered the 10 workflows the 2026-05-17 sprint did not touch. Triggered by smoke test surfacing WF-31 `Call WF-25 Intent Classifier` runtime failure ("No information about the workflow to execute found"). Workflows touched: **WF-12, WF-20, WF-23, WF-25, WF-30, WF-31, WF-40, WF-44, WF-45, WF-47**. WF-47's nodes were at tv=1.0 (older than the rest) and bumped to 1.2 by the same roller.

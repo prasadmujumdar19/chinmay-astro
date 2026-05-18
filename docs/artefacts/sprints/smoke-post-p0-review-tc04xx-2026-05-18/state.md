@@ -5,8 +5,9 @@ input_hash: 29fbefe7d45034c5f64e9d512175a138270d21f680d4574035db003bc5f5afb4
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/smoke-post-p0-review-tc04xx-2026-05-18/working.md
 planned_at: 2026-05-18T07:29:15Z
-last_updated: 2026-05-18T23:10 IST
-batch_3_commit_status: "Post-batch regression PASS 2026-05-18T23:08 IST. Orphan scan across all 27 active workflows found WF-00 + WF-10 as the only uncalled (both legitimate external trigger entries — webhook/Slack events); no other orphaned-active workflows remain. PLUGIN-03 (orphaned-active-workflow guardrail) deferred to Batch 4 per user decision and logged in followups.md. Batch 3 ready for commit + push."
+last_updated: 2026-05-18T23:20 IST
+batch_3_commit_status: "Post-batch regression PASS 2026-05-18T23:08 IST. Orphan scan across all 27 active workflows found WF-00 + WF-10 as the only uncalled (both legitimate external trigger entries — webhook/Slack events); no other orphaned-active workflows remain. PLUGIN-03 (orphaned-active-workflow guardrail) deferred to Batch 4 per user decision and logged in followups.md. Committed + pushed 2026-05-18T23:12 IST as 3451197."
+batch_4_commit_status: "All three plugin guardrails (PLUGIN-01/02/03) landed in a single MINOR bump (1.16.2 → 1.17.0) via flush-plugin-improvements. Plugin repo commit 456513a pushed to github.com/prasadmujumdar19/n8n-whatsapp-methodology@main. Active cache rolled: cache dir renamed 1.16.2 → 1.17.0; symlink 1.16.2 → 1.17.0 left in place for in-flight session env vars; installed_plugins.json + marketplace cache plugin.json updated. Final alignment verified: all four sources (cache dir, installed_plugins, marketplace cache, active plugin.json) show 1.17.0."
 planning_complete: true
 batch_1_commit_status: "Post-batch regression PASS 2026-05-18T20:45 IST. Committed + pushed in prior session as part of combined commit 2a33905 (Batches 1+2)."
 batch_2_commit_status: "Post-batch regression PASS 2026-05-18T22:30 IST. Siblings re-checked this session: (1) no workflow references broken httpQueryAuth cred ZkLShpFmp8Mi1gZl; (2) no HTTP node uses httpQueryAuth auth type; (3) both Gemini-calling workflows (WF-25, WF-43) use googlePalmApi predefined cred. Committed + pushed in prior session as part of combined commit 2a33905 (Batches 1+2). Verified via gh api on 2026-05-18 — all 7 workflow JSONs + docs + sprint artefacts present in commit. No further action needed for Batches 1+2."
@@ -180,7 +181,9 @@ items:
     description: "n8n-whatsapp-methodology plugin: add a check to `technical-workflow-review` that flags HTTP nodes with `specifyBody=json` + raw-string `jsonBody` that interpolates `{{ ... }}` directly inside a JSON string literal. Encodes the BUG-02 anti-pattern as a guardrail."
     priority: P2
     severity: improvement
-    status: pending
+    status: done
+    completed_at: 2026-05-18T23:18 IST
+    completion_note: "Landed as check C13 in skills/technical-workflow-review/SKILL.md. Plugin commit 456513a (1.17.0). Detection: jq filter selecting nodes where type=n8n-nodes-base.httpRequest AND specifyBody=='json' AND jsonBody matches ^=\\s*[\\{\\[]. Severity 🟠."
     batch: 4
     target_repo: github.com/prasadmujumdar19/n8n-whatsapp-methodology
     change_type: surgical
@@ -196,7 +199,9 @@ items:
     description: "n8n-whatsapp-methodology plugin: add a check to `technical-workflow-review` that flags Postgres nodes whose `options.queryReplacement` contains 2+ comma-separated expressions where any expression evaluates to user-controlled text. Encodes the BUG-01 anti-pattern as a guardrail."
     priority: P2
     severity: improvement
-    status: pending
+    status: done
+    completed_at: 2026-05-18T23:18 IST
+    completion_note: "Landed as check C14 in skills/technical-workflow-review/SKILL.md. Plugin commit 456513a (1.17.0). Detection: jq filter selecting nodes where type=n8n-nodes-base.postgres AND parameters.options.queryReplacement matches \\}\\}\\s*,\\s*\\{\\{. Per-node reviewer judgement still required (machine-IDs safe, user text 🔴 must-fix)."
     batch: 4
     target_repo: github.com/prasadmujumdar19/n8n-whatsapp-methodology
     change_type: surgical
@@ -206,6 +211,25 @@ items:
       - id: BUG-01
         type: soft
         reason: "Validate fix shape in BUG-01 first so the guardrail rule matches the canonical correct form."
+    blocks: []
+
+  - id: PLUGIN-03
+    description: "n8n-whatsapp-methodology plugin: add an orphaned-active-workflow detector to `technical-workflow-review`. Detection: a workflow is orphaned-active if active=true AND its id is not a callee in dependency-map.md AND its start node is not in the externally-triggered whitelist (n8n-nodes-base.webhook / slackTrigger / scheduleTrigger / cron / emailReadImap). Sub-workflow start node (executeWorkflowTrigger) without any caller in the dependency map is also flagged. Encodes the BUG-05 anti-pattern as a guardrail."
+    priority: P2
+    severity: improvement
+    status: done
+    completed_at: 2026-05-18T23:18 IST
+    completion_note: "Landed as check C15 in skills/technical-workflow-review/SKILL.md. Plugin commit 456513a (1.17.0). Detection: Python script that parses docs/dependency-map.md's machine-readable JSON block, builds callee set, then for every active=true workflow checks: has executeWorkflowTrigger AND no external trigger AND id not in callee set → flag. Whitelist includes webhook/slackTrigger/scheduleTrigger/cron/emailReadImap/formTrigger plus any node type containing 'Trigger' except executeWorkflowTrigger. Severity 🟡."
+    batch: 4
+    target_repo: github.com/prasadmujumdar19/n8n-whatsapp-methodology
+    change_type: surgical
+    blast_radius: low
+    added_from: "followups.md (deferred from BUG-05 per user decision to keep Batch 3 surgical)"
+    fix_pattern: "Per plugin update-skill workflow: same single version bump as PLUGIN-01 + PLUGIN-02. All three guardrails ship together."
+    depends_on:
+      - id: BUG-05
+        type: soft
+        reason: "Validate orphan-detection logic against the real BUG-05 scan output (WF-00 + WF-10 legitimate triggers, WF-12 was the true orphan now deactivated)."
     blocks: []
 
 batches:
@@ -222,6 +246,6 @@ batches:
     estimated_tokens: 7000
     rationale: "Cleanup + docs. Lower priority. Independent of all other items."
   - number: 4
-    items: [PLUGIN-01, PLUGIN-02]
-    estimated_tokens: 14000
-    rationale: "Plugin improvements. Soft-dep on Batch 1 fixes so the canonical correct form is known before encoding guardrails."
+    items: [PLUGIN-01, PLUGIN-02, PLUGIN-03]
+    estimated_tokens: 18000
+    rationale: "Plugin improvements. Soft-dep on Batch 1 fixes so the canonical correct form is known before encoding guardrails. PLUGIN-03 added mid-sprint from BUG-05 followups; ships in the same plugin version bump as PLUGIN-01/02."
