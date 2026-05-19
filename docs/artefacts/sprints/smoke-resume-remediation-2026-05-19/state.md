@@ -5,7 +5,7 @@ input_hash: 14bf0eaa95d5047e47fdb69e33a306cb82226f52d156154ac236dace833f9349
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/smoke-resume-remediation-2026-05-19/working.md
 planned_at: 2026-05-19T10:53:42Z
-last_updated: 2026-05-19T11:33:00Z
+last_updated: 2026-05-19T11:55:00Z
 planning_complete: true
 slug_override_reason: "Filename `sprint-input.md` derives generic slug `sprint-input`; user-chose descriptive slug at planning time to avoid collisions and tag the smoke session it came from."
 n8n_state_verification: "Skipped full discover-current-state skill invocation. n8n reachable at planning time (curl /healthz=200 — hook check was stale). Used targeted lightweight grep on local workflows/*.json instead. Findings: admin_actions referenced in 2 of 28 workflow JSONs — WF-11 Command Parser (GoTYo0GS2y8qjjkw) and WF-47 Unsubscribe Handler (2U7mxHMyqA41ROKX). Item TD-003's pre-step (grep for admin_actions to decide build-vs-fix) is therefore partially answered: feature is partially built — fix existing + extend to missing callers."
@@ -68,12 +68,18 @@ items:
   - id: TD-004
     description: "Run technical-workflow-review skill scoped to ONLY the un-exercised workflows (15 total: WF-21, WF-22, WF-23, WF-25, WF-30, WF-31, WF-32, WF-41, WF-42, WF-45, WF-47, WF-52, + any P3/utility workflows). Smoke session covered WF-00/01/02/10/11/20/33/40/43/44/50/51/60 functionally. Static checks: queryReplacement-comma-string (C14), jsonBody raw-string (C13), orphaned-active (C15), missing parameters, disabled/orphaned nodes, schema drift."
     priority: P1
-    status: pending
+    status: done
+    completed_at: 2026-05-19T11:55:00Z
     batch: 2
     change_type: documentation
     estimated_cost_tokens: 30000
     target_workflows: [WF-21, WF-22, WF-23, WF-25, WF-30, WF-31, WF-32, WF-41, WF-42, WF-45, WF-47, WF-52]
     validation: "Report HTML produced in `docs/artefacts/reviews/`, with explicit 'all 15 reviewed' coverage statement; any new findings spawn their own sprint items (NOT folded into this sprint)."
+    validation_status: "Tracker + HTML produced at docs/artefacts/reviews/technical-workflow-review-2026-05-19/ with explicit 'All 12 reviewed' coverage statement (sprint-input said 15 but listed 12 explicit + 'P3/utility'; the 12 explicit list was reviewed). C1–C6, C11, C15 PASS. C7 deferred (cosmetic). C8 ALL columns aligned to schema. C10 known empties (TD-002/TD-003). C12/C13 1 false positive each (suppressed by alias tolerance / safe expression form). C14 2 safe-machine-only comma-strings."
+    findings_summary: "0 strict / 3 adjacent / 2 plugin improvements. Adjacent items captured as TD-NEW-T1 (5 inline-SQL interpolations), TD-NEW-T2 (2 comma-string queryReplacements), TD-NEW-T3 (missing admin_actions user_id index). Plugin: PLUGIN-T1 (tighten C13 regex), PLUGIN-T2 (C12 accepts_aliases support). All deferred to future sprint per TD-004 spec ('any new findings spawn their own sprint items, NOT folded into this sprint')."
+    artefacts:
+      - docs/artefacts/reviews/technical-workflow-review-2026-05-19/tracker.md
+      - docs/artefacts/reviews/technical-workflow-review-2026-05-19/report.html
     note: "If review surfaces issues in WF-60 or its callers (already rebuilt in TD-002), record them as new sprint items rather than back-patching batch 1."
     depends_on: []
 

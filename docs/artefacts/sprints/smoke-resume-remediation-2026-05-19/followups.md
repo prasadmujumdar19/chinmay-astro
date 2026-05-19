@@ -31,3 +31,36 @@ Findings surfaced during batch execution that were not in the original sprint sc
 
 ### Strict — none
 No strict-class findings during the P0 batch regression. Postgres-node hygiene sweep clean across all 28 workflows (no missing `=` prefix on templated queries, no `additionalFields.queryParams` anti-pattern, no SELECT lookup without `alwaysOutputData`).
+
+## [2026-05-19] — Post-Batch-2 (P1, TD-004 technical-workflow-review)
+
+Full tracker + HTML: `docs/artefacts/reviews/technical-workflow-review-2026-05-19/`. Summary appended here for sprint-state continuity.
+
+### Strict — none
+No strict-class findings across the 12 scoped un-exercised workflows. No P0 runtime-breakers introduced.
+
+### Adjacent — TD-NEW-T1: Inline `'{{ $json.x }}'` SQL string-interpolation in PG nodes
+- **Severity:** 🟠 — SQL-injection-resistant for numeric phone numbers but anti-pattern; inconsistent with project's `$N` + queryReplacement convention.
+- **Affected (5 nodes across 3 workflows):**
+  - WF-45 Rebook Handler — `Load User Record`, `Set status=payment_pending` (in TD-004 scope)
+  - WF-40 User → Admin Relay — `Load User Record` (out of TD-004 scope; sibling sweep)
+  - WF-11 Command Parser — `Lookup Blocked User`, `Unblock User` (out of TD-004 scope)
+- **Proposed fix:** convert each to `WHERE phone_number = $1` + `options.queryReplacement: "={{ $json.phoneNumber }}"`. Surgical class. ~3000 tokens.
+- **Decision:** _to be set by user_
+
+### Adjacent — TD-NEW-T2: PG queryReplacement comma-string anti-pattern in 2 safe nodes
+- **Severity:** ⚪ — currently safe (only machine-generated values flow through); future-proof hazard if a refactor pipes user-controlled text through.
+- **Affected:**
+  - WF-22 Form Response Handler — `Save Slack Channel ID`
+  - WF-32 Payment Confirmation Receiver — `Create Payment Record`
+- **Proposed fix:** convert to JS-array form `={{ [a, b, c] }}`. Surgical. ~1500 tokens.
+- **Decision:** _to be set by user_
+
+### Adjacent — TD-NEW-T3: `admin_actions` missing `user_id` index
+- **Severity:** 🟡 — performance only; table currently 0 rows but TD-003 (batch 3) will populate it.
+- **Proposed fix:** `CREATE INDEX idx_admin_actions_user_id ON chinmay_astro.admin_actions(user_id);` plus optional `idx_admin_actions_action_type`. Bundle with TD-003 if convenient.
+- **Decision:** _to be set by user_
+
+### Plugin improvements (out of scope of this project sprint)
+- **PLUGIN-T1:** tighten C13 regex to avoid false-positive on `={{ $json.preBuiltJsonString }}` pattern (current regex matches both safe whole-body expression and broken raw-string template). Flush via `flush-plugin-improvements`.
+- **PLUGIN-T2:** extend C12 with `accepts_aliases` declaration in `docs/well-known-downstreams.yml` to suppress false-positives where the downstream sub-workflow has explicit alias tolerance (e.g. WF-52's `input.phone_number || input.phoneNumber`). Flush via `flush-plugin-improvements`.
