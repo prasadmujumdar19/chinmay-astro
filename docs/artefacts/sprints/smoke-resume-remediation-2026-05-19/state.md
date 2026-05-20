@@ -5,7 +5,9 @@ input_hash: 14bf0eaa95d5047e47fdb69e33a306cb82226f52d156154ac236dace833f9349
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/smoke-resume-remediation-2026-05-19/working.md
 planned_at: 2026-05-19T10:53:42Z
-last_updated: 2026-05-20T02:12:00Z
+last_updated: 2026-05-20T02:23:00Z
+sprint_complete: true
+sprint_complete_at: 2026-05-20T02:23:00Z
 planning_complete: true
 td003_redirected_at: 2026-05-20T00:11:33Z
 td003_redirect_reason: "User challenged the premise during batch-3 audit. messages table is the canonical communication log; admin_actions was redundant for single-admin operation. TD-003 redirected from 'build admin_actions audit-log' to 'close messages-table touchpoint-coverage gaps (Slack side)'. admin_actions deprecation logged to followups + post-MVP tech debt; not part of this sprint. See td003-touchpoint-audit.md for full audit + 5-item fix plan."
@@ -113,7 +115,9 @@ items:
   - id: TD-005
     description: "`payments.status` naming consistency. Column is `verified_at`, value stored is `approved`. Recommend canonical = `verified` to match the column. Update writer node(s) and any downstream readers. Low blast radius; cosmetic but worth clearing before go-live."
     priority: P2
-    status: pending
+    status: done
+    completed_at: 2026-05-20T02:22:30Z
+    fix_summary: "Batch Surgical: 1-line SQL substring change in 2 nodes across 2 workflows + 1 DB migration. (1) WF-33 NcHZedq9ycnAQ9SW updatedAt 2026-05-20T02:22:26.578Z: `Update Payment Status` UPDATE clause `status = 'approved'` → `status = 'verified'`. WHERE clause `status = 'pending_verification'` untouched. (2) WF-11 GoTYo0GS2y8qjjkw updatedAt 2026-05-20T02:22:27.497Z: `Get Stats` revenue_today sub-select `WHERE status = 'approved'` → `WHERE status = 'verified'`. Same node otherwise unchanged. (3) DB migration via SSH+docker-exec psql: `UPDATE chinmay_astro.payments SET status='verified' WHERE status='approved'` — 2 rows migrated (ids 10, 11; user_id=28). Post-migration: 100% rows have `status='verified'`. Plugin lint clean on all 28 workflows."
     batch: 4
     change_type: surgical
     estimated_cost_tokens: 3000
