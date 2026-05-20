@@ -1,5 +1,5 @@
 # Workflow Dependency Map
-Generated: 2026-05-19 21:33
+Generated: 2026-05-20 12:10
 
 ## Diagram
 ```mermaid
@@ -18,6 +18,7 @@ graph TD
   Du2CJ3OTohRFZYoA["WF-44 Feedback Recorder"] --> 2U7mxHMyqA41ROKX["WF-47 Unsubscribe Handler"]
   GoTYo0GS2y8qjjkw["WF-11 Command Parser"] --> NcHZedq9ycnAQ9SW["WF-33 Payment Approval Processor"]
   GoTYo0GS2y8qjjkw["WF-11 Command Parser"] --> fx70vqyJtRdF2DgR["WF-42 Consultation Closer"]
+  GoTYo0GS2y8qjjkw["WF-11 Command Parser"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   GoTYo0GS2y8qjjkw["WF-11 Command Parser"] --> se82n3MUQ9xE5aEr["WF-34 Payment Rejection Processor"]
   GoTYo0GS2y8qjjkw["WF-11 Command Parser"] --> UV62An60fzflU0uD["WF-46 User Blocker"]
   HB8nXudAtk9iXz7C["WF-31 Payment Submitted Handler"] --> eTV1lUcYrXBg2q2T["WF-25 Intent Classifier"]
@@ -69,6 +70,8 @@ graph TD
   wMh0oBRtJbvhLgOf["WF-10 Slack Admin Handler"] --> GoTYo0GS2y8qjjkw["WF-11 Command Parser"]
   wMh0oBRtJbvhLgOf["WF-10 Slack Admin Handler"] --> 6PzJRZsF7k2d9hV7["WF-41 Admin -> User Relay"]
   wMh0oBRtJbvhLgOf["WF-10 Slack Admin Handler"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
+  wMh0oBRtJbvhLgOf["WF-10 Slack Admin Handler"] --> 6H75p935FpBVBQtV["WF-60 Message Logger"]
+  wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"] --> 6H75p935FpBVBQtV["WF-60 Message Logger"]
   zM8WbxSdt9nXRoLZ["WF-21 New User Welcome + Form"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
 ```
 
@@ -80,7 +83,7 @@ graph TD
   "6PzJRZsF7k2d9hV7": { "name": "WF-41 Admin -> User Relay", "calls": ["BUVun38WEKb12zg9"] },
   "BUVun38WEKb12zg9": { "name": "WF-50 Send WhatsApp", "calls": ["6H75p935FpBVBQtV"] },
   "Du2CJ3OTohRFZYoA": { "name": "WF-44 Feedback Recorder", "calls": ["eTV1lUcYrXBg2q2T", "MUG7rPgSHc7UtAE9", "BUVun38WEKb12zg9", "2U7mxHMyqA41ROKX"] },
-  "GoTYo0GS2y8qjjkw": { "name": "WF-11 Command Parser", "calls": ["NcHZedq9ycnAQ9SW", "fx70vqyJtRdF2DgR", "se82n3MUQ9xE5aEr", "UV62An60fzflU0uD"] },
+  "GoTYo0GS2y8qjjkw": { "name": "WF-11 Command Parser", "calls": ["NcHZedq9ycnAQ9SW", "fx70vqyJtRdF2DgR", "wlZRK0YxnhP0b2RL", "se82n3MUQ9xE5aEr", "UV62An60fzflU0uD"] },
   "HB8nXudAtk9iXz7C": { "name": "WF-31 Payment Submitted Handler", "calls": ["eTV1lUcYrXBg2q2T", "BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL", "2U7mxHMyqA41ROKX"] },
   "JQu1MkK5vgtUCeNO": { "name": "WF-00 Webhook Receiver", "calls": ["hYGNM97sXvdo1WmI", "6H75p935FpBVBQtV"] },
   "LgIDj1v4ZbCPlX25": { "name": "WF-20 Keyword Handler", "calls": ["BUVun38WEKb12zg9", "MUG7rPgSHc7UtAE9", "2U7mxHMyqA41ROKX"] },
@@ -98,7 +101,8 @@ graph TD
   "gGJBY5fJha0Let8I": { "name": "WF-30 Payment Pending Intent Filter", "calls": ["eTV1lUcYrXBg2q2T", "BUVun38WEKb12zg9", "2U7mxHMyqA41ROKX"] },
   "hYGNM97sXvdo1WmI": { "name": "WF-01 Message Router", "calls": ["PubCsNTOspF3xqXZ", "zM8WbxSdt9nXRoLZ", "BUVun38WEKb12zg9"] },
   "se82n3MUQ9xE5aEr": { "name": "WF-34 Payment Rejection Processor", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
-  "wMh0oBRtJbvhLgOf": { "name": "WF-10 Slack Admin Handler", "calls": ["GoTYo0GS2y8qjjkw", "6PzJRZsF7k2d9hV7", "wlZRK0YxnhP0b2RL"] },
+  "wMh0oBRtJbvhLgOf": { "name": "WF-10 Slack Admin Handler", "calls": ["GoTYo0GS2y8qjjkw", "6PzJRZsF7k2d9hV7", "wlZRK0YxnhP0b2RL", "6H75p935FpBVBQtV"] },
+  "wlZRK0YxnhP0b2RL": { "name": "WF-51 Send Slack Message", "calls": ["6H75p935FpBVBQtV"] },
   "zM8WbxSdt9nXRoLZ": { "name": "WF-21 New User Welcome + Form", "calls": ["BUVun38WEKb12zg9"] }
 }
 ```

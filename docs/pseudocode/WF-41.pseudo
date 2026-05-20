@@ -1,35 +1,26 @@
-WF-41 — Admin -> User Relay (bi-directional)
+WF-41 — Admin → User Relay
 
 ## Summary
 
-- Inputs: Either {phoneNumber, messageContent} (WhatsApp side) OR {channelName, messageText, user} (Slack side from WF-10)
-- Outputs: Slack post in consult channel (whatsapp_to_slack) OR WhatsApp text to user (slack_to_whatsapp)
+- Inputs: { channelName, messageText } from WF-10 (Slack admin typed in user's consult-<phone> channel)
+- Outputs: WhatsApp text to user via WF-50
 - State Transitions: none
-- Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack — whatsapp_to_slack branch only)
+- Calls Sub-Workflows: WF-50 (Send WhatsApp)
 - **Notes:**
-  - The Slack-side input field is `messageText` (camelCase) consistent with WF-10's output contract. No lowercase `messagetext` variant.
-  - The user.name and slack_channel_id are pulled from the DB via Step 8 SELECT (slack_to_whatsapp) or from the upstream payload (whatsapp_to_slack).
+  - WF-41 is intentionally single-direction (admin → user). The reverse direction (user's WhatsApp message → admin's Slack channel) is handled by **WF-40 User → Admin Relay** (called from WF-02 via the `RELAY` route). Do not re-introduce WA→Slack handling here.
+  - Input field is `messageText` (camelCase), consistent with WF-10's output contract.
+  - History: a prior design carried a `whatsapp_to_slack` branch with direction detection (Detect Direction / Route by Direction / Prepare Channel Lookup / Post to Slack Channel). That branch was orphaned after WF-40 took over the WA→Slack relay, and was removed on 2026-05-20 (TD-003 F5) to align this workflow with its single-direction purpose.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — triggered by another workflow with passthrough input.
-Step 2: Detect direction:
-  - If input has `phoneNumber` → direction = "whatsapp_to_slack"
-  - Else if input has `channelName` (and no phoneNumber) → direction = "slack_to_whatsapp"
-Step 3: Route by direction.
-  - If "whatsapp_to_slack" → go to Step 4
-  - If "slack_to_whatsapp" → go to Step 7
-Step 4: Prepare channel lookup — channelName = "consult-" + phoneNumber; messageText = messageContent.
-Step 5: Post to Slack channel #<channelName> with text "*<user.name>:* <messageText>".
-   (Note: `user.name` is read from the prepared payload; populated upstream.)
-Step 6: End.
-Step 7: Extract phone from channel — channelName looks like "consult-<phone>"; strip "consult-" prefix → phoneNumber. adminMessage = messageText.
-Step 8: SELECT * FROM chinmay_astro.users WHERE phone_number = <phoneNumber> AND status = 'consultation_active' LIMIT 1.
-Step 9: Check: Did the query return a user row?
-  - If YES → go to Step 10
+Step 1: Start — triggered by WF-10 (`Call WF-41 (Admin->User Relay)`) with passthrough input `{ channelName, messageText, status }`.
+Step 2: Extract phone from channelName — channelName looks like "consult-<phone>"; strip "consult-" prefix → phoneNumber. adminMessage = messageText.
+Step 3: SELECT * FROM chinmay_astro.users WHERE phone_number = <phoneNumber> AND status = 'consultation_active' LIMIT 1.
+Step 4: Check: Did the query return a user row?
+  - If YES → go to Step 5
   - If NO  → End (user not in consultation_active; no relay).
-Step 10: Build WhatsApp payload: phoneNumber = user.phone_number, messageType = "text", messageContent = adminMessage (from input `messageText` field).
-Step 11: Call WF-50 (Send WhatsApp) with the payload.
-Step 12: End.
+Step 5: Build WhatsApp payload: phoneNumber = user.phone_number, messageType = "text", messageContent = adminMessage.
+Step 6: Call WF-50 (Send WhatsApp) with the payload. WF-50 calls WF-60 internally to log the outbound message.
+Step 7: End.
