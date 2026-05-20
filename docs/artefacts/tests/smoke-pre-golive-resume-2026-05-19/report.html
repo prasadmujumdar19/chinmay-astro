@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Test Report — smoke-pre-golive-resume-2026-05-19</title>
+<style>
+:root {
+  --bg: #0d1117; --bg-card: #161b22; --bg-card-2: #1c2128;
+  --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --border: #30363d;
+  --critical: #ff4d4f; --major: #ff9f43; --minor: #f1c40f; --ok: #27ae60;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--bg); color: var(--fg); }
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+nav { background: #010409; border-right: 1px solid var(--border); padding: 20px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; font-size: 13px; }
+nav h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 20px 0 6px; font-weight: 600; }
+nav h2:first-child { margin-top: 0; }
+nav a { display: block; color: var(--fg); text-decoration: none; padding: 5px 8px; border-radius: 4px; margin: 1px 0; }
+nav a:hover { background: var(--bg-card); color: var(--accent); }
+nav a.depth-1 { padding-left: 18px; color: var(--muted); }
+main { padding: 28px 40px 80px; max-width: 1100px; }
+header.page { border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 28px; }
+header.page h1 { margin: 0 0 4px; font-size: 22px; }
+header.page .meta { color: var(--muted); font-size: 13px; }
+section.layer { margin: 40px 0; }
+section.layer > h1 { font-size: 24px; margin: 0 0 4px; padding-bottom: 10px; border-bottom: 2px solid var(--accent); }
+section.layer > .layer-blurb { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+h2 { margin-top: 28px; font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+h3 { margin-top: 22px; font-size: 15.5px; color: var(--accent); }
+h4 { margin-top: 16px; font-size: 14px; }
+code { background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+pre { background: var(--bg-card); padding: 14px 16px; border-radius: 6px; overflow-x: auto; border: 1px solid var(--border); }
+pre code { background: transparent; padding: 0; font-size: 13px; }
+table { border-collapse: collapse; margin: 14px 0; width: 100%; font-size: 13.5px; }
+th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--bg-card); font-weight: 600; }
+tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+ul, ol { padding-left: 22px; }
+li { margin: 4px 0; }
+/* Story cards — each h3 in story section starts a card */
+#story h3 {
+  background: var(--bg-card-2); margin-top: 20px; padding: 12px 16px; border-radius: 6px 6px 0 0;
+  border: 1px solid var(--border); border-bottom: none; color: var(--fg); font-size: 15px;
+}
+#story h3 + p, #story h3 + p + p, #story h3 + p + p + p,
+#story h3 ~ p, #story h3 ~ pre, #story h3 ~ ul, #story h3 ~ ol {
+  /* default rendering — wrap will come from JS */
+}
+.story-card { background: var(--bg-card); border: 1px solid var(--border); border-top: none; padding: 14px 18px 4px; margin-bottom: 18px; border-radius: 0 0 6px 6px; }
+.story-card p:first-child { margin-top: 0; }
+/* Appendix collapsibles */
+details.appendix-item, details.appendix-section { border: 1px solid var(--border); border-radius: 6px; margin: 12px 0; background: var(--bg-card); }
+details summary { padding: 12px 16px; cursor: pointer; font-weight: 600; user-select: none; }
+details summary:hover { background: var(--bg-card-2); }
+details[open] summary { border-bottom: 1px solid var(--border); }
+details > *:not(summary) { padding: 0 18px; }
+details summary .src { color: var(--muted); font-weight: normal; font-size: 12px; margin-left: 6px; }
+/* Severity chips (applied via JS) */
+.sev-chip { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #0d1117; margin: 0 2px; }
+.status-ok { color: var(--ok); }
+.status-warn { color: var(--major); }
+</style>
+</head><body>
+<div class="layout">
+  <nav>
+    <h2>Report layers</h2>
+    <a href="#tldr">1. TL;DR</a>
+    <a href="#story">2. The Story</a>
+    <a href="#appendix">3. Appendix</a>
+    <h2>Story scenarios</h2>
+    <div id="nav-scenarios"></div>
+    <h2>Appendix</h2>
+    <a href="#appendix-session" class="depth-1">session.md</a>
+    <a href="#appendix-followups-audit-log-gaps" class="depth-1">followups-audit-log-gaps.md</a><a href="#appendix-followups-wf44-feedback-recorder" class="depth-1">followups-wf44-feedback-recorder.md</a><a href="#appendix-followups-wf60-architecture" class="depth-1">followups-wf60-architecture.md</a>
+  </nav>
+  <main>
+    <header class="page">
+      <h1>Test Report — smoke-pre-golive-resume-2026-05-19</h1>
+      <div class="meta">Generated 2026-05-20T09:22:05+00:00 · Folder <code>docs/artefacts/tests/smoke-pre-golive-resume-2026-05-19/</code></div>
+    </header>
+
+    <section class="layer" id="tldr">
+      <h1>1. TL;DR</h1>
+      <div class="layer-blurb">Verdict, bugs at a glance, scope, and tomorrow's queue. Skim this; the rest is detail.</div>
+      <h2>Verdict</h2>
+<p><strong>11 of 13 scenarios PASS at smoke-test time, 2 FAIL — both FIXED + verified post-sprint.</strong> Critical user-facing path is intact end-to-end: APPROVE → consultation_active → bi-directional relay (including spicy unicode) → CLOSE → consultation_closed. The two failing paths at smoke time — (a) WF-44 Save Feedback to DB crashing on every invocation, (b) WF-60 Message Logger running cleanly but persisting nothing — were remediated in sprint <code>smoke-resume-remediation-2026-05-19</code> (TD-001 + TD-002), then live-verified on 2026-05-20 with end-to-end feedback roundtrip. A follow-on WF-60 quote-wrap caveat surfaced during verification was operator-patched same-day. <strong>No regressions</strong> — every fix from the 2026-05-18 sprint (BUG-01 comma truncation, BUG-02/03/04 Gemini path, BUG-05 WF-12 deactivation, timestamp-convention) holds under live re-test.</p>
+<h2>Bugs at a glance</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Sev</th>
+<th>Workflow</th>
+<th>What broke</th>
+<th>Suggested fix</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUG-NEW-01</td>
+<td>[critical]</td>
+<td>WF-60</td>
+<td>Message Logger runs success in 22–101 ms with zero rows persisted; operator UI inspection: "many basic issues — variable used in next node but previous code node never returns it"</td>
+<td>Architectural rebuild (TD-002, sprint <code>smoke-resume-remediation-2026-05-19</code>): 4 → 11 nodes with canonical-shape mapper, IF guards for skip + lookup, parameterised Postgres insert. Operator follow-on patch removed literal-quote wrap on <code>content</code> field.</td>
+<td>✅ Fixed &amp; verified live 2026-05-20T09:07Z (rows 10+11 in <code>messages</code>)</td>
+</tr>
+<tr>
+<td>BUG-NEW-02</td>
+<td>[major] → reclassified</td>
+<td>global</td>
+<td><code>chinmay_astro.admin_actions</code> has 0 rows globally despite every APPROVE / CLOSE etc. being expected to land an audit row</td>
+<td>Reclassified during sprint as deprecation per single-admin-model decision: existing writers in WF-11 + WF-47 remain as silent no-ops; nothing reads from the table; removal logged as project tech debt</td>
+<td>✅ Resolved (reclassified, see <code>memory: project_admin_actions_deprecated</code>)</td>
+</tr>
+<tr>
+<td>BUG-NEW-03</td>
+<td>[critical]</td>
+<td>WF-44</td>
+<td><code>Save Feedback to DB</code> Postgres node uses <code>$1, $2</code> in SQL but <code>queryReplacement: null</code> → every feedback save errors with "there is no parameter $2"; user gets no acknowledgement</td>
+<td>Sprint TD-001: set <code>queryReplacement</code> to <code>={{ [$('When Executed...').first().json.messageContent, $('When Executed...').first().json.user.id] }}</code> — array-form, references upstream trigger directly</td>
+<td>✅ Fixed &amp; verified live 2026-05-20T08:41Z (<code>users.id=28.feedback</code> populated verbatim)</td>
+</tr>
+<tr>
+<td>MINOR-01</td>
+<td>[minor]</td>
+<td>schema</td>
+<td><code>payments.status</code> value is <code>approved</code> but column is <code>verified_at</code> — verb mismatch</td>
+<td>Sprint TD-005: WF-33 + WF-11 Get Stats both updated to <code>'verified'</code>; 2 historical rows migrated via SSH+psql</td>
+<td>✅ Fixed &amp; verified (<code>status='verified'</code> × 2, <code>'approved'</code> × 0)</td>
+</tr>
+</tbody>
+</table>
+<h2>Test scope</h2>
+<ul>
+<li><strong>Phone:</strong> <code>61466927921</code> (test user id=28, name "Abcs")</li>
+<li><strong>Scenarios PASSED:</strong> TC-0303 (APPROVE PAYMENT, second-time consultation create), TC-0401 / 0401b / 0401c-mild / 0401c-spicy (user→admin relay incl. emoji + curly quotes + comma + ampersand + backslash), TC-0402 / 0402b / 0402c / 0402d (admin→user relay, same payload coverage), TC-0403 (CLOSE CONSULT)</li>
+<li><strong>Scenarios FAILED:</strong> TC-0404 (user feedback after close — WF-44 crashed; cascade through WF-43, WF-02, WF-01, WF-00)</li>
+<li><strong>Scenarios NOT covered this session:</strong> TC-0303-reject path (REJECT PAYMENT), TC-0501 (REBOOK), TC-06xx STOP/HELP, TC-07xx BLOCK/UNBLOCK, onboarding (WF-21/22 — pre-existing user used)</li>
+</ul>
+<h2>Workflow coverage</h2>
+<p><strong>Exercised functionally this session (13):</strong> WF-00 / 01 / 02 / 10 / 11 / 20 / 33 / 40 / 43 / 44 / 50 / 51 / 60</p>
+<p><strong>NOT exercised — need technical-workflow-review (sprint item 4):</strong> WF-21, WF-22, WF-23, WF-25, WF-30, WF-31, WF-32, WF-41, WF-42, WF-45, WF-47, WF-52, plus any P3/utility workflows. Static check before functional re-test prevents whack-a-mole.</p>
+<h2>Sprint outcome</h2>
+<p><code>sprint-input.md</code> was consumed by <code>plan-sprint</code> → executed via <code>build-sprint</code> as <code>smoke-resume-remediation-2026-05-19</code>. All 5 items closed (TD-001…TD-005), with TD-003 reclassified mid-sprint as deprecation. See <code>docs/artefacts/sprints/smoke-resume-remediation-2026-05-19/state.md</code> for the full sprint audit trail.</p>
+<h2>Open items carried to next testing session</h2>
+<ul>
+<li><code>messages.consultation_id</code> is <code>null</code> on rows 10+11 — WF-60 isn't resolving the active consultation for the user. Cosmetic for user-flow, raise as a sprint item before any reporting/analytics work on <code>messages</code>. (🟡 minor)</li>
+<li>Untested scenarios still pending live verification: REJECT PAYMENT (TC-0802), REBOOK (TC-0501), STOP/HELP (TC-06xx), BLOCK/UNBLOCK (TC-07xx), onboarding from scratch (WF-21/22).</li>
+<li>ADJ-T1 through ADJ-T5 from technical-review — user-classify next sprint.</li>
+</ul>
+<h2>State carry-forward</h2>
+<p>User id=28 ends in <code>consultation_closed</code> after the post-fix verification roundtrip. Consultation id=10 closed (<code>ended_at=2026-05-19T10:30:42.681Z</code>). Slack channel <code>C0B567A175W</code> preserved per DR-10. <code>messages</code> table has 4 rows (2 pre-fix wrapped, 2 post-fix clean). <code>users.id=28.feedback</code> populated with verified spicy payload. Next session can either continue from this state for the pending scenarios or wipe per CLAUDE.md clean-slate SQL before re-running from onboarding.</p>
+    </section>
+
+    <section class="layer" id="story">
+      <h1>2. The Story</h1>
+      <div class="layer-blurb">Each scenario as a card with narrative + fix snippets. Tells you what happened without making you read raw logs.</div>
+      <h3>TC-0303 — Admin APPROVE PAYMENT (second-time consultation create path)  ✅</h3>
+<p>Operator typed <code>APPROVE PAYMENT 61466927921</code> in <code>consult-61466927921</code>. The full WF-10 → WF-11 → WF-33 chain fired in 2.7 seconds; <code>payments.id=11</code> transitioned to <code>approved</code> with <code>verified_at</code> and <code>verified_by</code> set, <code>users.id=28</code> flipped to <code>consultation_active</code>, and a new <code>consultations.id=10</code> row was created with <code>status=active</code>. Critically, <code>slack_channel_id</code> did NOT change and no WF-52 execution appeared — confirming the second-time path correctly reuses the existing channel per DR-10. WhatsApp confirmation and Slack admin confirmation both posted as expected.</p>
+<hr />
+<h3>TC-0401 + 0401b + 0401c-mild — User → admin text relay (3 messages)  ✅</h3>
+<p>User sent three WhatsApp messages in quick succession: plain text, emoji-bearing, and partial special-character. Each ran an identical 7-workflow chain (WF-00 → WF-60 → WF-01 → WF-02 → WF-20 → WF-40 → WF-51) in roughly 1.0–1.4 seconds end-to-end, with every message arriving in Slack formatted as <code>:calling: *Abcs:* &lt;text&gt;</code>. Emojis round-tripped cleanly to Slack emoji codes (<code>:grinning:</code>, <code>:pray:</code>, <code>:sunglasses:</code>); the <code>#</code> and <code>$</code> characters in the mild special-char test were untouched. WF-60 ran each time in 22–30 milliseconds, which we noted was suspiciously short — a finding that compounded as the session continued.</p>
+<hr />
+<h3>TC-0401c-spicy — User → admin relay with full special-character payload  ✅</h3>
+<p>User re-ran the special-character test with the recommended spicy payload: <code>Let's check "this": it's a 5,000-ft cliff &amp; costs $200 - code: \x.y''</code>. Every high-risk character survived the round trip — curly quotes, apostrophes, comma, ampersand, dollar sign, backslash, double trailing apostrophes — all rendered correctly in Slack with no JSON-escaping artifacts or truncation. This direction (user→admin) is now confirmed safe for the full character set.</p>
+<hr />
+<h3>TC-0402 + 0402b + 0402c + 0402d — Admin → user relay (4 messages, including spicy)  ✅</h3>
+<p>Operator typed four messages of escalating difficulty into <code>consult-61466927921</code>: plain text, emoji, partial special chars, and the same spicy payload. All four reached the user via WhatsApp through the WF-10 → WF-50 path. The historically-failed comma-truncation case from BUG-01 (prior sprint) was specifically re-exercised in the spicy payload and held up — the queryReplacement array-form fix from the 2026-05-18 sprint is durable under live load.</p>
+<hr />
+<h3>TC-0403 — Admin CLOSE CONSULT  ✅</h3>
+<p>Operator typed <code>CLOSE CONSULT 61466927921</code>. <code>users.id=28</code> flipped from <code>consultation_active</code> to <code>consultation_closed</code> at 2026-05-19T10:30:42.687Z; <code>consultations.id=10</code> transitioned to <code>closed</code> with <code>ended_at</code> set; Slack received two confirmation messages (the close summary plus a separate close acknowledgement); WhatsApp received the feedback prompt. Importantly, the Slack channel was NOT archived — confirming DR-10 ("channel preserved for rebook") still holds.</p>
+<hr />
+<h3>TC-0404 — User feedback after close  ❌</h3>
+<p>User replied to the feedback prompt with a tricky free-text message via WhatsApp at approximately 10:32:39Z. The chain triggered correctly through WF-00 → WF-01 → WF-02 → WF-43 (routing user to feedback path because state is <code>consultation_closed</code>) and reached WF-44 — where it died. Every workflow in the chain reported the same error message ("there is no parameter $2"), but the root cause was localised to a single node:</p>
+<pre><code class="language-sql">-- WF-44 &quot;Save Feedback to DB&quot;:
+UPDATE chinmay_astro.users SET feedback = $1, stage = NULL, updated_at = NOW() WHERE id = $2
+-- with queryReplacement: null
+</code></pre>
+<p>The SQL has two positional placeholders but no <code>queryReplacement</code> is configured — same root-cause family as historical BUG-01, in a node that was never exercised before because the upstream routing was broken until the prior sprint. The feedback value never persisted, the user received no acknowledgement, and the consultation_close arc remains incomplete until WF-44 is fixed. <strong>Captured as BUG-NEW-03 in <code>followups-wf44-feedback-recorder.md</code> and sprint input item 1.</strong></p>
+<hr />
+<h3>BUG-NEW-01 — WF-60 Message Logger architectural failure  ❌</h3>
+<p>This wasn't a single test scenario — it surfaced cumulatively across the entire session. WF-60 was invoked at least 8 times (inbound relays, outbound sends, admin chain) and every single execution completed <code>success</code> in 22–101 milliseconds while the <code>chinmay_astro.messages</code> table remained globally empty. Operator then opened WF-60 in the n8n UI and found systematic cross-node variable mismatches: nodes downstream of <code>Extract Message Data</code> reference fields that the Code node simply doesn't emit. A targeted patch would only fix one reference at a time; the workflow needs to be redesigned around a canonical input contract that every caller (WF-50, WF-51, WF-33, WF-43, the inbound webhook chain) maps to via a small per-caller mapper node. <strong>Captured as BUG-NEW-01 in <code>followups-wf60-architecture.md</code> and sprint input item 2.</strong></p>
+<hr />
+<h3>BUG-NEW-02 — admin_actions audit log not being written  ❌</h3>
+<p>A parallel finding — <code>chinmay_astro.admin_actions</code> is globally zero rows despite multiple admin commands (APPROVE, CLOSE, and the entire prior session's commands) all expected to land audit entries. Whether the audit-writing node was ever built, or built and then broken by a refactor, is unclear from execution data alone — needs a grep across all 28 active workflow JSONs as the first sprint step. Pre-go-live this is <code>[major]</code> for compliance and operations even though it doesn't affect user flow. <strong>Captured as BUG-NEW-02 in <code>followups-audit-log-gaps.md</code> and sprint input item 3.</strong></p>
+<hr />
+<h3>Post-sprint verification — feedback chain fully restored  ❌ → ✅ (after TD-001 + TD-002)</h3>
+<p>The day after smoke-testing closed with the WF-44 + WF-60 failures, sprint <code>smoke-resume-remediation-2026-05-19</code> ran TD-001 (WF-44 parameter binding) and TD-002 (WF-60 architectural rebuild from 4 → 11 nodes) in batch 1. Live re-verification on 2026-05-20 sent the same spicy-character feedback payload through the previously-broken chain. All 14 executions completed <code>success</code>, and the spicy payload (curly quotes, comma, ampersand, backslash, trailing double-apostrophes) landed verbatim in <code>users.id=28.feedback</code>. The user received the thank-you via WF-50. A follow-on caveat surfaced — WF-60's <code>messages.content</code> was wrapped in literal double quotes via <code>"\"" + $json.content + "\""</code> at the <code>$5</code> queryReplacement position. Operator patched WF-60 manually via UI; a second feedback roundtrip immediately after produced rows 10 (inbound) + 11 (outbound) with content stored verbatim, no wrap. The previously-broken feedback chain is now end-to-end functional with the full character set.</p>
+<pre><code class="language-sql">-- post-fix verification rows
+id=10 inbound content:  This is the feedback for great service. Let's check
+                        if &quot;this&quot; message from 5,000-ft cliff &amp; costing $200
+                        - reached or not ?  \x.y''
+id=11 outbound content: 🙏 Thank you for your feedback! We really appreciate…
+</code></pre>
+<hr />
+<h3>Regression check — all prior-sprint fixes hold  ✅</h3>
+<p>Every fix from the 2026-05-18 follow-up sprints was indirectly re-tested by this session: BUG-01 comma-truncation (admin→user direction, spicy payload, multiple times — no truncation); BUG-02 jsonBody object-interpolation (didn't reach the failing node, but WF-43 routing reached WF-44 successfully); BUG-03 prompt template (no <code>undefined</code> strings observed); BUG-04 Gemini cred + routing (WF-43 routed correctly to WF-44 before WF-44's own bug surfaced); BUG-05 WF-12 deactivation (zero executions of WF-12); TZ-NEW (all timestamps in this session are correct UTC <code>Z</code>-suffixed strings). No regressions.</p>
+<hr />
+    </section>
+
+    <section class="layer" id="appendix">
+      <h1>3. Appendix</h1>
+      <div class="layer-blurb">Full raw artefacts. Click to expand. The session log is verbatim — use it to grep, re-trace, or audit.</div>
+      <details class="appendix-item" id="appendix-session">
+        <summary>Session log <span class="src">(session.md — raw chronological)</span></summary>
+        <h1>Smoke test — pre-go-live (resume) — 2026-05-19</h1>
+<p><strong>Test type:</strong> smoke
+<strong>Slug:</strong> pre-golive-resume
+<strong>Operator:</strong> prasadmujumdar
+<strong>Latency threshold:</strong> 5000 ms
+<strong>Continues from:</strong> <code>docs/artefacts/tests/smoke-post-p0-review-tc04xx-2026-05-18/</code> (last session: 8 scenarios run, 5 bugs found + all fixed)</p>
+<h2>Design / expected-behavior references</h2>
+<p>No <code>FunctionalTestCases.md</code> file exists in repo. Reference docs loaded:
+- <code>CLAUDE.md</code> — design rules (DR-1…DR-10, DR-13), state machine, admin commands, schema
+- <code>docs/workflow-registry.md</code> — WF-33 row already loaded via UserPromptSubmit hook (state guard added TD-021 May 2026)
+- Prior session <code>tldr.md</code> — TC-0303 (admin APPROVE PAYMENT, second-time consultation create path) was explicitly deferred and is the entry point for this session</p>
+<p>Operator will narrate expected behavior inline before each test action.</p>
+<h2>Watch surface</h2>
+<ul>
+<li><strong>n8n executions:</strong> all active workflows (default)</li>
+<li><strong>Postgres tables:</strong> <code>users</code>, <code>payments</code>, <code>consultations</code>, <code>messages</code>, <code>admin_actions</code>, <code>pending_users</code></li>
+<li><strong>Slack channels:</strong> <code>C0B567A175W</code> (consult-61466927921 — only channel in scope for this session unless test broadens)</li>
+</ul>
+<h2>Baselines (captured 2026-05-19T10:08:35Z)</h2>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Cursor</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>n8n executions</td>
+<td>last id = <code>1310</code></td>
+</tr>
+<tr>
+<td>time cursor (DB/Slack)</td>
+<td><code>2026-05-19T10:08:35Z</code></td>
+</tr>
+<tr>
+<td>Slack <code>C0B567A175W</code> last ts</td>
+<td><code>1779106605.654719</code></td>
+</tr>
+</tbody>
+</table>
+<h3>Postgres baseline counts</h3>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Rows</th>
+<th>Last activity</th>
+<th>Max id</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>users</code></td>
+<td>1</td>
+<td>2026-05-18T03:38:21.971Z</td>
+<td>28</td>
+</tr>
+<tr>
+<td><code>payments</code></td>
+<td>2</td>
+<td>2026-05-18T03:38:21.956Z</td>
+<td>11</td>
+</tr>
+<tr>
+<td><code>consultations</code></td>
+<td>1</td>
+<td>2026-05-17T16:05:37.997Z</td>
+<td>9</td>
+</tr>
+<tr>
+<td><code>messages</code></td>
+<td>0</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>admin_actions</code></td>
+<td>0</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>pending_users</code></td>
+<td>2</td>
+<td>2026-05-17T12:05:57.759Z</td>
+<td>n/a</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><code>messages</code> and <code>admin_actions</code> are 0 — both were truncated during the 2026-05-18 timestamptz migration. Any new rows in these tables this session are unambiguously caused by the test actions below.</p>
+</blockquote>
+<h2>Carry-forward state (verified live 2026-05-19T10:08Z)</h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Test user</td>
+<td>id=28, phone <code>61466927921</code>, name "Abcs"</td>
+</tr>
+<tr>
+<td>User status</td>
+<td><code>payment_submitted</code></td>
+</tr>
+<tr>
+<td>Slack channel</td>
+<td><code>C0B567A175W</code> (consult-61466927921, already exists from sprint 1)</td>
+</tr>
+<tr>
+<td>Latest payment</td>
+<td>id=11, ₹500, <code>pending_verification</code>, payment_method=gpay</td>
+</tr>
+<tr>
+<td>Outstanding Slack notification</td>
+<td>"🔔 New Payment Submission … <code>APPROVE PAYMENT 61466927921</code>" in C0B567A175W (ts 1779075502.970889)</td>
+</tr>
+<tr>
+<td>Last user message (free-text)</td>
+<td>"Amazing service" (Slack relay at ts 1779106605.654719 — from TC-0404b in prior session)</td>
+</tr>
+</tbody>
+</table>
+<h2>Session log</h2>
+<h3>Action — 2026-05-19T10:10:00Z</h3>
+<p><strong>TC-0303 — Admin APPROVE PAYMENT (WF-33 second-time consultation create path)</strong>
+Operator typed <code>APPROVE PAYMENT 61466927921</code> in <code>consult-61466927921</code> (C0B567A175W).</p>
+<p>Expected:
+- WF-10 → WF-11 → WF-33 fire (state guard passes — user in <code>payment_submitted</code>)
+- <code>payments.id=11</code> → <code>verified</code> / <code>verified_at</code> / <code>verified_by</code> set
+- <code>users.id=28</code> → <code>consultation_active</code>
+- <code>slack_channel_id</code> unchanged (WF-52 NOT called — channel already exists)
+- WhatsApp confirmation sent via WF-50 (logged in <code>messages</code> via WF-60)
+- "✅ Payment approved" posted to consult channel via WF-51
+- <code>admin_actions</code> audit row inserted</p>
+<h3>Tick — 2026-05-19T10:13:00Z</h3>
+<p><strong>Trigger:</strong> user said "check" after admin APPROVE in consult-61466927921</p>
+<p><strong>New executions (10):</strong> all <code>success</code>, durations &lt; 3s, no slow flags
+- 1311 WF-10 Slack Admin Handler (webhook, 4.0s)
+- 1312 WF-11 Command Parser (integrated, 2.8s)
+- 1313 WF-33 Payment Approval Processor (integrated, 2.7s)
+- 1314 WF-50 Send WhatsApp (integrated, 1.8s)
+- 1315 WF-60 Message Logger (integrated, <strong>0.1s</strong> — suspiciously short for an insert)
+- 1316 WF-51 Send Slack Message (integrated, 0.5s)
+- 1317–1320 WF-10 + JQu1MkK5vgtUCeNO (webhooks, all &lt;50ms) — loop-prevention dropping bot's own posts</p>
+<p><strong>DB deltas (since 2026-05-19T10:08:35Z):</strong>
+- <code>users.id=28</code>: <code>payment_submitted</code> → <code>consultation_active</code>, updated_at 2026-05-19T10:10:26.933Z, <code>slack_channel_id</code> unchanged (C0B567A175W) ✅
+- <code>payments.id=11</code>: <code>pending_verification</code> → <code>approved</code>, <code>verified_at=2026-05-19T10:10:26.848Z</code>, <code>verified_by=C0B567A175W</code> ✅
+- <code>consultations</code>: +1 row, id=10, user_id=28, status=<code>active</code>, created 2026-05-19T10:10:26.909Z ✅
+- <code>messages</code>: <strong>0 new rows</strong> ❌
+- <code>admin_actions</code>: <strong>0 new rows</strong> ❌
+- <code>pending_users</code>: no change</p>
+<p><strong>Slack (C0B567A175W):</strong>
+- 1779185423.727 — operator: <code>APPROVE PAYMENT 61466927921</code>
+- 1779185429.249 — bot: "✅ Payment approved for Abcs (61466927921). User notified via WhatsApp; consultation is now active."</p>
+<p><strong>Cross-check vs expected:</strong>
+- ✅ WF-33 fired with state guard passing
+- ✅ payments.id=11 → approved (note: status is <code>approved</code>, not <code>verified</code> as registry implies — see below)
+- ✅ users.id=28 → consultation_active
+- ✅ slack_channel_id unchanged → second-time path confirmed (WF-52 NOT called — no channel-create exec observed)
+- ✅ WhatsApp confirmation sent (WF-50 ran to completion, 1.8s)
+- ✅ Admin confirmation posted to consult channel via WF-51
+- ❌ <code>messages</code> row missing — WF-60 ran but exited in 101ms; table still globally empty
+- ❌ <code>admin_actions</code> row missing — WF-33 didn't write an audit entry; table still globally empty</p>
+<p><strong>Issues found:</strong></p>
+<p><code>[major]</code> BUG-NEW-01 — <code>chinmay_astro.messages</code> not being written. WF-60 Message Logger executed successfully (id=1315) in only 101ms, which is too short for a Postgres insert. Table has been empty across the entire prior session as well (baseline rows=0 despite 10+ WhatsApp messages exchanged), so this is not new to TC-0303 — it surfaced earlier but was masked by the timestamptz migration that truncated the table on 2026-05-18. Needs WF-60 execution-data inspection.</p>
+<p><code>[major]</code> BUG-NEW-02 — <code>chinmay_astro.admin_actions</code> not being written. WF-33 executed cleanly but no audit row was inserted. Table has been empty across all prior sessions as well. Either the audit-log node is absent in WF-33 or the insert is failing silently. CLAUDE.md explicitly lists <code>admin_actions</code> as the audit log with <code>ON DELETE NO ACTION</code>, so functionality is expected.</p>
+<p><strong>Status carry-forward:</strong> user id=28 now in <code>consultation_active</code> on channel C0B567A175W. Ready for next test step (e.g. user message → admin relay, or close + rebook loop).</p>
+<h3>Action — 2026-05-19T10:18–10:20Z</h3>
+<p><strong>TC-0401 / 0401b / 0401c — User → admin text relay (3 messages, mixed payloads)</strong>
+User sent 3 WhatsApp messages from <code>+61466927921</code>:
+1. <code>"How does my future look like"</code> — plain text (TC-0401)
+2. <code>"Is it bright and shiny 😀🙏😎"</code> — emoji (TC-0401b)
+3. <code>"This is just to test special characters #1 $200"</code> — partial special chars (TC-0401c; lighter than the suggested quote/comma/apostrophe/backtick set)</p>
+<p>Expected: each appears in <code>consult-61466927921</code> with <code>:calling: *Abcs:* &lt;text&gt;</code> via WF-51; user state unchanged; no Gemini / feedback path triggered.</p>
+<h3>Tick — 2026-05-19T10:20:00Z</h3>
+<p><strong>Trigger:</strong> user said "check" after 3 inbound WhatsApp messages</p>
+<p><strong>New executions (24):</strong> all <code>success</code>, no errors, no slow flags. Each inbound message ran an identical 7-workflow chain in ~1.0–1.4 s end-to-end:</p>
+<pre><code>WF-00 Webhook Receiver  →  WF-60 Message Logger  →  WF-01 Message Router
+       (JQu1MkK5...)            (6H75p93...)               (hYGNM97...)
+                ↓
+WF-02 User State Router  →  WF-20 Keyword Handler  →  WF-40 User→Admin Relay
+       (PubCsNT...)              (LgIDj1v...)               (du32QBZ...)
+                ↓
+WF-51 Send Slack Message  +  WF-10 (loop-prevention webhook drop)
+       (wlZRK0Y...)               (wMh0oBR...)
+</code></pre>
+<p>Three bursts at exec ids 1321–1328, 1329–1336, 1337–1344 — chain order identical each time.</p>
+<p><strong>WF-60 durations this tick: 22 ms, 30 ms, 24 ms</strong> — even faster than the 101 ms TC-0303 instance. Reinforces BUG-NEW-01 hypothesis #1 (early-return / short-circuit; not actually inserting).</p>
+<p><strong>DB deltas:</strong>
+- <code>users.id=28</code>: no change (still <code>consultation_active</code>, slack_channel_id unchanged) ✅
+- <code>messages</code>: <strong>still 0 rows</strong> ❌ (BUG-NEW-01 confirmed across 3 more sends)
+- <code>admin_actions</code>: 0 (expected — not admin commands)
+- <code>consultations</code>: no change (id=10, status=active)</p>
+<p><strong>Slack (C0B567A175W) — 3 new bot posts:</strong>
+| ts | rendered text |
+|---|---|
+| 1779185909.255 | <code>:calling: *Abcs:* How does my future look like</code> |
+| 1779185925.639 | <code>:calling: *Abcs:* Is it bright and shiny :grinning::pray::sunglasses:</code> |
+| 1779185977.728 | <code>:calling: *Abcs:* This is just to test special characters #1 $200</code> |</p>
+<p>All three rendered cleanly — bold name, emoji round-tripped to Slack emoji codes, <code>#</code> and <code>$</code> untouched.</p>
+<p><strong>Cross-check vs expected:</strong>
+- ✅ TC-0401 plain text — formatting correct
+- ✅ TC-0401b emoji — 😀 🙏 😎 round-tripped to <code>:grinning:</code> <code>:pray:</code> <code>:sunglasses:</code> Slack emoji codes
+- ✅ TC-0401c <strong>partial</strong> — <code>#</code>, <code>$</code>, and digits all clean. But the high-risk chars (quotes <code>"</code>, apostrophe <code>'</code>, comma <code>,</code>, backtick <code>`</code>, ampersand <code>&amp;</code>) were NOT covered. Operator's chosen test text was milder than recommended. <strong>Suggest re-running TC-0401c with a stronger payload</strong> (e.g. <code>Let's check "this": it's a 5,000-ft cliff &amp; costs $200 — code: \</code>x.y`<code>) before declaring user→admin direction safe for all input shapes.
+- ✅ User state unchanged
+- ✅ Gemini/feedback path NOT triggered
+- ❌ BUG-NEW-01 reconfirmed — WF-60 ran 3× with no</code>messages` row written</p>
+<p><strong>Status carry-forward:</strong> user still <code>consultation_active</code>, channel unchanged. Ready for admin → user relay (TC-0402/b).</p>
+<h3>Action — 2026-05-19T10:29–10:32Z</h3>
+<p><strong>TC-0401c-spicy / TC-0402 / 0402b / 0402c / 0402d / 0403 / 0404 — relay both directions + close + feedback</strong></p>
+<p>Operator narrated: "I've tried that trick message you shared relaying from either sides along with other 2 messages. Then closed consultation and shared feedback (Again text was bit tricky)."</p>
+<p>Observed in Slack (chronological):
+1. ts 1779186577 (bot, Abcs) — <code>Let's check "this": it's a 5,000-ft cliff &amp; costs $200 - code: \x.y''</code> → user→admin <strong>spicy</strong> payload — TC-0401c re-run with the recommended payload ✅
+2. ts 1779186600 (operator) — <code>How does my future look like</code> → admin→user plain — TC-0402
+3. ts 1779186605 (operator) — <code>Is it bright and shiny 😀🙏😎</code> → admin→user emoji — TC-0402b
+4. ts 1779186620 (operator) — <code>This is just to test special characters #1 $200</code> → admin→user partial special — TC-0402c
+5. ts 1779186626 (operator) — <code>Let's check "this": it's a 5,000-ft cliff &amp; costs $200 - code: \x.y''</code> → admin→user spicy — TC-0402d
+6. ts 1779186640 (operator) — <code>CLOSE CONSULT 61466927921</code> — TC-0403
+7. ts 1779186644 (bot) — <code>✅ Consultation closed for Abcs (61466927921). Feedback prompt sent via WhatsApp; channel kept open for future rebook.</code>
+8. ts 1779186644 (bot) — <code>✅ Consultation closed for 61466927921</code> (duplicate-looking confirmation from WF-11)
+9. ~10:32:39Z — user sent feedback via WhatsApp (text per operator: "a bit tricky") → triggered the failed WF-44 chain</p>
+<h3>Tick — 2026-05-19T10:33:00Z</h3>
+<p><strong>Trigger:</strong> user said "check" after admin↔user relays + CLOSE + feedback</p>
+<p><strong>66 new executions</strong> since cursor 1344. Status counts: <strong>61 success, 5 error</strong>. All 5 errors cluster at one timestamp (10:32:39Z) and share one error message — single-bug cascade, not 5 independent failures.</p>
+<p><strong>Failing executions (root → bubbles):</strong></p>
+<table>
+<thead>
+<tr>
+<th>exec</th>
+<th>workflow</th>
+<th>failed node</th>
+<th>error</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1402</td>
+<td>WF-00 Webhook Receiver</td>
+<td>Call WF-01 Message Router</td>
+<td><code>there is no parameter $2</code> (bubbled up)</td>
+</tr>
+<tr>
+<td>1404</td>
+<td>WF-01 Message Router</td>
+<td>Call WF-02 Rule Router</td>
+<td><code>there is no parameter $2</code> (bubbled up)</td>
+</tr>
+<tr>
+<td>1405</td>
+<td>WF-02 User State Router</td>
+<td>Call WF-43 (Post-Consultation Handler)</td>
+<td><code>there is no parameter $2</code> (bubbled up)</td>
+</tr>
+<tr>
+<td>1407</td>
+<td>WF-43 Post-Consultation Handler</td>
+<td>Route to Feedback WF-44</td>
+<td><code>there is no parameter $2</code> (bubbled up)</td>
+</tr>
+<tr>
+<td><strong>1409</strong></td>
+<td><strong>WF-44 Feedback Recorder</strong></td>
+<td><strong>Save Feedback to DB</strong></td>
+<td><strong><code>there is no parameter $2</code> — root cause</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Root cause of cascade:</strong> WF-44 <code>Save Feedback to DB</code> Postgres node — inspected directly:</p>
+<pre><code class="language-sql">UPDATE chinmay_astro.users SET feedback = $1, stage = NULL, updated_at = NOW() WHERE id = $2
+</code></pre>
+<p>with <code>queryReplacement: null</code> (no values supplied) — same family as historical BUG-01 but in a different node. Captured as <strong>BUG-NEW-03</strong>.</p>
+<p><strong>DB deltas:</strong>
+- <code>users.id=28</code>: → <code>consultation_active</code> → <code>consultation_closed</code> at 2026-05-19T10:30:42.687Z ✅
+- <code>consultations.id=10</code>: → <code>closed</code>, <code>ended_at=2026-05-19T10:30:42.681Z</code> ✅
+- <code>messages</code>: <strong>still 0</strong> ❌ (BUG-NEW-01 — WF-60 architectural issue, operator-confirmed in UI: variables reference output of upstream Code node that never returns them; needs rebuild)
+- <code>admin_actions</code>: <strong>still 0</strong> ❌ (BUG-NEW-02 — confirmed no insert node exists anywhere)
+- No <code>feedback</code> table exists; <code>feedback</code> column expected on <code>users</code> (per WF-44 query) — value never landed because the insert errored</p>
+<p><strong>Slack: 4 admin-typed messages + 1 CLOSE + 2 close confirmations + 1 spicy user→admin relay</strong> — all rendered cleanly with no encoding loss. The spicy payload (curly quotes, comma, ampersand, backslash, double apostrophe trailing) survived round-trip in both directions.</p>
+<p><strong>Cross-check vs expected:</strong>
+- ✅ TC-0401c-spicy (user→admin spicy chars) — preserved end-to-end
+- ✅ TC-0402 / 0402b / 0402c / 0402d (admin→user, all 4 payloads) — all WF-50 sends succeeded; no comma-truncation (BUG-01 fix holds)
+- ✅ TC-0403 CLOSE CONSULT — users + consultations transitions correct, channel NOT archived (DR-10 holds)
+- ❌ TC-0404 feedback — chain failed at WF-44 Save Feedback to DB; feedback NOT persisted; user likely received no acknowledgement
+- ❌ BUG-NEW-01 re-confirmed yet again — operator inspected WF-60 in UI: "many basic issues like using a variable value in next node but previous code node never returns it" — promoting from <code>[major]</code> to architectural-rebuild</p>
+<p><strong>Final status carry-forward:</strong> user id=28 in <code>consultation_closed</code>. Consultation id=10 closed. Slack channel C0B567A175W preserved (intentional per DR-10). Feedback chain broken — needs sprint.</p>
+<hr />
+<h2>Post-sprint verification — 2026-05-20</h2>
+<p>Sprint <code>smoke-resume-remediation-2026-05-19</code> completed all 5 items (TD-001…TD-005). TD-003 reclassified mid-sprint as deprecation per single-admin-model decision (<code>memory: project_admin_actions_deprecated</code>). This section captures live re-verification.</p>
+<h3>Static verification — 2026-05-20T11:15Z</h3>
+<table>
+<thead>
+<tr>
+<th>Sprint item</th>
+<th>Live check</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TD-001 WF-44 Save Feedback to DB</td>
+<td><code>queryReplacement = ={{ [$('When Executed...').first().json.messageContent, $('When Executed...').first().json.user.id] }}</code></td>
+<td>✅ array-form, matches <code>$1, $2</code></td>
+</tr>
+<tr>
+<td>TD-001 schema check</td>
+<td><code>users.feedback</code> (text), <code>users.stage</code> (varchar) both present</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>TD-002 WF-60 rebuild</td>
+<td>Grew 4 → 11 nodes; canonical-shape design with <code>Has userId?</code> / <code>Filter Skip?</code> / <code>Needs Phone Lookup?</code> IF branches + Postgres pivot lookup + insert with array-form queryReplacement</td>
+<td>✅ matches sprint design</td>
+</tr>
+<tr>
+<td>TD-002 caveat flagged</td>
+<td>WF-60 insert had <code>"\"" + $json.content + "\""</code> literal-quote wrap at position $5</td>
+<td>🟠 raised for operator</td>
+</tr>
+<tr>
+<td>TD-003 reclassification</td>
+<td>Confirmed per memory; no new audit-table flagging</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>TD-004 technical review</td>
+<td><code>docs/artefacts/reviews/technical-workflow-review-2026-05-19/</code>: all 12 scoped workflows reviewed, 0 strict findings, 5 adjacent items deferred (ADJ-T1 thru T5)</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>TD-005 payments.status</td>
+<td>DB count: <code>verified</code>=2, <code>approved</code>=0</td>
+<td>✅ migration applied</td>
+</tr>
+</tbody>
+</table>
+<h3>Functional re-verification — 2026-05-20T08:41Z (first re-test, pre quote-wrap patch)</h3>
+<p>Operator sent feedback WhatsApp message with the spicy payload (<code>This is the feedback for great service. Let's check if "this" message from 5,000-ft cliff &amp; costing $200 - reached or not ?  \x.y''</code>).</p>
+<p><strong>14 executions, all success:</strong></p>
+<pre><code>WF-00 (1411) → WF-60 in (1412) → WF-01 (1413) → WF-02 (1414) → WF-20 (1415)
+  → WF-43 (1416) → WF-25 (1417) → WF-44 (1418) → WF-25 (1419)
+  → WF-50 thank-you (1420) → WF-60 out (1421) → WF-10 (1422–24)
+</code></pre>
+<p><strong>DB outcomes:</strong>
+- <code>users.id=28.feedback</code> populated verbatim — spicy chars preserved end-to-end ✅
+- <code>users.stage</code> set to NULL by WF-44 ✅
+- <code>messages.id=8</code> (inbound) + <code>id=9</code> (outbound) inserted ✅
+- ❌ Both <code>messages.content</code> values had literal <code>"</code> wrap (e.g. <code>"This is the feedback..."</code> instead of <code>This is the feedback...</code>) — the WF-60 caveat confirmed live</p>
+<h3>WF-60 quote-wrap patch — 2026-05-20T09:07Z</h3>
+<p>Operator patched WF-60 manually via UI. Live re-verification (queryReplacement post-fix):</p>
+<pre><code class="language-js">[$json.userId, $json.consultationId, $json.direction, $json.messageType,
+ $json.content, $json.whatsappMessageId, $json.slackMessageTs,
+ JSON.stringify($json.metadata)]
+</code></pre>
+<p>No wrap on position $5 ✅.</p>
+<p><strong>Second roundtrip (14 more executions, identical chain, all success):</strong>
+- <code>messages.id=10</code> (inbound) content = <code>This is the feedback for great service. Let's check if "this" message from 5,000-ft cliff &amp; costing $200 - reached or not ?  \x.y''</code> — verbatim, no wrap ✅
+- <code>messages.id=11</code> (outbound) content starts with <code>🙏 Thank you for your feedback! …</code> — no wrap ✅</p>
+<h3>Outstanding findings carried into next session</h3>
+<table>
+<thead>
+<tr>
+<th>Finding</th>
+<th>Severity</th>
+<th>Disposition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>messages.consultation_id</code> is <code>null</code> on rows 10, 11 (WF-60 not resolving active consultation for user)</td>
+<td>🟡 minor</td>
+<td>Followup — does NOT block any user flow; raise as sprint item before any reporting/analytics work on <code>messages</code></td>
+</tr>
+<tr>
+<td>WF-60 row 8/9 still have legacy quote-wrap (pre-fix)</td>
+<td>⚪ cosmetic</td>
+<td>No backfill required pre-go-live; 2 historical rows</td>
+</tr>
+<tr>
+<td>ADJ-T1 through ADJ-T5 from technical-review</td>
+<td>mixed</td>
+<td>Already recorded; user-classify next sprint</td>
+</tr>
+</tbody>
+</table>
+<h3>Verdict</h3>
+<p>All 4 critical/major user-facing bugs from this session are RESOLVED and verified live. The feedback chain (previously the single hard-fail blocker) is now fully functional with the spicy character set. Re-test coverage of remaining scenarios (REJECT, REBOOK, STOP/HELP, BLOCK/UNBLOCK, onboarding from scratch) is open for the next session.</p>
+      </details>
+      <div id="appendix-followups-audit-log-gaps"><details class="appendix-item"><summary>Followup — Audit Log Gaps <span class="src">(followups-audit-log-gaps.md)</span></summary><h1>Followups — audit-log gaps (BUG-NEW-01, BUG-NEW-02, MINOR-01)</h1>
+<p><strong>Surfaced during:</strong> TC-0303 (admin APPROVE PAYMENT, 2026-05-19 10:10Z)
+<strong>Scope:</strong> server-side audit/log persistence — does NOT affect user-facing flow
+<strong>Severity:</strong> both <code>[major]</code> — pre-go-live data observability and compliance
+<strong>Pre-existing?</strong> Yes — <code>chinmay_astro.messages</code> and <code>chinmay_astro.admin_actions</code> have been globally empty across the entire prior smoke session as well. Was masked by the 2026-05-18 timestamptz migration which truncated both tables. TC-0303 is the first scenario after the migration that conclusively confirms inserts are not happening.</p>
+<hr />
+<h2>BUG-NEW-01 — <code>chinmay_astro.messages</code> not being written</h2>
+<h3>Evidence</h3>
+<ul>
+<li>After TC-0303, WF-60 Message Logger executed (id=1315) with <code>status=success</code> in <strong>101 ms</strong> (10:10:28.574 → 10:10:28.675). A genuine Postgres insert typically takes 50–200 ms but for this workflow we'd expect a longer total — the suspicious-fast duration suggests an early return or a no-op branch.</li>
+<li><code>SELECT COUNT(*) FROM chinmay_astro.messages</code> returns <strong>0</strong> even though WF-50 ran end-to-end and the WhatsApp confirmation was sent to the user (Slack admin confirms "User notified via WhatsApp").</li>
+<li>Across the entire prior smoke session (2026-05-18), 10+ WhatsApp messages were exchanged in both directions, yet the table remained empty after the migration.</li>
+</ul>
+<h3>Hypotheses (in order of likelihood)</h3>
+<ol>
+<li><strong>WF-60 has a guard that short-circuits</strong> (e.g. <code>IF $json.skipLog === true</code> or a misconfigured branch after the timestamptz migration). The 101 ms total wall-clock makes this most likely.</li>
+<li><strong>The Postgres insert node is silently failing on a schema mismatch</strong> introduced by the migration. The column list (<code>user_id, consultation_id, direction, message_type, content, whatsapp_message_id, slack_message_ts, metadata, created_at</code>) is intact and the data type for <code>created_at</code> is now <code>timestamptz</code>. If WF-60 was emitting a naked <code>timestamp</code> literal it would still coerce, but worth confirming.</li>
+<li><strong>WF-60 expects an input contract</strong> (e.g. <code>userStatus</code> or a specific shape) and silently returns when the input is malformed — same family of issue as the WF-23 / WF-30 / WF-44 input-contract followup in the prior session.</li>
+</ol>
+<h3>Suggested next steps</h3>
+<ol>
+<li>Pull <code>/api/v1/executions/1315?includeData=true</code> and inspect the per-node output — identify which node terminated the chain and the input shape at that point.</li>
+<li>Open WF-60 (<code>6H75p935FpBVBQtV</code>) in n8n; verify the Postgres insert node is reached for the WF-50 caller path (admin-confirmation message).</li>
+<li>If WF-60 has a <code>direction=outbound</code> branch and it's gated on a missing field, fix the guard. If it's a true insert failure, the postgres node will log a node-level error in the execution data even though the workflow status is <code>success</code> (depends on <code>alwaysOutputData</code> / <code>continueOnFail</code> config).</li>
+</ol>
+<h3>Acceptance</h3>
+<ul>
+<li>After fix, a new admin-APPROVE or relay roundtrip lands a row in <code>chinmay_astro.messages</code> for both <code>inbound</code> and <code>outbound</code> directions.</li>
+<li>Backfill is NOT required — pre-go-live, no historical data to recover.</li>
+</ul>
+<hr />
+<h2>BUG-NEW-02 — <code>chinmay_astro.admin_actions</code> not being written</h2>
+<h3>Evidence</h3>
+<ul>
+<li>After TC-0303, WF-33 Payment Approval Processor executed cleanly (id=1313, 2.7 s, all state transitions correct).</li>
+<li><code>SELECT COUNT(*) FROM chinmay_astro.admin_actions</code> returns <strong>0</strong> despite an admin action having just been processed.</li>
+<li>Across the entire prior smoke session, multiple admin commands were executed (APPROVE PAYMENT, CLOSE CONSULT, etc.) — yet the table has remained empty after the migration.</li>
+</ul>
+<h3>Hypotheses (in order of likelihood)</h3>
+<ol>
+<li><strong>No audit-log insert exists in WF-33 (or any admin workflow).</strong> CLAUDE.md describes <code>admin_actions</code> as the audit log (and notes its <code>ON DELETE NO ACTION</code> FK), but the audit-writing node may have never been built, or was removed during an earlier refactor and never reinstated.</li>
+<li><strong>The audit-log insert lives in a sub-workflow that is not being called</strong> (e.g. an "Audit Admin Action" helper that some upstream caller is supposed to invoke but doesn't).</li>
+<li><strong>Insert node exists but is silently failing</strong> — same hypothesis 2 from BUG-NEW-01 but applied here.</li>
+</ol>
+<h3>Suggested next steps</h3>
+<ol>
+<li>Grep all 28 active workflow JSONs for <code>admin_actions</code> table references — confirm whether ANY workflow inserts into it.
+   <code>bash
+   grep -l 'admin_actions' workflows/*.json</code></li>
+<li>If zero hits, the audit-log path was never built and this is a missing feature (still <code>[major]</code> for pre-go-live audit compliance).</li>
+<li>If one or more workflows reference it, inspect why those inserts aren't reaching the DB (likely same root cause family as BUG-NEW-01).</li>
+</ol>
+<h3>Acceptance</h3>
+<ul>
+<li>After fix, every admin-targeted action (APPROVE, REJECT, CLOSE, BLOCK, UNBLOCK) lands an <code>admin_actions</code> row with <code>user_id</code>, <code>action_type</code>, <code>performed_by</code> (Slack user_id of the admin), and <code>notes</code> populated.</li>
+</ul>
+<hr />
+<h2>MINOR-01 — <code>payments.status</code> value naming inconsistency</h2>
+<h3>Evidence</h3>
+<ul>
+<li><code>payments</code> table column is <code>verified_at</code> (timestamp), implying the post-approval state is "verified".</li>
+<li>After WF-33 approval, the actual value of <code>payments.status</code> is <code>approved</code> (not <code>verified</code>).</li>
+<li>The verb mismatch (<code>verified_at</code> column + <code>status='approved'</code>) is inconsistent — neither obviously wrong, but a reader of the schema vs the rows could be misled.</li>
+</ul>
+<h3>Suggested next steps</h3>
+<ul>
+<li>Decide whether the canonical post-approval status is <code>verified</code> or <code>approved</code>, then align: either rename <code>verified_at</code> → <code>approved_at</code> (schema change, touches WF-33), OR change WF-33 to set <code>status='verified'</code> (data change only). The latter is lower-blast-radius if anything else queries by <code>status='approved'</code>.</li>
+<li>Document the chosen value in CLAUDE.md state-machine section.</li>
+</ul>
+<h3>Note</h3>
+<p>This is not a blocker for go-live. Logging here so it's not lost.</p></details></div><div id="appendix-followups-wf44-feedback-recorder"><details class="appendix-item"><summary>Followup — Wf44 Feedback Recorder <span class="src">(followups-wf44-feedback-recorder.md)</span></summary><h1>Followup — BUG-NEW-03: WF-44 Save Feedback to DB crashes on every invocation</h1>
+<p><strong>Surfaced during:</strong> TC-0404 (post-CLOSE user feedback), 2026-05-19 10:32:39 Z
+<strong>Severity:</strong> <code>[critical]</code> — feedback chain entirely broken; user receives no acknowledgement
+<strong>Affected:</strong> every consultation_closed user who replies with feedback text
+<strong>Pre-existing?</strong> Likely yes — fix in prior sprint repaired the <em>upstream routing</em> (WF-25 + WF-43 cred + fallback) but the downstream insert was never exercised end-to-end because the route was broken. TC-0404 is the first run where execution reaches WF-44 with valid input.</p>
+<h2>Evidence</h2>
+<p>Live n8n WF-44 (<code>Du2CJ3OTohRFZYoA</code>), node <code>Save Feedback to DB</code>:</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;Save Feedback to DB&quot;,
+  &quot;type&quot;: &quot;n8n-nodes-base.postgres&quot;,
+  &quot;query&quot;: &quot;UPDATE chinmay_astro.users SET feedback = $1, stage = NULL, updated_at = NOW() WHERE id = $2&quot;,
+  &quot;queryReplacement&quot;: null,
+  &quot;options&quot;: null
+}
+</code></pre>
+<p>Execution trace (2026-05-19T10:32:39 Z):</p>
+<pre><code>WF-00 (exec 1402) → WF-01 (1404) → WF-02 (1405) → WF-43 (1407) → WF-44 (1409 root cause)
+                                                                   &quot;there is no parameter $2&quot;
+</code></pre>
+<p>All 5 executions report identical error — single-bug cascade.</p>
+<h2>Root cause</h2>
+<p>Postgres node uses <code>$1, $2</code> positional placeholders in the SQL string, but <code>options.queryReplacement</code> is <code>null</code> — no values are passed. Even if it were non-null, the syntax must be the array form <code>={{ [$json.feedbackText, $json.userId] }}</code> (post-2026-05-18 sprint convention) — the comma-string form is forbidden (BUG-01 from prior sprint).</p>
+<p>This is the same root-cause family as historical BUG-01 (WF-10 Load User Status) but in a node that was never exercised because upstream routing was broken until the prior sprint fix.</p>
+<h2>Suggested fix</h2>
+<p>Two surgical changes to <code>Save Feedback to DB</code>:
+1. Set <code>options.queryReplacement</code> to <code>={{ [ $json.feedbackText, $json.userId ] }}</code> (or whichever field names WF-44 actually emits — verify against the upstream node's output schema).
+2. Verify the SQL still passes the technical-workflow-review's queryReplacement-comma-string check (PLUGIN-02 from prior session, if landed in the plugin).</p>
+<p>Schema check: confirm <code>chinmay_astro.users</code> actually has a <code>feedback</code> column AND a <code>stage</code> column. If <code>stage</code> doesn't exist, SQL will fail differently after the queryReplacement fix.</p>
+<h2>Acceptance</h2>
+<ul>
+<li>User in <code>consultation_closed</code> sends feedback text → <code>users.id=N.feedback</code> populated, <code>users.stage = NULL</code>, no errors in n8n executions.</li>
+<li>Bot sends a thank-you message back via WF-50.</li>
+<li>Re-run TC-0404 end-to-end after fix.</li>
+</ul>
+<h2>Related findings (do not fix in same PR — separate items)</h2>
+<ul>
+<li>WF-43 "Route to Feedback WF-44" node propagates the error verbatim — consider whether WF-43 should catch + log instead of failing the consultation-close chain. Out of scope for the immediate fix.</li>
+<li>No <code>feedback</code> table exists; the design stores feedback as a column on <code>users</code>. Verify this matches the product intent before any reporting/analytics work on feedback.</li>
+</ul></details></div><div id="appendix-followups-wf60-architecture"><details class="appendix-item"><summary>Followup — Wf60 Architecture <span class="src">(followups-wf60-architecture.md)</span></summary><h1>Followup — BUG-NEW-01 (escalated): WF-60 Message Logger needs architectural rebuild</h1>
+<p><strong>Original severity:</strong> <code>[major]</code> (TC-0303 tick)
+<strong>Escalated to:</strong> <code>[critical]</code> (architectural) — confirmed by operator UI inspection 2026-05-19
+<strong>Status across this session:</strong> WF-60 ran 5× across TC-0303 + 3× TC-0401 inbound + 1× CLOSE chain — every invocation completed <code>success</code> in 22–101 ms with <strong>zero</strong> rows inserted into <code>chinmay_astro.messages</code>.</p>
+<h2>Evidence (live, multi-source)</h2>
+<ol>
+<li><strong>DB:</strong> <code>SELECT COUNT(*) FROM chinmay_astro.messages</code> = <strong>0</strong> after 8 message events that should have produced 8+ rows (inbound + outbound for every relay).</li>
+<li><strong>n8n executions:</strong> wall-clock durations (22 / 30 / 24 / 101 / ~25 ms) are too short for the workflow's stated path (<code>Trigger → Extract Message Data → Log to Messages Table → Done</code>). A genuine Postgres insert alone is typically 30–80 ms.</li>
+<li><strong>Operator UI inspection (2026-05-19, verbatim):</strong> "many basic issues like using a variable value in next node but previous code node never returns it. WF-60 needs to be thought through and re-built."</li>
+<li><strong>Workflow registry status:</strong> WF-60 was already P1 priority with note "All nodes re-enabled (TD-004 May 2026). Main path: Trigger → Extract Message Data → Log to Messages Table → Done. Schema prefix fixed (TD-001)." — but the <em>upstream contract</em> (what fields Extract Message Data emits vs what Log to Messages Table consumes) was never verified.</li>
+</ol>
+<h2>Why "rebuild" not "patch"</h2>
+<p>A patch implies one specific node has one specific wrong reference. Operator's UI walkthrough found the cross-node variable references are systematically wrong — multiple nodes downstream of <code>Extract Message Data</code> reference fields that the Code node doesn't emit. Fixing one reference leaves others equally broken.</p>
+<p>Recommended approach for the rebuild:
+1. <strong>Decide the canonical input contract for WF-60.</strong> It should accept a normalised shape (e.g. <code>{userId, consultationId, direction, messageType, content, whatsappMessageId, slackMessageTs, metadata}</code>) — <em>not</em> a raw inbound webhook payload or a raw Slack event.
+2. <strong>Update every caller</strong> (every workflow that does <code>Execute Workflow → WF-60</code>) to emit that canonical shape via a small mapper node — there will be 3-5 callers (inbound webhook chain, WF-50 sender, WF-51 sender, WF-33, WF-43).
+3. <strong>WF-60 itself becomes 2 nodes:</strong> a Postgres insert (with array-form <code>queryReplacement</code> per BUG-01 convention) + an error branch that logs to executions but doesn't fail the parent chain (logging is non-critical to user flow).
+4. <strong>Add the Postgres <code>messages</code> table to the technical-workflow-review's schema-alignment check</strong> so future drift surfaces.</p>
+<h2>Acceptance</h2>
+<ul>
+<li>Send 1 inbound WhatsApp + 1 outbound WhatsApp → 2 rows in <code>chinmay_astro.messages</code>, both with correct <code>direction</code>, <code>content</code>, <code>whatsapp_message_id</code>, <code>created_at</code> populated.</li>
+<li>Send 1 admin Slack message (relay direction) → 1 row with <code>direction=outbound</code>, <code>slack_message_ts</code> populated.</li>
+<li>WF-60 failure path (e.g. content too long for column) does not fail the parent chain.</li>
+</ul>
+<h2>Why this is pre-go-live blocking</h2>
+<p>Without <code>messages</code> rows, the system has zero conversation history for:
+- Compliance / dispute handling
+- Re-onboarding context for rebookings
+- Any analytics / reporting on consultation activity</p>
+<p>User-visible flow works without it, but operationally this is a P0 for any time-period &gt; the first few users.</p></details></div>
+    </section>
+
+  </main>
+</div>
+<script>
+// 1) Severity chip styling for [critical] / [major] / [minor]
+const sevColors = { critical: "#ff4d4f", major: "#ff9f43", minor: "#f1c40f", slow: "#e67e22" };
+function chipifySeverity(root) {
+  root.querySelectorAll("td, p, li, h3, h4").forEach(el => {
+    const html = el.innerHTML;
+    const newHtml = html.replace(/`?\[(critical|major|minor|slow)\]`?/gi, (s, k) => {
+      const key = k.toLowerCase();
+      return `<span class="sev-chip" style="background:${sevColors[key]}">${k}</span>`;
+    });
+    if (newHtml !== html) el.innerHTML = newHtml;
+  });
+}
+chipifySeverity(document);
+
+// 2) Wrap story h3 + following content into card containers
+(function wrapStoryCards() {
+  const story = document.getElementById("story");
+  if (!story) return;
+  const h3s = Array.from(story.querySelectorAll("h3"));
+  h3s.forEach(h3 => {
+    const card = document.createElement("div");
+    card.className = "story-card";
+    let next = h3.nextSibling;
+    while (next && !(next.nodeType === 1 && (next.tagName === "H3" || next.tagName === "HR" || next.tagName === "H2"))) {
+      const cur = next;
+      next = next.nextSibling;
+      card.appendChild(cur);
+    }
+    h3.after(card);
+  });
+  // remove <hr> separators since cards already provide separation
+  story.querySelectorAll("hr").forEach(hr => hr.remove());
+})();
+
+// 3) Build scenario nav from h3s in story section
+(function buildScenarioNav() {
+  const nav = document.getElementById("nav-scenarios");
+  if (!nav) return;
+  document.querySelectorAll("#story h3").forEach((h3, i) => {
+    const id = "scenario-" + (h3.textContent.match(/TC-\d+/)?.[0] || ("sc" + i)).toLowerCase();
+    h3.id = id;
+    const a = document.createElement("a");
+    a.href = "#" + id;
+    a.className = "depth-1";
+    a.textContent = h3.textContent.replace(/\s*[✅❌→].*/g, "").trim();
+    nav.appendChild(a);
+  });
+})();
+
+// 4) Color ✅ / ❌ in story headings
+document.querySelectorAll("#story h3").forEach(h3 => {
+  h3.innerHTML = h3.innerHTML
+    .replace(/✅/g, '<span class="status-ok">✅</span>')
+    .replace(/❌/g, '<span class="status-warn">❌</span>');
+});
+</script>
+</body></html>
