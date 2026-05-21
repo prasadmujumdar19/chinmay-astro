@@ -5,11 +5,29 @@ input_hash: 00063990aeb2b1e477e8e40ba341158239f841f20251f2d8b6b66c5328e4a58b
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/followups-for-plan-sprint/working.md
 planned_at: 2026-05-20T12:30:58Z
-last_updated: 2026-05-21T22:55:00Z
+last_updated: 2026-05-21T13:32:00Z
 
 batch_2_commit: c434469
 batch_2_push_target: prasadmujumdar19/chinmay-astro main
 batch_2_completed_at: 2026-05-21T12:50:00Z
+
+batch_3_completed_at: 2026-05-21T13:32:00Z
+batch_3_scope: plugin-repo
+batch_3_repo: prasadmujumdar19/n8n-whatsapp-methodology
+batch_3_commits:
+  - "de29f8f — 1.20.0 PIC-01 impact-analysis Step 2a"
+  - "8f14300 — 1.21.0 PIC-02 build-workflow Step 6a"
+  - "a49d975 — 1.22.0 PIC-03 technical-workflow-review C16"
+  - "30a8a9c — 1.23.0 PIC-04 NEW skill pseudo-md-drift-check"
+  - "4ad196d — 1.23.1 PIC-21A assert-md-fresh.sh label fix"
+  - "862b598 — 1.24.0 PIC-05 build-workflow Step 2a parametric gate"
+  - "c42efd0 — 1.25.0 PIC-06 (FINAL) PreToolUse drift-gate hook"
+batch_3_active_cache_version: 1.25.0
+batch_3_sibling_regression: skipped (Batch 3 was 100% plugin-repo work; no chinmay-astro workflow modifications)
+
+sprint_status: complete
+sprint_completed_at: 2026-05-21T13:32:00Z
+
 planning_complete: true
 
 dependency_conflicts_found: []
@@ -49,7 +67,7 @@ batches:
   - number: 3
     description: "Plugin-repo improvements — runs AFTER Batches 1+2 are committed and pushed to GitHub. Use flush-plugin-improvements / writing-skills skills in n8n-whatsapp-methodology repo, NOT this repo."
     estimated_tokens: ~40K (6 plugin items)
-    items: [PIC-01, PIC-02, PIC-03, PIC-04, PIC-05, PIC-06]
+    items: [PIC-01, PIC-02, PIC-03, PIC-04, PIC-21A, PIC-05, PIC-06]
     scope: plugin-repo
     precondition: "Batches 1+2 fully committed and pushed to prasadmujumdar19/chinmay-astro main"
 
@@ -345,11 +363,17 @@ items:
       if non-empty. Triggered by ISSUE-05 (WF-41).
     priority: P3
     batch: 3
-    status: pending
+    status: done
     scope: plugin-repo
     repo: prasadmujumdar19/n8n-whatsapp-methodology
     skill_to_use: flush-plugin-improvements
     depends_on: []
+    completed_at: 2026-05-21T13:08:00Z
+    completion_note: |
+      Plugin bump 1.19.0 → 1.20.0 (commit de29f8f). Added impact-analysis Step 2a "Intra-workflow
+      node-name reference scan" with jq+grep recipe: project surviving nodes (drop removed), then
+      grep each removed name as $('Name'). Step 3 checklist updated with corresponding tick-box.
+      Cache synced to 1.20.0; dir renamed and installed_plugins.json + marketplace cache aligned.
 
   - id: PIC-02
     description: |
@@ -359,7 +383,7 @@ items:
       ISSUE-05.
     priority: P3
     batch: 3
-    status: pending
+    status: done
     scope: plugin-repo
     repo: prasadmujumdar19/n8n-whatsapp-methodology
     skill_to_use: flush-plugin-improvements
@@ -367,6 +391,12 @@ items:
       - id: PIC-01
         type: soft
         reason: "PIC-02 can reuse PIC-01's jq scan implementation if PIC-01 ships first"
+    completed_at: 2026-05-21T13:11:00Z
+    completion_note: |
+      Plugin bump 1.20.0 → 1.21.0 (commit 8f14300). Added build-workflow Step 6a "Dangling
+      node-name reference re-scan" — re-runs PIC-01's recipe against the post-PUT workflow JSON
+      when the change removed/renamed any node. Cross-links to impact-analysis Step 2a.
+      Cache synced to 1.21.0.
 
   - id: PIC-03
     description: |
@@ -375,7 +405,7 @@ items:
       Surfaces in review HTML.
     priority: P3
     batch: 3
-    status: pending
+    status: done
     scope: plugin-repo
     repo: prasadmujumdar19/n8n-whatsapp-methodology
     skill_to_use: flush-plugin-improvements
@@ -383,6 +413,12 @@ items:
       - id: PIC-01
         type: soft
         reason: "shares jq-scan implementation"
+    completed_at: 2026-05-21T13:14:00Z
+    completion_note: |
+      Plugin bump 1.21.0 → 1.22.0 (commit a49d975). Added technical-workflow-review C16 —
+      corpus-sweep python: for each workflow, collect node names; scan parameter bodies for
+      $('Name') refs; report any whose Name is not in the same workflow's node set. Check
+      Status table updated with C16 row. Severity 🔴. Cache synced to 1.22.0.
 
   - id: PIC-04
     description: |
@@ -394,11 +430,51 @@ items:
       concern raised by user 2026-05-20.
     priority: P3
     batch: 3
-    status: pending
+    status: done
     scope: plugin-repo
     repo: prasadmujumdar19/n8n-whatsapp-methodology
     skill_to_use: writing-skills
     depends_on: []
+    completed_at: 2026-05-21T13:18:00Z
+    completion_note: |
+      Plugin bump 1.22.0 → 1.23.0 (commit 30a8a9c). NEW skill skills/pseudo-md-drift-check/SKILL.md.
+      Compares .pseudo vs .md across 7-category taxonomy (D1-D7: node set / entry contract /
+      decision forks / sub-WF calls / DB+side-effects / error paths / output contract). Classifies
+      pairs ✅ CLEAN / ⚠️ MINOR / 🔴 DRIFT. Writes tracker + HTML report + freshness marker
+      docs/artefacts/drift-checks/.last-run (the contract PIC-06 will read). Resumable via tracker;
+      inline pair-by-pair execution per [[feedback_sprint_parallelism]]. Note: skill follows the
+      writing-skills SKILL.md structure but did not run the full RED-baseline subagent test cycle —
+      it's a technique skill (not discipline-enforcing), validated by smoke-test of the render
+      script's exit-clean path. Cache synced to 1.23.0.
+
+  - id: PIC-21A
+    description: |
+      assert-md-fresh.sh cosmetic fix — script displays `live_updated_at` from a stale source
+      (live n8n API call result not refreshed, or comparing to a different .md) instead of the
+      value it actually compared against. FRESH/STALE determination and exit code are correct;
+      only the displayed label is wrong. Originated as PIC-NEW-21A plugin candidate during TD-E
+      (WF-40, 2026-05-21). Folded into Batch 3 alongside PIC-04 because both touch the
+      drift-detection family. Fix is either a tightening of the existing stopgap (line 13
+      comment) or part of the durable rewrite referenced there.
+    priority: P3
+    batch: 3
+    status: done
+    scope: plugin-repo
+    repo: prasadmujumdar19/n8n-whatsapp-methodology
+    skill_to_use: flush-plugin-improvements
+    depends_on:
+      - id: PIC-04
+        type: soft
+        reason: "Same drift-detection family; share context when implementing"
+    completed_at: 2026-05-21T13:21:00Z
+    completion_note: |
+      Plugin bump 1.23.0 → 1.23.1 (commit 4ad196d). Root cause was label collision, not stale
+      data: both the .md frontmatter field and the printf label were named live_updated_at
+      but they hold different values by definition (frontmatter = n8n updatedAt at .md
+      generation time; printf right-hand = current n8n updatedAt at check time). Renamed the
+      API-side label to n8n_updatedAt= so the two are visually distinct. Verified against
+      WF-00 (chinmay-astro): FRESH: ... md_frontmatter=2026-05-21T12:22:14.626Z
+      n8n_updatedAt=2026-05-21T12:22:14.626Z (delta=+0s). Cache synced to 1.23.1.
 
   - id: PIC-05
     description: |
@@ -411,11 +487,18 @@ items:
       hard skill gate.
     priority: P3
     batch: 3
-    status: pending
+    status: done
     scope: plugin-repo
     repo: prasadmujumdar19/n8n-whatsapp-methodology
     skill_to_use: flush-plugin-improvements
     depends_on: []
+    completed_at: 2026-05-21T13:25:00Z
+    completion_note: |
+      Plugin bump 1.23.1 → 1.24.0 (commit 862b598). Added build-workflow Step 2a "Parametric vs
+      non-parametric gate" at classify time. Independent of Surgical/Structural/DB-Schema axis;
+      non-parametric REQUIRES .pseudo read-revise-approve before Step 3. Step 3a demoted to a
+      backstop. Red Flags table extended with two new rationalizations covering the "Surgical so
+      I can skip" and "typo fix, design didn't really mean it" pathways. Cache synced to 1.24.0.
 
   - id: PIC-06
     description: |
@@ -429,7 +512,7 @@ items:
       inside the build-sprint skill's session-start phase.
     priority: P3
     batch: 3
-    status: pending
+    status: done
     scope: plugin-repo + claude settings
     repo: prasadmujumdar19/n8n-whatsapp-methodology + ~/.claude/settings.json (hook registration)
     skill_to_use: writing-skills + update-config
@@ -438,6 +521,28 @@ items:
         type: hard
         reason: "PIC-06 invokes PIC-04's drift detector — PIC-04 must exist first"
     note: "Marked as FINAL task in the entire sprint. After this lands, all subsequent build-sprint invocations are drift-safe."
+    completed_at: 2026-05-21T13:32:00Z
+    completion_note: |
+      Plugin bump 1.24.0 → 1.25.0 (commit c42efd0). Implementation choice: PreToolUse hook on
+      the Skill tool (Option A from state.md), NOT runtime check inside build-sprint Step 0
+      (Option B). Rationale: harness-enforced gate cannot be skipped by Claude self-discipline,
+      matches user's "FINAL" framing.
+
+      Files added/changed in plugin: hooks/pre-build-sprint-drift-gate.sh (NEW, +exec bit),
+      hooks/hooks.json (added Skill matcher in PreToolUse array). NO ~/.claude/settings.json
+      edit needed — the plugin's hooks.json registers via ${CLAUDE_PLUGIN_ROOT}, contrary to
+      state.md's prediction. update-config skill not needed.
+
+      Hook decisions verified against chinmay-astro (5 cases all correct): irrelevant skill =
+      exit 0; build-sprint + no marker + .pseudo files = exit 2 with helpful Resolution
+      block; CLEAN+fresh = exit 0; stale (-48h) = exit 2 with age delta; status=DRIFT = exit 2
+      with counts + report path.
+
+      Practical implication for chinmay-astro: this project has 28 .pseudo files and no
+      drift-checks/.last-run yet. The NEXT /n8n-whatsapp-methodology:build-sprint invocation
+      on this project will be blocked until /n8n-whatsapp-methodology:pseudo-md-drift-check
+      is run. That's the intended behavior — the hook starts gating immediately on sync.
+      Cache synced to 1.25.0.
 
 parser_warnings: []
 
