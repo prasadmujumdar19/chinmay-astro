@@ -2,22 +2,58 @@ WF-47 — Unsubscribe Handler (STOP keyword)
 
 ## Summary
 
-- Inputs: phoneNumber, userStatus (current status of the user), userId (passed from caller WF-20)
-- Outputs: users row updated to opted_out; admin_actions row inserted; opt-out confirmation WhatsApp sent. If user is currently in consultation_active, a hold message is sent instead and no state change occurs.
-- State Transitions: any (non-consultation_active) → `opted_out`. consultation_active → no change.
-- Calls Sub-Workflows: WF-50 (Send WhatsApp) — once for hold message OR once for opt-out confirmation.
-- **Design rule (DR-10):** Slack channel is NOT archived on STOP. Channels are preserved for potential REBOOK reuse. Archival/deletion is a separate post-MVP maintenance workflow.
+- Inputs: phoneNumber, userId, userStatus (current status of the user at the moment STOP arrived; passed from caller WF-20).
+- Outputs: users row updated to opted_out with current_consultation_id cleared; if user was in consultation_active, the open consultations row is auto-closed; if the user has a Slack consult channel, an opt-out notice is posted there via WF-51; opt-out confirmation WhatsApp sent via WF-50.
+- State Transitions: any state → `opted_out` (unconditional — STOP is treated as a regulatory opt-out per Meta and standard WhatsApp messaging norms; no hold or queue).
+- Calls Sub-Workflows: WF-50 (Send WhatsApp — opt-out confirmation to user), WF-51 (Send Slack Message — opt-out notice to admin in consult channel, when channel exists).
+- **Design rule (DR-10):** Slack consult channel is NOT archived on STOP. Channels are preserved for potential REBOOK reuse.
+- **Design rule (DR-4):** `opted_out` (user-initiated, re-engages automatically via WF-01) is distinct from `blocked` (admin/system action, requires UNBLOCK).
+- **Audit metadata:** No write to `chinmay_astro.admin_actions` (table deprecated per TD-NEW-026 — `messages` + state machine + `users.updated_at` already record the opt-out fact for review).
 
 ---
 
 ## Algorithm
 
-Step 1: Start — triggered by WF-20 with { phoneNumber, userStatus, userId, ... } passed through.
-Step 2: Check: userStatus equals 'consultation_active'?
-  - If YES → go to Step 3
-  - If NO → go to Step 4
-Step 3: Call WF-50 with messageType=text, phoneNumber=<phoneNumber>, messageContent=<hold message explaining STOP cannot be processed during an active consultation>. Then go to Step 7 (End — no state change, no DB log).
-Step 4: Update user status: UPDATE chinmay_astro.users SET status='opted_out', updated_at=NOW() WHERE phone_number=<phoneNumber>. Go to Step 5.
-Step 5: Insert admin action: INSERT INTO chinmay_astro.admin_actions (user_id, action_type, performed_by, notes, created_at) VALUES (<userId>, 'opted_out', 'system', 'User sent STOP keyword', NOW()). Go to Step 6.
-Step 6: Call WF-50 with messageType=text, phoneNumber=<phoneNumber>, messageContent=<opt-out confirmation message>. Go to Step 7.
-Step 7: End.
+Step 1: Start — workflow triggered by WF-20 with `{ phoneNumber, userId, userStatus }`.
+
+Step 2: Update user record — opt the user out unconditionally and clear any active consultation pointer:
+  - `UPDATE chinmay_astro.users
+       SET status='opted_out',
+           current_consultation_id=NULL,
+           updated_at=NOW()
+     WHERE phone_number=<phoneNumber>
+     RETURNING slack_channel_id;`
+  - Carry `slack_channel_id` forward to Step 4.
+
+Step 3: Check: userStatus equals 'consultation_active'?
+  - If YES → close the open consultations row (mirrors the pattern WF-42 uses for admin-initiated close):
+      `UPDATE chinmay_astro.consultations
+         SET status='closed',
+             ended_at=NOW(),
+             closed_by='user_opted_out'
+       WHERE user_id=<userId>
+         AND status='active';`
+    Then go to Step 4.
+  - If NO → go to Step 4 (no consultations row to close).
+
+Step 4: Check: slack_channel_id (from Step 2 RETURNING) IS NOT NULL?
+  - If YES → call WF-51 with:
+      channelId = <slack_channel_id>
+      messageText = "⚠️ User has opted out via STOP. This consultation will not progress further. (Channel preserved per DR-10 in case of REBOOK.)"
+    Then go to Step 5.
+  - If NO (user opted out before form submission, so no channel was ever created) → go to Step 5.
+
+Step 5: Call WF-50 with:
+  messageType = "text"
+  phoneNumber = <phoneNumber>
+  messageContent = "You have been unsubscribed from Chinmay Astro. No further messages will be sent unless you reach out to us again."
+
+Step 6: End.
+
+---
+
+## Notes
+
+- Pre-2026-05-21 design held STOP during consultation_active (sent a "hold" message and made no state change, asking the user to re-send STOP after the consult closed). That behaviour was non-compliant with standard STOP semantics and produced poor UX (silent on a second STOP because of broken queryReplacement; see TD-B). The 2026-05-21 redesign makes STOP unconditional.
+- The Slack notice in Step 4 informs the astrologer (Chinmay) that an active conversation has ended via user opt-out. For pre-form-submission users (no slack_channel_id), nothing is posted because there is no consult channel yet.
+- The `consultations.closed_by='user_opted_out'` literal distinguishes opt-out-driven closes from admin-driven closes (`closed_by='admin'` per WF-42). Column is varchar(100), no CHECK constraint.

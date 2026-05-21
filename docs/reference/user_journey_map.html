@@ -1052,14 +1052,15 @@
         </div>
         <ul class="steps">
           <li>Intercept at WF-20 before any other routing (exact keyword match, case-insensitive)</li>
-          <li><strong>If consultation_active:</strong> do NOT unsubscribe — send: <em>"Your active consultation cannot be ended by you. Your astrologer will close the session when complete. If you wish to stop all future messages after this consultation, send STOP again once it is closed."</em> No state change.</li>
-          <li><strong>All other states (payment_pending, payment_submitted, consultation_closed, new):</strong> update <code>status = opted_out</code> (NOT blocked — distinct from admin BLOCK). Log to admin_actions table.</li>
-          <li>Send confirmation: <em>"You have been unsubscribed from Chinmay Astro. No further messages will be sent. If you ever wish to consult again, simply message us and we will get you started."</em></li>
+          <li><strong>All states (unconditional):</strong> update <code>status = opted_out</code> and clear <code>current_consultation_id</code>. STOP is honoured immediately — no hold, no queueing — to align with standard WhatsApp / regulatory STOP semantics. <code>opted_out</code> is NOT blocked — distinct from admin BLOCK.</li>
+          <li><strong>If userStatus was consultation_active at the time of STOP:</strong> also auto-close the open consultations row (<code>status='closed'</code>, <code>ended_at=NOW()</code>, <code>closed_by='user_opted_out'</code>) so it isn't left dangling.</li>
+          <li><strong>If user has a Slack consult channel</strong> (<code>users.slack_channel_id IS NOT NULL</code> — i.e., user progressed past form submission): post an opt-out notice via WF-51 to that channel so the astrologer knows the conversation won't progress further. Channel is preserved per DR-10 (not archived) in case of future REBOOK.</li>
+          <li>Send confirmation to user: <em>"You have been unsubscribed from Chinmay Astro. No further messages will be sent unless you reach out to us again."</em></li>
           <li>Future messages from opted_out users: WF-01 routes to new journey — treat as brand new user (re-trigger J-01 welcome + form flow). DB record is NOT deleted.</li>
-          <li>Handled by WF-47 (Unsubscribe Handler) — called from WF-20.</li>
+          <li>Handled by WF-47 (Unsubscribe Handler) — called from WF-20. No write to <code>admin_actions</code> (table deprecated per TD-NEW-026 — opt-out fact is recoverable from <code>users.status</code> + <code>users.updated_at</code> + inbound STOP <code>messages</code> row).</li>
         </ul>
         <div class="state-transition">
-          <span class="state-from">any (except consultation_active)</span>
+          <span class="state-from">any</span>
           <span class="arrow"> → </span>
           <span class="state-to">opted_out</span>
         </div>
