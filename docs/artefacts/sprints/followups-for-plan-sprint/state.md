@@ -5,7 +5,7 @@ input_hash: 00063990aeb2b1e477e8e40ba341158239f841f20251f2d8b6b66c5328e4a58b
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/followups-for-plan-sprint/working.md
 planned_at: 2026-05-20T12:30:58Z
-last_updated: 2026-05-21T10:53:24Z
+last_updated: 2026-05-21T22:25:00Z
 planning_complete: true
 
 dependency_conflicts_found: []
@@ -179,7 +179,34 @@ items:
       rebook_intent → relay; malicious_abusive/inappropriate/garbage → short-circuit to WF-25's warn+block).
     priority: P1
     batch: 2
-    status: pending
+    status: done
+    completed_at: 2026-05-21T11:48:00Z
+    completion_note: |
+      Pseudocode-first per [[feedback_pseudocode_first_refactor]]: docs/pseudocode/WF-40.pseudo
+      revised + user-approved BEFORE any JSON edit. User direction 2026-05-21: stop_intent should
+      NOT trigger auto-opt-out (false-positive risk — user may be quoting STOP/unsubscribe in
+      conversation). Instead relay verbatim to admin AND send automated clarifier via WF-50 with
+      cleanup-path instructions. Verified WF-10 Step 16 admin-text guard already blocks relay to
+      opted_out users, so post-opt-out admin messages don't leak to WhatsApp.
+      Implementation via build-workflow Mode A + Step 5e regenerate-by-copy (1 PUT covering 4 new
+      nodes + 1 SELECT modification + connection rewrite + initial position collision):
+        - Modified `Load User Record`: SELECT now includes `status` column (needed for WF-25 userStatus input)
+        - Added `Call WF-25 (Intent Classifier)`: executeWorkflow v1.2, mappingMode=defineBelow,
+          explicit inputs {phoneNumber, userId, messageContent, userStatus}
+        - Added `Stop Intent?`: IF v2.2, loose+string, leftValue=$json.intentResult, equals "stop_intent"
+        - Added `Build WF-50 Clarifier Payload`: Set v3.4 with phoneNumber/messageType/messageContent
+          (text + clarifier message per user-approved wording)
+        - Added `Call WF-50 (Stop Clarifier)`: executeWorkflow v1.2, mappingMode=passthrough, BUVun38WEKb12zg9
+        - Connections: Load User Record → Call WF-25 → fan-out to {Format Slack Message (always relay),
+          Stop Intent? (conditional clarifier)}; Stop Intent?[true] → Build Clarifier → Call WF-50;
+          Stop Intent?[false] terminates; Format Slack Message → Call WF-51 (preserved).
+        - Position collision fixed post-PUT via moveNode partial update (Format Slack + Call WF-51
+          shifted to y=-224; new clarifier branch at y=-32).
+      Pre-flight lint scan (Step 5e.1) clean. Post-PUT lint clean.
+      WF-40.md regenerated and assert-md-fresh.sh WF-40 → FRESH.
+      4 → 8 nodes. Acceptance verification (live consultation_active garbage/abuse/stop_intent
+      paths) deferred to next test session.
+      Backup: archive/backups/du32QBZbSQOjfESe-2026-05-21-21-42.json
     workflows: [WF-40]
     change_kind: structural
     pseudocode_first: true
@@ -203,7 +230,39 @@ items:
       button_id and display label.
     priority: P1
     batch: 2
-    status: pending
+    status: done
+    completed_at: 2026-05-21T12:22:14Z
+    completion_note: |
+      Pseudocode-first per [[feedback_pseudocode_first_refactor]]: docs/pseudocode/WF-50.pseudo
+      Step 11 and WF-00.pseudo Step 8a + extraction notes revised + user-approved BEFORE JSON
+      mutation. Audit-before-spec per [[feedback_audit_before_spec]]: live inspection of
+      Build WF-60 Payload (Outbound) confirmed it uses `prep.messageContent ?? null` for ALL
+      message types (the conditional logic exists in an orphaned `Build Log Input` node with
+      zero upstreams — dead code). Removed in this commit.
+      User direction (2026-05-21): WF-00 content extraction picks `interactiveLabel || messageContent`
+      (label preferred, id fallback); preserves WF-01 routing semantics (messageContent stays as
+      button_id). Dead code cleanup approved as part of TD-F (Build Log Input removed).
+      WF-50 changes (Step 5e single-PUT transform):
+        - `Build WF-60 Payload (Outbound)` jsCode rewritten: per-messageType content extraction
+          (text → prep.messageContent; interactive → interactivePayload.body.text || JSON-stringify;
+          template → 'template:' + templateName). Metadata enriched: buttons array (interactive),
+          templateParams (template).
+        - `Build WF-60 Drop Payload` jsCode rewritten: same per-type extraction, metadata
+          carries drop=true + dropReason.
+        - `Build Log Input` node removed (orphaned, dead code from pre-TD-002 era).
+        - 18 → 17 nodes. Pre-flight lint clean, post-PUT lint clean.
+      WF-00 changes (Step 5e single-PUT transform):
+        - `Parse WhatsApp Message` jsCode: for interactive button_reply/list_reply, extract title
+          into new `interactiveLabel` field alongside the existing `messageContent=button_id`.
+        - `Build WF-60 Payload (Inbound)` jsCode: writes `interactiveLabel || messageContent`
+          into `content`; original id preserved in `metadata.interactiveButtonId` when label
+          present. Non-interactive types unchanged.
+        - 14 nodes preserved. Pre-flight lint clean, post-PUT lint clean.
+      Acceptance verification (rebook + close + APPROVE PAYMENT flows producing non-NULL
+      messages.content for all message_type values) deferred to next test session.
+      Backups:
+        - archive/backups/BUVun38WEKb12zg9-2026-05-21-22-19.json (WF-50)
+        - archive/backups/JQu1MkK5vgtUCeNO-2026-05-21-22-19.json (WF-00)
     workflows: [WF-50, WF-00]
     change_kind: structural
     pseudocode_first: true
@@ -226,7 +285,15 @@ items:
       PIC-01/02/03/04/05/06 land in Batch 3.
     priority: P1
     batch: 2
-    status: pending
+    status: done
+    completed_at: 2026-05-21T11:00:00Z
+    completion_note: |
+      export-all-workflows.sh re-exported all 28 workflows. WF-41 (6PzJRZsF7k2d9hV7.json) shows
+      the operator's fix:
+        $('Detect Direction').first().json.messagetext → $('Extract Phone from Channel').first().json.messagetext
+      assert-md-fresh.sh WF-41 → FRESH. Secrets scan clean. JSON staged in /tmp clone for
+      Batch 2 final commit. Mode B (inline-inherit) — no code-level work needed beyond
+      capturing the operator's UI change in the repo.
     workflows: [WF-41]
     change_kind: documentation
     pseudocode_first: false
@@ -245,7 +312,13 @@ items:
       Tagged for inclusion in next test session.
     priority: P2
     batch: 2
-    status: pending
+    status: deferred
+    deferred_at: 2026-05-21T12:25:00Z
+    deferred_note: |
+      Tagged `next-test-session` from sprint planning — verification-only, no code change.
+      Hard-deps on TD-A (already done). Will be exercised during next monitor-test-run alongside
+      TD-B-expanded acceptance (STOP unconditional path) and TD-C acceptance (REJECT PAYMENT
+      with strict-mode numeric IF). Sprint advances without blocking on this.
     workflows: []
     change_kind: verification
     pseudocode_first: false
@@ -363,3 +436,20 @@ items:
     note: "Marked as FINAL task in the entire sprint. After this lands, all subsequent build-sprint invocations are drift-safe."
 
 parser_warnings: []
+
+plugin_improvement_candidates:
+  - id: PIC-NEW-21A
+    surfaced_during: TD-E (WF-40 structural change, 2026-05-21)
+    summary: |
+      assert-md-fresh.sh display bug — script reports `live_updated_at` as a date that differs
+      from the actual frontmatter value in the .md it just checked (cosmetic; EXIT=0 correct).
+      For WF-40 freshly regenerated, frontmatter showed live_updated_at=2026-05-21T11:48:01.890Z
+      but script displayed live_updated_at=2026-05-20T02:22:26.578Z (still positive delta, still
+      FRESH). Likely the script is reading live_updated_at from a stale source (e.g., live n8n
+      API call result not refreshed, or comparing to a different .md). Script comment line 13
+      explicitly tags it as "stopgap implementation; durable design is to embed live_updated_at"
+      — fix is part of that durable rewrite.
+    proposed_action: |
+      Tighten assert-md-fresh.sh to display the SAME live_updated_at it compared against, OR
+      complete the durable rewrite referenced in line 13. Roll into Batch 3 plugin improvements
+      (fits with PIC-04 — drift detection family).
