@@ -1,5 +1,5 @@
 # Workflow Dependency Map
-Generated: 2026-05-21 20:54
+Generated: 2026-05-22 21:49
 
 ## Diagram
 ```mermaid
@@ -53,6 +53,8 @@ graph TD
   dr8QM0m92Ml8MvIh["WF-22 Form Response Handler"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   dr8QM0m92Ml8MvIh["WF-22 Form Response Handler"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   du32QBZbSQOjfESe["WF-40 User -> Admin Relay"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
+  du32QBZbSQOjfESe["WF-40 User -> Admin Relay"] --> eTV1lUcYrXBg2q2T["WF-25 Intent Classifier"]
+  du32QBZbSQOjfESe["WF-40 User -> Admin Relay"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   eTV1lUcYrXBg2q2T["WF-25 Intent Classifier"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   eTV1lUcYrXBg2q2T["WF-25 Intent Classifier"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   eTV1lUcYrXBg2q2T["WF-25 Intent Classifier"] --> UV62An60fzflU0uD["WF-46 User Blocker"]
@@ -95,7 +97,7 @@ graph TD
   "UV62An60fzflU0uD": { "name": "WF-46 User Blocker", "calls": ["wlZRK0YxnhP0b2RL"] },
   "VpCER0Vqq3NYJGpI": { "name": "WF-23 Pre-Form Intent Filter", "calls": ["eTV1lUcYrXBg2q2T", "BUVun38WEKb12zg9", "2U7mxHMyqA41ROKX"] },
   "dr8QM0m92Ml8MvIh": { "name": "WF-22 Form Response Handler", "calls": ["IO5BZLUxuVmjzk5I", "BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
-  "du32QBZbSQOjfESe": { "name": "WF-40 User -> Admin Relay", "calls": ["wlZRK0YxnhP0b2RL"] },
+  "du32QBZbSQOjfESe": { "name": "WF-40 User -> Admin Relay", "calls": ["wlZRK0YxnhP0b2RL", "eTV1lUcYrXBg2q2T", "BUVun38WEKb12zg9"] },
   "eTV1lUcYrXBg2q2T": { "name": "WF-25 Intent Classifier", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL", "UV62An60fzflU0uD"] },
   "emUOLWVZiNVxcOe3": { "name": "WF-32 Payment Confirmation Receiver", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
   "fx70vqyJtRdF2DgR": { "name": "WF-42 Consultation Closer", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },

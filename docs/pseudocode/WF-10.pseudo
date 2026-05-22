@@ -5,14 +5,16 @@ WF-10 — Slack Admin Handler
 - Inputs: Slack Events API POST at /slack-webhook (url_verification challenge or event_callback with message events from any channel where bot is a member)
 - Outputs: HTTP 200 (with challenge echo on verification); dispatches recognized admin commands to WF-11, and Chinmay's free-text replies in active consultation channels to WF-41
 - State Transitions: none (delegates; downstream WFs mutate state)
-- Calls Sub-Workflows: WF-11 (Command Parser), WF-41 (Admin → User Relay)
+- Calls Sub-Workflows: WF-11 (Command Parser), WF-41 (Admin → User Relay), WF-51 (Send Slack Message — admin feedback on inactive-user relay attempt)
 - **Channel-scope design rule (DR-13, see workflow-registry.md):**
   - **User-targeted commands** (carry a `<phone>` argument: APPROVE PAYMENT / APPROVE, REJECT PAYMENT / REJECT, CLOSE CHAT CONSULT / CLOSE CONSULTATION / CLOSE CONSULT, BLOCK, UNBLOCK) are accepted ONLY when typed in the user's `consult-{phone}` Slack channel. WF-10 rejects them (silently dropped or warned in-channel) when typed in `chinmay-admin-commands` or any other channel.
   - **Admin-wide commands** (no phone argument: LIST, STATS, HELP) work in ANY channel.
 - **Ambiguities / Notes:**
   - Slack payload field paths use `$json.body.*` (Slack wraps the event under `body`).
   - Bot-loop guard (skip if `body.authorizations[0].user_id == body.event.user`) sits between `Respond 200 OK` and `Extract Required Fields`.
-  - WF-10 passes `messageText` (camelCase) downstream to WF-11/WF-41 — input contract uses camelCase consistently across the dispatch boundary.
+  - WF-10 passes `messageText` (camelCase) downstream to WF-11 and `{phoneNumber, adminMessage}` (camelCase) to WF-41 — input contract uses camelCase consistently across the dispatch boundary.
+  - Postgres SQL alias rule: SELECT statements use snake_case column names (no unquoted camelCase aliases — postgres silently lowercases them). camelCase payload shaping happens in a Set node *after* the SELECT, not via projection inside it.
+  - WF-41 inactive-user feedback: the FALSE branch of the consultation-active guard routes to a Set → WF-51 admin-feedback chain in the user's `consult-<phone>` channel. Silent drop is not acceptable on the admin-action critical path.
 
 ---
 
@@ -48,8 +50,16 @@ Step 13: Detect Command (user consultation channel) — strip mrkdwn formatting;
 Step 14: Check: isCommand == true?
   - If YES → call WF-11 (Command Parser) with payload {messageText, adminUserId, channelId, channelName}. End. (User-targeted commands work here per the channel-scope design rule; admin-wide LIST/STATS/HELP also accepted here.)
   - If NO → go to Step 15.
-Step 15: SELECT id, status, name, phone_number FROM chinmay_astro.users WHERE slack_channel_id = $channelId LIMIT 1.
-Step 16: Check: user found AND user.status == 'consultation_active'?
-  - If YES → call WF-41 (Admin → User Relay) with payload {messageText, channelId, channelName, user}. End. (Chinmay's text reply will be sent to the user via WhatsApp.)
-  - If NO → End (channel is not currently in active consultation — drop).
+Step 15: SELECT id, status, name, phone_number FROM chinmay_astro.users WHERE slack_channel_id = $channelId LIMIT 1. Postgres node configured with `alwaysOutputData=true` so an empty result emits a row (with all fields null) and routes through the FALSE branch of Step 16 — never a silent halt.
+Step 16: Check: user.status == 'consultation_active'?
+  - If YES → go to Step 17.
+  - If NO  → go to Step 18 (covers both user-not-found, where status is null, and user-in-other-state).
+Step 17: Build WF-41 Payload (Set node) — emit {
+    phoneNumber: <Load User Status row>.phone_number,
+    adminMessage: $('Detect Command - User Channel').item.json.messageText
+  }. Then call WF-41 (Admin → User Relay). End. (Chinmay's text reply will be sent to the user via WhatsApp.)
+Step 18: Build Admin Feedback (Set node) — emit {
+    channelId: $('Detect Command - User Channel').item.json.channelId,
+    messageText: "⚠️ User not in active consultation — message not relayed to WhatsApp."
+  }. Then call WF-51 (Send Slack Message) — posts the feedback into the same consult-<phone> channel so the admin sees their relay attempt was dropped. End.
 Step 20: Respond 200 fallback for unknown body types. End.
