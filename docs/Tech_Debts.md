@@ -129,6 +129,79 @@ WF-50 calls WF-60 on every outbound WhatsApp message. The sub-workflow executes 
 
 ---
 
+### TD-021 · WF-33 (Payment Approval Processor) missing state guard — APPROVE executes regardless of user status
+
+**Finding:** WF-33 has no IF/Switch node checking `status = 'payment_submitted'` before updating the user to `consultation_active`. The workflow directly loads user → updates payment status → updates user status, with no condition.
+
+**Risk:** Admin typing `APPROVE PAYMENT <phone>` for a user who is already `consultation_active` or `consultation_closed` would reset their status incorrectly, breaking their current session.
+
+**Fix:** Add an IF node in WF-33 after "Load User by Phone": if `status ≠ 'payment_submitted'`, post Slack error "User is not awaiting payment approval (current status: {status})" and stop execution.
+
+---
+
+### TD-022 · WF-42 (Consultation Closer) missing state guard — CLOSE executes regardless of user status
+
+**Finding:** WF-42 has no IF/Switch node checking `status = 'consultation_active'` before closing. The only guard is a DB-level `WHERE status = 'active'` on the consultations table, but this does not prevent the user status update from running.
+
+**Risk:** Admin typing `CLOSE CHAT CONSULT <phone>` for a user in `payment_pending` or `payment_submitted` would set them to `consultation_closed`, bypassing the entire payment and approval flow.
+
+**Fix:** Add an IF node in WF-42 after "Load User by Phone": if `status ≠ 'consultation_active'`, post Slack error and stop.
+
+---
+
+### TD-023 · WF-10 relay path has no user status check — admin plain-text relayed from consult-* channels regardless of user state
+
+**Finding:** WF-10 correctly differentiates `chinmay-admin-commands` (→ System Commands path) from `consult-*` channels (→ relay path). However, within the `consult-*` branch, any non-command admin message is immediately routed to relay with no check on the user's current status. If admin types internal notes in a `consult-{phone}` channel while the user is `payment_submitted` (awaiting approval), those notes are sent to the user's WhatsApp.
+
+**Verification:** WF-12 confirmed to have no Postgres lookup and no status check before calling WF-50.
+
+**Fix:** In WF-10's user-channel branch (after isCommand=false), add a DB lookup for the user's status by channel name. Only route to relay if `status = 'consultation_active'`. For other statuses, drop silently or log.
+
+---
+
+### TD-024 · WF-43 (Post-Consultation Handler) handles only text intent — post-consultation button taps (Provide Feedback, Book Again, I'm done) have no explicit routing
+
+**Finding:** WF-43 exclusively uses WF-25 intent classification for text messages. It has no button_reply routing. When TD-015 is fixed and WF-42 sends interactive buttons, users tapping those buttons generate `button_reply` events. WF-02 currently routes all `button_reply` → PAYMENT_CONFIRM → WF-32, which would fail for post-consultation buttons (user is `consultation_closed`, not `payment_pending`).
+
+**Dependency:** This fix must be done together with TD-015. Scope of TD-015 must include WF-02 routing update to differentiate post-consultation button_ids from the "Payment Completed" button_id.
+
+**Fix:**
+1. Define distinct `button_id` values for post-consultation buttons (e.g., `post_consult_feedback`, `post_consult_rebook`, `post_consult_done`).
+2. Update WF-02 to route these button_reply types to WF-43 (or directly to WF-44/WF-45) separate from PAYMENT_CONFIRM routing.
+3. Add button_reply handling in WF-43 (or handle directly in WF-02 routing).
+
+---
+
+### TD-025 · WF-32 (Payment Confirmation Receiver) missing idempotency guard — duplicate "Payment Completed" tap creates duplicate payment record and Slack notification
+
+**Finding:** WF-32 has no check on the user's current status before processing. If a user taps "Payment Completed ✓" a second time (while already `payment_submitted`), WF-32 creates a second payment record and posts a second Slack notification to the admin — appearing as two separate payment approvals needed.
+
+**Fix:** Add status check at the start of WF-32: if `status = 'payment_submitted'`, send reassurance message "Your payment is already being reviewed" and exit without creating a new record.
+
+---
+
+### TD-030 · WF-00 (Webhook Receiver) may not filter bot's own WhatsApp outbound message echoes
+
+**Finding:** When WF-50 sends an outbound WhatsApp message, Meta may echo it back as an inbound webhook. WF-00's deduplication is by `inboundMessageId`. An outbound echo from Meta has a distinct message ID from any previously processed message and would pass WF-00 deduplication, entering the routing chain and potentially causing a processing loop.
+
+**Fix:** In WF-00, add a filter: if `messages[0].from` equals the bot's own WABA phone number, drop the webhook and return 200. This is a secondary guard after deduplication.
+
+---
+
+### TD-031 · APPROVE command wording inconsistency — "APPROVE PAYMENT" vs "APPROVE CHAT CONSULT" used interchangeably across docs
+
+**Finding:** Multiple sources use different forms for the payment approval command:
+- `workflow-registry.md` WF-11 description: `APPROVE CHAT CONSULT <phone>`
+- `workflow-registry.md` WF-32 note: `APPROVE PAYMENT <phone>`
+- `CLAUDE.md` admin box: `APPROVE CHAT CONSULT <phone>` and `APPROVE PAYMENT <phone>`
+- `customer_journey_map.html`: `APPROVE CHAT CONSULT <phone>`
+
+WF-10's command detection matches on the word `APPROVE` (first word), so both forms reach WF-11. WF-11's parsing determines which form is actually accepted. If WF-11 only accepts one form and admin uses the other, the command is parsed incorrectly or produces an "Unknown command" error.
+
+**Fix:** Decide on one canonical form. Recommend: `APPROVE PAYMENT <phone>` (shorter). Update WF-11 parser to accept this form, and update `workflow-registry.md`, `CLAUDE.md`, `customer_journey_map.html` to use the single form consistently.
+
+---
+
 ## 🟡 P2 — Design / Naming Confusion (causes incorrect AI-generated fixes)
 
 ### TD-007 · WF-52 call-site node names imply "creator-only" semantics — confuses Claude
@@ -179,6 +252,112 @@ Then audit WF-22 and WF-33 (once TD-002 is resolved) to confirm they both pass `
 
 ---
 
+### TD-019 · WF-47 (Unsubscribe Handler) does not archive the user's Slack channel on STOP
+
+**Finding:** WF-47 sets `status = 'opted_out'` but makes no WF-52 call to archive the `consult-{phone}` channel. Per the deferred archival strategy (see Archival Strategy section), channels should be archived when a user opts out — since they have explicitly unsubscribed.
+
+**Fix:** After setting status to `opted_out`, call WF-52 with `action: 'archive'` to archive the user's `consult-{phone}` channel.
+
+---
+
+### TD-020 · WF-46 (User Blocker) does not archive the user's Slack channel on BLOCK
+
+**Finding:** WF-46 sets `status = 'blocked'` but makes no WF-52 call to archive the `consult-{phone}` channel. Per the deferred archival strategy, channels should be archived when an admin blocks a user — since the block is intentional and permanent until UNBLOCK.
+
+**Fix:** After setting status to `blocked`, call WF-52 with `action: 'archive'` to archive the user's `consult-{phone}` channel.
+
+---
+
+### TD-026 · WF-11 UNBLOCK command (TD-010) has no status guard — can accidentally override opted_out users
+
+**Finding:** The UNBLOCK command to be implemented in TD-010 must only affect users with `status = 'blocked'`. Without an explicit guard, typing `UNBLOCK <phone>` for an `opted_out` user would change their status to `consultation_closed` — overriding the user's own voluntary STOP decision.
+
+**Design principle:** `opted_out ≠ blocked`. Opted-out users re-engage automatically by messaging again. Admin should never manually override an opted_out state via UNBLOCK.
+
+**Fix:** When implementing UNBLOCK in WF-11 (TD-010), add a status guard after the user lookup: if `status ≠ 'blocked'`, post Slack error "User is not blocked (current status: {status})" and stop execution.
+
+---
+
+### TD-027 · WF-20 HELP response is a single static message — not status-aware per J-18
+
+**Finding:** WF-20 sends a single hardcoded HELP response regardless of user state. Journey map J-18 specifies that HELP should return context-appropriate guidance:
+- `payment_pending` → remind user of UPI payment details and "Payment Completed" button
+- `payment_submitted` → "Your payment is under review, please wait"
+- `consultation_active` → "Type your question to chat with Chinmay"
+- `consultation_closed` → "Type REBOOK to start a new consultation"
+
+**Fix:** In WF-20's HELP branch, add a DB lookup for user status, then send a status-specific message via WF-50. Keep a static generic fallback for new/unknown users.
+
+---
+
+### TD-028 · WF-30 (New User Handler) and WF-31 (Payment Submitted Handler) have no stop_intent routing branch
+
+**Finding:** WF-25 can classify any free-form text as `stop_intent`. WF-30 (handles pre-form free-form text) and WF-31 (handles messages from `payment_submitted` users) route on intent but have no explicit branch for `stop_intent`. A user typing "unsubscribe" or "stop" in these states would fall through to a default/error branch rather than being routed to WF-47.
+
+**Fix:** Add explicit `stop_intent` routing in both WF-30 and WF-31 that calls WF-47 Unsubscribe Handler — matching how WF-20's STOP keyword branch already handles this.
+
+---
+
+### TD-029 · WF-25 (Intent Classifier) has no error handling for Gemini API failures
+
+**Finding:** WF-25 calls the Gemini API via HTTP Request. If Gemini returns a 5xx, rate-limit, or timeout error, n8n propagates the error to the calling workflow. This fails the entire user request silently — the user receives no WhatsApp response at all.
+
+**Fix:** Add a catch/error branch in WF-25: on Gemini failure, return `{ intent: 'unknown', confidence: 0, error: true }` so calling workflows fall through to their default branch and send the user a "please try again" message via WF-50.
+
+---
+
+### TD-032 · WF-44 (Feedback Recorder) saves all text as feedback without intent classification — rebook intents are silently lost
+
+**Finding:** WF-44 saves any received text directly as feedback without running WF-25 intent classification. A user in `consultation_closed` state who types "I want to rebook" or "book again" has this text stored as a feedback string rather than being routed to WF-45 Rebook Handler.
+
+**Dependency:** Coupled to TD-024 — until post-consultation interactive buttons are implemented, users will legitimately express rebook intent as free text. WF-44 must classify before saving.
+
+**Fix:** Add WF-25 call at the start of WF-44. Route `rebook_intent` → call WF-45. Route `feedback` / other intents → save text to DB as before.
+
+---
+
+### TD-033 · WF-50 (WhatsApp Sender) has no input validation for empty or null message body
+
+**Finding:** WF-50 passes whatever message body it receives directly to the Meta API. If any upstream workflow calls WF-50 with an empty, null, or whitespace-only message body, the Meta API returns a 400 error. The calling workflow gets a failed execution; the user receives no response and has no indication something went wrong.
+
+**Fix:** At the start of WF-50, add a validation node: if `message_body` is null or empty after trimming, post a warning via WF-51 to the admin channel ("⚠️ WF-50 called with empty message for {phone}") and exit gracefully without calling Meta API.
+
+---
+
+### TD-NEW-028 · WF-51 (Send Slack Message) has no failure-path logging when Slack API call fails
+
+**Source:** Drift review 2026-05-22 (this sprint — surfaced while resolving WF-51 pseudo drift).
+**Finding:** WF-51's `Post to Slack` node connects only `main#0` (success) → `Build WF-60 Payload (Slack Outbound)` → `Call WF-60 Message Logger`. If the Slack API call fails (bot not in channel, channel archived, rate limit, network error, etc.), the chain aborts before WF-60 is reached. **No log entry is written for failed outbound Slack posts** — WF-60's `chinmay_astro.messages` table records only successful Slack outbound traffic. Compare to WF-50 (WhatsApp sender) which per workflow-registry logs "outbound success + drop" so failures are auditable.
+
+**Impact:** Investigations of "did admin's message reach the user channel?" cannot distinguish between "never attempted" and "attempted-but-failed". Silent failure mode.
+
+**Fix (proposed):** Wire the Slack node's `On Error` continuation → a second `Build WF-60 Payload (Slack Outbound, failure)` Code node → reuses `Call WF-60 Message Logger`. The failure payload carries the same canonical shape with `metadata.slackApiOk: false` and `metadata.failureReason: <error code/message>`. WF-60 inserts the row; `slack_message_ts` stays NULL for the failed attempt.
+
+**Schedule:** Bundle into the planned error-handling sprint (alongside TD-029 WF-25 Gemini-failure handling and TD-033 WF-50 empty-body validation).
+
+---
+
+### TD-034 · WF-00 does not guard against whitespace-only or blank user messages before routing
+
+**Finding:** Some WhatsApp clients can send messages with whitespace-only text. WF-00 routes these into the state machine as normal messages. WF-25 then receives an empty or blank string for Gemini classification — Gemini may error, classify unexpectedly, or return garbage intent, with no clean fallback for the user.
+
+**Fix:** In WF-00, after extracting message text, trim and check non-empty. If the message text is blank after trimming, return HTTP 200 to Meta without routing further — same handling as reaction messages.
+
+---
+
+### TD-NEW-029 · Technical-failure class — postgres node mid-flight halt between consecutive nodes (DB blip / n8n hiccup)
+
+**Finding:** Setting `alwaysOutputData=true` on user-keyed Postgres UPDATE nodes (per the May 2026 SP-02 sweep) protects against the functional `0 rows affected` case by letting downstream observe and route gracefully. It does NOT protect against the *technical* failure mode where the postgres node errors mid-execution (connection dropped, n8n container restart, Postgres restart, transient network glitch) **after upstream gates have already validated user-existence**. Examples surfaced during the SP-02 audit:
+
+- **WF-32 Step 6 (Update User Status)** — by Step 6 the user has been confirmed twice: WF-02 routes `PAYMENT_CONFIRM ⇔ user IS NOT NULL AND user.status='payment_pending'`, then Step 5's INSERT into `payments` FK-validates `user_id`. A 0-row UPDATE at Step 6 is impossible by functional invariant; only a postgres connection blip or container restart in the millisecond window between Step 5 and Step 6 can cause failure. Currently the workflow halts and an orphan `payments` row is left behind.
+- **Any UPDATE following a SELECT/INSERT that already confirmed the same row** — same shape. WF-22 Save Slack Channel ID, WF-32 Create Payment Record, WF-34 Reset User Status, WF-44 Save Feedback, WF-45 Set status=payment_pending, WF-47 Update User Status to opted_out, WF-47 Close Open Consultation all have this property to varying degrees.
+
+**Fix (proposed):** Bundle into the planned error-handling sprint alongside TD-029 (WF-25 Gemini failure), TD-033 (WF-50 empty body), and TD-NEW-028 (WF-51 failure logging). The right shape is retry / orphan-row reconciliation infrastructure (e.g., a periodic reconciler that looks for `payments.status='pending_verification'` rows whose `users.status` ≠ `payment_submitted` and either auto-corrects or flags for admin review) rather than per-node defensive guards. Per-node IF-guard wiring was considered and rejected during SP-02 because (a) the functional invariants already hold via upstream gates and (b) per-node guards would proliferate guard-code across every workflow without addressing the underlying class.
+
+**Schedule:** Planned error-handling sprint (post-MVP).
+
+---
+
 ## 🟢 P3 — Feature Gaps
 
 ### TD-010 · WF-11 missing UNBLOCK admin command
@@ -214,6 +393,16 @@ Also needs the "Payment Completed" interactive button.
 | `yIZwO3CZk6bOBAXl` | BACKUP_20260412_WF-30 New User Onboarding (WRONG) | Delete from n8n |
 
 These are inactive and deactivated but clutter the workflow list and confuse name-based lookups.
+
+---
+
+### TD-018 · WF-42 registry description incorrectly states "Archives Slack channel via WF-52" — channel is never archived on CLOSE
+
+**Finding:** `workflow-registry.md` WF-42 entry states "Archives Slack channel via WF-52 after closing". Verification of WF-42 JSON confirms no WF-52 call exists. The channel is NOT archived on consultation close.
+
+**This is correct behavior** per the deferred archival strategy: channels stay open so the astrologer retains full conversation history and users can rebook in the same channel without losing context. Archival is deferred to STOP/BLOCK events or 60-day inactivity (see Archival Strategy section).
+
+**Fix:** Update `workflow-registry.md` WF-42 description to accurately reflect: "Sets status=consultation_closed, sets awaiting_feedback=true, sends post-consultation message. Does NOT archive Slack channel — deferred archival strategy applies (see TD-019, TD-020, WF-72)."
 
 ---
 
@@ -289,6 +478,29 @@ WHERE id = $1
 
 ---
 
+## Archival Strategy — Design Decision (May 2026)
+
+**Decision:** Slack consultation channels (`consult-{phone}`) are **NOT archived when a consultation closes**. This is intentional.
+
+### Rationale
+After consultation closure, a user may rebook within days or weeks. Keeping the channel open allows Chinmay to scroll back and see the full conversation history — birth details, questions asked, context already shared — without asking the user to repeat themselves. Channel archival is irreversible from a workflow perspective (unarchiving requires manual Slack admin action) and should only happen when the user is definitively gone.
+
+### Archival Triggers
+
+| Event | Trigger Workflow | Status |
+|-------|-----------------|--------|
+| User sends STOP → `opted_out` | WF-47 | TD-019 — to implement |
+| Admin BLOCK → `blocked` | WF-46 | TD-020 — to implement |
+| 60-day inactivity (background sweep) | WF-72 | Deferred — post-go-live |
+
+### Rebook Flow — Channel Lifecycle (Current Correct Behavior)
+1. WF-42 closes consultation: sets `status = consultation_closed`, channel stays open ✅
+2. User types REBOOK → WF-45 → sets `status = payment_pending`
+3. User pays → WF-32 → `payment_submitted` → Admin APPROVE → `consultation_active`
+4. Consultation resumes in the **same Slack channel** with full history visible ✅
+
+---
+
 ## Summary Table
 
 | ID | Issue | Priority | Smoke Step Impacted |
@@ -302,11 +514,28 @@ WHERE id = $1
 | TD-006 | WF-20 registry note says broken but it's already fixed — stale doc | 🟠 P1 | Misleads Claude |
 | TD-015 | WF-42 sends unconfirmed Meta template instead of interactive buttons | 🟠 P1 | Step 9 (CLOSE) |
 | TD-016 | WF-31 no Slack relay for payment_submitted user messages | 🟠 P1 | Step 6 |
+| TD-021 | WF-33 missing state guard — APPROVE runs regardless of user status | 🟠 P1 | Step 7 (APPROVE) |
+| TD-022 | WF-42 missing state guard — CLOSE runs regardless of user status | 🟠 P1 | Step 9 (CLOSE) |
+| TD-023 | WF-10 relay has no status check — admin notes sent during payment_submitted | 🟠 P1 | Steps 6–7 |
+| TD-024 | WF-43 no button_reply routing for post-consult buttons (coupled to TD-015) | 🟠 P1 | Step 10+ |
+| TD-025 | WF-32 missing idempotency — duplicate "Payment Completed" tap accepted | 🟠 P1 | Step 5 |
+| TD-030 | WF-00 no bot echo filter — outbound WA messages may re-enter routing | 🟠 P1 | Every outbound msg |
+| TD-031 | APPROVE command wording inconsistency across docs (APPROVE PAYMENT vs APPROVE CHAT CONSULT) | 🟠 P1 | Step 7 (APPROVE) |
 | TD-007 | WF-52 call-site nodes named "Create Channel" — wrong semantics | 🟡 P2 | Misleads Claude |
 | TD-008 | WF-52 input contract undocumented; passthrough mapping fragile | 🟡 P2 | Debugging |
 | TD-009 | WF-60 / WF-20 IDs swapped in registry | 🟡 P2 | Wrong WF modified |
 | TD-017 | Non-text during consultation_active silently dropped (not fwded to Slack) | 🟡 P2 | Post-MVP UX |
+| TD-019 | WF-47 does not archive Slack channel on STOP/opted_out | 🟡 P2 | Channel housekeeping |
+| TD-020 | WF-46 does not archive Slack channel on BLOCK | 🟡 P2 | Channel housekeeping |
+| TD-026 | WF-11 UNBLOCK has no status guard — can override opted_out users | 🟡 P2 | Step 14 |
+| TD-027 | WF-20 HELP response is static — not status-aware per J-18 | 🟡 P2 | Step 16 (HELP) |
+| TD-028 | WF-30 / WF-31 missing stop_intent routing branch | 🟡 P2 | Pre-form + payment_submitted STOP |
+| TD-029 | WF-25 no error handling for Gemini API failures | 🟡 P2 | Any free-text state |
+| TD-032 | WF-44 saves all text as feedback without intent check — rebook intent lost | 🟡 P2 | Step 10+ |
 | TD-010 | WF-11 missing UNBLOCK command | 🟢 P3 | Step 14 |
 | TD-011 | WF-45 Rebook payment wording not updated | 🟢 P3 | Step 12+ |
 | TD-012 | WF-23 registry status wrong (Placeholder → Active) | 🟢 P3 | Documentation |
 | TD-013 | 3 stale/backup workflows in n8n | ⚪ P4 | None |
+| TD-018 | WF-42 registry description says "Archives via WF-52" — incorrect, doc fix needed | ⚪ P4 | None (doc only) |
+| TD-033 | WF-50 no validation for empty/null message body — Meta API will error | 🟡 P2 | Any outbound message |
+| TD-034 | WF-00 no guard for whitespace-only user messages — blank text enters routing | 🟡 P2 | Edge case user input |

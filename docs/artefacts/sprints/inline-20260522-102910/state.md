@@ -3,7 +3,7 @@ input_source: inline-20260522-102910
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/inline-20260522-102910/working.md
 planned_at: 2026-05-22T10:29:10Z
-last_updated: 2026-05-22T12:02:00Z
+last_updated: 2026-05-23T07:53:00Z
 planning_complete: true
 context: |
   Sprint scope was derived from a session-long interactive walk-through of the 2026-05-22 pseudo↔live drift report (6 flagged workflows: WF-12, WF-23, WF-41, WF-46, WF-51, WF-60). For each, we discussed whether pseudocode or live code should be treated as authoritative, given functional position in the user journey, history (e.g. TD-002 multi-transport rebuild, DR-10 channel-archival rule, deactivation history), and surrounding architectural concerns. Several items grew beyond their original audit-finding scope when surrounding investigation revealed systemic issues (passthrough vs defineBelow contract pattern; postgres `alwaysOutputData` hygiene; admin-action precondition feedback gaps; postgres unquoted-camelCase SQL alias lowercasing).
@@ -27,9 +27,19 @@ items:
     batch: 1
     depends_on: []
   - id: SP-02
-    description: Postgres alwaysOutputData=true remediation across 10 active nodes — WF-21 (Insert Pending User), WF-22 (Save Slack Channel ID), WF-32 (Create Payment Record, Update User Status), WF-34 (Reset User Status to payment_pending), WF-44 (Save Feedback to DB), WF-45 (Set status=payment_pending), WF-47 (Update User Status to opted_out, Close Open Consultation). For each, set the flag and assess whether downstream node needs an additional IF guard for the now-non-empty empty-result row; remediate where needed.
+    description: |
+      Postgres alwaysOutputData=true remediation across 9 active nodes (live audit corrected count from 10) — WF-21 (Insert Pending User), WF-22 (Save Slack Channel ID), WF-32 (Create Payment Record, Update User Status), WF-34 (Reset User Status to payment_pending), WF-44 (Save Feedback to DB), WF-45 (Set status=payment_pending), WF-47 (Update User Status to opted_out, Close Open Consultation). For each, set the flag and assess whether downstream node needs an additional IF guard for the now-non-empty empty-result row.
+      AUDIT OUTCOME (2026-05-22): Per-node assessment against build-workflow Step 5a found 7 nodes are pure fire-and-forget (safe to set true with no further work). The two cases where downstream reads the postgres output (WF-32 Update User Status; WF-47 Update User Status to opted_out) were initially scoped for option B (IF guard + WF-51 admin feedback). User pushed back with the correct principle: upstream gating already validates user-existence (WF-02 routes PAYMENT_CONFIRM ⇔ user exists + payment_pending; WF-47's existing IF graph handles empty-`{}` via FALSE-branch bypass to WhatsApp opt-out). Per-node IF guards downstream are unnecessary. SP-02 reduces to 9 mechanical aod=true flag-flips, Batch Surgical (Step 5d). The technical-failure class (mid-flight postgres connection blip after upstream gates passed) is logged as a new TD entry for the planned error-handling sprint. The architectural improvement of explicit user-load gates at WF-01 + WF-10 is captured as new sprint item SP-11.
     priority: P2
-    status: pending
+    status: done
+    started_at: 2026-05-22T13:18:00Z
+    completed_at: 2026-05-23T07:53:00Z
+    completion_note: |
+      Batch Surgical (Step 5d) — 9 Postgres write nodes across 7 workflows set to alwaysOutputData=true via mcp__n8n__n8n_update_partial_workflow. All 7 workflows backed up to archive/backups/<uuid>-2026-05-23-07-50.json before mutation. Spot-check confirmed aod=true on sampled nodes in WF-32 (Create Payment Record, Update User Status) and WF-47 (Update User Status to opted_out, Close Open Consultation). All 7 workflows re-exported to workflows/<uuid>.json. Secrets scan clean.
+      Side artifacts produced: (a) TD-NEW-029 added to docs/Tech_Debts.md P2 section — technical-failure class for postgres mid-flight halt, bundled into the planned error-handling sprint; (b) WF-47.pseudo Step 2 updated with one-paragraph clarification explaining why aod=true is safe under pre-onboarding-STOP without an IF guard (existing IF graph handles empty-`{}` via FALSE-branch bypass); (c) workflow-registry.md WIP section updated with SP-02 completion note.
+      Audit-vs-reality drift handled correctly: SP-02 description's blanket "set true on 10 nodes" was validated per-node and reduced to 9 nodes (count discrepancy in the original audit), and the option-B IF-guard expansion proposed initially was correctly rejected in favor of the architecturally cleaner SP-11 (upstream user-load gates in WF-01 + WF-10).
+
+      Committed and pushed to main at the Batch 2 SP-02 checkpoint (per build-sprint Step 4.6 proactive commit/push offer; user opted to commit standalone before pausing for SP-03 / SP-11 fresh-session start).
     batch: 2
     depends_on: []
   - id: SP-03
@@ -105,6 +115,27 @@ items:
       - id: SP-05
         type: soft
         reason: "Principle (c) demonstrated by SP-05's passthrough normalization."
+  - id: SP-11
+    description: |
+      WF-01 + WF-10 user-load gates — make user-existence validation explicit at the load step rather than incidentally enforced by downstream routing.
+      WF-01: After Steps 10–11 (Load Pending User + Load Full User) and Step 12 (Prepare User Data), add an explicit gate before Step 13 (Call WF-02). Cases:
+        - user exists → continue → WF-02 (normal flow)
+        - user null, pendingUser exists → continue → WF-02 (legitimate pre-form state; PRE_FORM_TEXT / DETAILS_FORM routes handle it)
+        - user null, pendingUser null, messageType='text' → continue → WF-02 (legitimate new user; NEW_USER route → WF-21)
+        - user null, pendingUser null, messageType='interactive' (button tap from unrecorded phone) → admin alert via WF-51 to chinmay-admin-commands (C0A5B0ZE81E). Do NOT call WF-02. Message: "⚠️ Anomalous interactive message from unrecorded phone +<phone>. Bot/spam interaction or DB row was deleted after we sent a button."
+        - user null, pendingUser null, messageText matches STOP/REBOOK keyword → admin alert (same shape). Do NOT call WF-02 (eliminates the WF-47 pre-onboarding-STOP edge case at the source).
+      WF-10: After Load User Status (simplified by SP-01), add an explicit gate before "User Consultation Active?" IF:
+        - row returned, status='consultation_active' → existing TRUE branch
+        - row returned, status ≠ 'consultation_active' → existing FALSE branch (Build Admin Feedback "not in consultation_active" → WF-51)
+        - no row returned (orphaned channel — no users row maps to this slack_channel_id) → NEW branch — admin alert "⚠️ No user record for channel <id>. Orphaned channel?" Currently SP-01's FALSE branch misleadingly fires with "user not in consultation_active" when `.status` is actually undefined. The gate makes the distinction explicit.
+      Pseudo-first per Step 5f.0 (Structural, non-parametric — alters control flow). Update WF-01.pseudo + WF-10.pseudo first, then implement.
+    priority: P2
+    status: pending
+    batch: 2
+    depends_on:
+      - id: SP-02
+        type: soft
+        reason: "SP-02 establishes the alwaysOutputData baseline so the new WF-01 gate has consistent postgres-node hygiene to build on. Also: WF-10 SP-01 already established the Set → WF-51 admin-feedback pattern this item extends."
 followups_logged:
   - "TD-NEW-027 (post-MVP doc): Periodic pseudo↔live drift health-check infrastructure — maintenance-phase coverage broader than current build-sprint-bound hook."
   - "TD-NEW-028 (Tech_Debts.md): WF-51 Slack failure-path logging — wire On Error → WF-60 with slackApiOk:false; bundle into planned error-handling sprint."

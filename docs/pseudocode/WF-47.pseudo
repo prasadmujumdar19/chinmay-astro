@@ -23,6 +23,7 @@ Step 2: Update user record — opt the user out unconditionally and clear any ac
            updated_at=NOW()
      WHERE phone_number=<phoneNumber>
      RETURNING slack_channel_id;`
+  - Postgres node: `alwaysOutputData=true` (SP-02 May 2026). Pre-onboarding STOP (user exists in `pending_users` only, no row in `users`) returns 0 rows → empty `{}` propagates downstream. The existing IF graph handles this gracefully: "Was Consultation Active?" reads `userStatus` from the trigger (null) → FALSE → skips Close Open Consultation; "Has Slack Channel?" reads `.slack_channel_id` from this node (undefined) → notEmpty=FALSE → skips Slack notice; "Prepare WF-50 Payload (Opt-out Confirmation)" reads `phoneNumber` from the trigger → user still receives the WhatsApp opt-out confirmation. No IF guard or admin alert needed in WF-47 itself; the upstream WF-01 user-load gate (SP-11) is the architecturally correct place to catch unrecorded-phone anomalies.
   - Carry `slack_channel_id` forward to Step 4.
 
 Step 3: Check: userStatus equals 'consultation_active'?

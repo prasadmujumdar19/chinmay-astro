@@ -190,6 +190,9 @@ payment_submitted →(admin REJECT)→ payment_pending [retry]
 **Post-sprint AOD audit 2026-05-16:**
 - ✅ F-13 — `alwaysOutputData: true` added to two Postgres SELECT→IF guards: WF-11 `Lookup Blocked User`, WF-10 `Load User Status`. Audit of all 28 workflows showed no other gaps.
 
+**SP-02 (sprint inline-20260522-102910) completed 2026-05-23:**
+- ✅ `alwaysOutputData: true` set on 9 Postgres write nodes — protects against silent halt-on-empty for user-keyed UPDATE/INSERT operations. Nodes: WF-21 Insert Pending User, WF-22 Save Slack Channel ID, WF-32 Create Payment Record + Update User Status, WF-34 Reset User Status to payment_pending, WF-44 Save Feedback to DB, WF-45 Set status=payment_pending, WF-47 Update User Status to opted_out + Close Open Consultation. Per-node audit confirmed no IF-guard additions required — upstream WF-02 routing already gates on user-existence; WF-47's existing IF graph handles aod=true empty-`{}` gracefully via FALSE-branch bypass. Mid-flight postgres failures (connection blip after upstream gates pass) are functionally out-of-scope; logged as TD-NEW-029 for the planned error-handling sprint.
+
 **Deferred to next sessions:**
 - F-08 — admin command smoke test (APPROVE/REJECT/CLOSE/BLOCK) — user-driven interactive
 - F-10/F-11/F-12 — post-MVP (UI cosmetic, n8n upgrade, WF-60 message-logging fix)
