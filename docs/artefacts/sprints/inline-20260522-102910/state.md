@@ -3,7 +3,7 @@ input_source: inline-20260522-102910
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/inline-20260522-102910/working.md
 planned_at: 2026-05-22T10:29:10Z
-last_updated: 2026-05-23T10:34:33Z
+last_updated: 2026-05-23T11:24:13Z
 planning_complete: true
 context: |
   Sprint scope was derived from a session-long interactive walk-through of the 2026-05-22 pseudo↔live drift report (6 flagged workflows: WF-12, WF-23, WF-41, WF-46, WF-51, WF-60). For each, we discussed whether pseudocode or live code should be treated as authoritative, given functional position in the user journey, history (e.g. TD-002 multi-transport rebuild, DR-10 channel-archival rule, deactivation history), and surrounding architectural concerns. Several items grew beyond their original audit-finding scope when surrounding investigation revealed systemic issues (passthrough vs defineBelow contract pattern; postgres `alwaysOutputData` hygiene; admin-action precondition feedback gaps; postgres unquoted-camelCase SQL alias lowercasing).
@@ -231,13 +231,122 @@ items:
       (h) **User-load gates.** When a workflow loads a user record by external key (phone, slack_channel_id, etc.) with alwaysOutputData=true, add an explicit user-found IF gate with admin-feedback on miss BEFORE downstream operations consume the row. Downstream operations should trust the load. Avoids per-consumer-workflow guard proliferation. (Validated by SP-11's design — same principle applied at WF-01 and WF-10. From handoff plugin improvement candidates.)
       (i) **Audit-vs-reality drift validation pattern.** Sprint items that prescribe blanket mechanical changes ("set X on N nodes") should be validated per-node against build-workflow Step 5a before mutation. SP-02 went from "set true on 10 nodes" → "9 nodes confirmed; option B IF-guard expansion correctly rejected after upstream-gating analysis". Matches `build-sprint` Step 3 audit-vs-reality drift principle.
       (n) **Pseudo Inputs contract declaration discipline** (added 2026-05-23 alongside expanded principle c): Every sub-workflow's `.pseudo` file MUST declare an explicit Inputs contract section: required vs optional fields, names, shapes/types, validity rules (e.g., "phoneNumber: E.164 string"). Discriminated-union shapes (e.g., WF-60 logging WhatsApp vs Slack with different field sets) must be captured explicitly. Vague declarations like "Inputs: phoneNumber, userId, messageText (from upstream)" are rejected at pseudo-drift-check. The pseudo Inputs section is the authoritative source for caller-side Set node construction (per principle c). Validated by the SP-05 audit finding that callers had silently encoded different rename patterns for the same sub-workflow (WF-25) because no canonical contract existed in the pseudo.
+      (j) **Admin/user message tone — business language only** (added 2026-05-23T11:15:00Z, sourced from [[feedback_admin_message_tone]]): Admin-facing Slack alerts (chinmay-admin-commands + consult channels) and user-facing WhatsApp messages MUST be written for a business audience. Forbidden tokens in message content: `WF-XX`, `WF-XX.pseudo`, `DB row`, `users row`, `pending_users`, `slack_channel_id`, `executeWorkflow`, `sub-workflow`, `IF node`, `Set node`, `payload`, internal field names (`messageType=...`, `userStatus=...`, `pendingUser=...`, `interactiveType=...`), references to internal architecture ("edge case", "pre-onboarding-STOP gate", "eliminates X at the source"). Acceptable diagnostic content: phone numbers, user names, plain-English status values, the actual message text, channel IDs/names, counts. Sanity test: would a small-business owner reading this understand without a glossary? If no, rewrite. Validated by SP-11 — three SP-11 alerts + a pre-existing WF-02 UNHANDLED alert rewritten in the same session after user flagged "Eliminates the WF-47 pre-onboarding-STOP edge at the source" as opaque to Chinmay. Methodology-level per [[feedback_principle_placement]].
+      (k) **Author-fresh gate — explicit-approval requirement** (added 2026-05-23T11:15:00Z, sourced from SP-03 WF-10 28→38 fresh-rebuild experience): The `build-workflow` Step 5 scope rubric currently fuses jq-on-disk and author-fresh into one "anything else" bucket. Split them: jq-on-disk is the default for structural changes (preserves node IDs/positions/credentials/webhookIds verbatim by name); author-fresh (Python script writes full target nodes+connections, copying keeper nodes verbatim by name from live JSON, splicing in new nodes) is a HIGHER bar — discards nothing structural but rebuilds the JSON from scratch, so it MUST be justified by: (1) the change is pseudocode-driven AND complete-rebuild scope, OR (2) jq-on-disk transform complexity would itself be a defect risk. Author-fresh requires explicit user approval before invocation. Validated by SP-03 WF-10 (28→38 nodes, 2026-05-23T02:30:47Z) — author-fresh used deliberately + with user confirmation, with typeVersion floor (principle m) honored throughout. Methodology-level — applies to any project using `build-workflow`.
+      (m) **typeVersion floor — match highest live typeVersion for the .type** (added 2026-05-23T11:15:00Z, sourced from [[feedback_typeversion_floor]]): When authoring nodes fresh (Step 5e author-fresh path, `n8n_create_workflow`, regenerate-by-copy, or any pass that introduces nodes not in the live JSON), default each new node's `typeVersion` to the HIGHEST `typeVersion` already present in the live workflow for that exact `.type`. Do not auto-pick the n8n MCP's latest. Two failure modes prevented: (1) UI-crash format mismatches that the existing structural lint catches for IF/executeWorkflow but NOT for Set/Switch/Code/Postgres; (2) silent runtime semantic drift — the Set v3.3 → v3.4 bump changed `includeOtherFields` default from true → false, which is exactly the SP-11 LESSON LEARNED (exec 1630, dropped upstream payload, INSERT-null-phone failure). Procedure: before authoring, grep live JSON for every existing instance of the same `.type`, capture all typeVersion values, pick the highest. If no existing instance: stop, ask user. Post-build verification: per-type typeVersion-array comparison live (pre) vs new (post) — only valid delta is "removed-version dropped" or "new entry equals existing version". Any other delta is a defect. Methodology-level.
     priority: P3
-    status: pending
+    status: in-progress
+    started_at: 2026-05-23T10:55:00Z
     batch: 4
     depends_on:
       - id: SP-01
         type: soft
         reason: "Principles (a) and (c) are exemplified by SP-01's implementation; ordering ensures the plugin update captures lessons from real work."
+    invocation_progress:
+      - invocation: 1
+        principles: [c, g, n]
+        plugin_version: 1.26.0
+        commit: 6d0ab53
+        landed_at: 2026-05-23T11:25:00Z
+        landed_files:
+          - skills/build-workflow/SKILL.md (Step 5f.2 rewritten + new Step 5f.5 + Step 5f.3 passthrough-only + Step 5e Contract-First reference)
+          - skills/pseudo-md-drift-check/SKILL.md (Step 3.2 new taxonomy D9; D9 added to DRIFT-severity rule)
+          - scripts/lint-workflows.py (two new checks: contract-first advisory + Set-v3.4-includeOtherFields advisory; fail/warn severity classes)
+          - CHANGELOG.md, .claude-plugin/plugin.json, .claude-plugin/marketplace.json
+        cache_sync:
+          - cache dir renamed 1.25.0 → 1.26.0
+          - symlink 1.25.0 → 1.26.0 created
+          - installed_plugins.json + marketplace cache plugin.json updated
+        lint_severity_decision: |
+          User chose "Land as warn-only" — contract-first check intentionally lands as advisory, not hard-reject, because 90 existing executeWorkflow calls (Code-node upstream pattern, not Set) would otherwise gate every project lint run. The check will flip to hard-reject after the Contract-First Sub-Workflow Calls multi-sprint initiative remediates those sites. Documented in build-workflow Step 5f.2 + Step 6 lint description + CHANGELOG.
+        verification:
+          - lint script smoke-tested against project workflows/ before commit
+          - exit 0, 109 advisory findings (90 contract-first + 19 Set-v3.4-includeOtherFields)
+          - matches expected count: 18 defineBelow sites (SP-05 audit) + ~10 additional Code-upstream cases not in original audit + 19 Set v3.4 derive-pattern instances
+      - invocation: 2
+        principles: [j, k, m]
+        plugin_version: 1.27.0 (pending)
+        status: not-started
+      - invocation: 3
+        principles: [a, b, d, h]
+        plugin_version: 1.28.0 (pending)
+        status: not-started
+      - invocation: 4
+        principles: [e, f, i]
+        plugin_version: 1.28.1 (pending, may collapse)
+        status: not-started
+    execution_sub_plan: |
+      Drafted 2026-05-23T11:08:00Z; revised 2026-05-23T11:18:00Z to fold in principles j/k/m (user chose Option B — expand SP-10 in place rather than spinning off a future SP-12). Routes through `n8n-whatsapp-methodology:flush-plugin-improvements` skill (clone → edit → atomic version bump across 3 files → CHANGELOG → commit → push → sync `.in_use` symlink). Four separate invocations, not one — each invocation = one coherent group + one version bump + one commit.
+
+      **Principle → target skill file mapping (13 principles in current SP-10 description: a, b, c, d, e, f, g, h, i, j, k, m, n):**
+
+      | Principle | Coverage status (active 1.25.0) | Target file(s) | Change type |
+      |-----------|---------------------------------|----------------|-------------|
+      | (a) Postgres alwaysOutputData + IF guard on 0-row paths | PARTIAL — `build-workflow` Step 5a has the explicit-decision rule but not as a hard lint check | `build-workflow/SKILL.md` Step 5a (tighten language to MUST); `scripts/post-workflow-lint.sh` (new check: pg_select_missing_aod) | Tighten + lint hook |
+      | (b) IF FALSE branch on critical workflows must connect to graceful handler | NEW | `build-workflow/SKILL.md` Step 5a (new sub-step alongside aod); `scripts/post-workflow-lint.sh` (new check: if_false_disconnected_critical) | New principle + lint hook (advisory, since "critical" is subjective) |
+      | (c) Contract-First sub-workflow calls (EXPANDED) | PARTIAL — Step 5f.1 has passthrough guidance but still ALLOWS defineBelow | `build-workflow/SKILL.md` Step 5f.1 (rewrite — reject defineBelow); `scripts/post-workflow-lint.sh` (new hard check: contract_first_exec_calls) | Expand + lint hook (hard reject) |
+      | (d) Postgres SQL aliases — no unquoted camelCase | NEW | `build-workflow/SKILL.md` Step 5b DB-Schema steps (new); `scripts/post-workflow-lint.sh` (new check: pg_unquoted_camelcase_alias) | New principle + lint hook (regex) |
+      | (e) Structural refactor must include matching pseudo diff in same change set | ALREADY ENFORCED — `build-workflow` Step 2a + 5f.0 are hard gates; backstopped by `pseudo-md-drift-check` | n/a — confirm coverage; skip unless gap found | No change anticipated |
+      | (f) Pseudo Inputs declaration matches what trigger/code nodes reference | NEW | `pseudo-md-drift-check/SKILL.md` Step 3.2 taxonomy (new category D8 "Inputs contract validity") | New drift-check category |
+      | (g) Set v3.4 includeOtherFields default hazard | PARTIAL — mentioned in SP-11 LESSON LEARNED but not yet in plugin | `build-workflow/SKILL.md` new Step 5f.5 (derive-then-pass requires includeOtherFields=true); `scripts/post-workflow-lint.sh` (new advisory check: set_v34_assignments_no_includeother — flag for review, not hard reject because contract-emit case is legitimate) | New step + lint hook (advisory) |
+      | (h) User-load gates — explicit IF after user-by-external-key load | NEW | `build-workflow/SKILL.md` new Step 5a.5 architectural pattern (alongside aod decision) | New principle (no lint hook — pattern recognition, not pattern violation) |
+      | (i) Audit-vs-reality drift validation before blanket mechanical changes | ALREADY COVERED — `build-sprint` Step 3 "Audit-vs-reality drift — common trigger for needs-decision" + Step 3 "Verify plan target before mutating" | n/a — confirm coverage; skip unless gap found | No change anticipated |
+      | (n) Pseudo Inputs contract declaration discipline (vague declarations rejected) | NEW | `pseudo-md-drift-check/SKILL.md` Step 3.2 taxonomy (new category D9 "Inputs declaration shape"); `build-workflow/SKILL.md` Step 5f reference (link the rule) | New drift-check category + cross-reference |
+      | (j) Admin/user message tone — business language only | NEW | `build-workflow/SKILL.md` new Step 5g "Message authoring conventions" (post-5f, before lint); `scripts/post-workflow-lint.sh` (new advisory check: forbidden_tokens_in_message_strings — grep Set/Code node `messageText`-style fields for the forbidden-token list) | New step + lint hook (advisory — false-positive prone, never hard-reject) |
+      | (k) Author-fresh gate — explicit-approval requirement | PARTIAL — Step 5e mentions author-fresh as a path but doesn't gate it | `build-workflow/SKILL.md` Step 5 scope rubric (split jq-on-disk vs author-fresh into separate bullets) + Step 5e (insert 5e.0 "Author-fresh gate" before 5e.1) | Tighten existing — no new lint hook (process gate, not artifact check) |
+      | (m) typeVersion floor — match highest live typeVersion for .type | NEW | `build-workflow/SKILL.md` new Step 5e.1a "typeVersion floor"; `scripts/post-workflow-lint.sh` (new check: typeversion_bump_against_live — compares per-type typeVersion arrays pre/post and flags any new version that wasn't already present in live) | New step + lint hook (post-PUT verification, since pre-PUT can't see "live's max typeVersion" without an extra fetch) |
+
+      **Four flush-plugin-improvements invocations (handoff ordering preserved + j/k/m folded in as Invocation 2):**
+
+      **Invocation 1 — Contract-First trio (c + n + g) — smallest cohesive unit, active learning behind it:**
+      - `build-workflow/SKILL.md`: rewrite Step 5f.1 to reject defineBelow + require upstream Set; add new Step 5f.5 documenting Set v3.4 includeOtherFields hazard with the chinmay-astro exec-1630 case study.
+      - `pseudo-md-drift-check/SKILL.md`: add taxonomy category D9 (Inputs declaration shape — required/optional/types/validity, no "from upstream" vagueness).
+      - `scripts/post-workflow-lint.sh`: add hard check `contract_first_exec_calls` (rejects defineBelow + missing-upstream-Set); add advisory check `set_v34_assignments_no_includeother`.
+      - CHANGELOG: minor bump (new lint check + new step). Target version 1.26.0.
+
+      **Invocation 2 — Authoring discipline (j + k + m):**
+      - `build-workflow/SKILL.md`: add new Step 5g "Message authoring conventions" with the (j) forbidden-token list + sanity test; split Step 5 scope rubric to separate jq-on-disk and author-fresh; insert Step 5e.0 "Author-fresh gate" (explicit-approval requirement, justification rubric); insert Step 5e.1a "typeVersion floor" with pre-PUT grep + post-PUT array-diff verification procedure.
+      - `scripts/post-workflow-lint.sh`: add advisory check `forbidden_tokens_in_message_strings` (greps Set/Code node text-emit fields for the forbidden-token list); add post-PUT check `typeversion_bump_against_live` (requires reading live JSON before-state — implement as a snapshot saved by Step 5e pre-flight and consumed by the post-PUT check).
+      - CHANGELOG: minor bump (3 new principles, 2 new lint hooks). Target version 1.27.0.
+
+      **Invocation 3 — Postgres + IF discipline (a + b + d + h):**
+      - `build-workflow/SKILL.md`: tighten Step 5a aod language to MUST; add new Step 5a.5 (user-load gate pattern); add Step 5a substep for IF-FALSE graceful handler on critical paths; extend Step 5b with SQL alias quoting rule.
+      - `scripts/post-workflow-lint.sh`: add hard check `pg_select_missing_aod`; add advisory check `if_false_disconnected_critical`; add hard check `pg_unquoted_camelcase_alias`.
+      - CHANGELOG: minor bump (4 new principles + 3 new lint checks). Target version 1.28.0.
+
+      **Invocation 4 — Drift/discipline reinforcement (e + f + i):**
+      - `pseudo-md-drift-check/SKILL.md`: add taxonomy category D8 (Inputs contract validity — pseudo Inputs matches trigger/code references).
+      - `build-workflow/SKILL.md` + `build-sprint/SKILL.md`: gap-check Steps 2a/5f.0 (e) and Step 3 (i); patch only if a real gap is identified during the audit. May be a no-op invocation, in which case skip and absorb the (f) drift-check addition into Invocation 1 or 2.
+      - CHANGELOG: patch bump (drift-check taxonomy expansion). Target version 1.28.1.
+
+      **Lint hook design — principle (c) "Contract-First sub-workflow calls" — concrete spec:**
+
+      Function: `lint_contract_first_exec_calls()` added to `scripts/post-workflow-lint.sh`. Operates on the same JSON the existing lint hook reads.
+
+      For each node N in `.nodes[]` where `N.type == "n8n-nodes-base.executeWorkflow"`:
+
+      1. **Reject defineBelow:** if `N.parameters.workflowInputs.mappingMode == "defineBelow"` → ERR `"executeWorkflow '<N.name>': mappingMode=defineBelow rejected — Contract-First requires passthrough + upstream Set node (build-workflow Step 5f.1)"`.
+
+      2. **Require immediately-upstream Set node:** "immediately upstream" = graph traversal one hop back via `.connections`. Identify the set `U = { src | src ∈ Object.keys(connections), ∃ branch_outputs ∈ connections[src].main, ∃ c ∈ branch_outputs, c.node == N.name }`. Cases:
+         - `|U| == 0` → ERR `"executeWorkflow '<N.name>': no upstream connection — orphan node"`.
+         - `|U| == 1`, single upstream `u`:
+           - If `nodes[u].type != "n8n-nodes-base.set"` → ERR `"executeWorkflow '<N.name>' upstream node '<u>' is type '<nodes[u].type>', not a Set — Contract-First requires a named Set node immediately upstream constructing the contract (build-workflow Step 5f.1)"`.
+           - If `nodes[u].typeVersion < 3.4` → WARN `"executeWorkflow '<N.name>' upstream Set '<u>' typeVersion=<v>, expected ≥3.4 — upgrade for explicit field-emit semantics"`.
+         - `|U| > 1` (multiple upstreams converging on the exec call — uncommon): apply the Set check to ALL upstreams. ERR if any are non-Set. (A future refinement could allow a Merge node directly upstream of a Set; out of scope for v1.)
+
+      3. **Whitelist exception**: a `// lint-allow: contract-first-bypass <reason>` comment in the Set node's `notes` field (or in workflow `.meta.description`) skips the hard reject. Reserved for documented exceptions (e.g., a placeholder workflow under active migration). Audit-tracked.
+
+      Edge cases:
+      - executeWorkflowTrigger (sub-workflow entry point) — not an executeWorkflow CALL; skip.
+      - executeWorkflow → executeWorkflow chain — still requires Set in between (the rule applies at the call site).
+      - Sub-workflows with no executeWorkflow calls — skip (no calls, no rule).
+      - The Set's downstream emission shape (includeOtherFields true vs false) is OUT OF SCOPE for this hook; principle (g)'s advisory check handles it separately.
+
+      Implementation pattern: jq query returns the rejection list as `.contract_first_violations: [{node, reason}]`; bash function reads the array and prints + sets exit code. Drop-in alongside the existing checks (e.g. `pg_missing_eq_prefix`, `exec_string_wid_at_v12`).
+
+      **Scope decision recorded 2026-05-23T11:18:00Z:** Option B chosen — SP-10 expanded in place to include j/k/m. Rationale: postponing to a hypothetical SP-12 would only add ceremony — j/k/m are already memory-backed, methodology-level, and exemplified by SP-01/SP-03/SP-11 the same way a/c are. The 13-principle scope fits cleanly into 4 invocations.
+
+      **Next concrete step (after user approves this sub-plan):** start Invocation 1 by invoking `n8n-whatsapp-methodology:flush-plugin-improvements` with the (c) + (n) + (g) trio + the lint-hook addition. Pre-flight: confirm n8n SSH tunnel is open (this session reported NOT reachable at session start — verify before plugin work resumes, since the lint hook will eventually be exercised against the live workflow set).
   - id: SP-11
     status: done
     started_at: 2026-05-22T22:19:17Z
