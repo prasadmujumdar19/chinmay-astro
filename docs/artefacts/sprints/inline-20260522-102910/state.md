@@ -3,7 +3,7 @@ input_source: inline-20260522-102910
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/inline-20260522-102910/working.md
 planned_at: 2026-05-22T10:29:10Z
-last_updated: 2026-05-23T12:55:00Z
+last_updated: 2026-05-23T13:25:00Z
 planning_complete: true
 drift_check_deferred:
   status: deferred
@@ -252,7 +252,7 @@ items:
       (k) **Author-fresh gate — explicit-approval requirement** (added 2026-05-23T11:15:00Z, sourced from SP-03 WF-10 28→38 fresh-rebuild experience): The `build-workflow` Step 5 scope rubric currently fuses jq-on-disk and author-fresh into one "anything else" bucket. Split them: jq-on-disk is the default for structural changes (preserves node IDs/positions/credentials/webhookIds verbatim by name); author-fresh (Python script writes full target nodes+connections, copying keeper nodes verbatim by name from live JSON, splicing in new nodes) is a HIGHER bar — discards nothing structural but rebuilds the JSON from scratch, so it MUST be justified by: (1) the change is pseudocode-driven AND complete-rebuild scope, OR (2) jq-on-disk transform complexity would itself be a defect risk. Author-fresh requires explicit user approval before invocation. Validated by SP-03 WF-10 (28→38 nodes, 2026-05-23T02:30:47Z) — author-fresh used deliberately + with user confirmation, with typeVersion floor (principle m) honored throughout. Methodology-level — applies to any project using `build-workflow`.
       (m) **typeVersion floor — match highest live typeVersion for the .type** (added 2026-05-23T11:15:00Z, sourced from [[feedback_typeversion_floor]]): When authoring nodes fresh (Step 5e author-fresh path, `n8n_create_workflow`, regenerate-by-copy, or any pass that introduces nodes not in the live JSON), default each new node's `typeVersion` to the HIGHEST `typeVersion` already present in the live workflow for that exact `.type`. Do not auto-pick the n8n MCP's latest. Two failure modes prevented: (1) UI-crash format mismatches that the existing structural lint catches for IF/executeWorkflow but NOT for Set/Switch/Code/Postgres; (2) silent runtime semantic drift — the Set v3.3 → v3.4 bump changed `includeOtherFields` default from true → false, which is exactly the SP-11 LESSON LEARNED (exec 1630, dropped upstream payload, INSERT-null-phone failure). Procedure: before authoring, grep live JSON for every existing instance of the same `.type`, capture all typeVersion values, pick the highest. If no existing instance: stop, ask user. Post-build verification: per-type typeVersion-array comparison live (pre) vs new (post) — only valid delta is "removed-version dropped" or "new entry equals existing version". Any other delta is a defect. Methodology-level.
     priority: P3
-    status: in-progress
+    status: done
     started_at: 2026-05-23T10:55:00Z
     batch: 4
     depends_on:
@@ -324,8 +324,39 @@ items:
           - 4-source post-sync alignment script: cache dir / installed_plugins / marketplace cache / plugin.json all show 1.28.0
       - invocation: 4
         principles: [e, f, i]
-        plugin_version: 1.28.1 (pending, may collapse)
-        status: not-started
+        plugin_version: 1.28.1
+        commit: f587c18
+        landed_at: 2026-05-23T13:25:00Z
+        scope_decision: |
+          User chose Option 1 (Land f only — skip e+i audit) at 2026-05-23T13:18:00Z. Rationale recorded
+          in execution_sub_plan: (e) and (i) already covered by existing build-workflow Step 2a + 5f.0
+          and build-sprint Step 3 respectively per the sub-plan's own assessment; deferring the coverage-gap
+          audit indefinitely is acceptable because if a real gap surfaces in practice it will be raised
+          as a fresh sprint item then.
+        landed_files:
+          - skills/pseudo-md-drift-check/SKILL.md (Step 3.2 new taxonomy category D8 "Inputs contract validity"; Step 3.3 DRIFT-severity rule extended D1/D3/D4/D5/D9 → D1/D3/D4/D5/D8/D9)
+          - CHANGELOG.md, .claude-plugin/plugin.json, .claude-plugin/marketplace.json (1.28.0 → 1.28.1)
+        cache_sync:
+          - cache dir renamed 1.28.0 → 1.28.1
+          - symlink 1.28.0 → 1.28.1 created
+          - installed_plugins.json + marketplace cache plugin.json updated
+        verification:
+          - 3-file version-drift check: CHANGELOG / plugin.json / marketplace.json all show 1.28.1
+          - 4-source post-sync alignment check: cache dir / installed_plugins / marketplace cache / plugin.json all show 1.28.1
+          - lint script unchanged this invocation (D8 is a .pseudo drift-check taxonomy, not a workflow-JSON lint check); D8 will exercise on the next pseudo-md-drift-check run
+        status: done
+    completed_at: 2026-05-23T13:25:00Z
+    completion_note: |
+      All 4 invocations landed across plugin versions 1.26.0 → 1.28.1. 13 principles in scope (a/b/c/d/e/f/g/h/i/j/k/m/n);
+      (e) and (i) assessed as already covered by existing skill content per the execution_sub_plan and confirmed by
+      the user — no plugin change needed for those two. Plugin lint script gained 6 new checks across invocations 1-3
+      (contract_first_exec_calls hard, set_v34_assignments_no_includeother advisory, forbidden_tokens_in_message_strings
+      advisory, typeversion_bump_against_live post-PUT, pg_select_missing_aod hard, pg_unquoted_camelcase_alias hard,
+      if_false_disconnected_critical advisory). Drift-check gained 2 new taxonomy categories (D8 Inputs contract
+      validity, D9 Inputs contract declaration shape). build-workflow gained new top-level Step 5a (Postgres + IF
+      reliability rules — universal), new Step 5g (Message authoring conventions), Step 5e split (jq-on-disk vs
+      author-fresh) with new Step 5e.0 (Author-fresh gate) and Step 5e.1a (typeVersion floor). Pseudo Inputs contract
+      requirement documented in Step 5f.2 (Contract-First).
     execution_sub_plan: |
       Drafted 2026-05-23T11:08:00Z; revised 2026-05-23T11:18:00Z to fold in principles j/k/m (user chose Option B — expand SP-10 in place rather than spinning off a future SP-12). Routes through `n8n-whatsapp-methodology:flush-plugin-improvements` skill (clone → edit → atomic version bump across 3 files → CHANGELOG → commit → push → sync `.in_use` symlink). Four separate invocations, not one — each invocation = one coherent group + one version bump + one commit.
 
