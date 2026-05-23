@@ -3,7 +3,7 @@ input_source: inline-20260522-102910
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/inline-20260522-102910/working.md
 planned_at: 2026-05-22T10:29:10Z
-last_updated: 2026-05-23T12:25:00Z
+last_updated: 2026-05-23T12:55:00Z
 planning_complete: true
 drift_check_deferred:
   status: deferred
@@ -11,7 +11,7 @@ drift_check_deferred:
   decided_by: user (explicit, in-session)
   defer_until: |
     Two preconditions must both be satisfied before /n8n-whatsapp-methodology:pseudo-md-drift-check is run again on this project:
-      1. SP-10 plugin update — ALL FOUR invocations landed. Current status (2026-05-23T12:25Z): Invocation 1 (c+n+g → 1.26.0) done; Invocation 2 (j+k+m → 1.27.0) done; Invocations 3 (a+b+d+h → 1.28.0), 4 (e+f+i → 1.28.1) NOT started.
+      1. SP-10 plugin update — ALL FOUR invocations landed. Current status (2026-05-23T12:55Z): Invocation 1 (c+n+g → 1.26.0) done; Invocation 2 (j+k+m → 1.27.0) done; Invocation 3 (a+b+d+h → 1.28.0) done; Invocation 4 (e+f+i → 1.28.1) NOT started.
       2. SP-05 "enhanced scope" — the Contract-First Sub-Workflow Calls multi-sprint initiative (deferred from SP-05 per its `decision_required` block, line ~125) brainstormed, planned, and executed to completion. This initiative will substantially rewrite sub-workflow .pseudo Inputs sections (D9 contract declarations) and convert all 18 defineBelow+schema:[] call sites to Set+passthrough — both of which are the dominant drift sources today.
     Running drift-check before BOTH are done burns ~15 min walking a tracker whose findings are already known to be cascading D9 / D4 contract drift that the planned plugin + sprint work explicitly remediates.
   if_gate_fires: |
@@ -303,8 +303,25 @@ items:
           - 4-source post-sync alignment script: cache dir / installed_plugins / marketplace cache / plugin.json all show 1.27.0
       - invocation: 3
         principles: [a, b, d, h]
-        plugin_version: 1.28.0 (pending)
-        status: not-started
+        plugin_version: 1.28.0
+        commit: bcc3130
+        landed_at: 2026-05-23T12:55:00Z
+        landed_files:
+          - skills/build-workflow/SKILL.md (NEW top-level Step 5a "Postgres + IF reliability rules" — universal, applies to Surgical / Structural / DB-Schema. 5a.1 aod promoted to MUST with 4-case table; 5a.2 IF FALSE handler with 3-acceptable-handler list; 5a.5 user-load gate pattern. Step 5b sub-step 4a SQL alias quoting rule. Step 5b old 5a sub-step replaced with cross-reference to new 5a.1. Step 6 lint enumeration extended with 3 new check descriptions.)
+          - scripts/lint-workflows.py (new helper _to_snake_case; 3 new checks in the per-node loop — pg_select_missing_aod hard reject with pg-select-no-aod-bypass support, pg_unquoted_camelcase_alias hard reject no-bypass with snake_case suggestion in error message, if_false_disconnected_critical advisory with if-false-disconnect-bypass support; module docstring updated)
+          - CHANGELOG.md, .claude-plugin/plugin.json, .claude-plugin/marketplace.json (1.27.0 → 1.28.0)
+        cache_sync:
+          - cache dir renamed 1.27.0 → 1.28.0
+          - symlink 1.27.0 → 1.28.0 created
+          - installed_plugins.json + marketplace cache plugin.json updated
+        verification:
+          - python3 -c ast.parse on updated lint-workflows.py — OK
+          - python3 scripts/lint-workflows.py workflows/ (chinmay-astro, 27 workflows) — 156 advisory findings, 0 fails, exit 0
+          - new if_false_disconnected_critical advisory fired correctly on WF-10 'Human Vs Bot Message?' (intentional bot-echo guard with disconnected FALSE — exactly the human-review case the advisory is designed for; should be bypassed with 'lint-allow: if-false-disconnect-bypass' note in a future Surgical pass)
+          - new pg_select_missing_aod hard check did NOT fire (project already clean post-SP-01/02/03 work — SP-02 fixed 9 INSERT/UPDATE nodes; SELECTs across project all have aod=true)
+          - new pg_unquoted_camelcase_alias hard check did NOT fire (project clean — SP-01 WF-10 work eliminated unquoted-camelCase aliases by promoting to snake_case)
+          - 3-file version-drift script: CHANGELOG / plugin.json / marketplace.json all show 1.28.0
+          - 4-source post-sync alignment script: cache dir / installed_plugins / marketplace cache / plugin.json all show 1.28.0
       - invocation: 4
         principles: [e, f, i]
         plugin_version: 1.28.1 (pending, may collapse)
