@@ -1,0 +1,166 @@
+{
+  "wf_id": "WF-50",
+  "input": {
+    "existing_contract": [
+      "phoneNumber",
+      "messageType",
+      "messageContent",
+      "interactivePayload",
+      "templateName",
+      "templateParams",
+      "consultationId",
+      "userId",
+      "inboundMessageId",
+      "userMessage"
+    ],
+    "revised_contract": [
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime", "caller:WF-30", "caller:WF-20", "caller:WF-44", "caller:WF-23"]
+      },
+      {
+        "name": "messageType",
+        "required": false,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime", "caller:WF-23"]
+      },
+      {
+        "name": "messageContent",
+        "required": false,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "message",
+        "required": false,
+        "type": "string",
+        "source_hits": ["static", "caller:WF-30", "caller:WF-44"]
+      },
+      {
+        "name": "messageBody",
+        "required": false,
+        "type": "string",
+        "source_hits": ["static", "caller:WF-20"]
+      },
+      {
+        "name": "interactivePayload",
+        "required": false,
+        "type": "object",
+        "source_hits": ["pseudo", "static", "runtime", "caller:WF-23"]
+      },
+      {
+        "name": "templateName",
+        "required": false,
+        "type": "string",
+        "source_hits": ["pseudo", "static"]
+      },
+      {
+        "name": "templateParams",
+        "required": false,
+        "type": "array",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "consultationId",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "userId",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "inboundMessageId",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "userMessage",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "phoneNumberFormatted",
+        "required": false,
+        "type": "string",
+        "source_hits": ["static", "caller:WF-21"]
+      },
+      {
+        "name": "wasOptedOut",
+        "required": false,
+        "type": "boolean",
+        "source_hits": ["caller:WF-21"]
+      }
+    ],
+    "delta": "additions_only"
+  },
+  "output": {
+    "existing_contract": [
+      "success",
+      "messageId",
+      "error",
+      "phoneNumber",
+      "sentAt"
+    ],
+    "revised_contract": [
+      {
+        "name": "success",
+        "required": true,
+        "type": "boolean",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "messageId",
+        "required": true,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "error",
+        "required": true,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "sentAt",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime"]
+      }
+    ],
+    "delta": "no_change"
+  },
+  "findings": {
+    "technical_duplicates": [
+      {
+        "canonical": "messageContent",
+        "aliases": ["message", "messageBody"],
+        "callers_using_alias": ["WF-30", "WF-44", "WF-20", "WF-01", "WF-25", "WF-43"]
+      }
+    ],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [
+      {
+        "field": "wasOptedOut",
+        "passed_by": ["WF-21"],
+        "never_read_by_subwf": true
+      }
+    ],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "Of 24 call sites, 20 use passthrough mappingMode (no explicit set_assignments at the executeWorkflow node), so required=true is only safe for phoneNumber which is read unconditionally in Prepare Payload code; all other inputs are truly optional with defaults. The message/messageBody/messageContent technical-dup affects only the 4 explicit (defineBelow) sites: WF-30 site-1 and WF-44 use 'message', WF-20 uses 'messageBody', and the Stop-Clarifier Set nodes (WF-30 site-2, WF-40, WF-23, WF-31) use the canonical 'messageContent'; callers_using_alias for passthrough callers (WF-01, WF-25, WF-43) are inferred from upstream Code node assignments, not from explicit executeWorkflow value maps. The wasOptedOut dead-pass is confirmed: WF-21's upstream Build Welcome Message node explicitly emits wasOptedOut in json but Prepare Payload code contains no reference to input.wasOptedOut."
+}

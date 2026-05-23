@@ -1,0 +1,24 @@
+{
+  "wf_id": "WF-22",
+  "input": {
+    "existing_contract": ["phoneNumber", "rawMessage"],
+    "revised_contract": [
+      {"name": "phoneNumber", "required": true, "type": "string", "source_hits": ["pseudo", "static", "runtime"]},
+      {"name": "rawMessage", "required": true, "type": "object", "source_hits": ["pseudo", "static", "runtime"]}
+    ],
+    "delta": "no_change"
+  },
+  "output": {
+    "existing_contract": [],
+    "revised_contract": [],
+    "delta": "no_change"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "WF-02 (the only caller) uses mappingMode=passthrough with no explicit upstream Set node assignments — dead_pass and caller_missing_required findings are suppressed per schema special rules for passthrough callers. WF-22's trigger is also passthrough (inputSource=passthrough), and its Extract Form Data Code node unconditionally reads only input.phoneNumber and input.rawMessage, matching the existing pseudo contract exactly. Output contract is empty: WF-22 terminates at a fire-and-done WF-50 call and WF-02 does not consume any returned value. Runtime sample exec 1167 confirms both required fields are present and correctly typed."
+}

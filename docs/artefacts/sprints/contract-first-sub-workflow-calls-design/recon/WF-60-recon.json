@@ -1,0 +1,238 @@
+{
+  "wf_id": "WF-60",
+  "input": {
+    "existing_contract": [
+      "transport",
+      "direction",
+      "messageType",
+      "content",
+      "messageContent",
+      "userMessage",
+      "userId",
+      "consultationId",
+      "whatsappMessageId",
+      "messageId",
+      "slackMessageTs",
+      "slack_message_ts",
+      "phoneNumber",
+      "phoneNumberFormatted",
+      "slackChannelId",
+      "slack_channel_id",
+      "rawMessage",
+      "timestamp",
+      "contactName",
+      "success",
+      "error"
+    ],
+    "revised_contract": [
+      {
+        "name": "direction",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "caller:WF-00", "caller:WF-10", "caller:WF-50", "caller:WF-51", "runtime"]
+      },
+      {
+        "name": "messageType",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "caller:WF-00", "caller:WF-10", "caller:WF-50", "caller:WF-51", "runtime"]
+      },
+      {
+        "name": "content",
+        "required": true,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "caller:WF-10", "caller:WF-50", "caller:WF-51", "runtime"]
+      },
+      {
+        "name": "transport",
+        "required": false,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "caller:WF-10", "caller:WF-50", "caller:WF-51", "runtime"]
+      },
+      {
+        "name": "userId",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "caller:WF-00", "caller:WF-10", "caller:WF-50", "caller:WF-51", "runtime"]
+      },
+      {
+        "name": "consultationId",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "caller:WF-00", "caller:WF-10", "caller:WF-50", "caller:WF-51", "runtime"]
+      },
+      {
+        "name": "whatsappMessageId",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "caller:WF-00", "caller:WF-50", "runtime"]
+      },
+      {
+        "name": "slackMessageTs",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "caller:WF-10", "caller:WF-51", "runtime"]
+      },
+      {
+        "name": "phoneNumber",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "caller:WF-00", "caller:WF-50", "runtime"]
+      },
+      {
+        "name": "slackChannelId",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "caller:WF-10", "caller:WF-51", "runtime"]
+      },
+      {
+        "name": "messageContent",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "caller:WF-00"]
+      },
+      {
+        "name": "userMessage",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static"]
+      },
+      {
+        "name": "messageId",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static"]
+      },
+      {
+        "name": "slack_message_ts",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static"]
+      },
+      {
+        "name": "phoneNumberFormatted",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "caller:WF-50"]
+      },
+      {
+        "name": "slack_channel_id",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static"]
+      },
+      {
+        "name": "rawMessage",
+        "required": false,
+        "type": "any",
+        "source_hits": ["pseudo", "static", "caller:WF-00"]
+      },
+      {
+        "name": "timestamp",
+        "required": false,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "caller:WF-00"]
+      },
+      {
+        "name": "contactName",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "caller:WF-00"]
+      },
+      {
+        "name": "success",
+        "required": false,
+        "type": "boolean|null",
+        "source_hits": ["pseudo", "static", "caller:WF-50"]
+      },
+      {
+        "name": "error",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "caller:WF-50"]
+      },
+      {
+        "name": "inboundMessageId",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["static", "caller:WF-50"]
+      },
+      {
+        "name": "sentAt",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["static", "caller:WF-50"]
+      }
+    ],
+    "delta": "additions_only"
+  },
+  "output": {
+    "existing_contract": [
+      "logged",
+      "logId",
+      "reason"
+    ],
+    "revised_contract": [
+      {
+        "name": "logged",
+        "required": true,
+        "type": "boolean",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "logId",
+        "required": false,
+        "type": "integer|null",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "reason",
+        "required": false,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime"]
+      }
+    ],
+    "delta": "no_change"
+  },
+  "findings": {
+    "technical_duplicates": [
+      {
+        "canonical": "content",
+        "aliases": ["messageContent", "userMessage"],
+        "callers_using_alias": ["WF-00"]
+      },
+      {
+        "canonical": "whatsappMessageId",
+        "aliases": ["messageId"],
+        "callers_using_alias": ["WF-00"]
+      },
+      {
+        "canonical": "phoneNumber",
+        "aliases": ["phoneNumberFormatted"],
+        "callers_using_alias": ["WF-50"]
+      },
+      {
+        "canonical": "slackMessageTs",
+        "aliases": ["slack_message_ts"],
+        "callers_using_alias": ["WF-51"]
+      },
+      {
+        "canonical": "slackChannelId",
+        "aliases": ["slack_channel_id"],
+        "callers_using_alias": ["WF-51"]
+      }
+    ],
+    "functional_duplicates": [],
+    "type_contradictions": [
+      {
+        "field": "logged",
+        "pseudo_type": "boolean",
+        "runtime_type": "boolean",
+        "sample_exec_ids": ["1878", "1877"]
+      }
+    ],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "Runtime executions 1878 and 1877 both followed the skip-log path (no userId resolved), so the successful INSERT path with logId is not confirmed by runtime sample — logId type is inferred from static code ($input.item.json.id from RETURNING id clause). Critical bug observed: the Done node hardcodes `logged: true` and is wired to ALL terminal branches (success insert, filter skip, no-userId skip), so callers always receive `logged: true` regardless of whether the message was actually logged — the `logged: false` outputs from skip branches are silently overwritten. The type_contradictions entry is a placeholder acknowledging this bug; the type is correct (boolean) but the value contract is broken at runtime. All 4 callers use passthrough mode with no explicit workflowInputs_schema, so caller_missing_required and dead_pass findings would require confirmed defineBelow/Set-node evidence which is absent here."
+}

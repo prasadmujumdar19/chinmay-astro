@@ -1,0 +1,37 @@
+{
+  "wf_id": "WF-21",
+  "input": {
+    "existing_contract": ["phoneNumber", "phoneNumberFormatted", "contactName", "id", "messageId", "messageContent", "wasOptedOut"],
+    "revised_contract": [
+      {"name": "phoneNumber",          "required": true,  "type": "string", "source_hits": ["pseudo", "static", "caller:WF-01", "caller:WF-02", "runtime"]},
+      {"name": "phoneNumberFormatted", "required": true,  "type": "string", "source_hits": ["pseudo", "static", "caller:WF-01", "caller:WF-02", "runtime"]},
+      {"name": "contactName",          "required": true,  "type": "string", "source_hits": ["pseudo", "static", "caller:WF-01", "caller:WF-02", "runtime"]},
+      {"name": "id",                   "required": false, "type": "string", "source_hits": ["pseudo", "caller:WF-01", "caller:WF-02", "runtime"]},
+      {"name": "messageId",            "required": false, "type": "string", "source_hits": ["pseudo", "caller:WF-01", "caller:WF-02", "runtime"]},
+      {"name": "messageContent",       "required": false, "type": "string", "source_hits": ["pseudo", "caller:WF-01", "caller:WF-02", "runtime"]},
+      {"name": "wasOptedOut",          "required": false, "type": "boolean","source_hits": ["pseudo", "caller:WF-01", "caller:WF-02", "runtime"]}
+    ],
+    "delta": "no_change"
+  },
+  "output": {
+    "existing_contract": [],
+    "revised_contract": [
+      {"name": "success",     "required": true,  "type": "boolean", "source_hits": ["static", "runtime"]},
+      {"name": "messageId",   "required": true,  "type": "string",  "source_hits": ["static", "runtime"]},
+      {"name": "error",       "required": true,  "type": "string|null", "source_hits": ["static", "runtime"]},
+      {"name": "phoneNumber", "required": true,  "type": "string",  "source_hits": ["static", "runtime"]},
+      {"name": "sentAt",      "required": true,  "type": "string",  "source_hits": ["static", "runtime"]}
+    ],
+    "delta": "additions_only"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [
+      {"field": "messageType", "passed_by": ["WF-01", "WF-02"], "never_read_by_subwf": true}
+    ],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "Bundle bias: only 2 callers, both passthrough mode — required-input set equals existing pseudo Inputs. Final-node emits added to Output contract (existing pseudo Outputs section was empty). Dead-pass on messageType: comes via trigger from both callers but never read by WF-21 code. High confidence: 4 successful execution samples, zero schema drift. Source: written by main thread from subagent text result after Write permission was denied to the subagent."
+}

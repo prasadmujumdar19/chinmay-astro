@@ -1,0 +1,222 @@
+{
+  "wf_id": "WF-02",
+  "input": {
+    "existing_contract": [
+      "user",
+      "pendingUser",
+      "messageType",
+      "rawMessage.interactive.type",
+      "messageContent"
+    ],
+    "revised_contract": [
+      {
+        "name": "user",
+        "required": true,
+        "type": "object|null",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "messageType",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "rawMessage",
+        "required": false,
+        "type": "object",
+        "source_hits": ["static", "runtime"]
+      },
+      {
+        "name": "rawMessage.interactive",
+        "required": false,
+        "type": "object",
+        "source_hits": ["static"]
+      },
+      {
+        "name": "rawMessage.interactive.type",
+        "required": false,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "messageContent",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "pendingUser",
+        "required": false,
+        "type": "object|null",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "contactName",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "isNewUser",
+        "required": false,
+        "type": "boolean",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "messageContentUpper",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "messageId",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "metadata",
+        "required": false,
+        "type": "object",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "phoneNumber",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "phoneNumberFormatted",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "routing",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "timestamp",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      }
+    ],
+    "delta": "additions_only"
+  },
+  "output": {
+    "existing_contract": [
+      "route",
+      "messageType",
+      "messageContent",
+      "user",
+      "pendingUser"
+    ],
+    "revised_contract": [
+      {
+        "name": "route",
+        "required": true,
+        "type": "string",
+        "source_hits": ["static", "runtime"],
+        "values": ["NEW_USER", "PRE_FORM_TEXT", "DETAILS_FORM", "PAYMENT_CONFIRM", "PAYMENT_PENDING_TEXT", "PAYMENT_SUBMITTED_TEXT", "RELAY", "POST_CONSULT_TEXT", "UNHANDLED"]
+      },
+      {
+        "name": "user",
+        "required": false,
+        "type": "object|null",
+        "source_hits": ["static", "runtime"]
+      },
+      {
+        "name": "messageType",
+        "required": false,
+        "type": "string",
+        "source_hits": ["static", "runtime"]
+      },
+      {
+        "name": "messageContent",
+        "required": false,
+        "type": "string",
+        "source_hits": ["static", "runtime"]
+      },
+      {
+        "name": "pendingUser",
+        "required": false,
+        "type": "object|null",
+        "source_hits": ["static", "runtime"]
+      },
+      {
+        "name": "rawMessage",
+        "required": false,
+        "type": "object",
+        "source_hits": ["static"]
+      },
+      {
+        "name": "contactName",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "isNewUser",
+        "required": false,
+        "type": "boolean",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "messageContentUpper",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "messageId",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "metadata",
+        "required": false,
+        "type": "object",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "phoneNumber",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "phoneNumberFormatted",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "routing",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "timestamp",
+        "required": false,
+        "type": "string",
+        "source_hits": ["runtime"]
+      }
+    ],
+    "delta": "no_change"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "WF-02 uses passthrough-mode trigger + passthrough-mode sub-WF calls. Input contract = all trigger fields from WF-01 (14 fields in execution sample). Output contract = input + computed route field (9 discrete route values). All calls to sub-WFs (WF-21/22/23/30/31/32/40/43) use passthrough — entire payload flows through. WF-01 single caller uses passthrough via IF node routing; no explicit schema defined in caller (workflowInputs_schema=[]). Pseudo accurately represents the 9 routes; contract matches: required inputs are (user, messageType, rawMessage.interactive.type, pendingUser) for routing logic. No missing fields, no dead-pass, no contradictions. Confidence: HIGH."
+}

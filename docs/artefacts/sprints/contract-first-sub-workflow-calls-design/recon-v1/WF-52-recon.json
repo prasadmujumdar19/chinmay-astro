@@ -1,0 +1,88 @@
+{
+  "wf_id": "WF-52",
+  "input": {
+    "existing_contract": [
+      "phone_number (or phoneNumber)",
+      "name (or userName)",
+      "userId"
+    ],
+    "revised_contract": [
+      {
+        "name": "phone_number",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo.Inputs", "sub-reads (Step 2 code)", "WF-22 caller"]
+      },
+      {
+        "name": "name",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo.Inputs", "Step 5 code", "WF-22 caller"]
+      },
+      {
+        "name": "userId",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo.Inputs", "Step 4 invite param", "WF-22 caller"]
+      }
+    ],
+    "delta": "No changes. All three inputs align across pseudo, sub-workflow reads, and caller-side (WF-22)."
+  },
+  "output": {
+    "existing_contract": [
+      "success (boolean)",
+      "channelId (string|null)",
+      "channelName (string)",
+      "channelUrl (string|null)",
+      "isNew (boolean)",
+      "error? (string, on failure)"
+    ],
+    "revised_contract": [
+      {
+        "name": "success",
+        "required": true,
+        "type": "boolean",
+        "source_hits": ["pseudo.Outputs", "Steps 5/6a/9 code emits"]
+      },
+      {
+        "name": "channelId",
+        "required": true,
+        "type": "string|null",
+        "source_hits": ["pseudo.Outputs", "Steps 5/6a/9 code"]
+      },
+      {
+        "name": "channelName",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo.Outputs", "Steps 5/6a/9 code"]
+      },
+      {
+        "name": "channelUrl",
+        "required": true,
+        "type": "string|null",
+        "source_hits": ["pseudo.Outputs", "Steps 5/6a/9 code"]
+      },
+      {
+        "name": "isNew",
+        "required": true,
+        "type": "boolean",
+        "source_hits": ["pseudo.Outputs", "Steps 5/9 code"]
+      },
+      {
+        "name": "error",
+        "required": false,
+        "type": "string",
+        "source_hits": ["pseudo.Outputs (conditional)", "Step 6a code"]
+      }
+    ],
+    "delta": "No changes. All six fields (including conditional error) align with pseudo and code emits."
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "WF-52 input/output contracts are well-defined and consistent. Pseudo, live.json code, and caller payload (WF-22) all align. No discrepancies detected. phoneNumber variant noted in pseudo but live.json references phone_number throughout — recommend normalizing to snake_case in pseudo doc if not already. All six outputs are accounted for; success is required, error is conditional. Caller (WF-22) reads all six output fields correctly."
+}

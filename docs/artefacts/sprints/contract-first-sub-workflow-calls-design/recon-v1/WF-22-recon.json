@@ -1,0 +1,54 @@
+{
+  "wf_id": "WF-22",
+  "input": {
+    "existing_contract": ["phoneNumber", "rawMessage"],
+    "revised_contract": [
+      {"name": "messageId",            "required": true, "type": "string", "source_hits": ["caller:WF-02", "runtime"]},
+      {"name": "phoneNumber",          "required": true, "type": "string", "source_hits": ["pseudo", "static", "caller:WF-02", "runtime"]},
+      {"name": "phoneNumberFormatted", "required": true, "type": "string", "source_hits": ["caller:WF-02", "runtime"]},
+      {"name": "contactName",          "required": true, "type": "string", "source_hits": ["caller:WF-02", "runtime"]},
+      {"name": "messageType",          "required": true, "type": "string", "source_hits": ["caller:WF-02", "runtime"]},
+      {"name": "messageContent",       "required": true, "type": "string", "source_hits": ["caller:WF-02", "runtime"]},
+      {"name": "messageContentUpper",  "required": true, "type": "string", "source_hits": ["caller:WF-02", "runtime"]},
+      {"name": "rawMessage",           "required": true, "type": "object", "source_hits": ["pseudo", "static", "caller:WF-02", "runtime"]},
+      {"name": "timestamp",            "required": true, "type": "string", "source_hits": ["caller:WF-02", "runtime"]},
+      {"name": "metadata",             "required": true, "type": "object", "source_hits": ["caller:WF-02", "runtime"]},
+      {"name": "isNewUser",            "required": true, "type": "boolean","source_hits": ["caller:WF-02", "runtime"]},
+      {"name": "user",                 "required": true, "type": "object|null", "source_hits": ["caller:WF-02", "runtime"]},
+      {"name": "pendingUser",          "required": true, "type": "object|null", "source_hits": ["caller:WF-02", "runtime"]},
+      {"name": "route",                "required": true, "type": "string", "source_hits": ["caller:WF-02", "runtime"]}
+    ],
+    "delta": "additions_only"
+  },
+  "output": {
+    "existing_contract": [],
+    "revised_contract": [
+      {"name": "success",          "required": false, "type": "boolean", "source_hits": ["static"]},
+      {"name": "channelId",        "required": false, "type": "string",  "source_hits": ["static", "from-WF-52"]},
+      {"name": "channelName",      "required": false, "type": "string",  "source_hits": ["static", "from-WF-52"]},
+      {"name": "channelUrl",       "required": false, "type": "string",  "source_hits": ["static", "from-WF-52"]},
+      {"name": "isNew",            "required": false, "type": "boolean", "source_hits": ["static", "from-WF-52"]},
+      {"name": "messageId",        "required": false, "type": "string",  "source_hits": ["static", "from-WF-50"]},
+      {"name": "error",            "required": false, "type": "string|null", "source_hits": ["static", "from-WF-50"]},
+      {"name": "sentAt",           "required": false, "type": "string",  "source_hits": ["static", "from-WF-50"]},
+      {"name": "id",               "required": false, "type": "integer", "source_hits": ["static", "from-postgres-insert"]},
+      {"name": "slack_channel_id", "required": false, "type": "string",  "source_hits": ["static", "from-postgres-insert"]}
+    ],
+    "delta": "additions_only"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [
+      {"field": "isNewUser",           "passed_by": ["WF-02"], "never_read_by_subwf": true},
+      {"field": "user",                "passed_by": ["WF-02"], "never_read_by_subwf": true},
+      {"field": "contactName",         "passed_by": ["WF-02"], "never_read_by_subwf": true},
+      {"field": "messageContent",      "passed_by": ["WF-02"], "never_read_by_subwf": true},
+      {"field": "messageContentUpper", "passed_by": ["WF-02"], "never_read_by_subwf": true},
+      {"field": "metadata",            "passed_by": ["WF-02"], "never_read_by_subwf": true}
+    ],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "Only caller is WF-02 in passthrough mode — required-input set equals the full WF-02 trigger payload (14 fields). Per locked Decision #10 (defensive union), all 14 are part of the contract even though WF-22 only reads phoneNumber + rawMessage + parsed form fields. Six dead-pass fields are flagged for Sprint 2+ caller-side cleanup but do not block the Sprint 1 pseudo write. Output contract derived from WF-22's three downstream calls (Postgres insert, WF-52, WF-50) plus their returned fields. High confidence: 5 successful execution samples. Source: written by main thread from subagent text result after Write+Bash permissions were denied to the subagent."
+}

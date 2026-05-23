@@ -1,0 +1,74 @@
+{
+  "wf_id": "WF-41",
+  "input": {
+    "existing_contract": [
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source": "Inputs (pseudo)"
+      },
+      {
+        "name": "adminMessage",
+        "required": true,
+        "type": "string",
+        "source": "Inputs (pseudo)"
+      }
+    ],
+    "revised_contract": [
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source_hits": [
+          "trigger passthrough (executeWorkflowTrigger inputSource=passthrough)",
+          "Code node reads: input.phoneNumber",
+          "Caller WF-10 passes via set_assignments"
+        ]
+      },
+      {
+        "name": "adminMessage",
+        "required": true,
+        "type": "string",
+        "source_hits": [
+          "trigger passthrough (executeWorkflowTrigger inputSource=passthrough)",
+          "Code node reads: input.adminMessage",
+          "Caller WF-10 passes via set_assignments"
+        ]
+      }
+    ],
+    "delta": "No change. Existing contract { phoneNumber, adminMessage } is accurate and required."
+  },
+  "output": {
+    "existing_contract": [
+      {
+        "name": "WhatsApp message sent to user",
+        "required": false,
+        "type": "side-effect",
+        "source": "Outputs (pseudo) — implicit via WF-50 call"
+      }
+    ],
+    "revised_contract": [
+      {
+        "name": "Implicit via WF-50 execution",
+        "required": false,
+        "type": "none",
+        "source_hits": [
+          "WF-41 has no explicit final-node output; executeWorkflow node 'WF-50 (Send WhatsApp)' is terminal",
+          "WF-50 handles WhatsApp send + WF-60 logging; output contract not surfaced to WF-41 callers",
+          "Pseudo notes: 'Call WF-50... WF-50 calls WF-60 internally to log' — outputs are sub-WF responsibility"
+        ]
+      }
+    ],
+    "delta": "WF-41 has no output contract. It is a relay orchestrator (input → WF-50 invocation). Callers do not read WF-41's output; they rely on side-effects (WA message delivery + Slack logging via WF-50/WF-60)."
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "summary": "WF-41 input contract { phoneNumber, adminMessage } matches caller passed fields and code reads exactly. No output contract — WF-50 call is terminal.",
+  "subagent_notes": "Analysis complete. WF-41 is well-formed: single caller (WF-10) supplies required inputs; no orphaned fields; no output reads expected."
+}

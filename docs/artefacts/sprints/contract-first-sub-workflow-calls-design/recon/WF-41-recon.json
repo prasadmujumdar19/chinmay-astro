@@ -1,0 +1,30 @@
+{
+  "wf_id": "WF-41",
+  "input": {
+    "existing_contract": ["phoneNumber", "adminMessage"],
+    "revised_contract": [
+      {"name": "phoneNumber", "required": true, "type": "string", "source_hits": ["pseudo", "static", "caller:WF-10", "runtime"]},
+      {"name": "adminMessage", "required": true, "type": "string", "source_hits": ["pseudo", "static", "caller:WF-10", "runtime"]}
+    ],
+    "delta": "no_change"
+  },
+  "output": {
+    "existing_contract": [],
+    "revised_contract": [
+      {"name": "success", "required": false, "type": "boolean", "source_hits": ["runtime"]},
+      {"name": "messageId", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "phoneNumber", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "sentAt", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "error", "required": false, "type": "string|null", "source_hits": ["runtime"]}
+    ],
+    "delta": "additions_only"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "Input contract is fully aligned: pseudo, static code, caller Set node, and runtime all agree on {phoneNumber, adminMessage}. Output contract was undeclared in pseudo; revised_contract surfaces WF-50 pass-through fields observed in executions 1719 and 1616 (current version) — these are all optional since no caller reads WF-41's return value. The pinData on the trigger node still carries the old pre-refactor shape {status, channelname, messagetext} and should be updated to reflect the current {phoneNumber, adminMessage} contract to avoid misleading test runs."
+}

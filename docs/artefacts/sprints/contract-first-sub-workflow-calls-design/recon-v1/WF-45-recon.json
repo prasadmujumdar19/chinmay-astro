@@ -1,0 +1,32 @@
+{
+  "wf_id": "WF-45",
+  "input": {
+    "existing_contract": [],
+    "revised_contract": [
+      {
+        "name": "phoneNumber",
+        "required": false,
+        "type": "unknown",
+        "source_hits": [
+          "sub_reads"
+        ]
+      }
+    ],
+    "delta": "UNION: 1 sub_reads, 0 exec_inputs, 0 pseudo \u2192 1 total"
+  },
+  "output": {
+    "existing_contract": [],
+    "revised_contract": [],
+    "delta": "0 from exec outputs + pseudo"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [
+      "phoneNumber"
+    ],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "Caller sites: {'Route to Rebook': ['phoneNumber', 'userId'], 'Call WF-45 Rebook': ['phoneNumber', 'userId', 'userStatus'], 'Route to Rebook WF-45': []}"
+}

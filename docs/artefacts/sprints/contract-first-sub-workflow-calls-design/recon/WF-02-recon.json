@@ -1,0 +1,57 @@
+{
+  "wf_id": "WF-02",
+  "input": {
+    "existing_contract": [
+      "user",
+      "pendingUser",
+      "messageType",
+      "messageContent"
+    ],
+    "revised_contract": [
+      {"name": "messageType", "required": true, "type": "string", "source_hits": ["pseudo", "static", "runtime"]},
+      {"name": "user", "required": true, "type": "object|null", "source_hits": ["pseudo", "static", "runtime"]},
+      {"name": "pendingUser", "required": true, "type": "object|null", "source_hits": ["pseudo", "static", "runtime"]},
+      {"name": "rawMessage", "required": true, "type": "object", "source_hits": ["static", "runtime"]},
+      {"name": "phoneNumber", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "phoneNumberFormatted", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "contactName", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "messageContent", "required": false, "type": "string", "source_hits": ["pseudo", "static", "runtime"]},
+      {"name": "messageContentUpper", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "messageId", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "timestamp", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "metadata", "required": false, "type": "object", "source_hits": ["runtime"]},
+      {"name": "isNewUser", "required": false, "type": "boolean", "source_hits": ["runtime"]},
+      {"name": "routing", "required": false, "type": "string", "source_hits": ["runtime"]}
+    ],
+    "delta": "additions_only"
+  },
+  "output": {
+    "existing_contract": [],
+    "revised_contract": [
+      {"name": "route", "required": true, "type": "string", "source_hits": ["static", "runtime"]},
+      {"name": "messageType", "required": true, "type": "string", "source_hits": ["static", "runtime"]},
+      {"name": "user", "required": true, "type": "object|null", "source_hits": ["static", "runtime"]},
+      {"name": "pendingUser", "required": true, "type": "object|null", "source_hits": ["static", "runtime"]},
+      {"name": "rawMessage", "required": true, "type": "object", "source_hits": ["static", "runtime"]},
+      {"name": "phoneNumber", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "phoneNumberFormatted", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "contactName", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "messageContent", "required": false, "type": "string", "source_hits": ["static", "runtime"]},
+      {"name": "messageContentUpper", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "messageId", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "timestamp", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "metadata", "required": false, "type": "object", "source_hits": ["runtime"]},
+      {"name": "isNewUser", "required": false, "type": "boolean", "source_hits": ["runtime"]},
+      {"name": "routing", "required": false, "type": "string", "source_hits": ["runtime"]}
+    ],
+    "delta": "additions_only"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "WF-01 (sole caller) uses mappingMode=passthrough with no explicit set_assignments, so no dead_pass or caller_missing_required findings apply per schema rules. WF-02's output contract is the full input payload spread plus an added `route` field — all sub-WF call nodes use passthrough, so downstream callee contracts are not readable from this bundle (callee live JSONs not included). The pseudo Outputs section was empty (no explicit listing), so output existing_contract is [] and delta is additions_only. `rawMessage` is promoted to required in the revised contract because Detect Route reads `input.rawMessage?.interactive?.type` unconditionally on every code execution path."
+}

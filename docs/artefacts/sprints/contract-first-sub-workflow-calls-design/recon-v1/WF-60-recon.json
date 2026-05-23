@@ -1,0 +1,175 @@
+{
+  "wf_id": "WF-60",
+  "input": {
+    "existing_contract": [
+      "transport",
+      "direction",
+      "messageType",
+      "content",
+      "userId",
+      "consultationId",
+      "whatsappMessageId",
+      "slackMessageTs",
+      "phoneNumber",
+      "slackChannelId",
+      "rawMessage",
+      "timestamp",
+      "contactName",
+      "success",
+      "error",
+      "metadata"
+    ],
+    "revised_contract": [
+      {
+        "name": "consultationId",
+        "required": false,
+        "type": "string|null",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "contactName",
+        "required": false,
+        "type": "string|null",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "content",
+        "required": false,
+        "type": "string",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "direction",
+        "required": false,
+        "type": "string",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "error",
+        "required": false,
+        "type": "string|null",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "messageType",
+        "required": false,
+        "type": "string",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "metadata",
+        "required": false,
+        "type": "object|null",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "phoneNumber",
+        "required": false,
+        "type": "string|null",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "rawMessage",
+        "required": false,
+        "type": "string|null",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "slackChannelId",
+        "required": false,
+        "type": "string|null",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "slackMessageTs",
+        "required": false,
+        "type": "string|null",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "success",
+        "required": false,
+        "type": "boolean|null",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "timestamp",
+        "required": false,
+        "type": "string|null",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "transport",
+        "required": false,
+        "type": "string",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "userId",
+        "required": false,
+        "type": "string|null",
+        "source_hits": [
+          "pseudo"
+        ]
+      },
+      {
+        "name": "whatsappMessageId",
+        "required": false,
+        "type": "string|null",
+        "source_hits": [
+          "pseudo"
+        ]
+      }
+    ],
+    "delta": "No new fields"
+  },
+  "output": {
+    "existing_contract": [
+      "logged (boolean)",
+      "logId (string, when logged=true)",
+      "reason (string, when logged=false)"
+    ],
+    "revised_contract": [
+      "logged (boolean)",
+      "logId (string, when logged=true)",
+      "reason (string, when logged=false)"
+    ],
+    "delta": "No changes"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "WF-60 is a simple logger: receives canonical multi-transport payload, inserts to messages table, returns {logged, logId/reason}. Pseudo accurately documents inputs (14 core + metadata). All high-cardinality fields (phone, slack_channel_id, consultation_id) are present in 5/5 sites. No contradictions detected. Output contract fixed."
+}

@@ -1,0 +1,90 @@
+{
+  "wf_id": "WF-46",
+  "input": {
+    "existing_contract": [
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source_hits": ["trigger passthrough", "Load User by Phone (query param $json.phoneNumber)"]
+      },
+      {
+        "name": "reason",
+        "required": false,
+        "type": "string",
+        "source_hits": ["Prepare WF-51 Payload reads trigger.reason with fallback 'Not provided'"]
+      },
+      {
+        "name": "channelId",
+        "required": false,
+        "type": "string",
+        "source_hits": ["Prepare WF-51 Payload reads trigger.channelId with fallback user.slack_channel_id"]
+      }
+    ],
+    "revised_contract": [
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source_hits": ["trigger passthrough", "Load User by Phone SQL param"]
+      },
+      {
+        "name": "reason",
+        "required": false,
+        "type": "string",
+        "source_hits": ["Prepare WF-51 Payload JS (trigger.reason with fallback)"]
+      },
+      {
+        "name": "channelId",
+        "required": false,
+        "type": "string",
+        "source_hits": ["Prepare WF-51 Payload JS (trigger.channelId with fallback)"]
+      }
+    ],
+    "delta": "MATCH. Trigger reads three fields via passthrough: phoneNumber (required for DB lookup), reason and channelId (both optional with fallbacks). No schema defined in executeWorkflowTrigger (passthrough mode). Both callers (WF-11, WF-25) pass these fields via upstream set_assignments."
+  },
+  "output": {
+    "existing_contract": [
+      {
+        "name": "channelId",
+        "required": true,
+        "type": "string",
+        "source_hits": ["Prepare WF-51 Payload emits in final json"]
+      },
+      {
+        "name": "messageText",
+        "required": true,
+        "type": "string",
+        "source_hits": ["Prepare WF-51 Payload emits in final json"]
+      }
+    ],
+    "revised_contract": [
+      {
+        "name": "channelId",
+        "required": true,
+        "type": "string",
+        "source_hits": ["Prepare WF-51 Payload Code node final output"]
+      },
+      {
+        "name": "messageText",
+        "required": true,
+        "type": "string",
+        "source_hits": ["Prepare WF-51 Payload Code node final output"]
+      }
+    ],
+    "delta": "MATCH. Final node (Prepare WF-51 Payload) emits {channelId, messageText}. Call WF-51 Notify Admin uses passthrough (no explicit schema), passing these fields downstream to WF-51. Execution data confirms both fields present in success run."
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [
+      {
+        "field": "commandType, command, subCommand, originalMessage, adminUserId, channelName",
+        "detail": "Execution trigger passes these fields (sourced from WF-11 switch output BLOCK_USER branch), but WF-46 ignores all of them. Only phoneNumber, reason, channelId are read. (These are contextual routing fields from WF-11; WF-46 is decoupled by design.)"
+      }
+    ],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "WF-46 contract is clean: required input (phoneNumber) is passed by both callers. Optional inputs (reason, channelId) have in-workflow fallbacks. Output is consumed by WF-51 (passthrough). Dead-pass fields from WF-11 are benign (WF-11's switch output contains routing metadata; WF-46 filters to needed fields). No type contradictions. Pseudo and live implementation align."
+}

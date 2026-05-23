@@ -1,0 +1,33 @@
+{
+  "wf_id": "WF-43",
+  "input": {
+    "existing_contract": ["phoneNumber", "userId", "userStatus", "messageType", "messageText", "rawMessage"],
+    "revised_contract": [
+      {"name": "phoneNumber", "required": true, "type": "string", "source_hits": ["pseudo", "runtime", "caller:WF-02"]},
+      {"name": "messageType", "required": true, "type": "string", "source_hits": ["pseudo", "static", "runtime", "caller:WF-02"]},
+      {"name": "messageContent", "required": true, "type": "string", "source_hits": ["static", "runtime", "caller:WF-02"]},
+      {"name": "rawMessage", "required": false, "type": "object", "source_hits": ["pseudo", "static", "runtime", "caller:WF-02"]},
+      {"name": "userStatus", "required": false, "type": "string", "source_hits": ["pseudo", "runtime", "caller:WF-02"]},
+      {"name": "userId", "required": false, "type": "number", "source_hits": ["pseudo"]}
+    ],
+    "delta": "mixed"
+  },
+  "output": {
+    "existing_contract": [],
+    "revised_contract": [],
+    "delta": "no_change"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [
+      {
+        "candidates": ["messageText", "messageContent"],
+        "rationale": "Pseudo declares messageText as input but live code (wf43-n07) and all runtime executions use messageContent as the field carrying the user's message body."
+      }
+    ],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "WF-02 is a pure passthrough caller (mappingMode=passthrough, no set_assignments), so no dead_pass or caller_missing_required findings are emitted per passthrough special rules. The pseudo field messageText is a functional duplicate of the live field messageContent — the canonical name is messageContent as confirmed by all runtime executions and static code. userId appears in the pseudo contract but is never read directly by WF-43 live code; it travels through the spread payload to sub-workflows (WF-44, WF-45, WF-47) implicitly via passthrough, so it is retained as optional rather than dropped. userStatus is not present in the WF-02 trigger payload's top level but is added by WF-25 before downstream intent checks, so it is not a required input to WF-43 itself."
+}

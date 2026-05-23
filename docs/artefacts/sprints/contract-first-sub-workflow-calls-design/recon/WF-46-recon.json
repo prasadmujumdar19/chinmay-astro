@@ -1,0 +1,53 @@
+{
+  "wf_id": "WF-46",
+  "input": {
+    "existing_contract": ["phoneNumber", "reason", "channelId"],
+    "revised_contract": [
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "channelId",
+        "required": false,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "reason",
+        "required": false,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime"]
+      }
+    ],
+    "delta": "no_change"
+  },
+  "output": {
+    "existing_contract": [],
+    "revised_contract": [
+      {
+        "name": "logged",
+        "required": true,
+        "type": "boolean",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "logId",
+        "required": true,
+        "type": "number",
+        "source_hits": ["runtime"]
+      }
+    ],
+    "delta": "additions_only"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "Both callers (WF-25 and WF-11) use mappingMode passthrough with no explicit set_assignments, so dead_pass and caller_missing_required rules are suppressed per schema spec. The output contract (logged, logId) is the response from WF-51 passed back through WF-46 — WF-46 itself emits no explicit output fields, but runtime confirms WF-51's response surfaces to callers. The `channelId` fallback to `user.slack_channel_id` means the field is optional at the contract boundary; WF-46 handles absent channelId gracefully via the Code node."
+}

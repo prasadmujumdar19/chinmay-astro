@@ -1,0 +1,30 @@
+{
+  "wf_id": "WF-51",
+  "input": {
+    "existing_contract": ["channelId", "messageText", "userId", "consultationId"],
+    "revised_contract": [
+      {"name": "channelId", "required": true, "type": "string", "source_hits": ["pseudo", "static", "caller:WF-40", "caller:WF-11", "runtime"]},
+      {"name": "messageText", "required": true, "type": "string", "source_hits": ["pseudo", "static", "caller:WF-40", "caller:WF-11", "runtime"]},
+      {"name": "userId", "required": false, "type": "string|null", "source_hits": ["pseudo", "static"]},
+      {"name": "consultationId", "required": false, "type": "string|null", "source_hits": ["pseudo", "static"]}
+    ],
+    "delta": "no_change"
+  },
+  "output": {
+    "existing_contract": ["channel", "ts", "ok"],
+    "revised_contract": [
+      {"name": "channel", "required": false, "type": "string", "source_hits": ["pseudo", "runtime"]},
+      {"name": "ts", "required": false, "type": "string", "source_hits": ["pseudo", "runtime"]},
+      {"name": "ok", "required": false, "type": "boolean", "source_hits": ["pseudo", "runtime"]}
+    ],
+    "delta": "no_change"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "5 runtime executions available across callers WF-10, WF-11, WF-46; all show only {channelId, messageText} in trigger input — userId and consultationId are null in every sampled execution. WF-11 uses defineBelow mapping with $json.message → messageText at 3 of its 5 sites (Send List, Send Stats, Send Help), which is correct — WF-51 still receives messageText; no technical dup exists on WF-51's input boundary. Output fields (channel/ts/ok) are emitted by the Slack node but callers do not read WF-51's return value; required=false because no caller-side read of the executeWorkflow result was observed."
+}

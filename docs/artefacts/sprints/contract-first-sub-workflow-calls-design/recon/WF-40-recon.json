@@ -1,0 +1,47 @@
+{
+  "wf_id": "WF-40",
+  "input": {
+    "existing_contract": ["phoneNumber", "messageContent"],
+    "revised_contract": [
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "messageContent",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime"]
+      }
+    ],
+    "delta": "no_change"
+  },
+  "output": {
+    "existing_contract": [],
+    "revised_contract": [
+      {
+        "name": "logged",
+        "required": false,
+        "type": "boolean",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "logId",
+        "required": false,
+        "type": "integer",
+        "source_hits": ["runtime"]
+      }
+    ],
+    "delta": "additions_only"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "The sole caller (WF-02) uses mappingMode passthrough — dead_pass and caller_missing_required rules are suppressed per schema spec. Output contract (logged, logId) is a passthrough of WF-51's return value; WF-02 does not appear to read WF-40's return value, so both output fields are marked optional. The existing pseudo has no formal Outputs section, so existing_contract is empty and output delta is additions_only."
+}

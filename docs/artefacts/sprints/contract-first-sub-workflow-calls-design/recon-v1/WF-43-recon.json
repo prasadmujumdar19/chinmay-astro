@@ -1,0 +1,148 @@
+{
+  "wf_id": "WF-43",
+  "input": {
+    "existing_contract": [
+      "phoneNumber",
+      "userId",
+      "userStatus",
+      "messageType",
+      "messageText",
+      "rawMessage"
+    ],
+    "revised_contract": [
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source_hits": [
+          "trigger_execution_data (execution[0].json.phoneNumber)",
+          "code_node: Prompt for Feedback reads $json.phoneNumber",
+          "code_node: Extract Gemini Reply reads prevData.phoneNumber",
+          "pseudo: explicitly listed"
+        ]
+      },
+      {
+        "name": "messageType",
+        "required": true,
+        "type": "string",
+        "source_hits": [
+          "trigger_execution_data (execution[0].json.messageType)",
+          "if_node: Is Button Reply? reads $json.messageType",
+          "pseudo: explicitly listed"
+        ]
+      },
+      {
+        "name": "messageContent",
+        "required": false,
+        "type": "string",
+        "source_hits": [
+          "trigger_execution_data (execution[0].json.messageContent)",
+          "code_node: Prepare Gemini Response Prompt reads d.messageContent",
+          "NOTE: pseudo calls it messageText; runtime calls it messageContent; likely same field, camelCase variation"
+        ]
+      },
+      {
+        "name": "rawMessage",
+        "required": false,
+        "type": "object",
+        "source_hits": [
+          "trigger_execution_data (execution[0].json.rawMessage present)",
+          "if_node: Is Rebook Button? reads $json.rawMessage.interactive.button_reply.id",
+          "pseudo: explicitly listed"
+        ]
+      },
+      {
+        "name": "intentResult",
+        "required": false,
+        "type": "string",
+        "source_hits": [
+          "if_node: Rebook Intent? reads $json.intentResult == 'rebook_intent'",
+          "if_node: Feedback Intent? reads $json.intentResult == 'feedback_intent'",
+          "if_node: Stop Intent? reads $json.intentResult == 'stop_intent'",
+          "NOTE: populated by Call WF-25 Intent Classifier, passed downstream by passthrough"
+        ]
+      },
+      {
+        "name": "userId",
+        "required": false,
+        "type": "string",
+        "source_hits": [
+          "pseudo: explicitly listed as required input",
+          "NOTE: passed to WF-25, WF-45, WF-47 but no explicit $json.userId read in WF-43 itself"
+        ]
+      },
+      {
+        "name": "userStatus",
+        "required": false,
+        "type": "string",
+        "source_hits": [
+          "pseudo: explicitly listed as required input",
+          "NOTE: passed to WF-25 and WF-47 but no explicit read in WF-43 control flow"
+        ]
+      }
+    ],
+    "delta": "FUNCTIONAL DUPLICATE: messageText (pseudo) vs messageContent (runtime); both strings, same semantic field. OPTIONAL FIELDS: intentResult populated by WF-25 passthrough; userId and userStatus passed to sub-WFs but not read in WF-43 decision logic. CALLER provides zero explicit inputs (passthrough mode, empty workflowInputs_schema + empty workflowInputs_value)."
+  },
+  "output": {
+    "existing_contract": [
+      "Routes to WF-44 (feedback)",
+      "Routes to WF-45 (rebook)",
+      "Routes to WF-47 (unsubscribe)",
+      "Sends WhatsApp reply via WF-50 (Gemini response or feedback prompt)"
+    ],
+    "revised_contract": [
+      {
+        "name": "phoneNumber + message",
+        "required": true,
+        "type": "object {phoneNumber: string, message: string}",
+        "source_hits": [
+          "code_node: Extract Gemini Reply emits {phoneNumber, message}",
+          "code_node: Prompt for Feedback emits {phoneNumber, messageType, messageContent}",
+          "all paths converge on WF-50 (Send WhatsApp) which reads phoneNumber + message"
+        ]
+      },
+      {
+        "name": "no explicit data return to caller",
+        "required": false,
+        "type": "void",
+        "source_hits": [
+          "caller (WF-02) does not extract result from 'Call WF-43' executeWorkflow node",
+          "WF-43 end state is workflow completion after calling downstream sub-WF (WF-44, WF-45, WF-47, or WF-50)"
+        ]
+      }
+    ],
+    "delta": "All outputs are passed downstream to sub-workflows (WF-44, WF-45, WF-47, WF-50). No return contract to caller (WF-02). phoneNumber + message is the implicit sub-contract for WF-50 calls."
+  },
+  "findings": {
+    "technical_duplicates": [
+      {
+        "field1": "messageText",
+        "field2": "messageContent",
+        "context": "pseudo lists 'messageText'; runtime execution data has 'messageContent'; same semantic meaning (user's free-form message text), different names"
+      }
+    ],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [
+      {
+        "caller_field": "all fields (zero explicit inputs passed; passthrough mode)",
+        "context": "WF-02 caller uses passthrough mapping mode with empty workflowInputs_schema + empty workflowInputs_value; trigger provides all inputs via webhook context (implicit pass-through from parent routing)"
+      }
+    ],
+    "caller_missing_required": [
+      {
+        "sub_wf_field": "messageType",
+        "context": "WF-43 requires messageType to route (Is Button Reply? conditional); execution data confirms it is present; caller (WF-02) relies on trigger passthrough, no explicit assignment"
+      },
+      {
+        "sub_wf_field": "phoneNumber",
+        "context": "WF-43 requires phoneNumber for all downstream calls (WF-50, WF-44, WF-45, WF-47); execution data confirms present; caller (WF-02) relies on trigger passthrough"
+      },
+      {
+        "sub_wf_field": "messageContent (or messageText)",
+        "context": "WF-43 requires messageContent for Gemini prompt; execution data confirms messageContent present; caller (WF-02) relies on trigger passthrough"
+      }
+    ]
+  },
+  "subagent_notes": "WF-02 caller uses passthrough mapping (no explicit field assignments); all required inputs come from trigger context. Execution data confirms trigger provides phoneNumber, messageType, messageContent, rawMessage. Sub-WF calls (WF-25, WF-44, WF-45, WF-47, WF-50) are downstream passthrough — no explicit return to caller. Intent classification result (intentResult) is added by WF-25 call and used in downstream conditionals. Audit complete in <90s."
+}

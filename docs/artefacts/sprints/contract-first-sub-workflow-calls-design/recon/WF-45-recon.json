@@ -1,0 +1,32 @@
+{
+  "wf_id": "WF-45",
+  "input": {
+    "existing_contract": [],
+    "revised_contract": [
+      {"name": "phoneNumber", "required": true, "type": "string", "source_hits": ["pseudo", "static", "caller:WF-20", "caller:WF-44", "runtime"]}
+    ],
+    "delta": "additions_only"
+  },
+  "output": {
+    "existing_contract": [],
+    "revised_contract": [
+      {"name": "success", "required": false, "type": "boolean", "source_hits": ["runtime"]},
+      {"name": "messageId", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "error", "required": false, "type": "string|null", "source_hits": ["runtime"]},
+      {"name": "phoneNumber", "required": false, "type": "string", "source_hits": ["runtime"]},
+      {"name": "sentAt", "required": false, "type": "string", "source_hits": ["runtime"]}
+    ],
+    "delta": "additions_only"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [
+      {"field": "userId", "passed_by": ["WF-20", "WF-44"], "never_read_by_subwf": true},
+      {"field": "userStatus", "passed_by": ["WF-44"], "never_read_by_subwf": true}
+    ],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "WF-43 uses passthrough mode so its forwarded fields are excluded from dead-pass analysis per schema rules. The output contract is entirely sourced from runtime (WF-50's response bubbled through passthrough) — no caller-side reads of WF-45's return value were observed in the caller-payloads data, so all output fields are marked required:false. userId is dead-passed by both WF-20 and WF-44; userStatus is dead-passed by WF-44 only. 3 runtime executions available across executions 1278, 1446, 1564 — all from WF-43 passthrough path; no WF-20 or WF-44 runtime samples present."
+}

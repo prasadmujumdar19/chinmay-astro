@@ -1,0 +1,104 @@
+{
+  "wf_id": "WF-51",
+  "input": {
+    "existing_contract": [
+      {
+        "name": "channelId",
+        "required": true,
+        "type": "string (Slack channel ID)",
+        "source": "pseudo"
+      },
+      {
+        "name": "messageText",
+        "required": true,
+        "type": "string (plain text only)",
+        "source": "pseudo"
+      },
+      {
+        "name": "userId",
+        "required": false,
+        "type": "string",
+        "source": "pseudo"
+      },
+      {
+        "name": "consultationId",
+        "required": false,
+        "type": "string",
+        "source": "pseudo"
+      }
+    ],
+    "revised_contract": [
+      {
+        "name": "channelId",
+        "required": true,
+        "type": "string",
+        "source_hits": ["execution_trigger", "slack_node", "code_node", "pseudo"]
+      },
+      {
+        "name": "messageText",
+        "required": true,
+        "type": "string",
+        "source_hits": ["execution_trigger", "slack_node", "code_node", "pseudo"]
+      },
+      {
+        "name": "userId",
+        "required": false,
+        "type": "string",
+        "source_hits": ["code_node", "pseudo"]
+      },
+      {
+        "name": "consultationId",
+        "required": false,
+        "type": "string",
+        "source_hits": ["code_node", "pseudo"]
+      }
+    ],
+    "delta": "Input contract matches pseudo. All 24 callers use passthrough (no field rename). Runtime execution confirms channelId + messageText only; userId/consultationId optional."
+  },
+  "output": {
+    "existing_contract": [
+      {
+        "name": "ok",
+        "type": "boolean",
+        "source": "pseudo (Slack API response)"
+      },
+      {
+        "name": "channel",
+        "type": "string",
+        "source": "pseudo (Slack API response)"
+      },
+      {
+        "name": "ts",
+        "type": "string",
+        "source": "pseudo (Slack API response message ts)"
+      }
+    ],
+    "revised_contract": [
+      {
+        "name": "ok",
+        "type": "boolean",
+        "source_hits": ["slack_node_output", "pseudo"]
+      },
+      {
+        "name": "channel",
+        "type": "string",
+        "source_hits": ["slack_node_output", "pseudo"]
+      },
+      {
+        "name": "ts",
+        "type": "string",
+        "source_hits": ["slack_node_output", "pseudo"]
+      }
+    ],
+    "delta": "Output contract matches pseudo. Slack API response (ok, channel, ts) returned to caller. WF-60 result not propagated (passthrough). No contradictions found."
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": [],
+    "notes": "All 24 callers use inputSource=passthrough. No field renames or alias contradictions. Contract is tight and consistent across callers."
+  },
+  "summary": "WF-51 input/output contract stable. No functional duplicates, technical dups, or type contradictions detected. All 14 callers pass channelId + messageText; optional userId/consultationId forwarded to WF-60 as designed."
+}

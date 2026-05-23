@@ -1,0 +1,45 @@
+{
+  "wf_id": "WF-52",
+  "input": {
+    "existing_contract": ["phone_number", "name", "userId"],
+    "revised_contract": [
+      {"name": "phone_number", "required": true, "type": "string", "source_hits": ["pseudo", "static", "runtime", "caller:WF-22"]},
+      {"name": "name", "required": true, "type": "string", "source_hits": ["pseudo", "static", "runtime", "caller:WF-22"]},
+      {"name": "phoneNumber", "required": false, "type": "string", "source_hits": ["pseudo", "static"]},
+      {"name": "userName", "required": false, "type": "string", "source_hits": ["pseudo", "static"]},
+      {"name": "userId", "required": false, "type": "any", "source_hits": ["pseudo", "static"]}
+    ],
+    "delta": "additions_only"
+  },
+  "output": {
+    "existing_contract": ["success", "channelId", "channelName", "channelUrl", "isNew", "error"],
+    "revised_contract": [
+      {"name": "success", "required": true, "type": "boolean", "source_hits": ["pseudo", "static", "runtime"]},
+      {"name": "channelId", "required": true, "type": "string|null", "source_hits": ["pseudo", "static", "runtime"]},
+      {"name": "channelName", "required": true, "type": "string|null", "source_hits": ["pseudo", "static", "runtime"]},
+      {"name": "channelUrl", "required": true, "type": "string|null", "source_hits": ["pseudo", "static", "runtime"]},
+      {"name": "isNew", "required": true, "type": "boolean", "source_hits": ["pseudo", "static", "runtime"]},
+      {"name": "error", "required": false, "type": "string", "source_hits": ["pseudo", "static"]}
+    ],
+    "delta": "no_change"
+  },
+  "findings": {
+    "technical_duplicates": [
+      {
+        "canonical": "phone_number",
+        "aliases": ["phoneNumber"],
+        "callers_using_alias": ["WF-22"]
+      },
+      {
+        "canonical": "name",
+        "aliases": ["userName"],
+        "callers_using_alias": ["WF-22"]
+      }
+    ],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "WF-22 uses passthrough trigger mode — no explicit set_assignments — so dead_pass and caller_missing_required findings are suppressed per schema rules. The static code in Prepare Channel Name reads both snake_case and camelCase forms (phone_number||phoneNumber, name||userName), confirming the technical duplicates; runtime payloads from WF-22 always arrive with snake_case (Postgres RETURNING columns). userId is read unconditionally by Prepare Channel Name (input.userId) but is absent from all runtime payloads — WF-22's Postgres RETURNING emits id (integer) not userId — however since WF-22 is passthrough-only the caller_missing_required rule cannot be applied, so this risk is noted here only. Output contract is fully corroborated by 2 runtime executions (IDs 1158 and 1162) covering both the new-channel and name_taken-recovery paths."
+}

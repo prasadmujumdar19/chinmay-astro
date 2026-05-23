@@ -1,0 +1,114 @@
+{
+  "wf_id": "WF-21",
+  "input": {
+    "existing_contract": [
+      "phoneNumber",
+      "phoneNumberFormatted",
+      "contactName",
+      "id",
+      "messageId",
+      "messageContent",
+      "wasOptedOut"
+    ],
+    "revised_contract": [
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "contactName",
+        "required": true,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "phoneNumberFormatted",
+        "required": false,
+        "type": "string",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "id",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "messageId",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "messageContent",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["pseudo", "static", "runtime"]
+      },
+      {
+        "name": "wasOptedOut",
+        "required": false,
+        "type": "boolean",
+        "source_hits": ["pseudo", "static"]
+      }
+    ],
+    "delta": "no_change"
+  },
+  "output": {
+    "existing_contract": [],
+    "revised_contract": [
+      {
+        "name": "success",
+        "required": true,
+        "type": "boolean",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "messageId",
+        "required": true,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "sentAt",
+        "required": true,
+        "type": "string",
+        "source_hits": ["runtime"]
+      },
+      {
+        "name": "error",
+        "required": false,
+        "type": "string|null",
+        "source_hits": ["runtime"]
+      }
+    ],
+    "delta": "additions_only"
+  },
+  "findings": {
+    "technical_duplicates": [
+      {
+        "canonical": "userId",
+        "aliases": ["id"],
+        "callers_using_alias": ["WF-02", "WF-01"]
+      }
+    ],
+    "functional_duplicates": [
+      {
+        "candidates": ["messageContent", "userMessage"],
+        "rationale": "Input field messageContent is read and re-exposed internally as userMessage by the Build Welcome Message node, referring to the same inbound user text."
+      }
+    ],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "Both callers (WF-01 and WF-02) use passthrough mappingMode with no explicit set_assignments, so dead_pass and caller_missing_required checks are suppressed per schema rules. wasOptedOut was absent from all 4 runtime trigger payloads (code handles absence via === true coerce) but is correctly declared optional. Output contract is derived from WF-50's passthrough return value observed in runtime; WF-21's pseudo does not document output fields explicitly."
+}

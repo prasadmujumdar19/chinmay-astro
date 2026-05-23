@@ -1,0 +1,25 @@
+{
+  "wf_id": "WF-47",
+  "input": {
+    "existing_contract": ["phoneNumber", "userId", "userStatus"],
+    "revised_contract": [
+      {"name": "phoneNumber", "required": true, "type": "string", "source_hits": ["pseudo", "static", "caller:WF-20", "caller:WF-44"]},
+      {"name": "userId", "required": true, "type": "string", "source_hits": ["pseudo", "static", "caller:WF-20", "caller:WF-44"]},
+      {"name": "userStatus", "required": true, "type": "string", "source_hits": ["pseudo", "static", "caller:WF-20", "caller:WF-44"]}
+    ],
+    "delta": "no_change"
+  },
+  "output": {
+    "existing_contract": [],
+    "revised_contract": [],
+    "delta": "no_change"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "Zero runtime executions available — all contract evidence is from pseudo and static analysis only; no runtime type or value observations possible. WF-43 (Post-Consultation Handler) uses passthrough mode and is therefore excluded from caller_missing_required and dead_pass checks per spec rules. Output contract is empty because no caller inspects WF-47's return value; both WF-50 and WF-51 sub-workflow calls within WF-47 also use passthrough, making the effective output a fire-and-forget termination. All three input fields are unconditionally read by static code, confirming required=true for all."
+}

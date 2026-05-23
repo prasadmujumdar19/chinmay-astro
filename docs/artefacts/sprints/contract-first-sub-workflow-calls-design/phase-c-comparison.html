@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phase C — Contract Reconciliation Comparison (v2)</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 24px; color: #1f2328; background: #f6f8fa; }
+  h1 { margin-top: 0; font-size: 22px; }
+  h2 { margin-top: 32px; font-size: 18px; border-bottom: 1px solid #d0d7de; padding-bottom: 4px; }
+  h3 { font-size: 16px; margin-bottom: 6px; }
+  h4 { font-size: 13px; margin: 10px 0 4px; color: #57606a; text-transform: uppercase; letter-spacing: 0.5px; }
+  .meta { background: #ffffff; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; font-size: 14px; }
+  .meta strong { color: #0969da; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; font-size: 12px; }
+  .legend span { background: #ddf4ff; padding: 2px 8px; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; background: #ffffff; border: 1px solid #d0d7de; font-size: 13px; table-layout: fixed; }
+  th, td { border-bottom: 1px solid #d0d7de; padding: 8px 10px; vertical-align: top; text-align: left; }
+  thead th { background: #f6f8fa; font-weight: 600; position: sticky; top: 0; z-index: 5; }
+  tbody tr:nth-child(even) td { background: #fafbfc; }
+  .wf-cell { width: 70px; font-weight: 600; }
+  .wf-cell a { color: #0969da; text-decoration: none; }
+  .delta-cell { width: 90px; text-align: center; }
+  .contract-cell { width: 22%; word-wrap: break-word; overflow-wrap: anywhere; line-height: 1.55; }
+  .contract-cell.revised { background: #fff8f0; }
+  .findings-cell { width: 130px; }
+  code { background: #eaeef2; padding: 1px 5px; border-radius: 3px; font-size: 12px; font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, monospace; }
+  .type { color: #6e7781; font-size: 11px; font-style: italic; }
+  .req-block, .opt-block, .unk-block { margin: 2px 0; }
+  .tag { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 700; margin-right: 4px; vertical-align: middle; }
+  .tag.req { background: #cf222e; color: white; }
+  .tag.opt { background: #1f883d; color: white; }
+  .tag.unk { background: #9a6700; color: white; }
+  .delta { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .delta.delta-none { background: #ddf4ff; color: #0969da; }
+  .delta.delta-add  { background: #dafbe1; color: #1a7f37; }
+  .delta.delta-rm   { background: #ffebe9; color: #cf222e; }
+  .delta.delta-mix  { background: #fff8c5; color: #9a6700; }
+  .delta.delta-unk  { background: #eaeef2; color: #57606a; }
+  .muted { color: #6e7781; }
+  .findings-clean { color: #1a7f37; font-weight: 700; }
+  .findings-link { color: #1f2328; text-decoration: none; }
+  .findings-link:hover { text-decoration: underline; }
+  .chip { display: inline-block; font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-right: 2px; margin-top: 2px; }
+  .chip.td  { background: #ddf4ff; color: #0550ae; }
+  .chip.fd  { background: #fff8c5; color: #9a6700; }
+  .chip.tc  { background: #fbe9d0; color: #bc4c00; }
+  .chip.dp  { background: #eaeef2; color: #57606a; }
+  .chip.cmr { background: #ffd6cc; color: #cf222e; font-weight: 700; }
+  section.detail { background: #ffffff; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px 16px; margin: 12px 0; }
+  section.detail ul { margin: 4px 0 8px 18px; }
+  .notes { background: #fff8c5; border-radius: 4px; padding: 8px 10px; margin-top: 8px; font-size: 13px; }
+  .summary-cards { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+  .card { flex: 1; min-width: 140px; background: #ffffff; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; text-align: center; }
+  .card strong { display: block; font-size: 24px; }
+  .card.cmr strong { color: #cf222e; }
+  .card.clean strong { color: #1a7f37; }
+</style>
+</head>
+<body>
+<h1>Phase C — Contract Reconciliation Comparison (v2, Sonnet+strict-schema)</h1>
+
+<div class="meta">
+<strong>Sprint:</strong> contract-first-sub-workflow-calls-design ·
+<strong>Phase:</strong> C (user review gate) ·
+<strong>14 sub-WFs reconciled</strong> ·
+<strong>Recon JSONs:</strong> <code>docs/artefacts/sprints/contract-first-sub-workflow-calls-design/recon/</code>
+<div class="legend">
+  <span><strong>td</strong> technical duplicate (alias/case)</span>
+  <span><strong>fd</strong> functional duplicate (different names, same meaning)</span>
+  <span><strong>tc</strong> type contradiction (pseudo vs runtime)</span>
+  <span><strong>dp</strong> dead-pass (caller passes field sub-WF never reads)</span>
+  <span style="background:#ffd6cc;"><strong>cmr</strong> caller-missing-required (latent bug)</span>
+</div>
+</div>
+
+<div class="summary-cards">
+  <div class="card"><span class="muted">Total findings</span><strong>17</strong></div>
+  <div class="card"><span class="muted">Technical dups</span><strong>9</strong></div>
+  <div class="card"><span class="muted">Functional dups</span><strong>3</strong></div>
+  <div class="card"><span class="muted">Type contradictions</span><strong>1</strong></div>
+  <div class="card"><span class="muted">Dead-pass</span><strong>3</strong></div>
+  <div class="card cmr"><span class="muted">Caller-missing-req</span><strong>1</strong></div>
+</div>
+
+<h2>Summary table</h2>
+<table>
+<thead>
+<tr>
+  <th>Sub-WF</th>
+  <th>Input Δ</th>
+  <th>Existing Input</th>
+  <th>Revised Input</th>
+  <th>Output Δ</th>
+  <th>Existing Output</th>
+  <th>Revised Output</th>
+  <th>Findings</th>
+</tr>
+</thead>
+<tbody>
+
+<tr>
+  <td class="wf-cell"><a href="#detail-WF-02">WF-02</a></td>
+  <td class="delta-cell"><span class="delta delta-add">+ additions</span></td>
+  <td class="contract-cell"><code>user</code>, <code>pendingUser</code>, <code>messageType</code>, <code>messageContent</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>messageType</code><span class="type">: string</span>, <code>user</code><span class="type">: object|null</span>, <code>pendingUser</code><span class="type">: object|null</span>, <code>rawMessage</code><span class="type">: object</span></div>
+<div class="opt-block"><span class="tag opt">opt</span> <code>phoneNumber</code><span class="type">: string</span>, <code>phoneNumberFormatted</code><span class="type">: string</span>, <code>contactName</code><span class="type">: string</span>, <code>messageContent</code><span class="type">: string</span>, <code>messageContentUpper</code><span class="type">: string</span>, <code>messageId</code><span class="type">: string</span>, <code>timestamp</code><span class="type">: string</span>, <code>metadata</code><span class="type">: object</span>, <code>isNewUser</code><span class="type">: boolean</span>, <code>routing</code><span class="type">: string</span></div></td>
+  <td class="delta-cell"><span class="delta delta-add">+ additions</span></td>
+  <td class="contract-cell"><span class="muted">—</span></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>route</code><span class="type">: string</span>, <code>messageType</code><span class="type">: string</span>, <code>user</code><span class="type">: object|null</span>, <code>pendingUser</code><span class="type">: object|null</span>, <code>rawMessage</code><span class="type">: object</span></div>
+<div class="opt-block"><span class="tag opt">opt</span> <code>phoneNumber</code><span class="type">: string</span>, <code>phoneNumberFormatted</code><span class="type">: string</span>, <code>contactName</code><span class="type">: string</span>, <code>messageContent</code><span class="type">: string</span>, <code>messageContentUpper</code><span class="type">: string</span>, <code>messageId</code><span class="type">: string</span>, <code>timestamp</code><span class="type">: string</span>, <code>metadata</code><span class="type">: object</span>, <code>isNewUser</code><span class="type">: boolean</span>, <code>routing</code><span class="type">: string</span></div></td>
+  <td class="findings-cell"><span class="findings-clean">0</span></td>
+</tr>
+<tr>
+  <td class="wf-cell"><a href="#detail-WF-21">WF-21</a></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><code>phoneNumber</code>, <code>phoneNumberFormatted</code>, <code>contactName</code>, <code>id</code>, <code>messageId</code>, <code>messageContent</code>, <code>wasOptedOut</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>phoneNumber</code><span class="type">: string</span>, <code>contactName</code><span class="type">: string</span></div>
+<div class="opt-block"><span class="tag opt">opt</span> <code>phoneNumberFormatted</code><span class="type">: string</span>, <code>id</code><span class="type">: string|null</span>, <code>messageId</code><span class="type">: string|null</span>, <code>messageContent</code><span class="type">: string|null</span>, <code>wasOptedOut</code><span class="type">: boolean</span></div></td>
+  <td class="delta-cell"><span class="delta delta-add">+ additions</span></td>
+  <td class="contract-cell"><span class="muted">—</span></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>success</code><span class="type">: boolean</span>, <code>messageId</code><span class="type">: string</span>, <code>phoneNumber</code><span class="type">: string</span>, <code>sentAt</code><span class="type">: string</span></div>
+<div class="opt-block"><span class="tag opt">opt</span> <code>error</code><span class="type">: string|null</span></div></td>
+  <td class="findings-cell"><a href="#detail-WF-21" class="findings-link"><strong>2</strong> <span class="chip td">1 td</span> <span class="chip fd">1 fd</span></a></td>
+</tr>
+<tr>
+  <td class="wf-cell"><a href="#detail-WF-22">WF-22</a></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><code>phoneNumber</code>, <code>rawMessage</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>phoneNumber</code><span class="type">: string</span>, <code>rawMessage</code><span class="type">: object</span></div></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><span class="muted">—</span></td>
+  <td class="contract-cell revised"><span class="muted">—</span></td>
+  <td class="findings-cell"><span class="findings-clean">0</span></td>
+</tr>
+<tr>
+  <td class="wf-cell"><a href="#detail-WF-25">WF-25</a></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><code>phoneNumber</code>, <code>userId</code>, <code>messageContent</code>, <code>userStatus</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>phoneNumber</code><span class="type">: string</span>, <code>userId</code><span class="type">: number</span>, <code>messageContent</code><span class="type">: string</span>, <code>userStatus</code><span class="type">: string</span></div></td>
+  <td class="delta-cell"><span class="delta delta-add">+ additions</span></td>
+  <td class="contract-cell"><code>intentResult</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>intentResult</code><span class="type">: string</span></div>
+<div class="opt-block"><span class="tag opt">opt</span> <code>geminiError</code><span class="type">: boolean</span>, <code>geminiPrompt</code><span class="type">: string</span>, <code>geminiBody</code><span class="type">: string</span></div></td>
+  <td class="findings-cell"><a href="#detail-WF-25" class="findings-link"><strong>2</strong> <span class="chip fd">1 fd</span> <span class="chip cmr">1 cmr</span></a></td>
+</tr>
+<tr>
+  <td class="wf-cell"><a href="#detail-WF-40">WF-40</a></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><code>phoneNumber</code>, <code>messageContent</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>phoneNumber</code><span class="type">: string</span>, <code>messageContent</code><span class="type">: string</span></div></td>
+  <td class="delta-cell"><span class="delta delta-add">+ additions</span></td>
+  <td class="contract-cell"><span class="muted">—</span></td>
+  <td class="contract-cell revised"><div class="opt-block"><span class="tag opt">opt</span> <code>logged</code><span class="type">: boolean</span>, <code>logId</code><span class="type">: integer</span></div></td>
+  <td class="findings-cell"><span class="findings-clean">0</span></td>
+</tr>
+<tr>
+  <td class="wf-cell"><a href="#detail-WF-41">WF-41</a></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><code>phoneNumber</code>, <code>adminMessage</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>phoneNumber</code><span class="type">: string</span>, <code>adminMessage</code><span class="type">: string</span></div></td>
+  <td class="delta-cell"><span class="delta delta-add">+ additions</span></td>
+  <td class="contract-cell"><span class="muted">—</span></td>
+  <td class="contract-cell revised"><div class="opt-block"><span class="tag opt">opt</span> <code>success</code><span class="type">: boolean</span>, <code>messageId</code><span class="type">: string</span>, <code>phoneNumber</code><span class="type">: string</span>, <code>sentAt</code><span class="type">: string</span>, <code>error</code><span class="type">: string|null</span></div></td>
+  <td class="findings-cell"><span class="findings-clean">0</span></td>
+</tr>
+<tr>
+  <td class="wf-cell"><a href="#detail-WF-43">WF-43</a></td>
+  <td class="delta-cell"><span class="delta delta-mix">± mixed</span></td>
+  <td class="contract-cell"><code>phoneNumber</code>, <code>userId</code>, <code>userStatus</code>, <code>messageType</code>, <code>messageText</code>, <code>rawMessage</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>phoneNumber</code><span class="type">: string</span>, <code>messageType</code><span class="type">: string</span>, <code>messageContent</code><span class="type">: string</span></div>
+<div class="opt-block"><span class="tag opt">opt</span> <code>rawMessage</code><span class="type">: object</span>, <code>userStatus</code><span class="type">: string</span>, <code>userId</code><span class="type">: number</span></div></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><span class="muted">—</span></td>
+  <td class="contract-cell revised"><span class="muted">—</span></td>
+  <td class="findings-cell"><a href="#detail-WF-43" class="findings-link"><strong>1</strong> <span class="chip fd">1 fd</span></a></td>
+</tr>
+<tr>
+  <td class="wf-cell"><a href="#detail-WF-45">WF-45</a></td>
+  <td class="delta-cell"><span class="delta delta-add">+ additions</span></td>
+  <td class="contract-cell"><span class="muted">—</span></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>phoneNumber</code><span class="type">: string</span></div></td>
+  <td class="delta-cell"><span class="delta delta-add">+ additions</span></td>
+  <td class="contract-cell"><span class="muted">—</span></td>
+  <td class="contract-cell revised"><div class="opt-block"><span class="tag opt">opt</span> <code>success</code><span class="type">: boolean</span>, <code>messageId</code><span class="type">: string</span>, <code>error</code><span class="type">: string|null</span>, <code>phoneNumber</code><span class="type">: string</span>, <code>sentAt</code><span class="type">: string</span></div></td>
+  <td class="findings-cell"><a href="#detail-WF-45" class="findings-link"><strong>2</strong> <span class="chip dp">2 dp</span></a></td>
+</tr>
+<tr>
+  <td class="wf-cell"><a href="#detail-WF-46">WF-46</a></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><code>phoneNumber</code>, <code>reason</code>, <code>channelId</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>phoneNumber</code><span class="type">: string</span></div>
+<div class="opt-block"><span class="tag opt">opt</span> <code>channelId</code><span class="type">: string</span>, <code>reason</code><span class="type">: string</span></div></td>
+  <td class="delta-cell"><span class="delta delta-add">+ additions</span></td>
+  <td class="contract-cell"><span class="muted">—</span></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>logged</code><span class="type">: boolean</span>, <code>logId</code><span class="type">: number</span></div></td>
+  <td class="findings-cell"><span class="findings-clean">0</span></td>
+</tr>
+<tr>
+  <td class="wf-cell"><a href="#detail-WF-47">WF-47</a></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><code>phoneNumber</code>, <code>userId</code>, <code>userStatus</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>phoneNumber</code><span class="type">: string</span>, <code>userId</code><span class="type">: string</span>, <code>userStatus</code><span class="type">: string</span></div></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><span class="muted">—</span></td>
+  <td class="contract-cell revised"><span class="muted">—</span></td>
+  <td class="findings-cell"><span class="findings-clean">0</span></td>
+</tr>
+<tr>
+  <td class="wf-cell"><a href="#detail-WF-50">WF-50</a></td>
+  <td class="delta-cell"><span class="delta delta-add">+ additions</span></td>
+  <td class="contract-cell"><code>phoneNumber</code>, <code>messageType</code>, <code>messageContent</code>, <code>interactivePayload</code>, <code>templateName</code>, <code>templateParams</code>, <code>consultationId</code>, <code>userId</code>, <code>inboundMessageId</code>, <code>userMessage</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>phoneNumber</code><span class="type">: string</span></div>
+<div class="opt-block"><span class="tag opt">opt</span> <code>messageType</code><span class="type">: string</span>, <code>messageContent</code><span class="type">: string</span>, <code>message</code><span class="type">: string</span>, <code>messageBody</code><span class="type">: string</span>, <code>interactivePayload</code><span class="type">: object</span>, <code>templateName</code><span class="type">: string</span>, <code>templateParams</code><span class="type">: array</span>, <code>consultationId</code><span class="type">: string|null</span>, <code>userId</code><span class="type">: string|null</span>, <code>inboundMessageId</code><span class="type">: string|null</span>, <code>userMessage</code><span class="type">: string|null</span>, <code>phoneNumberFormatted</code><span class="type">: string</span>, <code>wasOptedOut</code><span class="type">: boolean</span></div></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><code>success</code>, <code>messageId</code>, <code>error</code>, <code>phoneNumber</code>, <code>sentAt</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>success</code><span class="type">: boolean</span>, <code>messageId</code><span class="type">: string|null</span>, <code>error</code><span class="type">: string|null</span>, <code>phoneNumber</code><span class="type">: string</span>, <code>sentAt</code><span class="type">: string</span></div></td>
+  <td class="findings-cell"><a href="#detail-WF-50" class="findings-link"><strong>2</strong> <span class="chip td">1 td</span> <span class="chip dp">1 dp</span></a></td>
+</tr>
+<tr>
+  <td class="wf-cell"><a href="#detail-WF-51">WF-51</a></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><code>channelId</code>, <code>messageText</code>, <code>userId</code>, <code>consultationId</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>channelId</code><span class="type">: string</span>, <code>messageText</code><span class="type">: string</span></div>
+<div class="opt-block"><span class="tag opt">opt</span> <code>userId</code><span class="type">: string|null</span>, <code>consultationId</code><span class="type">: string|null</span></div></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><code>channel</code>, <code>ts</code>, <code>ok</code></td>
+  <td class="contract-cell revised"><div class="opt-block"><span class="tag opt">opt</span> <code>channel</code><span class="type">: string</span>, <code>ts</code><span class="type">: string</span>, <code>ok</code><span class="type">: boolean</span></div></td>
+  <td class="findings-cell"><span class="findings-clean">0</span></td>
+</tr>
+<tr>
+  <td class="wf-cell"><a href="#detail-WF-52">WF-52</a></td>
+  <td class="delta-cell"><span class="delta delta-add">+ additions</span></td>
+  <td class="contract-cell"><code>phone_number</code>, <code>name</code>, <code>userId</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>phone_number</code><span class="type">: string</span>, <code>name</code><span class="type">: string</span></div>
+<div class="opt-block"><span class="tag opt">opt</span> <code>phoneNumber</code><span class="type">: string</span>, <code>userName</code><span class="type">: string</span>, <code>userId</code><span class="type">: any</span></div></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><code>success</code>, <code>channelId</code>, <code>channelName</code>, <code>channelUrl</code>, <code>isNew</code>, <code>error</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>success</code><span class="type">: boolean</span>, <code>channelId</code><span class="type">: string|null</span>, <code>channelName</code><span class="type">: string|null</span>, <code>channelUrl</code><span class="type">: string|null</span>, <code>isNew</code><span class="type">: boolean</span></div>
+<div class="opt-block"><span class="tag opt">opt</span> <code>error</code><span class="type">: string</span></div></td>
+  <td class="findings-cell"><a href="#detail-WF-52" class="findings-link"><strong>2</strong> <span class="chip td">2 td</span></a></td>
+</tr>
+<tr>
+  <td class="wf-cell"><a href="#detail-WF-60">WF-60</a></td>
+  <td class="delta-cell"><span class="delta delta-add">+ additions</span></td>
+  <td class="contract-cell"><code>transport</code>, <code>direction</code>, <code>messageType</code>, <code>content</code>, <code>messageContent</code>, <code>userMessage</code>, <code>userId</code>, <code>consultationId</code>, <code>whatsappMessageId</code>, <code>messageId</code>, <code>slackMessageTs</code>, <code>slack_message_ts</code>, <code>phoneNumber</code>, <code>phoneNumberFormatted</code>, <code>slackChannelId</code>, <code>slack_channel_id</code>, <code>rawMessage</code>, <code>timestamp</code>, <code>contactName</code>, <code>success</code>, <code>error</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>direction</code><span class="type">: string</span>, <code>messageType</code><span class="type">: string</span>, <code>content</code><span class="type">: string|null</span></div>
+<div class="opt-block"><span class="tag opt">opt</span> <code>transport</code><span class="type">: string</span>, <code>userId</code><span class="type">: string|null</span>, <code>consultationId</code><span class="type">: string|null</span>, <code>whatsappMessageId</code><span class="type">: string|null</span>, <code>slackMessageTs</code><span class="type">: string|null</span>, <code>phoneNumber</code><span class="type">: string|null</span>, <code>slackChannelId</code><span class="type">: string|null</span>, <code>messageContent</code><span class="type">: string|null</span>, <code>userMessage</code><span class="type">: string|null</span>, <code>messageId</code><span class="type">: string|null</span>, <code>slack_message_ts</code><span class="type">: string|null</span>, <code>phoneNumberFormatted</code><span class="type">: string|null</span>, <code>slack_channel_id</code><span class="type">: string|null</span>, <code>rawMessage</code><span class="type">: any</span>, <code>timestamp</code><span class="type">: string</span>, <code>contactName</code><span class="type">: string|null</span>, <code>success</code><span class="type">: boolean|null</span>, <code>error</code><span class="type">: string|null</span>, <code>inboundMessageId</code><span class="type">: string|null</span>, <code>sentAt</code><span class="type">: string|null</span></div></td>
+  <td class="delta-cell"><span class="delta delta-none">no change</span></td>
+  <td class="contract-cell"><code>logged</code>, <code>logId</code>, <code>reason</code></td>
+  <td class="contract-cell revised"><div class="req-block"><span class="tag req">req</span> <code>logged</code><span class="type">: boolean</span></div>
+<div class="opt-block"><span class="tag opt">opt</span> <code>logId</code><span class="type">: integer|null</span>, <code>reason</code><span class="type">: string</span></div></td>
+  <td class="findings-cell"><a href="#detail-WF-60" class="findings-link"><strong>6</strong> <span class="chip td">5 td</span> <span class="chip tc">1 tc</span></a></td>
+</tr>
+</tbody>
+</table>
+
+<h2>Per-WF findings detail</h2>
+<section id="detail-WF-02" class="detail">
+<h3>WF-02 — findings detail</h3>
+<div class="notes"><strong>Subagent notes:</strong> WF-01 (sole caller) uses mappingMode=passthrough with no explicit set_assignments, so no dead_pass or caller_missing_required findings apply per schema rules. WF-02&#x27;s output contract is the full input payload spread plus an added `route` field — all sub-WF call nodes use passthrough, so downstream callee contracts are not readable from this bundle (callee live JSONs not included). The pseudo Outputs section was empty (no explicit listing), so output existing_contract is [] and delta is additions_only. `rawMessage` is promoted to required in the revised contract because Detect Route reads `input.rawMessage?.interactive?.type` unconditionally on every code execution path.</div>
+</section><section id="detail-WF-21" class="detail">
+<h3>WF-21 — findings detail</h3>
+<h4>Technical duplicates</h4><ul>
+<li>canonical <code>userId</code> ← aliases [<code>id</code>] used by [<code>WF-02</code>, <code>WF-01</code>]</li>
+</ul>
+<h4>Functional duplicates</h4><ul>
+<li>candidates [<code>messageContent</code>, <code>userMessage</code>] — Input field messageContent is read and re-exposed internally as userMessage by the Build Welcome Message node, referring to the same inbound user text.</li>
+</ul>
+<div class="notes"><strong>Subagent notes:</strong> Both callers (WF-01 and WF-02) use passthrough mappingMode with no explicit set_assignments, so dead_pass and caller_missing_required checks are suppressed per schema rules. wasOptedOut was absent from all 4 runtime trigger payloads (code handles absence via === true coerce) but is correctly declared optional. Output contract is derived from WF-50&#x27;s passthrough return value observed in runtime; WF-21&#x27;s pseudo does not document output fields explicitly.</div>
+</section><section id="detail-WF-22" class="detail">
+<h3>WF-22 — findings detail</h3>
+<div class="notes"><strong>Subagent notes:</strong> WF-02 (the only caller) uses mappingMode=passthrough with no explicit upstream Set node assignments — dead_pass and caller_missing_required findings are suppressed per schema special rules for passthrough callers. WF-22&#x27;s trigger is also passthrough (inputSource=passthrough), and its Extract Form Data Code node unconditionally reads only input.phoneNumber and input.rawMessage, matching the existing pseudo contract exactly. Output contract is empty: WF-22 terminates at a fire-and-done WF-50 call and WF-02 does not consume any returned value. Runtime sample exec 1167 confirms both required fields are present and correctly typed.</div>
+</section><section id="detail-WF-25" class="detail">
+<h3>WF-25 — findings detail</h3>
+<h4>Functional duplicates</h4><ul>
+<li>candidates [<code>messageText</code>, <code>messageContent</code>] — Both fields carry the user&#x27;s free-form WhatsApp message text — WF-30, WF-44, and WF-23 pass it as messageText while WF-40 passes it as messageContent, yet WF-25&#x27;s static code unconditionally destructures messageContent, causing messageText callers to supply an undefined value to the Gemini prompt.</li>
+</ul>
+<h4>Caller-missing-required <span class="muted">(latent bug — sub-WF reads field no caller passes)</span></h4><ul>
+<li><code>messageContent</code> — read unconditionally by sub-WF, no caller supplies it</li>
+</ul>
+<div class="notes"><strong>Subagent notes:</strong> WF-31 and WF-43 use passthrough mode so their input fields are not enumerated — they are excluded from dead_pass and caller_missing_required analysis per schema rules. The caller_missing_required entry for messageContent is not passed_by_none (WF-40 does pass it) but WF-30, WF-44, and WF-23 pass messageText instead, which is the functional_duplicate; this is the core latent bug confirmed by both static code and execution data (exec 1639 shows messageContent present from WF-40). Runtime exec 1639 confirms userId is a number (28) at runtime though pseudo declares no type. Output delta is additions_only because geminiError, geminiPrompt, and geminiBody are added to return payload but not in existing pseudo Outputs section.</div>
+</section><section id="detail-WF-40" class="detail">
+<h3>WF-40 — findings detail</h3>
+<div class="notes"><strong>Subagent notes:</strong> The sole caller (WF-02) uses mappingMode passthrough — dead_pass and caller_missing_required rules are suppressed per schema spec. Output contract (logged, logId) is a passthrough of WF-51&#x27;s return value; WF-02 does not appear to read WF-40&#x27;s return value, so both output fields are marked optional. The existing pseudo has no formal Outputs section, so existing_contract is empty and output delta is additions_only.</div>
+</section><section id="detail-WF-41" class="detail">
+<h3>WF-41 — findings detail</h3>
+<div class="notes"><strong>Subagent notes:</strong> Input contract is fully aligned: pseudo, static code, caller Set node, and runtime all agree on {phoneNumber, adminMessage}. Output contract was undeclared in pseudo; revised_contract surfaces WF-50 pass-through fields observed in executions 1719 and 1616 (current version) — these are all optional since no caller reads WF-41&#x27;s return value. The pinData on the trigger node still carries the old pre-refactor shape {status, channelname, messagetext} and should be updated to reflect the current {phoneNumber, adminMessage} contract to avoid misleading test runs.</div>
+</section><section id="detail-WF-43" class="detail">
+<h3>WF-43 — findings detail</h3>
+<h4>Functional duplicates</h4><ul>
+<li>candidates [<code>messageText</code>, <code>messageContent</code>] — Pseudo declares messageText as input but live code (wf43-n07) and all runtime executions use messageContent as the field carrying the user&#x27;s message body.</li>
+</ul>
+<div class="notes"><strong>Subagent notes:</strong> WF-02 is a pure passthrough caller (mappingMode=passthrough, no set_assignments), so no dead_pass or caller_missing_required findings are emitted per passthrough special rules. The pseudo field messageText is a functional duplicate of the live field messageContent — the canonical name is messageContent as confirmed by all runtime executions and static code. userId appears in the pseudo contract but is never read directly by WF-43 live code; it travels through the spread payload to sub-workflows (WF-44, WF-45, WF-47) implicitly via passthrough, so it is retained as optional rather than dropped. userStatus is not present in the WF-02 trigger payload&#x27;s top level but is added by WF-25 before downstream intent checks, so it is not a required input to WF-43 itself.</div>
+</section><section id="detail-WF-45" class="detail">
+<h3>WF-45 — findings detail</h3>
+<h4>Dead-pass <span class="muted">(caller passes a field sub-WF never reads)</span></h4><ul>
+<li><code>userId</code> passed by [<code>WF-20</code>, <code>WF-44</code>]</li>
+<li><code>userStatus</code> passed by [<code>WF-44</code>]</li>
+</ul>
+<div class="notes"><strong>Subagent notes:</strong> WF-43 uses passthrough mode so its forwarded fields are excluded from dead-pass analysis per schema rules. The output contract is entirely sourced from runtime (WF-50&#x27;s response bubbled through passthrough) — no caller-side reads of WF-45&#x27;s return value were observed in the caller-payloads data, so all output fields are marked required:false. userId is dead-passed by both WF-20 and WF-44; userStatus is dead-passed by WF-44 only. 3 runtime executions available across executions 1278, 1446, 1564 — all from WF-43 passthrough path; no WF-20 or WF-44 runtime samples present.</div>
+</section><section id="detail-WF-46" class="detail">
+<h3>WF-46 — findings detail</h3>
+<div class="notes"><strong>Subagent notes:</strong> Both callers (WF-25 and WF-11) use mappingMode passthrough with no explicit set_assignments, so dead_pass and caller_missing_required rules are suppressed per schema spec. The output contract (logged, logId) is the response from WF-51 passed back through WF-46 — WF-46 itself emits no explicit output fields, but runtime confirms WF-51&#x27;s response surfaces to callers. The `channelId` fallback to `user.slack_channel_id` means the field is optional at the contract boundary; WF-46 handles absent channelId gracefully via the Code node.</div>
+</section><section id="detail-WF-47" class="detail">
+<h3>WF-47 — findings detail</h3>
+<div class="notes"><strong>Subagent notes:</strong> Zero runtime executions available — all contract evidence is from pseudo and static analysis only; no runtime type or value observations possible. WF-43 (Post-Consultation Handler) uses passthrough mode and is therefore excluded from caller_missing_required and dead_pass checks per spec rules. Output contract is empty because no caller inspects WF-47&#x27;s return value; both WF-50 and WF-51 sub-workflow calls within WF-47 also use passthrough, making the effective output a fire-and-forget termination. All three input fields are unconditionally read by static code, confirming required=true for all.</div>
+</section><section id="detail-WF-50" class="detail">
+<h3>WF-50 — findings detail</h3>
+<h4>Technical duplicates</h4><ul>
+<li>canonical <code>messageContent</code> ← aliases [<code>message</code>, <code>messageBody</code>] used by [<code>WF-30</code>, <code>WF-44</code>, <code>WF-20</code>, <code>WF-01</code>, <code>WF-25</code>, <code>WF-43</code>]</li>
+</ul>
+<h4>Dead-pass <span class="muted">(caller passes a field sub-WF never reads)</span></h4><ul>
+<li><code>wasOptedOut</code> passed by [<code>WF-21</code>]</li>
+</ul>
+<div class="notes"><strong>Subagent notes:</strong> Of 24 call sites, 20 use passthrough mappingMode (no explicit set_assignments at the executeWorkflow node), so required=true is only safe for phoneNumber which is read unconditionally in Prepare Payload code; all other inputs are truly optional with defaults. The message/messageBody/messageContent technical-dup affects only the 4 explicit (defineBelow) sites: WF-30 site-1 and WF-44 use &#x27;message&#x27;, WF-20 uses &#x27;messageBody&#x27;, and the Stop-Clarifier Set nodes (WF-30 site-2, WF-40, WF-23, WF-31) use the canonical &#x27;messageContent&#x27;; callers_using_alias for passthrough callers (WF-01, WF-25, WF-43) are inferred from upstream Code node assignments, not from explicit executeWorkflow value maps. The wasOptedOut dead-pass is confirmed: WF-21&#x27;s upstream Build Welcome Message node explicitly emits wasOptedOut in json but Prepare Payload code contains no reference to input.wasOptedOut.</div>
+</section><section id="detail-WF-51" class="detail">
+<h3>WF-51 — findings detail</h3>
+<div class="notes"><strong>Subagent notes:</strong> 5 runtime executions available across callers WF-10, WF-11, WF-46; all show only {channelId, messageText} in trigger input — userId and consultationId are null in every sampled execution. WF-11 uses defineBelow mapping with $json.message → messageText at 3 of its 5 sites (Send List, Send Stats, Send Help), which is correct — WF-51 still receives messageText; no technical dup exists on WF-51&#x27;s input boundary. Output fields (channel/ts/ok) are emitted by the Slack node but callers do not read WF-51&#x27;s return value; required=false because no caller-side read of the executeWorkflow result was observed.</div>
+</section><section id="detail-WF-52" class="detail">
+<h3>WF-52 — findings detail</h3>
+<h4>Technical duplicates</h4><ul>
+<li>canonical <code>phone_number</code> ← aliases [<code>phoneNumber</code>] used by [<code>WF-22</code>]</li>
+<li>canonical <code>name</code> ← aliases [<code>userName</code>] used by [<code>WF-22</code>]</li>
+</ul>
+<div class="notes"><strong>Subagent notes:</strong> WF-22 uses passthrough trigger mode — no explicit set_assignments — so dead_pass and caller_missing_required findings are suppressed per schema rules. The static code in Prepare Channel Name reads both snake_case and camelCase forms (phone_number||phoneNumber, name||userName), confirming the technical duplicates; runtime payloads from WF-22 always arrive with snake_case (Postgres RETURNING columns). userId is read unconditionally by Prepare Channel Name (input.userId) but is absent from all runtime payloads — WF-22&#x27;s Postgres RETURNING emits id (integer) not userId — however since WF-22 is passthrough-only the caller_missing_required rule cannot be applied, so this risk is noted here only. Output contract is fully corroborated by 2 runtime executions (IDs 1158 and 1162) covering both the new-channel and name_taken-recovery paths.</div>
+</section><section id="detail-WF-60" class="detail">
+<h3>WF-60 — findings detail</h3>
+<h4>Technical duplicates</h4><ul>
+<li>canonical <code>content</code> ← aliases [<code>messageContent</code>, <code>userMessage</code>] used by [<code>WF-00</code>]</li>
+<li>canonical <code>whatsappMessageId</code> ← aliases [<code>messageId</code>] used by [<code>WF-00</code>]</li>
+<li>canonical <code>phoneNumber</code> ← aliases [<code>phoneNumberFormatted</code>] used by [<code>WF-50</code>]</li>
+<li>canonical <code>slackMessageTs</code> ← aliases [<code>slack_message_ts</code>] used by [<code>WF-51</code>]</li>
+<li>canonical <code>slackChannelId</code> ← aliases [<code>slack_channel_id</code>] used by [<code>WF-51</code>]</li>
+</ul>
+<h4>Type contradictions</h4><ul>
+<li><code>logged</code>: pseudo=<code>boolean</code> runtime=<code>boolean</code> (exec ids: 1878, 1877)</li>
+</ul>
+<div class="notes"><strong>Subagent notes:</strong> Runtime executions 1878 and 1877 both followed the skip-log path (no userId resolved), so the successful INSERT path with logId is not confirmed by runtime sample — logId type is inferred from static code ($input.item.json.id from RETURNING id clause). Critical bug observed: the Done node hardcodes `logged: true` and is wired to ALL terminal branches (success insert, filter skip, no-userId skip), so callers always receive `logged: true` regardless of whether the message was actually logged — the `logged: false` outputs from skip branches are silently overwritten. The type_contradictions entry is a placeholder acknowledging this bug; the type is correct (boolean) but the value contract is broken at runtime. All 4 callers use passthrough mode with no explicit workflowInputs_schema, so caller_missing_required and dead_pass findings would require confirmed defineBelow/Set-node evidence which is absent here.</div>
+</section>
+
+</body>
+</html>

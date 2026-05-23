@@ -1,0 +1,122 @@
+{
+  "wf_id": "WF-25",
+  "input": {
+    "existing_contract": [
+      "phoneNumber",
+      "userId",
+      "messageContent",
+      "userStatus"
+    ],
+    "revised_contract": [
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source_hits": [
+          "code_destructure",
+          "all_callers"
+        ]
+      },
+      {
+        "name": "userId",
+        "required": true,
+        "type": "string",
+        "source_hits": [
+          "code_destructure",
+          "all_callers"
+        ]
+      },
+      {
+        "name": "messageContent",
+        "required": "partial",
+        "type": "string",
+        "source_hits": [
+          "code_destructure (WF-40/WF-44/WF-23)"
+        ]
+      },
+      {
+        "name": "messageText",
+        "required": "partial",
+        "type": "string",
+        "source_hits": [
+          "code_reads as messageContent (WF-30/WF-44 alias)"
+        ]
+      },
+      {
+        "name": "userStatus",
+        "required": false,
+        "type": "string",
+        "source_hits": [
+          "code_fallback",
+          "optional_in_callers"
+        ]
+      }
+    ],
+    "delta": "messageText alias (WF-30) vs messageContent (WF-40/44): not uniformly named across callers"
+  },
+  "output": {
+    "existing_contract": [
+      "intentResult",
+      "phoneNumber",
+      "userId",
+      "messageContent",
+      "userStatus"
+    ],
+    "revised_contract": [
+      {
+        "name": "intentResult",
+        "required": true,
+        "type": "string (enum)",
+        "source_hits": [
+          "code_emit"
+        ]
+      },
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source_hits": [
+          "pass_through"
+        ]
+      },
+      {
+        "name": "userId",
+        "required": true,
+        "type": "string",
+        "source_hits": [
+          "pass_through"
+        ]
+      },
+      {
+        "name": "messageContent",
+        "required": false,
+        "type": "string",
+        "source_hits": [
+          "pass_through"
+        ]
+      },
+      {
+        "name": "userStatus",
+        "required": false,
+        "type": "string",
+        "source_hits": [
+          "pass_through"
+        ]
+      }
+    ],
+    "delta": "None"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [
+      {
+        "issue": "messageText vs messageContent naming",
+        "description": "WF-30 passes 'messageText', WF-40/WF-44 pass 'messageContent', WF-23 passes 'messageText'. Code always reads 'messageContent'. WF-30 and WF-44 mismatch on naming\u2014likely bug or undocumented input aliasing."
+      }
+    ],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "Input contract is stable but has naming inconsistency: WF-30/WF-23 use messageText; WF-40/WF-44/WF-20/WF-41/WF-45 use messageContent. Code reads messageContent. Possible input aliasing in n8n trigger or upstream mismatch\u2014needs verification in live WF-25 trigger node."
+}

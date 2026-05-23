@@ -1,0 +1,83 @@
+{
+  "wf_id": "WF-50",
+  "metadata": {
+    "total_callers": 18,
+    "total_call_sites": 24,
+    "analysis_ts": "2026-05-24T00:00:00Z"
+  },
+  "input": {
+    "existing_contract": [],
+    "revised_contract": [
+      {"name": "phoneNumber", "required": true, "type": "string", "source_hits": ["all 24 sites pass; 4 direct, 20 via Set nodes"]},
+      {"name": "message", "required": false, "type": "string", "source_hits": ["2 sites direct (WF-30 variant)"]},
+      {"name": "messageType", "required": false, "type": "enum|interactive|template|text", "source_hits": ["1 site direct (template logic reads this)"]},
+      {"name": "messageBody", "required": false, "type": "string", "source_hits": ["1 site direct (text message variant)"]},
+      {"name": "interactivePayload", "required": false, "type": "object", "source_hits": ["1 site direct (WF-32 Interactive + Button flows)"]},
+      {"name": "userId", "required": false, "type": "string", "source_hits": ["Set nodes upstream; final output reads userId from prep"]},
+      {"name": "consultationId", "required": false, "type": "string", "source_hits": ["Set nodes upstream; final output reads consultationId from prep"]},
+      {"name": "templateParams", "required": false, "type": "object", "source_hits": ["final output conditional on messageType=template"]}
+    ],
+    "intersection": ["phoneNumber"],
+    "delta": "Existing pseudo has no Inputs section. Revised contract derives from 24 call sites + execution logic. Required intersection = phoneNumber only. Other fields are caller-optional variants (message XOR messageBody XOR interactivePayload)."
+  },
+  "output": {
+    "existing_contract": [],
+    "revised_contract": [
+      {"name": "direction", "type": "literal:outbound", "source": "final node hardcoded"},
+      {"name": "userId", "type": "string|null", "source": "prep.userId ?? null"},
+      {"name": "consultationId", "type": "string|null", "source": "prep.consultationId ?? null"},
+      {"name": "messageType", "required": true, "type": "enum", "source": "passed through; field required by caller intent logic"},
+      {"name": "content", "required": true, "type": "string", "source": "extracted from Set nodes upstream"},
+      {"name": "whatsappMessageId", "type": "null (placeholder)", "source": "hardcoded null; filled by webhook on send confirmation"},
+      {"name": "phoneNumber", "required": true, "type": "string", "source": "prep.phoneNumber ?? prep.phoneNumberFormatted ?? null"},
+      {"name": "metadata", "type": "object", "source": "conditional on messageType; includes buttons (interactive) or templateParams (template)"}
+    ],
+    "intersection": ["messageType", "content", "phoneNumber"],
+    "delta": "Existing pseudo has no Outputs section. Final node returns canonical shape for WF-60 logging. All callers implicitly consume messageType+content+phoneNumber (no explicit reads in caller code, but WF-60 depends on shape being consistent)."
+  },
+  "findings": {
+    "technical_duplicates": [
+      {
+        "canonical": "phoneNumber",
+        "aliases": ["phoneNumber", "phoneNumberFormatted"],
+        "note": "Final node uses phoneNumber ?? phoneNumberFormatted fallback; both exist in prep. Upstream Set nodes should standardize to single field."
+      }
+    ],
+    "functional_duplicates": [
+      {
+        "group": "message text variants",
+        "fields": ["message", "messageBody", "content"],
+        "note": "4 sites pass 'message', 1 passes 'messageBody', final node extracts 'content' from prep. These should be unified in caller contracts; currently ambiguous which alias maps to final 'content' field."
+      },
+      {
+        "group": "message format selector",
+        "fields": ["messageType", "messageBody", "interactivePayload"],
+        "note": "Callers must choose exactly one: text (messageBody) vs interactive (interactivePayload) vs template (templateParams). No validation in WF-50 entry; form factory (WF-22) is responsible."
+      }
+    ],
+    "type_contradictions": [
+      {
+        "field": "phoneNumber",
+        "pseudo_type": null,
+        "runtime_type": "string",
+        "note": "Field is required for WA send but existing pseudo does not document type. Runtime executions always string or null."
+      }
+    ],
+    "dead_pass": [
+      {
+        "field": "messageType",
+        "caller": "2 sites",
+        "note": "WF-30 Payment branch passes message without messageType; final node reads messageType from prep, but prep.messageType is not guaranteed upstream. Likely set in shared Prepare node, not enforced."
+      }
+    ],
+    "caller_missing_required": [
+      {
+        "field": "phoneNumber",
+        "missing_in": "20 of 24 sites pass phoneNumber indirectly (Set node upstream_nodes are not tracked in workflowInputs_value; they're in separate code field). Only 4 sites pass phoneNumber directly to WF-50 executeWorkflow.params.",
+        "severity": "MEDIUM",
+        "note": "BUG: Most callers assume prior Set node will pass phoneNumber, but Set node code is opaque to this analysis. Risk: if Set node omits phoneNumber, WF-50 entry fails. Recommend: make phoneNumber explicit in all 24 callsites."
+      }
+    ]
+  },
+  "subagent_notes": "WF-50 has no documented input/output contract (pseudo is empty). Runtime contract is fragmented: 4 different field-name aliases for message content, 3 variants for phone-number sources. Found 1 MEDIUM severity gap (phoneNumber assumed but not passed explicitly in 20/24 sites). Recommend: (1) audit upstream Set nodes to verify phoneNumber always exists before WF-50 call, (2) establish single canonical field names for {message, phoneNumber, interactivePayload, messageType}, (3) update pseudo with this revised contract, (4) add input validation at WF-50 trigger (error handler if phoneNumber missing)."
+}

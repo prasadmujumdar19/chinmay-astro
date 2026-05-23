@@ -1,0 +1,101 @@
+{
+  "wf_id": "WF-47",
+  "input": {
+    "existing_contract": [
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source": "trigger parameter + WF-20/WF-44/WF-43 callers"
+      },
+      {
+        "name": "userId",
+        "required": true,
+        "type": "string|integer",
+        "source": "trigger parameter + WF-20/WF-44/WF-43 callers (used in consultations close query)"
+      },
+      {
+        "name": "userStatus",
+        "required": true,
+        "type": "string",
+        "source": "trigger parameter + WF-20/WF-44/WF-43 callers (checked in 'Was Consultation Active?' IF condition)"
+      }
+    ],
+    "revised_contract": [
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source_hits": [
+          "WF-20 caller: defineBelow mapping passes $json.phoneNumber",
+          "WF-44 caller: defineBelow mapping passes $json.phoneNumber",
+          "WF-43 caller: passthrough mode (empty workflowInputs_value) — expects phoneNumber in trigger input",
+          "WF-47 live.json: Postgres UPDATE uses queryReplacement with $('When Executed by Another Workflow').first().json.phoneNumber",
+          "WF-47 live.json: 'Prepare WF-50 Payload' Code node reads trig.phoneNumber",
+          "WF-47 live.json: 'Prepare WF-51 Payload' Code node reads trig.phoneNumber"
+        ]
+      },
+      {
+        "name": "userId",
+        "required": true,
+        "type": "string|integer",
+        "source_hits": [
+          "WF-20 caller: defineBelow mapping passes $json.userId",
+          "WF-44 caller: defineBelow mapping passes $json.userId",
+          "WF-43 caller: passthrough mode (expects userId in trigger input)",
+          "WF-47 live.json: 'Close Open Consultation' Postgres UPDATE uses queryReplacement with $('When Executed by Another Workflow').first().json.userId"
+        ]
+      },
+      {
+        "name": "userStatus",
+        "required": true,
+        "type": "string",
+        "source_hits": [
+          "WF-20 caller: defineBelow mapping passes $json.userStatus",
+          "WF-44 caller: defineBelow mapping passes $json.userStatus",
+          "WF-43 caller: passthrough mode (expects userStatus in trigger input)",
+          "WF-47 live.json: 'Was Consultation Active?' IF node reads $('When Executed by Another Workflow').first().json.userStatus and compares to 'consultation_active'"
+        ]
+      }
+    ],
+    "delta": "No change. Input contract confirmed: (phoneNumber: required string, userId: required string|integer, userStatus: required string). WF-43 uses passthrough mode, which is non-standard (expects full trigger input to match callee schema) — suggests WF-43 may have been added without explicit input mapping update, but no caller-side reads of WF-47 outputs mitigate any gap."
+  },
+  "output": {
+    "existing_contract": [
+      {
+        "name": "none documented",
+        "type": "n/a",
+        "source": "pseudo does not document explicit return contract; WF-50 and WF-51 calls are fire-and-forget sub-workflows"
+      }
+    ],
+    "revised_contract": [
+      {
+        "name": "N/A — no caller-side reads detected",
+        "type": "n/a",
+        "source": "callers.json lists 3 callers (WF-20, WF-44, WF-43) but caller-payloads.json does not include any post-execution read operations (e.g., no references to $('<Call WF-47 Unsubscribe>').item.json.X). WF-47 emits no explicit return payload — final nodes are sub-workflow calls (WF-50, WF-51) with passthrough mode."
+      }
+    ],
+    "delta": "WF-47 has no documented output contract and no caller-side reads. The workflow is terminal (executes Postgres updates and calls sub-WFs but does not return structured data to callers). Output contract remains empty."
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [
+      {
+        "field": "userId",
+        "issue": "Type declared as string|integer in revised contract. Postgres query uses $1 placeholder (parameterized) so type flexibility is acceptable, but callers (WF-20, WF-44) source this from user JSON state (typically integer user_id from DB). No runtime sample to confirm exact type.",
+        "confidence": "low — no runtime executions available"
+      }
+    ],
+    "dead_pass": [],
+    "caller_missing_required": [
+      {
+        "caller_wf_id": "3va0M06kijgyLejf",
+        "caller_name": "WF-43 Post-Consultation Handler",
+        "issue": "Uses passthrough mode (workflowInputs_value: {}). WF-47 trigger declares three inputs (phoneNumber, userId, userStatus) but WF-43 execute node does not explicitly map them. Passthrough mode expects the trigger input schema to exactly match; if WF-43's output from 'Stop Intent?' IF node does not include all three fields, WF-47 trigger will receive partial or missing data.",
+        "confidence": "high — static analysis only; no runtime sample to verify actual data flow"
+      }
+    ]
+  },
+  "subagent_notes": "ZERO successful WF-47 executions in runtime sample (executions.json is empty). All inferences are static: (1) input contract derived from defineBelow caller payloads + trigger parameter reads + live.json node expressions; (2) output contract is null because WF-47 does not explicitly return data and no callers read its result; (3) WF-43's passthrough mode is flagged as a potential data-mismatch risk but cannot be validated without runtime or closer inspection of WF-43's final node output schema. Recommend verifying WF-43's execute-node output against trigger schema before testing WF-47 end-to-end."
+}

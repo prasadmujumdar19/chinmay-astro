@@ -1,0 +1,99 @@
+{
+  "wf_id": "WF-40",
+  "input": {
+    "existing_contract": [
+      {
+        "name": "phoneNumber",
+        "type": "string",
+        "description": "User's WhatsApp phone number"
+      },
+      {
+        "name": "messageContent",
+        "type": "string",
+        "description": "User's text message during consultation"
+      }
+    ],
+    "revised_contract": [
+      {
+        "name": "phoneNumber",
+        "required": true,
+        "type": "string",
+        "source_hits": [
+          "pseudo:Inputs (line 5)",
+          "live:Load User Record query (line 40)",
+          "live:Call WF-25 workflowInputs.phoneNumber (line 503)",
+          "live:Format Slack Message assignment (line 449)",
+          "live:Build WF-50 Clarifier Payload (line 565)",
+          "execution:trigger json.phoneNumber = '61466927921'"
+        ]
+      },
+      {
+        "name": "messageContent",
+        "required": true,
+        "type": "string",
+        "source_hits": [
+          "pseudo:Inputs (line 5)",
+          "live:Format Slack Message messageText concat (line 449)",
+          "live:Call WF-25 workflowInputs.messageContent (line 505)",
+          "live:Build WF-50 Clarifier Payload (line 576)",
+          "execution:trigger json.messageContent = 'Test 2 for SP-11'"
+        ]
+      }
+    ],
+    "delta": "No delta. Existing contract matches revised contract. All inputs are accounted for by live code + execution evidence."
+  },
+  "output": {
+    "existing_contract": [
+      {
+        "name": "Slack message posted to user's consult channel",
+        "type": "workflow_side_effect",
+        "description": "via WF-51 call with {channelId, messageText}"
+      },
+      {
+        "name": "WF-50 clarifier sent for stop_intent",
+        "type": "workflow_side_effect",
+        "description": "Conditional: only when intentResult === 'stop_intent'"
+      }
+    ],
+    "revised_contract": [
+      {
+        "name": "Slack message posted",
+        "required": true,
+        "type": "side_effect via WF-51",
+        "source_hits": [
+          "pseudo:Step 7 (line 35)",
+          "live:Call WF-51 (Post to Slack) node (line 458-488)",
+          "live:Format Slack Message outputs {channelId, messageText}",
+          "execution:Call WF-51 executed in sample run"
+        ]
+      },
+      {
+        "name": "Stop clarifier message sent",
+        "required": false,
+        "type": "side_effect via WF-50 (conditional)",
+        "source_hits": [
+          "pseudo:Step 5 (line 27-31)",
+          "live:Stop Intent? if-node branches (line 550-556)",
+          "live:Build WF-50 Clarifier Payload (line 584-592)",
+          "live:Call WF-50 (Stop Clarifier) (line 614-622)"
+        ]
+      }
+    ],
+    "delta": "No delta. WF-40 does not emit structured return data; it only executes sub-workflows as side effects. Both main paths (normal relay + stop_intent clarifier) are accounted for in live code and pseudo."
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [],
+    "type_contradictions": [],
+    "dead_pass": [
+      {
+        "field": "messageType",
+        "passed_by": "Build WF-50 Clarifier Payload (hardcoded 'text' in line 570)",
+        "consumed_by": "WF-50 sub-workflow",
+        "status": "USED: WF-50 expects messageType per design"
+      }
+    ],
+    "caller_missing_required": []
+  },
+  "subagent_notes": "WF-40 is a relay orchestrator with no structured return type — outputs are side effects (Slack posts via WF-51, WhatsApp clarifier via WF-50). Caller (WF-02) uses mappingMode:passthrough, indicating no return data is expected. Trigger input contract verified against 5 execution samples: phoneNumber + messageContent are consistently present and correctly threaded through Load User Record → WF-25 → branching logic. No gaps, no dead fields, no type mismatches detected."
+}

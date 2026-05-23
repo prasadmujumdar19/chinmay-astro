@@ -1,0 +1,42 @@
+{
+  "wf_id": "WF-25",
+  "input": {
+    "existing_contract": ["phoneNumber", "userId", "messageContent", "userStatus"],
+    "revised_contract": [
+      {"name": "phoneNumber", "required": true, "type": "string", "source_hits": ["pseudo", "static", "runtime", "caller:WF-30", "caller:WF-40", "caller:WF-44", "caller:WF-23"]},
+      {"name": "userId", "required": true, "type": "number", "source_hits": ["pseudo", "static", "runtime", "caller:WF-30", "caller:WF-40", "caller:WF-44", "caller:WF-23"]},
+      {"name": "messageContent", "required": true, "type": "string", "source_hits": ["pseudo", "static", "runtime", "caller:WF-40"]},
+      {"name": "userStatus", "required": true, "type": "string", "source_hits": ["pseudo", "static", "runtime", "caller:WF-30", "caller:WF-40", "caller:WF-44", "caller:WF-23"]}
+    ],
+    "delta": "no_change"
+  },
+  "output": {
+    "existing_contract": ["intentResult"],
+    "revised_contract": [
+      {"name": "intentResult", "required": true, "type": "string", "source_hits": ["pseudo", "static", "runtime"]},
+      {"name": "geminiError", "required": false, "type": "boolean", "source_hits": ["static"]},
+      {"name": "geminiPrompt", "required": false, "type": "string", "source_hits": ["static"]},
+      {"name": "geminiBody", "required": false, "type": "string", "source_hits": ["static"]}
+    ],
+    "delta": "additions_only"
+  },
+  "findings": {
+    "technical_duplicates": [],
+    "functional_duplicates": [
+      {
+        "candidates": ["messageText", "messageContent"],
+        "rationale": "Both fields carry the user's free-form WhatsApp message text — WF-30, WF-44, and WF-23 pass it as messageText while WF-40 passes it as messageContent, yet WF-25's static code unconditionally destructures messageContent, causing messageText callers to supply an undefined value to the Gemini prompt."
+      }
+    ],
+    "type_contradictions": [],
+    "dead_pass": [],
+    "caller_missing_required": [
+      {
+        "field": "messageContent",
+        "read_by_subwf": true,
+        "passed_by_none": false
+      }
+    ]
+  },
+  "subagent_notes": "WF-31 and WF-43 use passthrough mode so their input fields are not enumerated — they are excluded from dead_pass and caller_missing_required analysis per schema rules. The caller_missing_required entry for messageContent is not passed_by_none (WF-40 does pass it) but WF-30, WF-44, and WF-23 pass messageText instead, which is the functional_duplicate; this is the core latent bug confirmed by both static code and execution data (exec 1639 shows messageContent present from WF-40). Runtime exec 1639 confirms userId is a number (28) at runtime though pseudo declares no type. Output delta is additions_only because geminiError, geminiPrompt, and geminiBody are added to return payload but not in existing pseudo Outputs section."
+}
