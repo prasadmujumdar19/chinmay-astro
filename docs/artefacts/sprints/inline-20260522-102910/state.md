@@ -3,7 +3,7 @@ input_source: inline-20260522-102910
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/inline-20260522-102910/working.md
 planned_at: 2026-05-22T10:29:10Z
-last_updated: 2026-05-23T07:19:00Z
+last_updated: 2026-05-23T08:48:00Z
 planning_complete: true
 context: |
   Sprint scope was derived from a session-long interactive walk-through of the 2026-05-22 pseudo↔live drift report (6 flagged workflows: WF-12, WF-23, WF-41, WF-46, WF-51, WF-60). For each, we discussed whether pseudocode or live code should be treated as authoritative, given functional position in the user journey, history (e.g. TD-002 multi-transport rebuild, DR-10 channel-archival rule, deactivation history), and surrounding architectural concerns. Several items grew beyond their original audit-finding scope when surrounding investigation revealed systemic issues (passthrough vs defineBelow contract pattern; postgres `alwaysOutputData` hygiene; admin-action precondition feedback gaps; postgres unquoted-camelCase SQL alias lowercasing).
@@ -82,7 +82,22 @@ items:
   - id: SP-04
     description: Silent-drop IF FALSE branch audit + remediation — superset of SP-03. Sweep all active workflows for IF nodes whose FALSE branch is disconnected when it represents an unhappy path. For each, decide whether to add graceful handling (admin Slack feedback, log entry, or explicit accept-as-noop) or leave as-is. Output a matrix; remediate where the unhappy path is meaningful.
     priority: P3
-    status: pending
+    status: in-progress
+    started_at: 2026-05-23T08:28:03Z
+    decision_made: |
+      2026-05-23: Audit produced a 6-row matrix across active workflows (jq sweep on `connections[<if>].main`).
+      - 3 INTENTIONAL silent terminations accepted as-is: WF-10 `Human Vs Bot Message?` (TD-030 bot-echo equivalent for Slack inbound); WF-02 `Keyword Passthrough?` (WF-20 already terminally handled the unsubscribe); WF-40 `Stop Intent?` (relay happens on parallel branch from WF-25; this IF only gates an optional clarifier side-effect).
+      - 3 STRUCTURAL DEAD-CODE findings in WF-23/30/31 `Is Stop Intent?` IFs: by elimination of WF-25's contract (garbage/abusive/inappropriate never return to caller) and the upstream `Is Pass-Through Intent?` condition (excludes those 3 intents + stop_intent), the only intent reachable at `Is Stop Intent?` is stop_intent → TRUE branch always taken → FALSE branch unreachable.
+      - DISPOSITION (user-decided 2026-05-23 after Meta WhatsApp Business Policy research + WF-40 inconsistency surfaced): unify on WF-40's clarifier pattern. Auto-opt-out on Gemini-classified stop_intent removed; replaced with "Did you mean STOP?" clarifier (user must send explicit STOP keyword via WF-20 to unsubscribe canonically). This aligns the codebase, protects against Gemini false-positives, and remains policy-compliant — Meta's broad "respect all opt-out requests" obligation honored by the clarifier-then-explicit-STOP chain (also already handled by WF-20 for the literal-keyword path). Research notes archived in this completion entry; full sprint followups capture the design rationale.
+    pseudo_changes_landed: 2026-05-23T08:48:00Z
+    pseudo_change_summary: |
+      WF-23.pseudo, WF-30.pseudo, WF-31.pseudo rewritten:
+        - WF-47 removed from `Calls Sub-Workflows` (still called via WF-20 literal STOP path — unchanged).
+        - New `stop_intent policy (2026-05-23 — SP-04, applying WF-40's TD-E pattern)` Note added to each, cross-referencing WF-40.
+        - Algorithm: removed the inner `Is Stop Intent?` IF and `Call WF-47` step; added `Build WF-50 stop-intent clarifier payload` + `Call WF-50 (Stop Clarifier)` steps with the same clarifier text WF-40 uses verbatim ("This is an automated message from Chinmay Astro — we noticed your message mentioned STOP or unsubscribing...").
+        - Dead-code reasoning documented in each pseudo's Notes for future readers.
+    pending_implementation: |
+      Per [[feedback_pseudocode_first_refactor]]: pseudo first (done), then implement. 3 Mode A build-workflow PUTs remain — one per workflow (WF-23, WF-30, WF-31). Each: backup → fetch live → jq transform (delete `Is Stop Intent?` IF + `Call WF-47 Unsubscribe` executeWorkflow nodes; delete their connections; insert `Build WF-50 (Stop Clarifier) Payload` Set v3.4 + `Call WF-50 (Stop Clarifier)` executeWorkflow v1.2; wire `Is Pass-Through Intent?` FALSE → `Build WF-50 (Stop Clarifier) Payload` → `Call WF-50 (Stop Clarifier)`) → PUT → lint hook → post-PUT dangling-name scan → export. Mirror WF-40's existing payload shape ($('When Executed by Another Workflow').item.json.phoneNumber + messageType=text + messageContent=clarifier text).
     batch: 3
     depends_on:
       - id: SP-03
@@ -97,19 +112,52 @@ items:
   - id: SP-06
     description: WF-46.pseudo rewrite — remove Steps 5–6 (slack_channel_id lookup + channel archive) which contradict DR-10; update Calls Sub-Workflows from "none" to "WF-51 (Send Slack Message)"; update Outputs (drop archival side-effect); add explicit Step describing the Build admin notification payload (Code node) → Call WF-51 chain; remove the "Contradicts CLAUDE.md Design Rule #10" self-flag note (no longer contradicts); remove the admin_actions note (table deprecated per TD-NEW-026); update caller reference from "WF-12 BLOCK handler" to "WF-11 (Command Parser, BLOCK keyword) and WF-25 (Intent Classifier, auto-block on malicious_abusive/inappropriate)".
     priority: P3
-    status: pending
+    status: obsolete
+    completed_at: 2026-05-23T08:28:03Z
+    obsolete_reason: |
+      Drift check (Batch 3 baseline assessment 2026-05-23T08:28:03Z) found WF-46.pseudo has already been comprehensively rewritten — all conditions SP-06 prescribed are satisfied in the live file:
+        - Steps 5–6 channel-archive removed (file now ends at Step 5 = Call WF-51, no archive).
+        - `Calls Sub-Workflows: WF-51 (Send Slack Message)` set on line 8.
+        - `admin_actions` deprecation note present on line 13 referencing [[project_admin_actions_deprecated]].
+        - Caller reference updated on line 5 to "WF-11 BLOCK admin command OR WF-25 malicious_abusive/inappropriate intent" — no WF-12 mention.
+        - DR-10 self-flag note replaced with positive "No channel archive — DR-10 design rule" note on line 11.
+      Likely landed as part of the SP-03 cascade work on 2026-05-23 (matches the dates referenced inside the pseudo: "Channel-archive nodes removed 2026-05-17 (FU-1); pseudo updated to match 2026-05-23"; "duplicate removed from WF-11 on 2026-05-23 (BUG-05 sibling fix)"). No further action required.
     batch: 3
     depends_on: []
   - id: SP-07
     description: WF-51.pseudo rewrite — Calls Sub-Workflows: WF-60 (Message Logger); Outputs: add "outbound message logged to chinmay_astro.messages via WF-60 (success path only)"; Notes block: drop the "NOT logged" claim, add "Logged via WF-60 per TD-002 multi-transport rebuild (2026-05-19); optional userId/consultationId inputs forwarded if caller provides, WF-60 falls back to slack_channel_id lookup otherwise"; Algorithm: insert Step 3 (Build WF-60 canonical payload — transport=slack, direction=outbound, extract ts from Slack response) and Step 4 (Call WF-60 with payload). Also update workflow-registry.md WF-60 caller list to add WF-10 (Slack inbound) and WF-51 (Slack outbound); update WF-51 registry entry to note the WF-60 call.
     priority: P3
-    status: pending
+    status: done
+    started_at: 2026-05-23T08:28:03Z
+    completed_at: 2026-05-23T08:32:00Z
+    completion_note: |
+      WF-51.pseudo rewritten from 19 → 30 lines to reflect live multi-transport logging design:
+        - Inputs: added optional userId/consultationId; documented WF-60's slack_channel_id fallback.
+        - Outputs: added "logged to chinmay_astro.messages via WF-60 (success path only — no logging on Slack API failure)".
+        - Calls Sub-Workflows: WF-60 (Message Logger).
+        - Notes: dropped the "NOT logged" claim; added TD-002 multi-transport rebuild reference (2026-05-19); explicit note about Slack-failure logging gap referencing TD-NEW-028.
+        - Algorithm: inserted Step 3 (Build WF-60 Payload — Code node constructing canonical multi-transport payload, extracting slack_message_ts from Slack response) and Step 4 (Call WF-60 in passthrough mode); Step 5 = End.
+      Build approach: verified live WF-51 shape via jq (4 nodes: trigger → Post to Slack → Build WF-60 Payload Code → Call WF-60 Message Logger); transcribed Code node logic into pseudo Step 3.
+      workflow-registry.md changes:
+        - WF-60 row caller list expanded from "WF-00 (inbound) and WF-50 (outbound success + drop)" → "WF-00 (WhatsApp inbound), WF-50 (WhatsApp outbound success + drop), WF-10 (Slack inbound — admin/user commands), and WF-51 (Slack outbound)". Verified WF-10's Call WF-60 Message Logger exists via jq.
+        - WF-51 row already documents the WF-60 chain ("chained `Build WF-60 Payload (Slack Outbound)` Code mapper → `Call WF-60 Message Logger`" added in TD-003 F3) — no edit needed.
     batch: 3
     depends_on: []
   - id: SP-08
     description: WF-60.pseudo rewrite to match post-TD-002 live design — update Inputs to include transport ('wa'|'slack'), slackChannelId, slackMessageTs, plus content aliases (messageContent/userMessage/content); update Outputs to reflect the 9-column INSERT schema including slack_message_ts; remove TD-030 from Filters list and add a note "TD-030 bot-echo guard intentionally lives at WF-00 — WhatsApp-only check at webhook entry; WF-10's 'Human Vs Bot Message?' IF guard handles Slack-inbound; WF-60 does not duplicate either"; keep TD-034 (whitespace) as-is; rewrite Step 2 to document canonical normalization (transport detection, default messageType per transport, lookup-key selection between phone vs slack_channel_id); rewrite Step 4 to reflect actual live multi-key SELECT; update Step 5 INSERT to 9 columns. Add note referencing TD-002 as the design baseline.
     priority: P3
-    status: pending
+    status: done
+    started_at: 2026-05-23T08:30:00Z
+    completed_at: 2026-05-23T08:31:12Z
+    completion_note: |
+      WF-60.pseudo rewritten from 33 → 49 lines to match live post-TD-002 multi-transport design.
+        - Inputs: documented all multi-transport fields (transport/direction/messageType + Slack-specific slackMessageTs/slackChannelId + WA-specific whatsappMessageId/phoneNumber) and content aliases (messageContent/userMessage).
+        - Outputs: enumerated all 4 return shapes (logged:true; whitespace_filtered; no-userId inbound; no-userId outbound) and called out the 9-column INSERT including slack_message_ts.
+        - TD-030 placement clarification: stated WF-00 owns the WhatsApp bot-echo guard at webhook entry; WF-10's `Human Vs Bot Message?` IF plays the same role for Slack inbound; WF-60 does not duplicate either.
+        - TD-034 retained as the sole inbound filter inside WF-60.
+        - Algorithm rewritten to mirror live node graph: Extract Message Data (normalize + flags) → Filter Skip? IF → Needs Phone Lookup? IF → Lookup User By Phone (multi-key Postgres) → Merge Lookup Result → Has userId? IF → Log to Messages Table (9-col INSERT with onError=continueRegularOutput) → Done. Skip paths: Build Filter Skip Result (Step 7a) and Skip Log no-userId (Step 7b).
+        - TD-002 (2026-05-19) and TD-003 F1 (2026-05-20) referenced as design baselines.
+      Build approach: read live Extract Message Data jsCode, Log to Messages Table SQL, and Lookup User By Phone SQL via jq; transcribed semantics directly. No drift remaining between pseudo and live.
     batch: 3
     depends_on:
       - id: SP-07
@@ -118,7 +166,19 @@ items:
   - id: SP-09
     description: WF-12 (Admin → WhatsApp Relay) full purge — workflow is deactivated and orphaned, superseded by WF-41. Delete via n8n API; remove docs/pseudocode/WF-12.pseudo and WF-12.md; remove WF-12 row from docs/workflow-registry.md; grep the rest of docs/ and workflows/ for any remaining "WF-12" or "RjwHs9Dx5cK8Q5wD" references and either remove or update to point to WF-41 as the live equivalent.
     priority: P3
-    status: pending
+    status: done
+    started_at: 2026-05-23T08:33:00Z
+    completed_at: 2026-05-23T08:35:58Z
+    completion_note: |
+      WF-12 purged in full.
+        - Pre-purge backup: archive/backups/RjwHs9Dx5cK8Q5wD-2026-05-23-18-32-pre-purge.json (3481 bytes).
+        - n8n DELETE /api/v1/workflows/RjwHs9Dx5cK8Q5wD → HTTP 200; verified absent via GET → HTTP 404.
+        - Removed: workflows/RjwHs9Dx5cK8Q5wD.json, docs/pseudocode/WF-12.pseudo, docs/pseudocode/WF-12.md.
+        - Doc edits: docs/pseudocode/INDEX.md (WF-12 row), docs/workflow-registry.md (2 rows: line 97 active table + line 278 import-status table), docs/STATUS.md (line 109 current-workflow table row).
+        - Dependency map regenerated (73 → 72 edges); grep WF-12/RjwHs9Dx5cK8Q5wD on docs/dependency-map.md now 0 hits.
+        - Historical narrative references intentionally preserved as audit trail (BUG-05 entry in workflow-registry.md changelog, TD-023 verification text in Tech_Debts.md, STATUS.md summary + resolved-list entries). All are in past tense / strikethrough form; none point to WF-12 as if it exists.
+        - SP-06 dependency satisfied trivially: SP-06 was marked obsolete because WF-46.pseudo had already been rewritten to remove its WF-12 caller reference — confirmed via grep before purge.
+        - New changelog entry added to top of workflow-registry.md documenting the purge + resurrect path.
     batch: 3
     depends_on:
       - id: SP-06

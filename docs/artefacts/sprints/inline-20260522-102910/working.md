@@ -24,9 +24,13 @@ The sprint plan in `state.md` is the authoritative item list. This file is a hum
 - **SP-04** — Silent-drop IF FALSE branch sweep (superset of SP-03).
 - **SP-05** — WF-25 contract normalization to passthrough (6 callers); audit-sweep for other defineBelow+schema:[] instances.
 - **SP-06** — WF-46.pseudo rewrite (drop archival steps per DR-10; add WF-51 call; clean stale notes).
+  > **Status:** ⚪ Obsolete — 2026-05-23 | drift check found WF-46.pseudo already rewritten (likely SP-03 cascade)
 - **SP-07** — WF-51.pseudo rewrite (add WF-60 logging chain post-TD-002) + workflow-registry caller-list updates.
+  > **Status:** ✅ Done — 2026-05-23 | WF-51.pseudo rewritten (19→30 lines); registry WF-60 caller list expanded to include WF-10 + WF-51
 - **SP-08** — WF-60.pseudo rewrite to match post-TD-002 multi-transport live design.
+  > **Status:** ✅ Done — 2026-05-23 | WF-60.pseudo rewritten (33→49 lines) to match live multi-transport, 9-col INSERT, TD-030 placement note
 - **SP-09** — WF-12 (Admin → WhatsApp Relay) full purge — workflow + pseudo + md + registry + all references.
+  > **Status:** ✅ Done — 2026-05-23 | n8n DELETE 200; backup at archive/backups/RjwHs9Dx5cK8Q5wD-2026-05-23-18-32-pre-purge.json; dep-map 73→72 edges
 
 ### Batch 4 — Plugin update (end of sprint)
 

@@ -3,11 +3,13 @@ WF-31 — Payment Submitted Handler
 ## Summary
 
 - Inputs: phoneNumber, userId, messageText, messageContent, userStatus, user.name (from caller WF-01 for payment_submitted users)
-- Outputs: WhatsApp "under review" reassurance to user AND a Slack relay of the user message into the user's consult channel; or hand-off to WF-47
-- State Transitions: none (stop_intent path delegates to WF-47)
-- Calls Sub-Workflows: WF-25 (Intent Classifier), WF-47 (Unsubscribe), WF-50 (Send WhatsApp), WF-51 (Send Slack)
-- **Ambiguities / Notes:**
-  - The trigger fans out into two parallel branches: an intent-classification branch and an unconditional Slack-relay branch. The Slack relay therefore fires for every inbound message in `payment_submitted` state — including `stop_intent` and `garbage` — independently of the intent path.
+- Outputs: WhatsApp "under review" reassurance to user AND a Slack relay of the user message into the user's consult channel; or a stop-intent clarifier on the user branch (admin relay still fires unconditionally).
+- State Transitions: none. Auto-opt-out on Gemini-classified stop_intent removed 2026-05-23 (SP-04); explicit STOP keyword via WF-20 still unsubscribes canonically.
+- Calls Sub-Workflows: WF-25 (Intent Classifier), WF-50 (Send WhatsApp), WF-51 (Send Slack)
+- **Notes:**
+  - **stop_intent policy (2026-05-23 — SP-04, applying WF-40's TD-E pattern):** Gemini-classified stop_intent no longer auto-routes to WF-47 unsubscribe — false-positive risk. Clarifier message sent instead. Literal STOP still flows through WF-20.
+  - **Provably dead-code branch removed 2026-05-23 (SP-04):** the previous `Is Stop Intent?` IF's FALSE branch was unreachable per the WF-25 contract.
+  - The trigger fans out into two parallel branches: an intent-classification branch (Branch A) and an unconditional Slack-relay branch (Branch B). The Slack relay therefore fires for every inbound message in `payment_submitted` state — including stop_intent and garbage — independently of the intent path.
 
 ---
 
@@ -20,15 +22,16 @@ Step 2: Fan out in parallel from trigger:
 
 (Branch A — user reply)
 Step 3: Call WF-25 with phoneNumber, userId, messageText, userStatus. Receive intentResult.
-Step 4: Check: Is intentResult NOT one of {garbage, malicious_abusive, inappropriate, stop_intent}?
+Step 4: Check `Is Pass-Through Intent?` — is intentResult NOT one of {garbage, malicious_abusive, inappropriate, stop_intent}?
   - If YES → go to Step 5
-  - If NO → go to Step 7
+  - If NO (only stop_intent reachable per WF-25 contract) → go to Step 7
 Step 5: Build "under review" message: "⏳ Your payment is currently under review. Chinmay will verify it and get back to you shortly (usually within a few hours). You don't need to do anything else right now. If you have any questions, feel free to ask!"
 Step 6: Call WF-50 with phoneNumber and the message. Go to Step 12.
-Step 7: Check: Is intentResult == "stop_intent"?
-  - If YES → go to Step 8
-  - If NO → go to Step 12 (silently drop garbage/abusive/inappropriate)
-Step 8: Call WF-47 (Unsubscribe) with phoneNumber, userId, userStatus. Go to Step 12.
+Step 7: Build WF-50 stop-intent clarifier payload:
+  - phoneNumber = <phoneNumber>
+  - messageType = "text"
+  - messageContent = "This is an automated message from Chinmay Astro — we noticed your message mentioned STOP or unsubscribing. If this was unrelated, please ignore. If you do want to opt out of this service, simply send STOP at any time."
+Step 8: Call WF-50 (Stop Clarifier) with the prepared payload. Go to Step 12.
 
 (Branch B — relay user message into Slack consult channel)
 Step 9: SELECT slack_channel_id FROM chinmay_astro.users WHERE phone_number = phoneNumber LIMIT 1.

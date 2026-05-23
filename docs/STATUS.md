@@ -106,7 +106,6 @@ The Sydney VPS (Friendly Deal Finder) underwent an exhaustive security hardening
 | WF-02 | User State Router | ✅ | ✅ Imported, inactive | |
 | WF-10 | Slack Admin Handler | ✅ | ✅ **Active** | Only active WF |
 | WF-11 | Command Parser | ✅ | ✅ Imported, inactive | |
-| WF-12 | Admin → WhatsApp Relay | 🟡 Deactivated 2026-05-18 | n/a | Superseded by WF-41 (Admin → User Relay). Orphaned at deactivation — zero callers. See workflow-registry.md WF-12 row for resurrect path. |
 | WF-21 | New User Welcome + Form | ❌ Not Built | ❌ | **Redesigned:** single msg — policy URL + WA Flow form. No YES/NO step. DB write only on form submit. Replaces old WF-30. |
 | WF-22 | Form Response Handler | ✅ | ✅ Imported, inactive | First DB write (status=payment_pending) happens here. Verify logic aligns with new design. |
 | WF-24 | Payment Confirmation Handler | ✅ | ✅ Imported, inactive | |

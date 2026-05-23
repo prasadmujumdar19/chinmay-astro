@@ -1,5 +1,5 @@
 # Workflow Dependency Map
-Generated: 2026-05-23 15:45
+Generated: 2026-05-23 18:34
 
 ## Diagram
 ```mermaid
@@ -44,7 +44,6 @@ graph TD
   PubCsNTOspF3xqXZ["WF-02 User State Router"] --> 3va0M06kijgyLejf["WF-43 Post-Consultation Handler"]
   PubCsNTOspF3xqXZ["WF-02 User State Router"] --> LgIDj1v4ZbCPlX25["WF-20 Keyword Handler"]
   PubCsNTOspF3xqXZ["WF-02 User State Router"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
-  RjwHs9Dx5cK8Q5wD["WF-12 Admin -> WhatsApp Relay"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   UV62An60fzflU0uD["WF-46 User Blocker"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   VpCER0Vqq3NYJGpI["WF-23 Pre-Form Intent Filter"] --> eTV1lUcYrXBg2q2T["WF-25 Intent Classifier"]
   VpCER0Vqq3NYJGpI["WF-23 Pre-Form Intent Filter"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
@@ -94,7 +93,6 @@ graph TD
   "MUG7rPgSHc7UtAE9": { "name": "WF-45 Rebook Handler", "calls": ["BUVun38WEKb12zg9"] },
   "NcHZedq9ycnAQ9SW": { "name": "WF-33 Payment Approval Processor", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
   "PubCsNTOspF3xqXZ": { "name": "WF-02 User State Router", "calls": ["zM8WbxSdt9nXRoLZ", "VpCER0Vqq3NYJGpI", "dr8QM0m92Ml8MvIh", "emUOLWVZiNVxcOe3", "gGJBY5fJha0Let8I", "HB8nXudAtk9iXz7C", "du32QBZbSQOjfESe", "3va0M06kijgyLejf", "LgIDj1v4ZbCPlX25", "wlZRK0YxnhP0b2RL"] },
-  "RjwHs9Dx5cK8Q5wD": { "name": "WF-12 Admin -> WhatsApp Relay", "calls": ["BUVun38WEKb12zg9"] },
   "UV62An60fzflU0uD": { "name": "WF-46 User Blocker", "calls": ["wlZRK0YxnhP0b2RL"] },
   "VpCER0Vqq3NYJGpI": { "name": "WF-23 Pre-Form Intent Filter", "calls": ["eTV1lUcYrXBg2q2T", "BUVun38WEKb12zg9", "2U7mxHMyqA41ROKX"] },
   "dr8QM0m92Ml8MvIh": { "name": "WF-22 Form Response Handler", "calls": ["IO5BZLUxuVmjzk5I", "BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },

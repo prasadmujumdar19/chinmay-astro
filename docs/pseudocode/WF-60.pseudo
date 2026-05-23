@@ -2,31 +2,63 @@ WF-60 — Message Logger
 
 ## Summary
 
-- Inputs: userId (or user.id) — may be NULL for inbound messages from users without a DB row yet (new/pendingUser); consultationId (or user.current_consultation_id); direction ('inbound'|'outbound'); messageType; messageContent (or content/userMessage); messageId (or whatsappMessageId); phoneNumber; rawMessage; timestamp; contactName; success; error.
-- Outputs: Inserts a row into chinmay_astro.messages and returns { logged:true, logId }. If userId is missing for outbound messages, skips the insert and returns { logged:false, reason }. For inbound messages with missing userId, logs with user_id=NULL (the column allows NULL for pre-onboarding inbound traffic).
+- Inputs: canonical multi-transport payload assembled by the caller's Build WF-60 Payload Code node:
+  - transport ('wa' default | 'slack')
+  - direction ('inbound' | 'outbound')
+  - messageType (defaults: 'text' on WA, 'slack_text' on Slack)
+  - content (also accepts aliases: messageContent, userMessage)
+  - userId (or user.id) — may be NULL for inbound pre-onboarding traffic, otherwise resolved via lookup
+  - consultationId (or user.current_consultation_id)
+  - whatsappMessageId (or messageId)
+  - slackMessageTs (or slack_message_ts, or metadata.slackMessageTs)
+  - phoneNumber (or phoneNumberFormatted, or metadata.phoneNumber)
+  - slackChannelId (or slack_channel_id, or metadata.slackChannelId)
+  - rawMessage, timestamp, contactName, success, error (folded into metadata)
+- Outputs: One of:
+  - `{ logged:true, logId:<inserted id> }` — row inserted into chinmay_astro.messages (9-column INSERT: user_id, consultation_id, direction, message_type, content, whatsapp_message_id, slack_message_ts, metadata::jsonb, created_at=NOW()).
+  - `{ logged:false, reason:'whitespace_only_filtered' }` — TD-034 guard tripped.
+  - `{ logged:false, reason:'no userId — ...' }` — userId could not be resolved for an inbound pre-onboarding message (acceptable MVP gap; audit trail begins at WF-22 INSERT).
+  - `{ logged:false, reason:'no userId for outbound' }` — outbound caller did not provide identification.
 - State Transitions: none
 - Calls Sub-Workflows: none
-- **Filters (all run BEFORE the INSERT, inbound only):**
-  - TD-030 bot-echo guard: if direction='inbound' AND phoneNumber equals the bot's WABA number (stripped of non-digits) → skip insert, return { logged:false, reason:'bot_echo_filtered' }.
-  - TD-034 whitespace guard: if direction='inbound' AND messageType='text' AND content is null/empty/whitespace-only → skip insert, return { logged:false, reason:'whitespace_only_filtered' }.
+- **Filters (inbound only, BEFORE the INSERT):**
+  - TD-034 whitespace guard: if direction='inbound' AND messageType in {'text','slack_text'} AND content trims to empty → skip insert, return `{ logged:false, reason:'whitespace_only_filtered' }`.
+- **TD-030 placement note:** the bot-echo guard intentionally lives at WF-00 (WhatsApp webhook entry — WhatsApp-only check). For Slack inbound traffic the same role is played by WF-10's `Human Vs Bot Message?` IF guard at the Slack admin handler. WF-60 does NOT duplicate either; by the time payload reaches WF-60, bot-echo has already been excluded upstream.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — triggered by another workflow (e.g. WF-00 inbound entry, WF-50 outbound send) with logging fields passed through.
-Step 2: Extract message data (code): normalize into { userId, consultationId, direction (default 'inbound'), messageType (default 'text'), content, whatsappMessageId, metadata:{ phoneNumber, rawMessage, timestamp (default now), contactName, success, error } }. Go to Step 3.
-Step 3: Filters (inbound only — direction=='inbound'):
-  - TD-030: botPhone = bot WABA number stripped of non-digits. If phoneNumber === botPhone → return { logged:false, reason:'bot_echo_filtered' }. Go to Step 7.
-  - TD-034: if messageType=='text' AND (content is null OR trim(content) is empty) → return { logged:false, reason:'whitespace_only_filtered' }. Go to Step 7.
-  - Otherwise → go to Step 4.
-Step 4: Resolve userId (chinmay_astro.messages.user_id is NOT NULL — must produce one or skip):
-  - If userId is present → carry forward; go to Step 5.
-  - Else if phoneNumber is present → SELECT id, current_consultation_id FROM chinmay_astro.users WHERE phone_number=$phoneNumber LIMIT 1. If a row exists, set userId from the result (and consultationId if not already set). Go to Step 5.
-  - Else (no userId AND no phoneNumber) → return { logged:false, reason:'no userId — caller did not provide user identification' }. Go to Step 7.
-Step 4b: Check: did Step 4 produce a userId?
-  - If YES → go to Step 5.
-  - If NO (inbound message from a pendingUser / new user without a chinmay_astro.users row yet) → return { logged:false, reason:'pre_onboarding_user — no users row, inbound only persists in pending_users; messages table FK requires user_id' }. (Acceptable gap for MVP — pre-onboarding inbound is the welcome-form interaction and is bounded; the audit trail begins at WF-22 INSERT.) Go to Step 7.
-Step 5: INSERT INTO chinmay_astro.messages (user_id, consultation_id, direction, message_type, content, whatsapp_message_id, metadata, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, NOW()) RETURNING id. Go to Step 8.
-Step 7: End (no insert).
-Step 8: Done (code): return { logged:true, logId:<inserted id> }. End.
+Step 1: Start — triggered by another workflow (WF-00 WA inbound, WF-50 WA outbound, WF-10 Slack inbound, WF-51 Slack outbound) with the canonical multi-transport payload. See TD-002 (2026-05-19) for the rebuild that established this contract; TD-003 F1 (2026-05-20) extended it for Slack transport.
+
+Step 2: Extract Message Data (Code) — normalize and compute flags:
+  - transport ← input.transport ?? 'wa'.
+  - direction ← input.direction ?? 'inbound'.
+  - messageType ← input.messageType ?? (isSlack ? 'slack_text' : 'text').
+  - content ← input.content ?? input.messageContent ?? input.userMessage ?? null.
+  - userId ← input.userId ?? input.user?.id ?? null.
+  - consultationId ← input.consultationId ?? input.user?.current_consultation_id ?? null.
+  - whatsappMessageId ← input.whatsappMessageId ?? input.messageId ?? null.
+  - slackMessageTs ← input.slackMessageTs ?? input.slack_message_ts ?? input.metadata?.slackMessageTs ?? null.
+  - phoneNumber ← input.phoneNumber ?? input.phoneNumberFormatted ?? input.metadata?.phoneNumber ?? null.
+  - slackChannelId ← input.slackChannelId ?? input.slack_channel_id ?? input.metadata?.slackChannelId ?? null.
+  - _filterReason ← TD-034 whitespace check (inbound text/slack_text only).
+  - _needsLookup ← !_filterReason && !userId && (phoneNumber || slackChannelId).
+  - _lookupColumn / _lookupValue ← chosen based on transport AND which key is present: prefer slack_channel_id on Slack transport, otherwise phone_number; fall back to whichever key exists.
+  - metadata ← { transport, phoneNumber, slackChannelId, rawMessage, timestamp, contactName, success, error, ... }.
+  Go to Step 3.
+
+Step 3: Filter Skip? (IF) — if _filterReason is set (TD-034 whitespace-only filtered), route to Step 7a (Build Filter Skip Result → return { logged:false, reason:_filterReason }). Otherwise go to Step 4.
+
+Step 4: Needs Phone Lookup? (IF) — _needsLookup TRUE → Step 4a; FALSE (userId already present, or no lookup key) → Step 5.
+
+Step 4a: Lookup User By Phone (Postgres, parametric on _lookupColumn) — SELECT id, current_consultation_id FROM chinmay_astro.users WHERE ($1='phone_number' AND phone_number=$2) OR ($1='slack_channel_id' AND slack_channel_id=$2) LIMIT 1. Then Merge Lookup Result (Code) populates userId/consultationId on the canonical payload (NULL if no row). Go to Step 5.
+
+Step 5: Has userId? (IF) — TRUE → Step 6 (INSERT). FALSE → Step 7b (Skip Log (no userId) → return { logged:false, reason:'no userId — ...' or 'no userId for outbound'}).
+
+Step 6: Log to Messages Table (Postgres) — INSERT INTO chinmay_astro.messages (user_id, consultation_id, direction, message_type, content, whatsapp_message_id, slack_message_ts, metadata, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, NOW()) RETURNING id. The node has `onError: continueRegularOutput` so a logging failure does not fail the parent chain. Go to Step 8.
+
+Step 7a: Build Filter Skip Result (Code) → emit { logged:false, reason:<filterReason> }. End.
+Step 7b: Skip Log (Code) → emit { logged:false, reason:<no-userId reason> }. End.
+
+Step 8: Done (Code) → emit { logged:true, logId:<inserted id> }. End.

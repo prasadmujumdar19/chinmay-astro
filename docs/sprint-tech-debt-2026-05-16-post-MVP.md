@@ -66,16 +66,72 @@ Both fixes are a single Code node added as the first step after the webhook trig
 
 ## 🟡 P2 — Functional & Reliability
 
-### TC-0702 · Blocked user message attempt not logged to admin_actions
+### TC-0702 · Blocked user message attempt not logged
 
-**Source:** .methodology/sprint-tech-debt-2026-05-14-followups.md (TC-0702, deferred post-MVP)  
-**Finding:** WF-01 `Silent Reject (Blacklist)` is a true dead-end — no INSERT to `admin_actions`, no admin notification. Silent drop behavior is correct (blocked user gets no reply). The missing piece is an audit trail of repeated attempts.
+**Source:** .methodology/sprint-tech-debt-2026-05-14-followups.md (TC-0702, deferred post-MVP)
+**Finding:** WF-01 `Silent Reject (Blacklist)` is a true dead-end — silent drop behavior is correct (blocked user gets no reply), but there's no audit trail of repeated attempts.
 
-**Fix:** Add one Postgres node after `Silent Reject (Blacklist)` in WF-01:
-```sql
-INSERT INTO chinmay_astro.admin_actions (phone_number, event_type, created_at)
-VALUES ('{{ $json.phoneNumber }}', 'block_attempt', NOW())
-```
+**Fix (revised 2026-05-20):** Log the blocked-attempt event as a normal inbound message via WF-60 (with `message_type='blocked_attempt'` or via metadata). The original 2026-05-16 plan to `INSERT INTO chinmay_astro.admin_actions` is **superseded** — see `TD-NEW-026` (admin_actions table removal) below; once removal lands, admin_actions no longer exists. The blocked-attempt event remains worth logging — just to the messages table.
+
+---
+
+### TD-NEW-026 · Remove `chinmay_astro.admin_actions` table
+
+**Source:** TD-003 audit, 2026-05-20 (deprecation decision recorded in `docs/artefacts/sprints/smoke-resume-remediation-2026-05-19/td003-touchpoint-audit.md`).
+**Finding:** `admin_actions` was designed as an attribution + state-transition ledger but is redundant in single-admin operation: `messages` captures every admin Slack command + outbound notification, and `users.status` + `users.updated_at` capture the state transition. The `ON DELETE NO ACTION` FK safety is a non-feature here (no retention obligation; clean-slate test wipes already work around it).
+
+**Pre-removal:** TD-003 (sprint `smoke-resume-remediation-2026-05-19`) does NOT touch admin_actions, leaving existing partial writes in place:
+- WF-11 `Unblock User` — works (inline interpolation; writes a row with NULL `performed_by`)
+- WF-47 `Log to admin_actions` — silently no-ops (broken `$1` binding without queryReplacement)
+
+These writes are harmless since nothing reads from admin_actions; removal cleans them up.
+
+**Fix:**
+1. Delete the `Unblock User` INSERT statement (keep only the `UPDATE users` part) in WF-11.
+2. Delete the `Log to admin_actions` node entirely in WF-47.
+3. `DROP TABLE chinmay_astro.admin_actions` (single transaction; FK constraint to users is the only dependency).
+4. Update CLAUDE.md: remove references to admin_actions in the schema overview + clean-slate SQL.
+
+**Priority:** 🟢 P3 — purely housekeeping; table sitting empty causes no harm. Bundle with any other post-go-live schema cleanup.
+
+---
+
+### TD-NEW-027 · Periodic pseudo↔live drift health-check (maintenance-phase coverage)
+
+**Source:** Drift review 2026-05-22 (this sprint — surfaced when discussing process gaps for major-refactor pseudo updates).
+**Finding:** The current `pseudo-md-drift-check` hook runs as part of `build-sprint` and is effective during active build cycles. After go-live, maintenance-phase changes (quick production incident fixes, ad-hoc tweaks via n8n UI) happen outside `build-sprint` and bypass the drift check entirely. Pseudo can fall arbitrarily far behind live before any `build-sprint` is invoked again — which may be days, weeks, or never.
+
+Concrete evidence from this sprint: WF-51 and WF-60 pseudos were both significantly stale after **TD-002** (2026-05-19 multi-transport rebuild) — a structural refactor done as a focused change, not under `build-sprint`. Neither pseudo was updated. The drift only surfaced when this drift review ran ~3 days later. Similar gaps will continue to accumulate post-MVP unless drift detection runs on a schedule independent of sprint activity.
+
+**Scope of needed health-check infrastructure (broader than just drift):**
+- Periodic pseudo↔live drift check across all active workflows (the methodology hook, but run on a schedule)
+- Periodic workflow-registry accuracy check (caller lists, status, IDs)
+- Periodic Postgres node hygiene check (alwaysOutputData, schema-prefix, queryReplacement format)
+- Periodic execution-error-rate sweep (alert when any active workflow's recent error rate exceeds threshold)
+- Periodic disk/log/DB-row growth check (matches TD-NEW-019 execution_entity growth concern)
+
+**Fix:** Design and implement a "health checks" routine that runs on a schedule (cron job or scheduled agent). Out of scope for any current sprint — needs its own spec and design pass. Tracks discovery of further health-check candidates as they emerge.
+
+**Priority:** 🟡 P2 — important for sustainability but not blocking go-live. Schedule for first post-MVP planning cycle.
+
+---
+
+### TD-NEW-031 · State-filter workflows treat any non-{garbage,abusive,inappropriate,stop} intent as a single "passthrough" bucket
+
+**Source:** Sprint `inline-20260522-102910` SP-04 (2026-05-23) — surfaced during the silent-drop IF FALSE branch audit when the WF-25 contract was reconciled against the upstream `Is Pass-Through Intent?` condition.
+
+**Finding:** WF-23 (Pre-Form Intent Filter), WF-30 (Payment Pending Intent Filter), and WF-31 (Payment Submitted Handler) each gate on `intentResult` only NEGATIVELY — the `Is Pass-Through Intent?` IF checks `intent NOT IN {garbage, malicious_abusive, inappropriate, stop_intent}` and treats everything else as a single "passthrough" bucket. That bucket actually contains 4 distinct intents — `wants_consultation`, `general_enquiry`, `rebook_intent`, `feedback_intent` — which arguably warrant different state-appropriate responses:
+
+- In WF-30 (`payment_pending`), `feedback_intent` ("the form was confusing") is currently answered with the standard payment reminder — not ideal. A genuine `rebook_intent` is also answered with the same reminder; the workflow already has minor branching on `wants_consultation` vs `rebook_intent` for the prefix line but the rest of the message is identical.
+- In WF-23 (pre-form), `feedback_intent` and `rebook_intent` both fall through to the generic "fill the form" intro — no acknowledgement of the inferred intent.
+- In WF-31 (`payment_submitted`), all 4 passthrough intents land on the same "under review" reassurance. Likely correct here (admin sees the message via parallel relay anyway), but worth a design pass.
+
+**Why deferred to post-MVP:** Pre-MVP the cost of the current behavior is mild (occasional mismatched reminder); the risk of getting intent-specific routing wrong is higher than the risk of leaving it generic. MVP scope holds the bucket approach.
+
+**Post-MVP fix shape:** Replace each filter's `Is Pass-Through Intent?` IF with a Switch on `intentResult` that branches per concrete intent (wants_consultation, general_enquiry, rebook_intent, feedback_intent — plus the existing stop_intent clarifier branch SP-04 added). Each branch builds its own state-specific response. Mirror this pattern across WF-23/30/31. WF-25's contract returning a stable enum of 5 intents to callers is the enabler.
+
+**Owner:** TBD (post go-live design pass).
+**Related:** SP-04 (sprint inline-20260522-102910) introduced the stop_intent clarifier; this TD is the natural follow-on for the other 4 intents.
 
 ---
 
@@ -203,7 +259,8 @@ Then recreate the n8n container: `docker stop n8n && docker rm n8n && docker-com
 | STATUS-TD-02 | Automated daily DB backups | 🔴 Critical | VPS session |
 | TD-NEW-001 | GitHub PAT in Google Drive–synced settings | 🔴 Critical | Local machine |
 | TD-NEW-020 | No HMAC on Meta (WF-00) / Slack (WF-10) webhooks | 🟠 P1 | n8n session |
-| TC-0702 | Blocked user attempt not logged to admin_actions | 🟡 P2 | n8n session |
+| TC-0702 | Blocked user attempt not logged (revised: log via WF-60, not admin_actions) | 🟡 P2 | n8n session |
+| TD-NEW-026 | Remove `chinmay_astro.admin_actions` table (deprecated 2026-05-20) | 🟢 P3 | n8n + Postgres |
 | WF-30-UX | Payment reminder missing fresh payment button | 🟡 P2 | n8n session |
 | FU-7-DEFERRED | Project-wide DB-lookup hygiene audit (IF empty-result guards) | 🟡 P2 | n8n session |
 | TD-NEW-019 | n8n execution history never pruned | 🟡 P2 | VPS session |

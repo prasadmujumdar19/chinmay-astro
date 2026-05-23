@@ -4,7 +4,7 @@ Each workflow has two artifacts:
 - **`WF-XX.md`** — AS-IS technical view: nodes, parameters, connections (stripped from n8n JSON, no UI noise).
 - **`WF-XX.pseudo`** — Human-readable LLD algorithm: step-by-step flow with branches, DB ops, sub-workflow calls.
 
-Source-of-truth status (active/disabled) is in `docs/workflow-registry.md`. Generated 2026-05-22 from a live n8n export (post canonical-executeworkflow-shape-sweep sprint).
+Source-of-truth status (active/disabled) is in `docs/workflow-registry.md`. Generated 2026-05-23 from a live n8n export (post canonical-executeworkflow-shape-sweep sprint).
 
 | ID | Workflow | Domain |
 |----|----------|--------|
@@ -13,7 +13,6 @@ Source-of-truth status (active/disabled) is in `docs/workflow-registry.md`. Gene
 | [WF-02](WF-02.pseudo) | User State Router | Infra — route by users.status + message type |
 | [WF-10](WF-10.pseudo) | Slack Admin Handler | Admin — Slack Events webhook, dispatch admin commands and relays |
 | [WF-11](WF-11.pseudo) | Command Parser | Admin — APPROVE / REJECT / CLOSE / BLOCK / UNBLOCK / LIST / STATS / HELP |
-| [WF-12](WF-12.pseudo) | Admin → WhatsApp Relay (legacy) | Admin — direct relay path (likely superseded by WF-41) |
 | [WF-20](WF-20.pseudo) | Keyword Handler | Onboarding — STOP / HELP / REBOOK keyword interception |
 | [WF-21](WF-21.pseudo) | New User Welcome + Form | Onboarding — sends consent + WhatsApp Flow form, no DB write |
 | [WF-22](WF-22.pseudo) | Form Response Handler | Onboarding — first users INSERT + WF-52 channel creation |
