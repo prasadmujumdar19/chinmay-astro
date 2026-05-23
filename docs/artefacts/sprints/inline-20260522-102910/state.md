@@ -3,7 +3,7 @@ input_source: inline-20260522-102910
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/inline-20260522-102910/working.md
 planned_at: 2026-05-22T10:29:10Z
-last_updated: 2026-05-23T00:58:20Z
+last_updated: 2026-05-23T02:40:00Z
 planning_complete: true
 context: |
   Sprint scope was derived from a session-long interactive walk-through of the 2026-05-22 pseudo↔live drift report (6 flagged workflows: WF-12, WF-23, WF-41, WF-46, WF-51, WF-60). For each, we discussed whether pseudocode or live code should be treated as authoritative, given functional position in the user journey, history (e.g. TD-002 multi-transport rebuild, DR-10 channel-archival rule, deactivation history), and surrounding architectural concerns. Several items grew beyond their original audit-finding scope when surrounding investigation revealed systemic issues (passthrough vs defineBelow contract pattern; postgres `alwaysOutputData` hygiene; admin-action precondition feedback gaps; postgres unquoted-camelCase SQL alias lowercasing).
@@ -47,6 +47,21 @@ items:
     priority: P2
     status: in-progress
     started_at: 2026-05-23T00:58:20Z
+    implementation_note: |
+      2026-05-23T02:30:47Z — WF-10 centralized validation gate landed (live JSON updated). Implementation phase only; downstream cleanups (WF-11/33/34/42) + smoke test deferred to next session per user-scoped session boundary.
+        - WF-10 (wMh0oBRtJbvhLgOf): 28 → 38 nodes. Backup: archive/backups/wMh0oBRtJbvhLgOf-2026-05-23-12-14.json. versionId: f9a50569-cfbb-40e3-968d-51bbe3376fa5.
+        - Build approach: fresh-rebuild (Python script wrote full target nodes+connections; copied 19 keeper nodes verbatim by name from live JSON preserving id/position/credentials/webhookId 27a3efa5-…-bd42; spliced in 19 new nodes). Single PUT, single lint pass. Pre-flight + post-PUT lint scans both clean (exec canonical 1.2, postgres = prefix, alwaysOutputData, no deprecated continueOnFail). Step 6a dangling-name re-scan clean for all 9 dropped node names. All 26 connection sources + 37 connection targets resolve to live nodes.
+        - typeVersion discipline: code v2, set v3.4, switch v3.3, if v2.2, exec v1.2 — all new nodes matched live typeVersions for that .type, no auto-bumps. (Plugin improvement candidate (k) captured below.)
+        - 9 nodes dropped: Detect Command - Admin/User Channel, Command - Admin/User Channel ?, User Consultation Active?, Build Admin Feedback, Build Wrong Channel Warning, Call WF-51 (Inactive User Feedback), Call WF-51 (Wrong Channel Warning).
+        - 19 nodes added: Classify Admin Channel Message + Classify User Channel Message (Code v2 — compute kind/commandKeyword/typedPhone/channelDerivedPhone/phoneStatus/expectedState); Route by Kind (Admin) + Route by Kind (User) (Switch v3.3); Phone Match? (Switch v3.3, 3 outputs: valid/absent/mismatch); State Match? (IF v2.2 — expectedState=='*' OR loadedStatus==expectedState); Dispatch by Kind (Switch v3.3); 6 Build-Alert Set v3.4 + 6 Call-WF-51 executeWorkflow v1.2 chains (Wrong-Channel Admin, Help Prompt, Wrong-Channel User, Phone Absent, Phone Mismatch, Wrong State). All alert Set nodes intentionally produce {channelId, messageText} contract (includeOtherFields=false — correct per SP-11 LESSON LEARNED).
+        - 2 keeper expression patches: Build Orphan Channel Alert + Build WF-41 Payload — rewired `$('Detect Command - User Channel')` → `$('Classify User Channel Message')`.
+        - All Slack messages use business language per [[feedback_admin_message_tone]] — no WF-XX names, "customer" not "user", etc.
+        - WF-10.md regenerated post-PUT (live_updated_at 2026-05-23T02:30:47.988Z; assert-md-fresh.sh confirms FRESH).
+        - Workflow-registry.md WF-10 row updated with SP-03 entry.
+      **Pending (next session):**
+        1. Smoke test 9+ scenarios on test phone +61491370732 (admin LIST/HELP, APPROVE/REJECT/CLOSE/BLOCK/UNBLOCK happy + failure paths, relay text happy + wrong-state, orphan re-verify, admin-wide in user channel, user-targeted in admin channel).
+        2. Downstream surgical-structural cleanups (4 separate small PUTs — remove now-redundant guards): WF-33 (remove `User in Correct State?` + Prepare/Call WF-51 Wrong State pair); WF-34 (remove `User Found?` + `User in Correct State?` + 4 prepare/call pairs); WF-42 (remove `User Found?` + `User in Correct State?` + 4 prepare/call pairs); WF-11 (remove `Blocked User Found?` + `No Blocked User Found` executeWorkflow). All four workflows then trust WF-10's upstream validation.
+        3. After smoke + downstream pass: mark SP-03 done; mark TD-021 / TD-022 / TD-023 resolved in docs/Tech_Debts.md; run Batch 2 post-batch regression (rebuild dependency map, sibling-check); offer Batch 2 commit/push.
     batch: 2
     depends_on:
       - id: SP-01
@@ -168,6 +183,9 @@ followups_logged:
   - "TD-NEW-030 (Tech_Debts.md): WhatsApp Flow form has no validation on Time-of-Birth / Place-of-Birth — MVP BLOCKER. Surfaced during SP-11 Test C. Full design notes in sprint followups.md and Tech_Debts.md."
   - "Admin-alert message-tone discipline: rewrote WF-01 Build Admin Anomaly Alert (anomaly_interactive + anomaly_keyword variants), WF-10 Build Orphan Channel Alert, and WF-02 Build UNHANDLED Alert (pre-existing — not from SP-11) into business language. Memory saved: [[feedback_admin_message_tone]]. SP-10 plugin update should add this as new principle (j)."
   - "n8n MCP updateNode limitation: dot-path with array index (e.g., parameters.assignments.assignments[1].value) silently no-ops without error. SP-10 plugin update should document this — for nested-array updates fall back to jq+PUT via Step 5e."
+  - "SP-10 plugin improvement candidate (k) — Author-fresh vs mutate-in-place gate inside Step 5e. Surfaced during SP-03 WF-10 implementation (2026-05-23): the existing Step 5e text reads as 'jq mutation by name', which steers you toward chained renames+rewires even when 30%+ of nodes are turning over. Proposed Step 5e.3: if (renames + adds + removes) >= 30% of node count OR any rename touches a node referenced by `$('Name')` from >2 other nodes → author-fresh (write full target nodes+connections declaratively, jq-extract keepers from live by .name, splice). Author-fresh is O(target node count); rename-chain is O(renames × downstream-refs). Authored-fresh path for WF-10 (28→38) executed clean: zero dangling refs, lint clean, keeper id/position/credentials/webhookId preserved verbatim."
+  - "SP-10 plugin improvement candidate (l) — Validation centralization at boundary entry points (from prior handoff, restated). Any entry-point workflow (webhook/inbound trigger) loading context records by external key should perform FULL validation (record existence + cross-identifier match + state-for-action) at the boundary so downstream workflows can run in trust-mode. Validated by SP-11 (WF-01) and SP-03 (WF-10). Pairs with principle (h) (user-load gates) as the generalized 'trust-after-gate' pattern."
+  - "SP-10 plugin improvement candidate (m) — typeVersion floor rule for fresh-authored nodes. When `n8n_create_workflow` or any author-fresh pass introduces nodes not in the live JSON, default each new node's typeVersion to the highest typeVersion already present in the live workflow for that exact .type — do not auto-pick the n8n MCP's latest. Bumping creates two failure modes: (a) condition/parameter format mismatches that crash the UI (already lint-hooked for IF + executeWorkflow, not for Set/Switch/Code/Postgres); (b) silent runtime semantic drift (e.g., Set v3.4's includeOtherFields=false default surfaced as SP-11 LESSON LEARNED — a Set v3.3→v3.4 silent bump would re-trigger it). If project has no existing instance of that node type, ask user before picking a version. Add as Step 5e.1a in build-workflow."
 notes: |
   Items are grouped into 4 batches:
   - Batch 1 — P1 critical-path fix (SP-01)
