@@ -566,6 +566,65 @@ Slack text exact: `✅ User Abcs (61466927921) has been unblocked. Status is now
 - time-cursor: 2026-05-23T06:38:28Z → 2026-05-23T06:46:04Z
 - **DB state:** users.phone_number=61466927921 = `consultation_closed`
 
+### Tick — 2026-05-23T06:53Z — Phase G ✅ PASS (1 attempt)
+
+Operator typed `APPROVE PAYMENT 99999999999` in **consult-orphan-test** (C0B5N87PRDL). Expected: WF-10 `User Row Exists?` FALSE → Build Orphan Channel Alert → WF-51 to admin channel.
+
+WF-10 exec 1875 path (all `success`):
+Webhook → Extract Required Fields (channel_id=C0B5N87PRDL, text="APPROVE PAYMENT 99999999999") → Event Callback Vs URL Verification → Human Vs Bot Message? → Admin Vs User Channel? (user channel — `consult-*` prefix) → Classify User Channel Message → Find Channel → Merge Message n Channel → Load User Status → **User Row Exists? FALSE branch** → Build Orphan Channel Alert → Call WF-51 (Orphan Channel Alert) → Call WF-60 Message Logger → Respond 200 OK.
+
+**Gate short-circuit confirmed:** no WF-11/WF-33/WF-46 invocation — gate stops at the orphan check. ✓
+
+Alert text exact:
+`⚠️ Slack channel C0B5N87PRDL (consult-orphan-test) has no matching customer. Admin typed: "APPROVE PAYMENT 99999999999". This channel may have been created without a customer, or the customer was removed. Please check.`
+
+Posted to: `C0A5B0ZE81E` (chinmay-admin-commands) ✓. Operator visually confirmed.
+
+No DB writes. No user state changes (no user row exists for `99999999999`). Re-verifies SP-11 Test E under the new SP-03 centralized gate code path.
+
+**Cross-check:** 1/1 ✅.
+
+**Cursor update:**
+- exec-cursor: 1856 → 1875 (1879 is bot-message echo, filtered)
+- time-cursor: 2026-05-23T06:46:04Z → 2026-05-23T06:53:46Z
+
+---
+
+## Smoke complete — 2026-05-23T06:53Z
+
+**All 10 phases pass.** Final tally:
+
+| Phase | Description | Attempts | Bugs surfaced |
+|-------|-------------|----------|---------------|
+| A | Admin channel × 6 | 1 | — |
+| B | Relay text happy | 1 | — |
+| C | User-targeted rejections × 3 | 1 | — |
+| D1 | CLOSE consultation happy | 4 | BUG-05 CLOSE (fixed prior session) + series-after-sub-workflow contract drop (plugin candidate (n)) |
+| D2 | Relay wrong-state on consultation_closed | 1 | — |
+| E1 | APPROVE PAYMENT happy | 3 | WF-33 atomic-execution (post-MVP P1; not blocking) |
+| E2 | REJECT PAYMENT happy | 3 | **BUG-06** WF-34 admin reason silent drop — fixed mid-smoke (commit `53b95fd`) |
+| F1 | BLOCK happy | 1 | Verified BUG-05 BLOCK sibling fix from `2eb46c2` — single Slack ✓ |
+| F2 | UNBLOCK happy | 2 | **BUG-07** WF-11 Confirm User Unblocked hardcoded admin channelId — fixed mid-smoke (commit `e7b0d78`) |
+| G | Orphan channel | 1 | — |
+
+**Commits landed this smoke session:**
+- `91c0975` (prior) — SP-03 systemic fix + smoke partial 12/17 + BUG-05 deduplication
+- `1ca15fe` (prior) — handoff
+- `2eb46c2` — BUG-05 BLOCK sibling fix + WF-46.pseudo drift cleanup
+- `53b95fd` — BUG-06 WF-34 admin reason propagation
+- `e7b0d78` — BUG-07 WF-11 unblock channelId fix + F1/F2 ticks
+- (this commit) — Phase G tick + smoke-complete summary
+
+**Followups logged in `docs/artefacts/sprints/inline-20260522-102910/followups.md`:**
+- UNBLOCK-extract design-debt (deferred; keep inline)
+- POST-MVP P1: WF-33 atomic-execution (BEGIN/COMMIT or reorder pattern) — operator-confirmed crucial-before-public-launch
+- Methodology: smoke-test setup script must reset linked tables (payments INSERT etc.)
+- POST-MVP: WA-body rejection reason gated on Razorpay integration
+
+**Remaining SP-03 work (NOT in scope of this smoke session):**
+- **Task #3** — downstream surgical-structural cleanups on WF-33 + WF-34 + WF-42 (remove trust-mode-redundant IFs + orphan false-branch nodes). Scope locked in `state.md` L63.
+- **Task #4** — SP-03 close + Batch 2 post-batch regression.
+- Restore +61466927921 to `consultation_active` (currently `consultation_closed` — leftover from F2). Can happen as part of Task #4 or Task #3 setup.
 
 
 
