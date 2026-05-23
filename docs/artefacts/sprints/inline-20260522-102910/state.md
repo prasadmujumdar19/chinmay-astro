@@ -3,7 +3,7 @@ input_source: inline-20260522-102910
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/inline-20260522-102910/working.md
 planned_at: 2026-05-22T10:29:10Z
-last_updated: 2026-05-23T08:48:00Z
+last_updated: 2026-05-23T09:18:22Z
 planning_complete: true
 context: |
   Sprint scope was derived from a session-long interactive walk-through of the 2026-05-22 pseudo↔live drift report (6 flagged workflows: WF-12, WF-23, WF-41, WF-46, WF-51, WF-60). For each, we discussed whether pseudocode or live code should be treated as authoritative, given functional position in the user journey, history (e.g. TD-002 multi-transport rebuild, DR-10 channel-archival rule, deactivation history), and surrounding architectural concerns. Several items grew beyond their original audit-finding scope when surrounding investigation revealed systemic issues (passthrough vs defineBelow contract pattern; postgres `alwaysOutputData` hygiene; admin-action precondition feedback gaps; postgres unquoted-camelCase SQL alias lowercasing).
@@ -82,8 +82,19 @@ items:
   - id: SP-04
     description: Silent-drop IF FALSE branch audit + remediation — superset of SP-03. Sweep all active workflows for IF nodes whose FALSE branch is disconnected when it represents an unhappy path. For each, decide whether to add graceful handling (admin Slack feedback, log entry, or explicit accept-as-noop) or leave as-is. Output a matrix; remediate where the unhappy path is meaningful.
     priority: P3
-    status: in-progress
+    status: done
     started_at: 2026-05-23T08:28:03Z
+    completed_at: 2026-05-23T09:18:22Z
+    completion_note: |
+      Design + pseudo phase completed earlier; implementation phase landed this session.
+      Implementation: 3 Structural Step 5e jq-on-disk PUTs (one per workflow).
+        - WF-23 (VpCER0Vqq3NYJGpI): removed `Is Stop Intent?` IF + `Call WF-47 Unsubscribe` executeWorkflow; inserted `Build WF-50 (Stop Clarifier) Payload` (Set v3.4) + `Call WF-50 (Stop Clarifier)` (executeWorkflow v1.2 canonical); rewired `Is Pass-Through Intent?` main[1] (FALSE) → Build → Call. Node count unchanged (7). Backup: `archive/backups/VpCER0Vqq3NYJGpI-2026-05-23-19-13.json`. Pre-flight lint scan clean; post-PUT lint hook exit 0; dangling-name re-scan returned 0 expr/conn refs for the two removed names.
+        - WF-30 (gGJBY5fJha0Let8I): identical transform. Node count unchanged (7). Backup: `archive/backups/gGJBY5fJha0Let8I-2026-05-23-19-13.json`. Lint clean. Dangling re-scan clean.
+        - WF-31 (HB8nXudAtk9iXz7C): identical transform. Node count unchanged (10 — parallel Slack-relay branch untouched). Backup: `archive/backups/HB8nXudAtk9iXz7C-2026-05-23-19-13.json`. Lint clean. Dangling re-scan clean.
+      Clarifier text verbatim from WF-40 (same string across all 3 new instances). Payload shape mirrors WF-40 exactly: phoneNumber from `$('When Executed by Another Workflow').item.json.phoneNumber`, messageType=text, messageContent=clarifier. Set v3.4 `includeOtherFields` left false (default) — intentional, emits the WF-50 contract shape only. Call WF-50 node uses canonical 1.2 shape (operation=call_workflow, source=database, mode=once, workflowId={__rl,value:BUVun38WEKb12zg9,mode:list,cachedResultUrl}, workflowInputs.mappingMode=passthrough).
+      Re-exported all 3 to `workflows/<uuid>.json`. Secrets scan clean. .md companions regenerated via `generate-workflow-md.py`; `assert-md-fresh.sh` confirms FRESH on WF-23/30/31 (delta=+0s).
+      WF-47 caller-set reduction (audit-trail): pre-SP-04 [WF-20, WF-23, WF-30, WF-31, WF-43, WF-44] → post-SP-04 [WF-20, WF-43, WF-44]. To be reconfirmed at Batch 3 sibling regression via dependency-map rebuild.
+      Smoke test: deferred to ad-hoc post-go-live verification (structural change, but the 3 affected paths are pre-onboarding/payment-pending/payment-submitted free-form intent handling — low-risk surface; reachable via test-phone STOP-intent-looking phrase like "please stop sending these").
     decision_made: |
       2026-05-23: Audit produced a 6-row matrix across active workflows (jq sweep on `connections[<if>].main`).
       - 3 INTENTIONAL silent terminations accepted as-is: WF-10 `Human Vs Bot Message?` (TD-030 bot-echo equivalent for Slack inbound); WF-02 `Keyword Passthrough?` (WF-20 already terminally handled the unsubscribe); WF-40 `Stop Intent?` (relay happens on parallel branch from WF-25; this IF only gates an optional clarifier side-effect).
