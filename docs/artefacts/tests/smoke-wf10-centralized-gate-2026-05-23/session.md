@@ -514,9 +514,57 @@ Root cause analysis: WF-34 `Update Payment Record`'s upstream is `Load User by P
 **Cross-check:** 1/1 ✅.
 
 **Cursor update:**
-- exec-cursor: 1801 → (post-1825; specific exec range to be confirmed at next fetch)
-- time-cursor: 2026-05-23T05:58:18Z → ~2026-05-23T06:24:00Z
+- exec-cursor: 1801 → 1837
+- time-cursor: 2026-05-23T05:58:18Z → 2026-05-23T06:24:10Z
 - **DB state:** users.phone_number=61466927921 = `payment_pending`, payments id=17=rejected with admin-typed reason
+
+### Tick — 2026-05-23T06:38Z — Phase F1 ✅ PASS (1 attempt)
+
+Operator typed `BLOCK 61466927921 spam test` in consult-+61466927921. Pre-F1: users.status=payment_pending; BLOCK works from any user state (no expectedState guard in WF-10 for BLOCK).
+
+7 executions all success: WF-10 (1838) → WF-11 (1839) → WF-46 (1840) → WF-51 (1841) → WF-60 (1842/43) → WF-10 echo (1844).
+
+**Single WF-51 fired (1841) — BUG-05 BLOCK sibling fix verified end-to-end.** ✓ This was the morning's whole-point fix (`2eb46c2`): removed WF-11's `Confirm User Blocked` so WF-46 becomes single owner of the post-block Slack confirmation.
+
+Slack text exact match to pseudo + this morning's WF-46 fix:
+`🚫 User blocked: Abcs (61466927921). Reason: spam test. Status set to 'blocked'.`
+
+DB state: users.status → `blocked`, blocked_at set ✓. `blocked_reason` DB column = `"Blocked by admin"` (hardcoded — pre-existing drift documented today in WF-46.pseudo as TD candidate; not in scope of F1).
+
+**Cross-check:** 1/1 ✅.
+
+**Cursor update:**
+- exec-cursor: 1837 → 1844
+- time-cursor: ~2026-05-23T06:24:10Z → 2026-05-23T06:38:28Z
+- **DB state:** users.phone_number=61466927921 = `blocked`
+
+### Tick — 2026-05-23T06:41–06:46Z — Phase F2 ✅ PASS (2 attempts; 1 bug surfaced + fixed)
+
+**Attempt 1 (execs 1845–1850) — DB transition OK, Slack message landed in WRONG channel.**
+
+Operator typed `UNBLOCK 61466927921` in consult-+61466927921. 6 executions all success; users.status flipped `blocked` → `consultation_closed`; WF-51 (1847) reported `ok=true`.
+
+But operator did not see the confirmation in the consult channel. Investigation: WF-51's Post to Slack node posted to `C0A5B0ZE81E` (chinmay-admin-commands), not `C0B567A175W` (consult-+61466927921). Trace back: WF-11's `Confirm User Unblocked` executeWorkflow node had `workflowInputs.value.channelId` hardcoded to the literal `"C0A5B0ZE81E"`. Violated WF-11.pseudo Step 19 ("Post to input channelId") and DR-13 (user-targeted commands respond in user channel).
+
+**Root cause:** 2026-05-23 SP-03 v2 patch updated `Confirm User Unblocked`'s phoneNumber refs to cross-node refs but missed the channelId. Audit gap — fixed today as BUG-07 (audit of remaining hardcoded channelIds across all 5 WF-11 → WF-51 callers found only this one).
+
+**Fix (BUG-07) applied — 1 partial-update on WF-11:**
+- `Confirm User Unblocked` workflowInputs.value.channelId: literal `"C0A5B0ZE81E"` → `={{ $('When Executed by Another Workflow').item.json.channelId }}`.
+- 4 other WF-11 → WF-51 callers (`Send List To Admin`, `Send Stats To Admin`, `Send Help To Admin`, `Unknown Command Response`) audited — all already use cross-node refs to trigger or `$json.channelId` (trigger-after-Switch). Clean.
+- Backup: `archive/backups/GoTYo0GS2y8qjjkw-2026-05-23-16-44.json`.
+
+**Attempt 2 (execs 1851–1856) — full PASS.**
+
+DB reset (users.status `consultation_closed` → `blocked` via direct SQL). Operator re-typed `UNBLOCK 61466927921`. 6 executions all success. WF-51 trigger payload now had `channelId: "C0B567A175W"` (consult channel) ✓. Slack post landed in consult-+61466927921 (operator visually confirmed). users.status `blocked` → `consultation_closed` ✓.
+
+Slack text exact: `✅ User Abcs (61466927921) has been unblocked. Status is now consultation_closed. They can REBOOK when ready.`
+
+**Cross-check:** 1/1 ✅.
+
+**Cursor update:**
+- exec-cursor: 1844 → 1856
+- time-cursor: 2026-05-23T06:38:28Z → 2026-05-23T06:46:04Z
+- **DB state:** users.phone_number=61466927921 = `consultation_closed`
 
 
 
