@@ -91,6 +91,32 @@ Could be encoded as a `scripts/smoke-reset.sh <phone> <target-state>` helper.
 
 ---
 
+## 2026-05-23 — SP-05 deferred → "Contract-First Sub-Workflow Calls" multi-sprint initiative
+
+SP-05 (WF-25 contract normalization to passthrough) was rescoped during audit phase and marked `needs-decision` rather than executed. Audit revealed 18 defineBelow+schema:[] sites across 6 workflows (WF-11/20/23/30/40/44) — wider than the handoff anticipated — and brought to surface that the principle ("make every workflow-to-workflow call honest about what it's doing") applies to EVERY sub-workflow call in the system, not just defineBelow ones.
+
+**Audit JSON preserved at:** `docs/artefacts/sprints/inline-20260522-102910/audits/sp05-defineBelow-sites-2026-05-23.json` (5.6 KB, 18 sites with mapping classification).
+
+**Audit summary:**
+- 18 defineBelow+schema:[] sites total. WF-31 + WF-43 already on passthrough (handoff prediction correct).
+- 48 mapping entries classified: 28 REDUNDANT (same-name $json.X → X — pure noise) + 20 RENAME/COMPUTED (cross-node references or templates).
+- 9 sites convert as pure passthrough (drop value, switch mode).
+- 9 sites need a Set node inserted before the call (WF-11 ×5 admin-message templates, WF-20 ×2 keyword-handler renames, WF-40 → WF-25 id→userId, WF-44 → WF-45 cross-node refs).
+
+**Decision (2026-05-23):** Defer SP-05 implementation. Plan a dedicated multi-sprint "Contract-First Sub-Workflow Calls" initiative next session. SP-10's principle (c) is EXPANDED this session to cover the wider scope (every executeWorkflow call MUST have a caller-side Set node constructing the sub-workflow's documented Inputs contract; defineBelow is rejected at lint). New principle (n) added for pseudo Inputs contract declaration discipline.
+
+**Initiative shape (to brainstorm + plan next session):**
+1. **Phase 1 — Pseudo contract audit** (~2 hours, one-shot): Read all 12-13 sub-workflow pseudos; write tight Inputs contracts (required/optional, names, shapes, validity rules). Discriminated unions (e.g., WF-60's WhatsApp vs Slack) declared explicitly.
+2. **Phase 2 — Call-site inventory** (~1 hour, mostly jq-automatable): Build matrix of every executeWorkflow call site project-wide (extend SP-05's 18-site audit to include currently-passthrough sites too).
+3. **Phase 3 — Per-family conversion sprints** (~5 hours total, staged): Suggest families: WF-50/51/60 messaging utilities; WF-25 intent classifier; WF-45/47 lifecycle handlers; WF-02/41 routers. Mode D subagent dispatch is appropriate for the monotonous Set-node insertion work — Haiku, ~5-8 parallel across different workflows (same-workflow siblings stay sequential per build-sprint rules).
+4. **Phase 4 — Lint hook deployment**: Reject executeWorkflow PUTs without immediately-upstream Set node; reject defineBelow at all; extend pseudo-drift-check to flag vague Inputs declarations.
+
+**Why this matters functionally:** caller-side Set as the contract boundary makes the pseudo Inputs section runtime-enforced (not documentation only); refactoring a sub-workflow becomes a local edit at each caller's Set node (found via dependency-map.md); eliminates passthrough drift where callers accidentally work due to shared field vocabulary; inverts the Set v3.4 default-drops-fields hazard (SP-11 LESSON LEARNED) from foot-gun to feature.
+
+**Tracked as:** multi-sprint architectural initiative. Not blocking MVP soft-launch but reduces silent-breakage risk in production. No TD-NEW number assigned — initiative-level work, captured here and in SP-05's `decision_required` field of the sprint state.
+
+---
+
 ## 2026-05-23 — POST-MVP: WA-body rejection reason (gated on Razorpay integration)
 
 Surfaced during Phase E2 (REJECT PAYMENT happy). After fixes A+B landed today, the admin's typed reason now persists to `payments.rejection_reason` and appears in the admin Slack ack. But the customer-facing WhatsApp body remains intentionally generic ("We couldn't verify your payment. Please check the details and try again. …"). Per WF-34.pseudo Step 7 + operator's MVP design call (2026-05-23): admin-typed reasons in the manual-UPI flow are admin-internal context, not customer guidance.

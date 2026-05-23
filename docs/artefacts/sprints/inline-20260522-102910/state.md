@@ -3,7 +3,7 @@ input_source: inline-20260522-102910
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/inline-20260522-102910/working.md
 planned_at: 2026-05-22T10:29:10Z
-last_updated: 2026-05-23T09:18:22Z
+last_updated: 2026-05-23T10:34:33Z
 planning_complete: true
 context: |
   Sprint scope was derived from a session-long interactive walk-through of the 2026-05-22 pseudo↔live drift report (6 flagged workflows: WF-12, WF-23, WF-41, WF-46, WF-51, WF-60). For each, we discussed whether pseudocode or live code should be treated as authoritative, given functional position in the user journey, history (e.g. TD-002 multi-transport rebuild, DR-10 channel-archival rule, deactivation history), and surrounding architectural concerns. Several items grew beyond their original audit-finding scope when surrounding investigation revealed systemic issues (passthrough vs defineBelow contract pattern; postgres `alwaysOutputData` hygiene; admin-action precondition feedback gaps; postgres unquoted-camelCase SQL alias lowercasing).
@@ -117,9 +117,30 @@ items:
   - id: SP-05
     description: WF-25 contract normalization to passthrough — convert all 6 WF-25 callers (WF-23, WF-30, WF-31, WF-40, WF-43, WF-44) from defineBelow+empty-schema mode to mappingMode=passthrough; remove the dead messageText/messageContent field-mappings; for WF-40, add a Set node before the WF-25 call to rename id → userId (replaces the inline mapping). Update WF-25.pseudo with authoritative Inputs declaration; update all caller pseudos to reflect passthrough. Update CLAUDE.md "n8n Expression Gotchas" if there's any project-specific note; primary documentation lives in the build-workflow plugin (see SP-10). Sweep the rest of the project for other defineBelow+schema:[] instances and normalize.
     priority: P3
-    status: pending
+    status: needs-decision
+    started_at: 2026-05-23T09:41:27Z
     batch: 3
     depends_on: []
+    decision_required: |
+      Scope of SP-05 expanded during audit phase (2026-05-23T09:41Z–10:34Z). Item is RESCOPED into a dedicated multi-sprint "Contract-First Sub-Workflow Calls" initiative to be planned next session. SP-05 itself remains as the audit + scope-spec predecessor for that initiative — implementation deferred.
+
+      AUDIT FINDINGS (preserved at docs/artefacts/sprints/inline-20260522-102910/audits/sp05-defineBelow-sites-2026-05-23.json):
+        - 18 defineBelow+schema:[] sites across 6 caller workflows (not just WF-25 callers — full project-wide sweep).
+        - WF-31 + WF-43 confirmed already on passthrough (handoff prediction correct).
+        - 4 WF-25 callers remain: WF-23, WF-30, WF-40, WF-44.
+        - 48 mapping entries classified: 28 REDUNDANT (same-name $json.X→X — pure noise) + 20 RENAME/COMPUTED (cross-node refs or templates — need Set node to preserve semantics).
+        - 9 sites are pure passthrough conversions (drop value, switch mode).
+        - 9 sites need a Set node inserted before the call (WF-11 ×5 admin-message templates, WF-20 ×2 keyword-handler renames, WF-40 →WF-25 id→userId, WF-44 →WF-45 cross-node refs).
+
+      USER DECISION (2026-05-23): Principle is broader than SP-05 captured — applies to EVERY sub-workflow call in the system. Every executeWorkflow call must (a) target a sub-workflow whose .pseudo declares an explicit Inputs contract (required/optional/shape — not "everything from upstream"), (b) be preceded by a named Set node that constructs that contract, (c) run in mappingMode=passthrough. Set nodes use includeOtherFields=false (v3.4 default — now a feature, sub-workflow only sees contract fields). The Set+passthrough pattern enforces pseudo contracts at runtime.
+
+      DEFERRED TO: "Contract-First Sub-Workflow Calls" multi-sprint initiative (to brainstorm + plan next session). Phases:
+        1. Pseudo Inputs contract audit (all ~12-13 sub-workflows) — produce Contract Manifest doc.
+        2. Call-site inventory matrix (extend the 18-site audit to include current passthrough sites too).
+        3. Per-family conversion sprints (suggest: WF-50/51/60 messaging utilities; WF-25 intent classifier; WF-45/47 lifecycle handlers; WF-02/41 routers). Mode D subagent dispatch is appropriate for the monotonous Set-node insertion work (Haiku, ~5-8 parallel across different workflows, same-workflow siblings stay sequential).
+        4. Lint hook deployment: reject any executeWorkflow PUT without an immediately-upstream Set node; reject defineBelow at all.
+
+      SP-10 IMPACT: SP-10's principle (c) is EXPANDED (not invalidated) — see SP-10 description updates this session. New principle (n) added for pseudo contract declaration discipline. SP-05's soft-dep on SP-10 is removed since SP-10 no longer needs a worked example of the narrow version of principle (c) (SP-11's Set v3.4 lesson + this session's Contract-First analysis supply the rationale).
   - id: SP-06
     description: WF-46.pseudo rewrite — remove Steps 5–6 (slack_channel_id lookup + channel archive) which contradict DR-10; update Calls Sub-Workflows from "none" to "WF-51 (Send Slack Message)"; update Outputs (drop archival side-effect); add explicit Step describing the Build admin notification payload (Code node) → Call WF-51 chain; remove the "Contradicts CLAUDE.md Design Rule #10" self-flag note (no longer contradicts); remove the admin_actions note (table deprecated per TD-NEW-026); update caller reference from "WF-12 BLOCK handler" to "WF-11 (Command Parser, BLOCK keyword) and WF-25 (Intent Classifier, auto-block on malicious_abusive/inappropriate)".
     priority: P3
@@ -200,13 +221,16 @@ items:
       Plugin update — n8n-whatsapp-methodology `build-workflow` skill — bundle methodology-level principles surfaced during this drift review. Done via the plugin's update-skill workflow (version bump + symlink + GitHub commit) per the established discipline; not direct cache edits. Principles to encode:
       (a) Postgres nodes must have alwaysOutputData=true. When 0 rows is a real possibility for the downstream path, also add an explicit IF guard with a graceful FALSE branch (admin Slack feedback for admin-initiated actions, log entry, or explicit accept-as-noop).
       (b) IF nodes whose FALSE branch represents an unhappy path on a critical workflow must connect to a graceful handler — never leave the FALSE branch disconnected silently.
-      (c) executeWorkflow callers: use mappingMode=passthrough only. Refuse to write defineBelow + schema:[] (the misleading "looks like a contract but isn't" state). When a field rename is required, use a Set node before the executeWorkflow call, not inline mapping.
+      (c) **Contract-First sub-workflow calls** (EXPANDED 2026-05-23 — supersedes the narrow version): Every executeWorkflow call must satisfy ALL of: (1) the called sub-workflow's `.pseudo` declares an explicit Inputs contract — required/optional fields, names, shapes/types — not "everything from upstream"; (2) the caller has a named Set node immediately upstream that constructs exactly that contract; (3) mappingMode = passthrough; (4) the Set node uses includeOtherFields=false (v3.4 default) so the sub-workflow only ever sees contract fields. defineBelow mode is REJECTED outright at lint — schema:[] OR populated schema, both rejected; pseudo + caller-side Set is the only valid contract enforcement layer.
+      Rationale: caller-side Set as the contract boundary makes (a) the pseudo Inputs section runtime-enforced, not documentation-only; (b) refactoring a sub-workflow's contract becomes a local edit at each caller's Set node, found via dependency-map.md; (c) eliminates "passthrough drift" where callers accidentally work due to shared field vocabulary then silently break when a vocabulary diverges; (d) inverts the Set v3.4 default-drops-fields hazard (SP-11 LESSON LEARNED) from foot-gun to feature.
+      Validation: 18 defineBelow+schema:[] sites surfaced during SP-05 audit 2026-05-23 across WF-11/20/23/30/40/44 (8 redundant + 10 rename/computed mappings). Conversion deferred to dedicated "Contract-First Sub-Workflow Calls" multi-sprint initiative; this plugin update lands the principle + lint hook design ahead of execution.
       (d) Postgres SQL aliases: use lowercase or snake_case (matches postgres default behavior), or quote them (preserves camelCase). Never use unquoted camelCase aliases — postgres silently lowercases them, creating field-name mismatches downstream.
       (e) Structural refactors that change a workflow's contract MUST include matching pseudo updates in the same change set. build-workflow should refuse to commit a structural change without the corresponding pseudo diff. (Note: maintenance-phase periodic enforcement is a separate concern tracked as TD-NEW-027 in post-MVP doc.)
       (f) Validate pseudo `Inputs:` declaration matches the fields the sub-workflow's first trigger/code nodes actually reference.
       (g) **Set v3.4 default drops upstream fields.** Any Set v3.4 node that DERIVES a field (adds to the upstream payload) MUST set `parameters.includeOtherFields=true` — default v3.4 behavior emits only assigned fields, dropping the rest. Set nodes that intentionally produce a new contract (e.g., {channelId, messageText} for WF-51's input shape) correctly leave it false. SP-11 surfaced this on User-Load Gate (chinmay-astro exec 1630, 2026-05-22): the gate emitted only {routing: "to_wf02"} → downstream Call WF-02 Rule Router received no phoneNumber/user/pendingUser → WF-02 misrouted to NEW_USER → WF-21 INSERT failed on null phone_number. Fixed by adding includeOtherFields=true. build-workflow Step 5f.5 (new) should document: "Set v3.4 derive-then-pass-through pattern requires includeOtherFields=true". This is methodology-level (per [[feedback_principle_placement]]), not project-specific.
       (h) **User-load gates.** When a workflow loads a user record by external key (phone, slack_channel_id, etc.) with alwaysOutputData=true, add an explicit user-found IF gate with admin-feedback on miss BEFORE downstream operations consume the row. Downstream operations should trust the load. Avoids per-consumer-workflow guard proliferation. (Validated by SP-11's design — same principle applied at WF-01 and WF-10. From handoff plugin improvement candidates.)
       (i) **Audit-vs-reality drift validation pattern.** Sprint items that prescribe blanket mechanical changes ("set X on N nodes") should be validated per-node against build-workflow Step 5a before mutation. SP-02 went from "set true on 10 nodes" → "9 nodes confirmed; option B IF-guard expansion correctly rejected after upstream-gating analysis". Matches `build-sprint` Step 3 audit-vs-reality drift principle.
+      (n) **Pseudo Inputs contract declaration discipline** (added 2026-05-23 alongside expanded principle c): Every sub-workflow's `.pseudo` file MUST declare an explicit Inputs contract section: required vs optional fields, names, shapes/types, validity rules (e.g., "phoneNumber: E.164 string"). Discriminated-union shapes (e.g., WF-60 logging WhatsApp vs Slack with different field sets) must be captured explicitly. Vague declarations like "Inputs: phoneNumber, userId, messageText (from upstream)" are rejected at pseudo-drift-check. The pseudo Inputs section is the authoritative source for caller-side Set node construction (per principle c). Validated by the SP-05 audit finding that callers had silently encoded different rename patterns for the same sub-workflow (WF-25) because no canonical contract existed in the pseudo.
     priority: P3
     status: pending
     batch: 4
@@ -214,9 +238,6 @@ items:
       - id: SP-01
         type: soft
         reason: "Principles (a) and (c) are exemplified by SP-01's implementation; ordering ensures the plugin update captures lessons from real work."
-      - id: SP-05
-        type: soft
-        reason: "Principle (c) demonstrated by SP-05's passthrough normalization."
   - id: SP-11
     status: done
     started_at: 2026-05-22T22:19:17Z

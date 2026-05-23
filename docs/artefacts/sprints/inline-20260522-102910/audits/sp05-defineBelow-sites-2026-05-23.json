@@ -1,0 +1,230 @@
+[
+  {
+    "wf_id": "GoTYo0GS2y8qjjkw",
+    "wf_name": "WF-11 Command Parser",
+    "node_name": "Confirm User Unblocked",
+    "called_wf_id": "wlZRK0YxnhP0b2RL",
+    "has_value": true,
+    "value_keys": [
+      "channelId",
+      "messageText"
+    ],
+    "called_wf_name": "WF-51 Send Slack Message"
+  },
+  {
+    "wf_id": "GoTYo0GS2y8qjjkw",
+    "wf_name": "WF-11 Command Parser",
+    "node_name": "Send Help To Admin",
+    "called_wf_id": "wlZRK0YxnhP0b2RL",
+    "has_value": true,
+    "value_keys": [
+      "channelId",
+      "messageText"
+    ],
+    "called_wf_name": "WF-51 Send Slack Message"
+  },
+  {
+    "wf_id": "GoTYo0GS2y8qjjkw",
+    "wf_name": "WF-11 Command Parser",
+    "node_name": "Send List To Admin",
+    "called_wf_id": "wlZRK0YxnhP0b2RL",
+    "has_value": true,
+    "value_keys": [
+      "channelId",
+      "messageText"
+    ],
+    "called_wf_name": "WF-51 Send Slack Message"
+  },
+  {
+    "wf_id": "GoTYo0GS2y8qjjkw",
+    "wf_name": "WF-11 Command Parser",
+    "node_name": "Send Stats To Admin",
+    "called_wf_id": "wlZRK0YxnhP0b2RL",
+    "has_value": true,
+    "value_keys": [
+      "channelId",
+      "messageText"
+    ],
+    "called_wf_name": "WF-51 Send Slack Message"
+  },
+  {
+    "wf_id": "GoTYo0GS2y8qjjkw",
+    "wf_name": "WF-11 Command Parser",
+    "node_name": "Unknown Command Response",
+    "called_wf_id": "wlZRK0YxnhP0b2RL",
+    "has_value": true,
+    "value_keys": [
+      "channelId",
+      "messageText"
+    ],
+    "called_wf_name": "WF-51 Send Slack Message"
+  },
+  {
+    "wf_id": "LgIDj1v4ZbCPlX25",
+    "wf_name": "WF-20 Keyword Handler",
+    "node_name": "Call WF-47 Unsubscribe",
+    "called_wf_id": "2U7mxHMyqA41ROKX",
+    "has_value": true,
+    "value_keys": [
+      "phoneNumber",
+      "userId",
+      "userStatus"
+    ],
+    "called_wf_name": "WF-47 Unsubscribe Handler"
+  },
+  {
+    "wf_id": "LgIDj1v4ZbCPlX25",
+    "wf_name": "WF-20 Keyword Handler",
+    "node_name": "Route to Rebook",
+    "called_wf_id": "MUG7rPgSHc7UtAE9",
+    "has_value": true,
+    "value_keys": [
+      "phoneNumber",
+      "userId"
+    ],
+    "called_wf_name": "WF-45 Rebook Handler"
+  },
+  {
+    "wf_id": "LgIDj1v4ZbCPlX25",
+    "wf_name": "WF-20 Keyword Handler",
+    "node_name": "Send HELP Response",
+    "called_wf_id": "BUVun38WEKb12zg9",
+    "has_value": true,
+    "value_keys": [
+      "messageBody",
+      "phoneNumber"
+    ],
+    "called_wf_name": "WF-50 Send WhatsApp"
+  },
+  {
+    "wf_id": "VpCER0Vqq3NYJGpI",
+    "wf_name": "WF-23 Pre-Form Intent Filter",
+    "node_name": "Call WF-25 Intent Classifier",
+    "called_wf_id": "eTV1lUcYrXBg2q2T",
+    "has_value": true,
+    "value_keys": [
+      "messageText",
+      "phoneNumber",
+      "userId",
+      "userStatus"
+    ],
+    "called_wf_name": "WF-25 Intent Classifier"
+  },
+  {
+    "wf_id": "VpCER0Vqq3NYJGpI",
+    "wf_name": "WF-23 Pre-Form Intent Filter",
+    "node_name": "Re-send Flow Form via WF-50",
+    "called_wf_id": "BUVun38WEKb12zg9",
+    "has_value": true,
+    "value_keys": [
+      "interactivePayload",
+      "messageType",
+      "phoneNumber"
+    ],
+    "called_wf_name": "WF-50 Send WhatsApp"
+  },
+  {
+    "wf_id": "gGJBY5fJha0Let8I",
+    "wf_name": "WF-30 Payment Pending Intent Filter",
+    "node_name": "Call WF-25 Intent Classifier",
+    "called_wf_id": "eTV1lUcYrXBg2q2T",
+    "has_value": true,
+    "value_keys": [
+      "messageText",
+      "phoneNumber",
+      "userId",
+      "userStatus"
+    ],
+    "called_wf_name": "WF-25 Intent Classifier"
+  },
+  {
+    "wf_id": "gGJBY5fJha0Let8I",
+    "wf_name": "WF-30 Payment Pending Intent Filter",
+    "node_name": "Send Payment Reminder via WF-50",
+    "called_wf_id": "BUVun38WEKb12zg9",
+    "has_value": true,
+    "value_keys": [
+      "message",
+      "phoneNumber"
+    ],
+    "called_wf_name": "WF-50 Send WhatsApp"
+  },
+  {
+    "wf_id": "du32QBZbSQOjfESe",
+    "wf_name": "WF-40 User -> Admin Relay",
+    "node_name": "Call WF-25 (Intent Classifier)",
+    "called_wf_id": "eTV1lUcYrXBg2q2T",
+    "has_value": true,
+    "value_keys": [
+      "messageContent",
+      "phoneNumber",
+      "userId",
+      "userStatus"
+    ],
+    "called_wf_name": "WF-25 Intent Classifier"
+  },
+  {
+    "wf_id": "du32QBZbSQOjfESe",
+    "wf_name": "WF-40 User -> Admin Relay",
+    "node_name": "Call WF-51 (Post to Slack)",
+    "called_wf_id": "wlZRK0YxnhP0b2RL",
+    "has_value": true,
+    "value_keys": [
+      "channelId",
+      "messageText"
+    ],
+    "called_wf_name": "WF-51 Send Slack Message"
+  },
+  {
+    "wf_id": "Du2CJ3OTohRFZYoA",
+    "wf_name": "WF-44 Feedback Recorder",
+    "node_name": "Call WF-25 Intent Classifier",
+    "called_wf_id": "eTV1lUcYrXBg2q2T",
+    "has_value": true,
+    "value_keys": [
+      "messageText",
+      "phoneNumber",
+      "userId",
+      "userStatus"
+    ],
+    "called_wf_name": "WF-25 Intent Classifier"
+  },
+  {
+    "wf_id": "Du2CJ3OTohRFZYoA",
+    "wf_name": "WF-44 Feedback Recorder",
+    "node_name": "Call WF-45 Rebook",
+    "called_wf_id": "MUG7rPgSHc7UtAE9",
+    "has_value": true,
+    "value_keys": [
+      "phoneNumber",
+      "userId",
+      "userStatus"
+    ],
+    "called_wf_name": "WF-45 Rebook Handler"
+  },
+  {
+    "wf_id": "Du2CJ3OTohRFZYoA",
+    "wf_name": "WF-44 Feedback Recorder",
+    "node_name": "Call WF-47 Unsubscribe",
+    "called_wf_id": "2U7mxHMyqA41ROKX",
+    "has_value": true,
+    "value_keys": [
+      "phoneNumber",
+      "userId",
+      "userStatus"
+    ],
+    "called_wf_name": "WF-47 Unsubscribe Handler"
+  },
+  {
+    "wf_id": "Du2CJ3OTohRFZYoA",
+    "wf_name": "WF-44 Feedback Recorder",
+    "node_name": "Send Ack via WF-50",
+    "called_wf_id": "BUVun38WEKb12zg9",
+    "has_value": true,
+    "value_keys": [
+      "message",
+      "phoneNumber"
+    ],
+    "called_wf_name": "WF-50 Send WhatsApp"
+  }
+]
