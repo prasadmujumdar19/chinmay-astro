@@ -55,3 +55,53 @@ Raised during the pre-Phase-F router-confirmation audit. WF-11 hosts the full ha
 **Tracked as:** design-debt followup; not a sprint blocker; no TD-NEW number assigned yet.
 
 ---
+
+## 2026-05-23 — POST-MVP P1: WF-33 lacks transactional integrity (crucial-workflow atomicity)
+
+Surfaced during Phase E1 attempt 1 (smoke exec 1782–1784). WF-33's `Update User Status` node ran FIRST and flipped `users.status` to `consultation_active`, BEFORE `Update Payment Status` (which matched 0 rows for the specific setup state) and `Create Consultation Record` (which then errored on unbound `$2`). User left stranded: `consultation_active` state + no consultations row + payment still `pending_verification`.
+
+**Operator framing (2026-05-23 in-session decision):** business outcome is correct — the admin's APPROVE PAYMENT command IS the authority on payment-received; flipping `users.status` is the right business intent. But for **crucial workflows like payment approval, technical atomicity is required**: the workflow must execute fully OR roll back to original state. Partial execution that leaves the user in an inconsistent state is unacceptable.
+
+**Scope of atomicity concern (not just WF-33):**
+- WF-33 (Payment Approval) — current incident
+- WF-34 (Payment Rejection) — same pattern likely; needs audit
+- WF-42 (Consultation Close) — multi-step state + Slack + WA
+- WF-46 (User Blocker) — multi-step state + Slack
+
+**Two implementation paths to evaluate post-MVP:**
+1. **Postgres transaction wrapping** — bundle the SQL mutations of each crucial workflow into a single transaction node (BEGIN; ... COMMIT;) so a failure rolls back. n8n's Postgres node supports raw transaction blocks. Pros: simple, atomic guarantee at DB level. Cons: doesn't help with Slack/WA side effects that have already fired.
+2. **Reorder + guard pattern** — sequence the mutations so the user-state flip happens LAST, after every other mutation has succeeded. Each preceding node has an explicit "did this match >0 rows / did this succeed" guard that short-circuits to an admin error on failure. Pros: works across Postgres + Slack + WA; failure mode is graceful (admin sees "operation failed at step X"). Cons: more nodes, more pseudo work.
+
+**Tracked as:** post-MVP P1 work tracker. Crucial-to-fix-before-public-launch — not blocking MVP soft-launch but blocking confidence in production reliability.
+
+---
+
+## 2026-05-23 — Methodology: smoke-test setup script must reset linked tables
+
+Smoke-test reset commands in handoff (`UPDATE users SET status='payment_submitted'`) are insufficient for state transitions that depend on related-table rows. Phase E1 attempt 1 failed because the payments table still showed all rows `verified` from prior session — but `users.status='payment_submitted'` implies a `pending_verification` payments row should exist.
+
+**Pattern to capture in monitor-test-run / smoke-test skill or this project's handoff:** when resetting test phone state, also reset / insert the related-table rows the new state implies:
+- `payment_submitted` → INSERT a fresh `pending_verification` row in `payments` (₹500 UPI, link to user_id)
+- `consultation_active` → ensure latest `consultations` row for this user is `status='active'` (or INSERT a new one)
+- `consultation_closed` → ensure latest `consultations` is `status='closed'`
+
+Could be encoded as a `scripts/smoke-reset.sh <phone> <target-state>` helper.
+
+**Tracked as:** methodology improvement; project followup for now (would benefit other projects too — candidate for plugin uplift).
+
+---
+
+## 2026-05-23 — POST-MVP: WA-body rejection reason (gated on Razorpay integration)
+
+Surfaced during Phase E2 (REJECT PAYMENT happy). After fixes A+B landed today, the admin's typed reason now persists to `payments.rejection_reason` and appears in the admin Slack ack. But the customer-facing WhatsApp body remains intentionally generic ("We couldn't verify your payment. Please check the details and try again. …"). Per WF-34.pseudo Step 7 + operator's MVP design call (2026-05-23): admin-typed reasons in the manual-UPI flow are admin-internal context, not customer guidance.
+
+**Trigger to revisit:** Razorpay payment-verification integration (post-MVP). Once Razorpay is in the loop, the rejection reason will be machine-generated (e.g., "transaction reference not found", "amount mismatch", "duplicate UTR") and is genuinely actionable for the customer — at that point the WA body should surface it.
+
+**Implementation when ready:**
+- WF-34 `Prepare Rejection Message` jsCode/Set: include the reason field in the interactive button body. Conditional on Razorpay-source reasons being suitable for end-user display (whitelist + sanitize).
+- WF-34.pseudo Step 7: update body template to include reason.
+- Functional test case: verify a Razorpay-driven rejection lands the verifier's reason in both DB + Slack + WA.
+
+**Tracked as:** post-MVP, gated on Razorpay integration. No TD-NEW number yet.
+
+---

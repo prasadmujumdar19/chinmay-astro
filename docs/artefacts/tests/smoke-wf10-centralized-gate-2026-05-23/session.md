@@ -410,8 +410,113 @@ Slack alert: `⚠️ Message not relayed — customer is currently in consultati
 **Cursor update:**
 - exec-cursor: 1776 → 1781
 
+---
 
+## Session resumed — 2026-05-23T05:42Z
 
+Pre-Phase-E audit (handoff prompt step-back review) executed:
+1. GitHub commit/push status — ✅ `91c0975` + `1ca15fe` on origin/main.
+2. WF-10/WF-11 pseudo ↔ live alignment — ✅ both .md frontmatter matches live (WF-10 40 nodes / 04:03:23, WF-11 19 nodes / 04:21:20). `assert-md-fresh` clean.
+3. Router-confirmation anti-pattern audit (BUG-05 siblings) — found 1: **WF-11 `Confirm User Blocked` duplicated WF-46's admin Slack post**. Same single-owner shape as the CLOSE dedup. Fix landed in commit `2eb46c2`:
+   - WF-11: removed `Confirm User Blocked` (19 → 18 nodes); BLOCK branch terminates at `Call WF-46`.
+   - WF-46: `Prepare WF-51 Payload (Notify Admin Blocked)` jsCode now includes caller's `reason` (falls back to 'Not provided').
+   - Both pseudos revised; WF-46.pseudo also cleaned up FU-1 channel-archive drift from 2026-05-17.
+   - Followup logged: UNBLOCK-extract design-debt (defer — keep inline for now).
+   - Pushed to origin/main.
+
+All other router/dispatcher workflows clean: WF-10 (WF-51 calls are gate-rejection), WF-01/WF-02 (anomaly/UNHANDLED dead-ends), WF-20 (HELP inline-handler), WF-25 (delegates BLOCK without duplicating).
+
+### Tick — 2026-05-23T05:49–05:58Z — Phase E1 ✅ PASS (3 attempts; 2 findings)
+
+**Attempt 1 (execs 1782–1784) — ERROR.**
+- DB reset (UTC 05:48:35Z): `UPDATE users SET status='payment_submitted' WHERE phone_number='61466927921'` — set, but no fresh `pending_verification` payments row inserted (all 4 prior payment rows already `verified` from earlier smoke runs in this session).
+- Operator typed `APPROVE PAYMENT 61466927921` in consult-+61466927921 (C0B567A175W).
+- WF-10 (1782) → WF-11 (1783) → WF-33 (1784) — all `error`.
+- Failure node: WF-33 `Create Consultation Record`. Postgres error: `there is no parameter $2`.
+- Root cause: WF-33 SQL uses `$1, $2` placeholders for `(user_id, payment_id)`. `$2` is sourced from `$('Update Payment Status').item.json.id` — but Update Payment Status's WHERE clause (`user_id=$2 AND status='pending_verification'`) matched 0 rows. RETURNING returned no rows; n8n Postgres v2 returns `{success: true}` for zero-row mutations → `.id` undefined → $2 unbound.
+
+**Adjacent finding #1 — test-data setup gap:** smoke reset script must include a fresh `pending_verification` payments INSERT, not just a `users.status` UPDATE. Logged.
+
+**Adjacent finding #2 — WF-33 lacks transactional integrity (P1, post-MVP):** in the failed run, `lastRunNodes` order was Extract → Load User → User in Correct State? → **Update User Status (FIRED, flipped users → consultation_active)** → Update Payment Status (0 rows) → Create Consultation Record (errored). Result: user stranded in `consultation_active` with no consultation row and payment still `pending_verification`. WF-33 should be transactional (BEGIN/COMMIT, or reorder so user.status only flips after the consultations INSERT succeeds). Logged to followups; operator decision: business logic is OK (admin's command is the authority on payment-received), but technical atomicity is required for crucial workflows like payment approval — track as post-MVP work.
+
+**Setup fix between attempts:** inserted fresh `pending_verification` payment row id=14 (₹500 UPI).
+
+**Attempt 2 (execs 1785–1789) — REJECTED BY GATE (expected behavior).**
+- After attempt 1's partial-fail, users.status was stranded at `consultation_active`.
+- Operator typed `APPROVE PAYMENT 61466927921` again.
+- WF-10 (1785) classified command → State Match? FALSE (current=consultation_active, expected=payment_submitted) → Wrong-State Alert via WF-51 (1786) → WF-60 logs (1787/88) → WF-10 echo (1789). No WF-11, no WF-33 — gate correctly short-circuited. Confirms WF-10's centralized gate works for the wrong-state case on an APPROVE command (extends Phase C coverage).
+
+**Setup fix between attempts:** `UPDATE users SET status='payment_submitted'` (payment 14 still pending_verification).
+
+**Attempt 3 (execs 1790–1801) — SUCCESS.**
+- Operator typed `APPROVE PAYMENT 61466927921` once more.
+- 12 chained executions all `success`: WF-10 (1790) → WF-11 (1791) → WF-33 (1792) → WF-50 (1793, WA to user) → WF-60 (1794) → WF-51 (1795, admin Slack confirmation) → WF-60 (1796/97) → WF-00 (1798/1800/1801, WhatsApp delivery callbacks) → WF-10 echo (1799).
+- DB end-state: users.status=`consultation_active` (updated_at 05:58:09.842Z); payments id=14 = `verified` by C0B567A175W; consultations id=13 NEW row with payment_id=14, status=`active`, started_at=05:58:09.836Z.
+- Operator confirmed: received WA notification "consultation is active".
+
+**BUG-05 sibling check for APPROVE — CLEAN.** Only ONE WF-51 execution fired (1795). WF-33 owns the admin confirmation; WF-11 has no `Confirm Payment Approved` node. Confirms pre-audit finding that the BUG-05 pattern was BLOCK-only.
+
+**Cross-check:** 1/1 ✅.
+
+**Cursor update:**
+- exec-cursor: 1781 → 1801
+- time-cursor: 2026-05-23T04:15:14Z → 2026-05-23T05:58:18Z
+- **DB state:** users.phone_number=61466927921 = `consultation_active`, payments id=14=verified, consultations id=13=active
+
+### Tick — 2026-05-23T06:06–06:24Z — Phase E2 ✅ PASS (3 attempts; 2 bugs found + fixed mid-smoke)
+
+**Attempt 1 (execs 1802–1813) — workflow-level SUCCESS but feature-completeness BUG surfaced.**
+- DB reset (06:05:22Z): users → `payment_submitted`; INSERT fresh `pending_verification` payment id=15.
+- Operator typed `REJECT PAYMENT 61466927921 Test rejection reason - retry payment` in consult-+61466927921.
+- 12 executions all `success`: WF-10 (1802) → WF-11 (1803) → WF-34 (1804) → WF-50 (1805, WA) → WF-60 (1806) → WF-51 (1807, admin Slack) → WF-60 (1808/09) → WF-00 callbacks.
+- users.status → `payment_pending` ✓; payments id=15 → `rejected` ✓.
+- **Single WF-51 fired (1807) — BUG-05 sibling check CLEAN for REJECT.** ✓
+
+**Feature bug surfaced (BUG-06):** Admin's typed reason (`"Test rejection reason - retry payment"`) was silently lost in three layers:
+- DB `rejection_reason` stored `"Payment not verified"` (hardcoded fallback)
+- Admin Slack: generic `"User has been asked to retry with correct payment details."` (no reason)
+- WA to user: generic (per pseudo — OK)
+
+Trace:
+- WF-10 classifier correctly extracted `reason: "Test rejection reason - retry payment"` and emitted it in Build WF-11 Payload (verified via exec 1802 runData).
+- WF-11 passthrough forwarded `reason` to WF-34 (verified via exec 1804 trigger input).
+- **WF-34 `Update Payment Record` queryReplacement read `$json.rejectionReason` — field-name mismatch with upstream (`reason`).** Pre-rename, COALESCE in SQL fell back to literal.
+- **WF-34 `Prepare WF-51 Payload (Notify Admin Rejected)` jsCode emitted a static text without referencing any reason field** — wording drift from pseudo Step 9, introduced during 2026-05-18 ICF-007 Set-node insertion.
+- WF-34.pseudo Step 5 + Step 9 specified `rejectionReason` — design drift from WF-10/WF-46 convention which uses `reason`.
+
+Operator decision (mid-smoke): fix A (field-name drift + DB persistence) + fix B (Slack message wording drift) immediately. Keep WA body generic for MVP; surface a post-MVP followup tied to Razorpay integration.
+
+**Fix A+B applied:**
+- WF-34.pseudo: renamed `rejectionReason` → `reason` (Inputs, Step 1, Step 5, Step 9); added Notes for the rename + WA-generic-by-design rationale + Razorpay post-MVP trigger.
+- WF-34 `Update Payment Record` queryReplacement: `$json.rejectionReason` → `$json.reason`.
+- WF-34 `Prepare WF-51 Payload (Notify Admin Rejected)` jsCode: rewritten to read trigger's `reason` and emit pseudo Step 9 text format.
+- Backup: `archive/backups/se82n3MUQ9xE5aEr-2026-05-23-16-19.json`.
+
+**Attempt 2 (execs 1814–1825) — Slack PASS, DB still BUG.**
+- DB reset; payments id=16.
+- Operator re-typed same command.
+- 12 executions all success. Admin Slack rendered `❌ Payment rejected for Abcs (+61466927921). Reason: Test rejection reason - retry payment. User notified to retry payment.` ✓
+- DB `payments.id=16.rejection_reason` = `"Payment not verified"` ✗ — fallback again.
+
+Root cause analysis: WF-34 `Update Payment Record`'s upstream is `Load User by Phone` (postgres). Postgres node REPLACES line data with the users-row shape; trigger's `reason` field is lost. `$json.reason` is undefined. This is the same series-after-sub-workflow contract drop pattern documented in last session's handoff plugin candidate (n). The Code node's jsCode worked because it explicitly used `$('When Executed by Another Workflow').first().json.reason` cross-node ref; the queryReplacement did not.
+
+**Fix C applied:**
+- WF-34 `Update Payment Record` queryReplacement: `$json.reason` → `$('When Executed by Another Workflow').item.json.reason`. Cross-node ref preserves trigger field through postgres boundary.
+
+**Attempt 3 (execs ≥1826) — full PASS.**
+- DB reset; payments id=17.
+- Operator re-typed.
+- DB `payments.id=17.rejection_reason` = `"Test rejection reason - retry payment"` ✓
+- Admin Slack: same correct format as Attempt 2 ✓
+- WA to user: generic per design ✓
+- users.status → `payment_pending` ✓
+
+**Cross-check:** 1/1 ✅.
+
+**Cursor update:**
+- exec-cursor: 1801 → (post-1825; specific exec range to be confirmed at next fetch)
+- time-cursor: 2026-05-23T05:58:18Z → ~2026-05-23T06:24:00Z
+- **DB state:** users.phone_number=61466927921 = `payment_pending`, payments id=17=rejected with admin-typed reason
 
 
 
