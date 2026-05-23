@@ -43,3 +43,15 @@ Surfaced while drafting the WF-10 validation-gate decision tree. The "free text 
 **Disposition:** Add as a post-MVP enhancement TD when ready to pursue. Not blocking SP-03 (which only needs the graceful "Type HELP" reject for now).
 
 ---
+
+## 2026-05-23 — Design debt: inline-vs-extracted handler consistency
+
+Raised during the pre-Phase-F router-confirmation audit. WF-11 hosts the full handler logic for UNBLOCK, LIST, STATS, and HELP inline (SELECT/UPDATE + Slack confirmation in WF-11 itself), while APPROVE/REJECT/CLOSE/BLOCK are delegated to dedicated handlers (WF-33/34/42/46). The asymmetry is not a bug — BUG-05's single-owner principle is satisfied either way (WF-11 IS the sole emitter for the inline commands) — but it does mean two patterns coexist in the command-router layer, making the codebase less uniform for long-term maintenance.
+
+**Disposition for now:** keep WF-11 inline for UNBLOCK/LIST/STATS/HELP. The extract test ("does the command have a downstream chain — sub-workflow calls, async fan-out, feedback flows?") is met by APPROVE/REJECT/CLOSE/BLOCK but not by the inline four. Extracting now would create 4 thin new workflows (each ≤3 nodes) and add 4× the smoke-test surface for no incremental safety.
+
+**Revisit if:** (a) UNBLOCK gains downstream work — admin_actions re-enabled, audit hook, channel-membership management, post-unblock WA notification — or (b) the admin command set grows such that the inline branch in WF-11 becomes unwieldy (>30 nodes total).
+
+**Tracked as:** design-debt followup; not a sprint blocker; no TD-NEW number assigned yet.
+
+---
