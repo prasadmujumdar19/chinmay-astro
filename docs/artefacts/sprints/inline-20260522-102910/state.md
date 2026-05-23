@@ -3,7 +3,7 @@ input_source: inline-20260522-102910
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/inline-20260522-102910/working.md
 planned_at: 2026-05-22T10:29:10Z
-last_updated: 2026-05-23T02:40:00Z
+last_updated: 2026-05-23T07:19:00Z
 planning_complete: true
 context: |
   Sprint scope was derived from a session-long interactive walk-through of the 2026-05-22 pseudo↔live drift report (6 flagged workflows: WF-12, WF-23, WF-41, WF-46, WF-51, WF-60). For each, we discussed whether pseudocode or live code should be treated as authoritative, given functional position in the user journey, history (e.g. TD-002 multi-transport rebuild, DR-10 channel-archival rule, deactivation history), and surrounding architectural concerns. Several items grew beyond their original audit-finding scope when surrounding investigation revealed systemic issues (passthrough vs defineBelow contract pattern; postgres `alwaysOutputData` hygiene; admin-action precondition feedback gaps; postgres unquoted-camelCase SQL alias lowercasing).
@@ -45,8 +45,20 @@ items:
   - id: SP-03
     description: Admin-action precondition audit + remediation — produce a coverage matrix for the user-targeted admin commands APPROVE PAYMENT, REJECT, CLOSE, BLOCK, UNBLOCK plus the text-relay path (WF-10 → WF-41). For each verify (a) user-exists check, (b) state-precondition check, (c) admin Slack feedback on either failure (no silent drops). TD-021 (WF-33 APPROVE state guard) and TD-022 (WF-42 CLOSE state guard) already exist — confirm they emit admin feedback, not silent drops. Remediate gaps found.
     priority: P2
-    status: in-progress
+    status: done
     started_at: 2026-05-23T00:58:20Z
+    completed_at: 2026-05-23T07:19:00Z
+    completion_note: |
+      Done in three phases:
+      (1) WF-10 centralized validation gate landed 2026-05-23T02:30:47Z (28 → 38 nodes, fresh-rebuild via Python script, single PUT, lint clean). Owns user-exists + phone-match + state-precondition checks for every user-targeted admin command + relay path; admin-wide commands also classified. Pseudo revised first.
+      (2) WF-11 systemic gut of duplicate parser + canonical-field rename (23 → 18 nodes; 2026-05-23 commits `91c0975` v1, plus v2 patch + BUG-05 CLOSE sibling fix `2eb46c2` + BUG-07 UNBLOCK channelId fix `e7b0d78`).
+      (3) Task #3 downstream trust-mode cleanups landed 2026-05-23T07:13:30Z–07:17:58Z:
+        - WF-33 (NcHZedq9ycnAQ9SW): 14 → 11 nodes. Removed `User in Correct State?` + Prepare/Call WF-51 (Wrong State). Backup `archive/backups/NcHZedq9ycnAQ9SW-2026-05-23-17-12.json`.
+        - WF-34 (se82n3MUQ9xE5aEr): 14 → 8 nodes. Removed `User Found?` + `User in Correct State?` + 4 prepare/call pairs (Not Found + Wrong State). Backup `archive/backups/se82n3MUQ9xE5aEr-2026-05-23-17-15.json`.
+        - WF-42 (fx70vqyJtRdF2DgR): 14 → 8 nodes. Same shape as WF-34. Success-path keepers (`Notify Admin in Slack`, `Prepare WF-51 Payload (Notify Admin Closed)`) intact. Backup `archive/backups/fx70vqyJtRdF2DgR-2026-05-23-17-17.json`.
+      All 3 cleanups via Step 5e jq-on-disk pattern. Each: backup → pre-flight lint scan (clean) → Step 2a dangling scan (clean) → jq transform → curl PUT → lint hook (rc=0) → Step 6a post-PUT dangling re-scan (clean) → export. Pseudos for all 3 already declared the IFs removed pre-implementation (no pseudo change needed).
+      Smoke test: 10-phase `docs/artefacts/tests/smoke-wf10-centralized-gate-2026-05-23/session.md` passed before Task #3 ran; 3 smoke-driven bugs fixed mid-test (BUG-05/06/07). Task #3's structural change does not require re-smoke because the removed nodes are guaranteed unreachable under WF-10's gate (Phone Match? + State Match? returning FALSE never routes to these workflows).
+      Resolves TD-021 (WF-33), TD-022 (WF-42), TD-023 (WF-10 relay status check).
     implementation_note: |
       2026-05-23T02:30:47Z — WF-10 centralized validation gate landed (live JSON updated). Implementation phase only; downstream cleanups (WF-11/33/34/42) + smoke test deferred to next session per user-scoped session boundary.
         - WF-10 (wMh0oBRtJbvhLgOf): 28 → 38 nodes. Backup: archive/backups/wMh0oBRtJbvhLgOf-2026-05-23-12-14.json. versionId: f9a50569-cfbb-40e3-968d-51bbe3376fa5.

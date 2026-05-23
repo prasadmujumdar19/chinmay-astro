@@ -129,33 +129,33 @@ WF-50 calls WF-60 on every outbound WhatsApp message. The sub-workflow executes 
 
 ---
 
-### TD-021 · WF-33 (Payment Approval Processor) missing state guard — APPROVE executes regardless of user status
+### TD-021 · WF-33 (Payment Approval Processor) missing state guard — APPROVE executes regardless of user status — ✅ RESOLVED 2026-05-23 (SP-03)
 
 **Finding:** WF-33 has no IF/Switch node checking `status = 'payment_submitted'` before updating the user to `consultation_active`. The workflow directly loads user → updates payment status → updates user status, with no condition.
 
 **Risk:** Admin typing `APPROVE PAYMENT <phone>` for a user who is already `consultation_active` or `consultation_closed` would reset their status incorrectly, breaking their current session.
 
-**Fix:** Add an IF node in WF-33 after "Load User by Phone": if `status ≠ 'payment_submitted'`, post Slack error "User is not awaiting payment approval (current status: {status})" and stop execution.
+**Resolution (SP-03 systemic fix, 2026-05-23):** State guard now lives centrally in WF-10's `State Match?` IF node, which validates `loadedStatus == expectedState` (expectedState=`payment_submitted` for APPROVE PAYMENT) before calling WF-33. WF-33 trusts pre-validated input. SP-03 Task #3 cleanup removed the originally-planned `User in Correct State?` IF + wrong-state feedback pair as redundant. Commit `91c0975` (WF-10/11 systemic), plus the trust-mode cleanup PUT (2026-05-23T07:13:30Z on WF-33).
 
 ---
 
-### TD-022 · WF-42 (Consultation Closer) missing state guard — CLOSE executes regardless of user status
+### TD-022 · WF-42 (Consultation Closer) missing state guard — CLOSE executes regardless of user status — ✅ RESOLVED 2026-05-23 (SP-03)
 
 **Finding:** WF-42 has no IF/Switch node checking `status = 'consultation_active'` before closing. The only guard is a DB-level `WHERE status = 'active'` on the consultations table, but this does not prevent the user status update from running.
 
 **Risk:** Admin typing `CLOSE CHAT CONSULT <phone>` for a user in `payment_pending` or `payment_submitted` would set them to `consultation_closed`, bypassing the entire payment and approval flow.
 
-**Fix:** Add an IF node in WF-42 after "Load User by Phone": if `status ≠ 'consultation_active'`, post Slack error and stop.
+**Resolution (SP-03 systemic fix, 2026-05-23):** State guard now lives centrally in WF-10's `State Match?` IF (expectedState=`consultation_active` for CLOSE CONSULT) before calling WF-42. WF-42 trusts pre-validated input. SP-03 Task #3 cleanup removed the originally-planned `User Found?` + `User in Correct State?` IFs + Not-Found/Wrong-State feedback pairs as redundant. WF-42 trust-mode cleanup PUT 2026-05-23T07:17:58Z.
 
 ---
 
-### TD-023 · WF-10 relay path has no user status check — admin plain-text relayed from consult-* channels regardless of user state
+### TD-023 · WF-10 relay path has no user status check — admin plain-text relayed from consult-* channels regardless of user state — ✅ RESOLVED 2026-05-23 (SP-01 + SP-03)
 
 **Finding:** WF-10 correctly differentiates `chinmay-admin-commands` (→ System Commands path) from `consult-*` channels (→ relay path). However, within the `consult-*` branch, any non-command admin message is immediately routed to relay with no check on the user's current status. If admin types internal notes in a `consult-{phone}` channel while the user is `payment_submitted` (awaiting approval), those notes are sent to the user's WhatsApp.
 
 **Verification:** WF-12 confirmed to have no Postgres lookup and no status check before calling WF-50.
 
-**Fix:** In WF-10's user-channel branch (after isCommand=false), add a DB lookup for the user's status by channel name. Only route to relay if `status = 'consultation_active'`. For other statuses, drop silently or log.
+**Resolution:** Closed in two passes within the same sprint. SP-01 (2026-05-22) added `User Consultation Active?` IF and the `Build Admin Feedback` → WF-51 inactive-user feedback path so admin sees the relay was dropped. SP-03 (2026-05-23) replaced that pattern with the centralized `State Match?` gate in WF-10 (expectedState=`consultation_active` for the relay kind), and the FALSE branch posts a uniform "Wrong State" admin alert. Relay path now never reaches WF-41 unless user state matches.
 
 ---
 
@@ -540,9 +540,9 @@ After consultation closure, a user may rebook within days or weeks. Keeping the 
 | TD-006 | WF-20 registry note says broken but it's already fixed — stale doc | 🟠 P1 | Misleads Claude |
 | TD-015 | WF-42 sends unconfirmed Meta template instead of interactive buttons | 🟠 P1 | Step 9 (CLOSE) |
 | TD-016 | WF-31 no Slack relay for payment_submitted user messages | 🟠 P1 | Step 6 |
-| TD-021 | WF-33 missing state guard — APPROVE runs regardless of user status | 🟠 P1 | Step 7 (APPROVE) |
-| TD-022 | WF-42 missing state guard — CLOSE runs regardless of user status | 🟠 P1 | Step 9 (CLOSE) |
-| TD-023 | WF-10 relay has no status check — admin notes sent during payment_submitted | 🟠 P1 | Steps 6–7 |
+| ~~TD-021~~ | ~~WF-33 missing state guard — APPROVE runs regardless of user status~~ ✅ Resolved SP-03 | 🟠 P1 | Step 7 (APPROVE) |
+| ~~TD-022~~ | ~~WF-42 missing state guard — CLOSE runs regardless of user status~~ ✅ Resolved SP-03 | 🟠 P1 | Step 9 (CLOSE) |
+| ~~TD-023~~ | ~~WF-10 relay has no status check — admin notes sent during payment_submitted~~ ✅ Resolved SP-01+SP-03 | 🟠 P1 | Steps 6–7 |
 | TD-024 | WF-43 no button_reply routing for post-consult buttons (coupled to TD-015) | 🟠 P1 | Step 10+ |
 | TD-025 | WF-32 missing idempotency — duplicate "Payment Completed" tap accepted | 🟠 P1 | Step 5 |
 | TD-030 | WF-00 no bot echo filter — outbound WA messages may re-enter routing | 🟠 P1 | Every outbound msg |
