@@ -202,6 +202,32 @@ WF-10's command detection matches on the word `APPROVE` (first word), so both fo
 
 ---
 
+### TD-NEW-030 · WhatsApp Flow form has no input validation on Time-of-Birth and Place-of-Birth (MVP BLOCKER)
+
+**Finding (2026-05-23, SP-11 smoke test Test C):** The onboarding Flow form (Flow ID `1408011897720771`, CTA "Fill Details") sent by WF-21 accepts the four user-data fields (name, DOB, time-of-birth, place-of-birth) without meaningful validation:
+
+- **DOB:** uses date picker (constrained ✓).
+- **Time-of-Birth:** currently free-text or basic field — user can submit "morning", "around 4-ish", emoji, etc. For Vedic chart calculation accuracy this needs structured HH:MM input.
+- **Place-of-Birth:** open text by necessity (place names are free-form). Customer can enter anything. No length or format guard.
+- **Name:** text, no validation needed.
+
+**Why this is MVP-critical:** Garbage form data flows directly into `users.time_of_birth` and `users.place_of_birth` and is consumed by chart generation. If the user submits unstructured/garbage input, Chinmay receives a consultation request with un-usable birth data, has to re-prompt the user manually via Slack, defeating the form-driven onboarding promise.
+
+**Open design questions (to resolve before fix):**
+
+1. **Time of Birth:** Can Meta's WhatsApp Flow Builder render a time-picker component analogous to the existing DOB date-picker? If yes, swap to picker (simplest fix).
+2. **Place of Birth:** Investigate Meta's text-field validation capabilities (regex/format constraints, min/max length). If unavailable, add a downstream sanity check in WF-22 (reject inputs shorter than ~3 chars, only emoji/punctuation, or obvious garbage patterns) with a polite re-prompt via WF-50 asking the user to re-enter.
+3. **Investigation step required:** Short audit of Meta WhatsApp Flow Builder docs + Builder UI to confirm which validation primitives are supported, before scoping the actual fix.
+
+**Status:** Discovered during SP-11 (sprint inline-20260522-102910). Tracked in sprint `followups.md`. Owner not assigned. User flagged this as "crucial-to-fix-before-release".
+
+**Fix (proposed shape — to be confirmed after Meta capability investigation):**
+- If Meta supports time-picker: swap Time-of-Birth field to time-picker component (Flow Builder JSON edit, no n8n change).
+- If Meta supports field-level text validation: add minLength/regex constraints in Flow Builder JSON.
+- Otherwise: add a "Validate Form Inputs" guard in WF-22 between the form submission webhook and the `users` INSERT — reject obvious garbage, send a WF-50 re-prompt, keep the pending_users row so user can retry.
+
+---
+
 ## 🟡 P2 — Design / Naming Confusion (causes incorrect AI-generated fixes)
 
 ### TD-007 · WF-52 call-site node names imply "creator-only" semantics — confuses Claude

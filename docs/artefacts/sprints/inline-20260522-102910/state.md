@@ -3,7 +3,7 @@ input_source: inline-20260522-102910
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/inline-20260522-102910/working.md
 planned_at: 2026-05-22T10:29:10Z
-last_updated: 2026-05-23T07:53:00Z
+last_updated: 2026-05-22T22:58:46Z
 planning_complete: true
 context: |
   Sprint scope was derived from a session-long interactive walk-through of the 2026-05-22 pseudo↔live drift report (6 flagged workflows: WF-12, WF-23, WF-41, WF-46, WF-51, WF-60). For each, we discussed whether pseudocode or live code should be treated as authoritative, given functional position in the user journey, history (e.g. TD-002 multi-transport rebuild, DR-10 channel-archival rule, deactivation history), and surrounding architectural concerns. Several items grew beyond their original audit-finding scope when surrounding investigation revealed systemic issues (passthrough vs defineBelow contract pattern; postgres `alwaysOutputData` hygiene; admin-action precondition feedback gaps; postgres unquoted-camelCase SQL alias lowercasing).
@@ -105,6 +105,9 @@ items:
       (d) Postgres SQL aliases: use lowercase or snake_case (matches postgres default behavior), or quote them (preserves camelCase). Never use unquoted camelCase aliases — postgres silently lowercases them, creating field-name mismatches downstream.
       (e) Structural refactors that change a workflow's contract MUST include matching pseudo updates in the same change set. build-workflow should refuse to commit a structural change without the corresponding pseudo diff. (Note: maintenance-phase periodic enforcement is a separate concern tracked as TD-NEW-027 in post-MVP doc.)
       (f) Validate pseudo `Inputs:` declaration matches the fields the sub-workflow's first trigger/code nodes actually reference.
+      (g) **Set v3.4 default drops upstream fields.** Any Set v3.4 node that DERIVES a field (adds to the upstream payload) MUST set `parameters.includeOtherFields=true` — default v3.4 behavior emits only assigned fields, dropping the rest. Set nodes that intentionally produce a new contract (e.g., {channelId, messageText} for WF-51's input shape) correctly leave it false. SP-11 surfaced this on User-Load Gate (chinmay-astro exec 1630, 2026-05-22): the gate emitted only {routing: "to_wf02"} → downstream Call WF-02 Rule Router received no phoneNumber/user/pendingUser → WF-02 misrouted to NEW_USER → WF-21 INSERT failed on null phone_number. Fixed by adding includeOtherFields=true. build-workflow Step 5f.5 (new) should document: "Set v3.4 derive-then-pass-through pattern requires includeOtherFields=true". This is methodology-level (per [[feedback_principle_placement]]), not project-specific.
+      (h) **User-load gates.** When a workflow loads a user record by external key (phone, slack_channel_id, etc.) with alwaysOutputData=true, add an explicit user-found IF gate with admin-feedback on miss BEFORE downstream operations consume the row. Downstream operations should trust the load. Avoids per-consumer-workflow guard proliferation. (Validated by SP-11's design — same principle applied at WF-01 and WF-10. From handoff plugin improvement candidates.)
+      (i) **Audit-vs-reality drift validation pattern.** Sprint items that prescribe blanket mechanical changes ("set X on N nodes") should be validated per-node against build-workflow Step 5a before mutation. SP-02 went from "set true on 10 nodes" → "9 nodes confirmed; option B IF-guard expansion correctly rejected after upstream-gating analysis". Matches `build-sprint` Step 3 audit-vs-reality drift principle.
     priority: P3
     status: pending
     batch: 4
@@ -116,6 +119,29 @@ items:
         type: soft
         reason: "Principle (c) demonstrated by SP-05's passthrough normalization."
   - id: SP-11
+    status: done
+    started_at: 2026-05-22T22:19:17Z
+    completed_at: 2026-05-22T22:58:46Z
+    completion_note: |
+      Structural change applied + lint clean + smoke tested on highest-risk paths.
+      Test A (WF-01 happy path regression — recorded user normal text): exec 1635 SUCCESS — User-Load Gate emitted {routing: "to_wf02"} + all upstream fields preserved (phoneNumber, user, pendingUser, messageContentUpper); Anomaly Route? TRUE branch fired; reached Call WF-02 Rule Router; downstream WF-02 → WF-40 → WF-25 ran normally (the chinmay-admin-commands "garbage detected" alert seen during Test A2 came from WF-25's standard Gemini garbage classification on "Test 2 for SP-11", not SP-11 — expected behavior).
+      Test E (WF-10 orphan branch — admin types in fresh consult-orphan-test channel): exec 1652 SUCCESS — Detect Command - User Channel emitted {channelId: C0B5N87PRDL, channelName: "consult-orphan-test"}; User Row Exists? FALSE branch fired ([0,1]); Build Orphan Channel Alert emitted correct {channelId: C0A5B0ZE81E, messageText: "⚠️ Orphaned consult channel..."}; Slack post landed in chinmay-admin-commands with exact text; existing FALSE-branch "Build Admin Feedback" correctly did NOT fire (semantics now tight).
+      Tests B/C/D ALSO PASSED (in same session, with user's spare phone +61491370732):
+      - Test D (anomaly_keyword — STOP from unrecorded phone): exec 1659 SUCCESS — routing='anomaly_keyword', hasUser=false, hasPendingUser=false, Anomaly Route? FALSE [0,1], Call WF-51 fired, WF-02 + WF-47 NOT called. Pre-onboarding-STOP edge confirmed eliminated at source.
+      - Test D (anomaly_keyword — REBOOK variant): exec 1665 SUCCESS — same shape with messageContentUpper='REBOOK'. New business-language admin alert delivered to Slack chinmay-admin-commands.
+      - Test B (new-user happy path — text from unrecorded phone): exec 1671 → WF-02 1672 → WF-21 1674 all SUCCESS. routing='to_wf02', user/pendingUser both null, Anomaly Route? TRUE [1,0], no admin alert, WF-21 inserted pending_users row.
+      - Test C (anomaly_interactive — form submission after we DELETEd pending_users): exec 1681 SUCCESS — routing='anomaly_interactive', messageType='interactive', interactiveType='nfm_reply', Anomaly Route? FALSE [0,1], admin alert delivered with business-language text, WF-02 NOT called → users row NOT created (confirmed in DB).
+      All 5 tests (A + B + C + D variants + E) green. SP-11 fully smoke-tested before commit.
+    implementation_note: |
+      2026-05-22T22:25:00Z: structural change applied + lint clean on both workflows. Smoke test pending.
+      - WF-01 (hYGNM97sXvdo1WmI): 18 → 22 nodes. Added User-Load Gate (Set v3.4), Anomaly Route? (IF v2.2), Build Admin Anomaly Alert (Set v3.4), Call WF-51 (Admin Anomaly Alert) (executeWorkflow v1.2). Rewired Prepare User Data → User-Load Gate → Anomaly Route? (TRUE→Call WF-02 Rule Router, FALSE→Build Admin Anomaly Alert → Call WF-51). Pseudo Steps 12a-12c. Backup: archive/backups/hYGNM97sXvdo1WmI-2026-05-23-08-30.json.
+      - WF-10 (wMh0oBRtJbvhLgOf): 25 → 28 nodes. Added User Row Exists? (IF v2.2), Build Orphan Channel Alert (Set v3.4), Call WF-51 (Orphan Channel Alert) (executeWorkflow v1.2). Rewired Load User Status → User Row Exists? (TRUE→User Consultation Active?, FALSE→Build Orphan Channel Alert → Call WF-51). Pseudo Steps 15a + 18a. Backup: archive/backups/wMh0oBRtJbvhLgOf-2026-05-23-08-30.json.
+      - Pre-flight lint scan: both workflows clean (no exec_string_wid_at_v12, no exec_missing_canonical, no pg_missing_eq_prefix, no deprecated_continueOnFail).
+      - Post-PUT lint hook: clean both.
+      - LESSON LEARNED (2026-05-22T22:46:00Z, exec 1630 failure): n8n Set v3.4 by DEFAULT drops upstream fields and emits only the assigned ones. The User-Load Gate as initially PUT emitted only {routing: "to_wf02"}, dropping phoneNumber/user/pendingUser/messageContent/messageContentUpper. Downstream Call WF-02 Rule Router received only the routing field; WF-02 then routed to NEW_USER (since user + pendingUser were undefined) and called WF-21, which tried to INSERT into pending_users with null phone_number — DB constraint violation. Fix: set `parameters.includeOtherFields=true` on the Set node. PARAMETRIC fix (no pseudo change needed — the pseudo describes "(Set node) — classify...", not n8n-level options). Apply this Principle universally: any Set v3.4 node that DERIVES a field without rebuilding the payload from scratch MUST set includeOtherFields=true. Existing Build WF-41 Payload / Build Admin Feedback / Build Admin Anomaly Alert / Build Orphan Channel Alert nodes that intentionally produce a NEW contract (e.g., for WF-51 input) correctly leave it false (default).
+      - Pseudo revisions: WF-01.pseudo (Outputs/Calls Sub-Workflows updated; Steps 12a/12b/12c inserted); WF-10.pseudo (Outputs/Calls Sub-Workflows updated; Step 15a inserted; Step 18a added).
+      - Orphan-alert destination: chinmay-admin-commands (C0A5B0ZE81E) — user-confirmed design decision (orphan consult channel itself is degenerate by definition).
+      - Workflow-registry.md updated with SP-11 entries on WF-01 and WF-10 rows.
     description: |
       WF-01 + WF-10 user-load gates — make user-existence validation explicit at the load step rather than incidentally enforced by downstream routing.
       WF-01: After Steps 10–11 (Load Pending User + Load Full User) and Step 12 (Prepare User Data), add an explicit gate before Step 13 (Call WF-02). Cases:
@@ -130,7 +156,6 @@ items:
         - no row returned (orphaned channel — no users row maps to this slack_channel_id) → NEW branch — admin alert "⚠️ No user record for channel <id>. Orphaned channel?" Currently SP-01's FALSE branch misleadingly fires with "user not in consultation_active" when `.status` is actually undefined. The gate makes the distinction explicit.
       Pseudo-first per Step 5f.0 (Structural, non-parametric — alters control flow). Update WF-01.pseudo + WF-10.pseudo first, then implement.
     priority: P2
-    status: pending
     batch: 2
     depends_on:
       - id: SP-02
@@ -139,6 +164,9 @@ items:
 followups_logged:
   - "TD-NEW-027 (post-MVP doc): Periodic pseudo↔live drift health-check infrastructure — maintenance-phase coverage broader than current build-sprint-bound hook."
   - "TD-NEW-028 (Tech_Debts.md): WF-51 Slack failure-path logging — wire On Error → WF-60 with slackApiOk:false; bundle into planned error-handling sprint."
+  - "TD-NEW-030 (Tech_Debts.md): WhatsApp Flow form has no validation on Time-of-Birth / Place-of-Birth — MVP BLOCKER. Surfaced during SP-11 Test C. Full design notes in sprint followups.md and Tech_Debts.md."
+  - "Admin-alert message-tone discipline: rewrote WF-01 Build Admin Anomaly Alert (anomaly_interactive + anomaly_keyword variants), WF-10 Build Orphan Channel Alert, and WF-02 Build UNHANDLED Alert (pre-existing — not from SP-11) into business language. Memory saved: [[feedback_admin_message_tone]]. SP-10 plugin update should add this as new principle (j)."
+  - "n8n MCP updateNode limitation: dot-path with array index (e.g., parameters.assignments.assignments[1].value) silently no-ops without error. SP-10 plugin update should document this — for nested-array updates fall back to jq+PUT via Step 5e."
 notes: |
   Items are grouped into 4 batches:
   - Batch 1 — P1 critical-path fix (SP-01)

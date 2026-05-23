@@ -3,9 +3,10 @@ WF-01 — Message Router
 ## Summary
 
 - Inputs: Parsed WhatsApp message payload from WF-00 (phoneNumber, phoneNumberFormatted, messageType, messageContent, rawMessage, contactName, etc.)
-- Outputs: Either a silent reject, a deflection WA message, a forced route to WF-21 (for opted-out users), or a call to WF-02 with enriched user+message context
+- Outputs: Either a silent reject, a deflection WA message, a forced route to WF-21 (for opted-out users), an admin Slack anomaly alert (for unrecorded-phone interactive taps or STOP/REBOOK keywords), or a call to WF-02 with enriched user+message context
 - State Transitions: none (read-only — does not mutate user state)
-- Calls Sub-Workflows: WF-02, WF-21 (for opted_out re-engagement), WF-50 (non-text deflection)
+- Calls Sub-Workflows: WF-02, WF-21 (for opted_out re-engagement), WF-50 (non-text deflection), WF-51 (admin anomaly alert)
+- **User-load gate (SP-11):** After Steps 10–12 load `user` and `pendingUser` and prepare the combined payload, WF-01 explicitly gates on the user-existence triple `(user, pendingUser, messageType)` before calling WF-02. Two anomaly classes are intercepted at the source rather than downstream: (a) `interactive` button taps from an unrecorded phone (bot/spam interaction or DB row deleted after we sent a button); (b) STOP/REBOOK keywords from an unrecorded phone (pre-onboarding STOP edge — eliminates the WF-47 null-user case at the source). Both route to a WF-51 admin alert into `chinmay-admin-commands` (C0A5B0ZE81E) and DO NOT call WF-02. Legitimate cases — user exists, pendingUser exists, or plain-text from a new phone — continue to WF-02 unchanged.
 
 ---
 
@@ -41,6 +42,21 @@ Step 12: Prepare combined payload (Prepare User Data):
   - user = row from Step 11 if any (parse `context` JSON to object; map snake_case columns → camelCase fields: id, phoneNumber, name, dateOfBirth, timeOfBirth, placeOfBirth, status, currentConsultationId, totalConsultations, context, createdAt, updatedAt, lastMessageAt, awaitingFeedback, slackChannelId, stage, blockedAt, blockedBy, blockedReason, feedback), else null.
   - isNewUser = (user is null) AND (pendingUser is null).
   - Carry forward messageId, phoneNumber, contactName, messageType, messageContent, messageContentUpper, rawMessage, timestamp, metadata.
+Step 12a: User-Load Gate (Set node, `includeOtherFields=true` so phoneNumber/user/pendingUser/messageType/messageContentUpper pass through to downstream) — classify the combined payload into one of four routing dispositions based on (user, pendingUser, messageType, messageContentUpper):
+  - `user` is not null → routing='to_wf02' (existing user — normal flow).
+  - `user` is null AND `pendingUser` is not null → routing='to_wf02' (legitimate pre-form state; WF-02 will route PRE_FORM_TEXT / DETAILS_FORM).
+  - `user` is null AND `pendingUser` is null AND messageType='text' AND messageContentUpper does NOT match exact `STOP` or `REBOOK` → routing='to_wf02' (legitimate new-user text; WF-02 will route NEW_USER → WF-21; HELP from new user is also fine — WF-21 acks).
+  - `user` is null AND `pendingUser` is null AND messageType='interactive' → routing='anomaly_interactive'.
+  - `user` is null AND `pendingUser` is null AND messageContentUpper exactly matches `STOP` or `REBOOK` → routing='anomaly_keyword'.
+Step 12b: Check: routing == 'to_wf02'?
+  - If YES → go to Step 13 (existing WF-02 call).
+  - If NO  → go to Step 12c (anomaly branch).
+Step 12c: Build Admin Anomaly Alert (Set node, default `includeOtherFields=false` — emits only the new contract for WF-51) — emit {
+    channelId: 'C0A5B0ZE81E',
+    messageText: routing == 'anomaly_interactive'
+      ? "⚠️ Unexpected button tap from a phone we don’t recognise: +<phoneNumber>. They tapped a button we previously sent, but they’re not registered for a consultation. Likely spam or their record was removed. Content: `<messageContent>`."
+      : "⚠️ Received `<messageContentUpper>` from a phone we don’t recognise: +<phoneNumber>. They haven’t started onboarding yet, so there’s nothing to opt out of or rebook. No action taken."
+  }. Then call WF-51 (Send Slack Message). End. WF-02 is NOT called. (Message text uses business language only — see [[feedback_admin_message_tone]].)
 Step 13: Call WF-02 (User State Router) with the combined payload.
 Step 14: End.
 
