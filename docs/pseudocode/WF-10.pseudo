@@ -3,19 +3,28 @@ WF-10 — Slack Admin Handler
 ## Summary
 
 - Inputs: Slack Events API POST at /slack-webhook (url_verification challenge or event_callback with message events from any channel where bot is a member)
-- Outputs: HTTP 200 (with challenge echo on verification); dispatches recognized admin commands to WF-11, and Chinmay's free-text replies in active consultation channels to WF-41; admin anomaly alerts to chinmay-admin-commands on orphaned consult channels (no users row matches slack_channel_id)
+- Outputs: HTTP 200 (with challenge echo on verification); dispatches validated admin commands to WF-11; validated relay text to WF-41; enriched admin feedback to the same channel the admin typed in on any validation failure; orphan-channel alerts to chinmay-admin-commands.
 - State Transitions: none (delegates; downstream WFs mutate state)
-- Calls Sub-Workflows: WF-11 (Command Parser), WF-41 (Admin → User Relay), WF-51 (Send Slack Message — admin feedback on inactive-user relay attempt; admin alert on orphaned consult channel)
-- **User-load gate (SP-11):** After `Load User Status` SELECT (aod=true), WF-10 explicitly gates on row existence before the `User Consultation Active?` IF. `aod=true` causes a no-match SELECT to emit an empty row `{}`, which previously fell through to the FALSE branch with the misleading "User not in active consultation" feedback — actually `.status` was undefined because no users row maps to this slack_channel_id (orphaned consult channel). The gate splits this: row-returned cases follow the existing TRUE/FALSE branches; no-row cases (orphaned channel) route to a WF-51 admin alert into `chinmay-admin-commands` (C0A5B0ZE81E). The alert is posted to admin-commands rather than the orphaned consult channel itself because an orphaned channel by definition has no admin coverage in-context — anomalous data state surfaces canonically.
-- **Channel-scope design rule (DR-13, see workflow-registry.md):**
-  - **User-targeted commands** (carry a `<phone>` argument: APPROVE PAYMENT / APPROVE, REJECT PAYMENT / REJECT, CLOSE CHAT CONSULT / CLOSE CONSULTATION / CLOSE CONSULT, BLOCK, UNBLOCK) are accepted ONLY when typed in the user's `consult-{phone}` Slack channel. WF-10 rejects them (silently dropped or warned in-channel) when typed in `chinmay-admin-commands` or any other channel.
-  - **Admin-wide commands** (no phone argument: LIST, STATS, HELP) work in ANY channel.
+- Calls Sub-Workflows: WF-11 (Command Parser), WF-41 (Admin → User Relay), WF-51 (Send Slack Message — admin feedback for all validation-failure cases and orphan-channel alerts)
+- **Centralized validation gate (SP-03):** WF-10 is the sole place where user-existence, state-precondition, and command-phone-vs-channel-phone are validated. Downstream workflows (WF-11, WF-33, WF-34, WF-42, WF-46) trust the input — they no longer guard `User Found?` or `User in Correct State?` because those checks are guaranteed to have passed at WF-10. This eliminates per-workflow guard proliferation (principle (h) from [[feedback_workflow_representation_levels]] / SP-11) and gives the admin a single, consistent, enriched feedback location for every failure mode.
+- **Channel-scope design rule (DR-13):**
+  - **User-targeted commands** (carry a `<phone>` argument: APPROVE PAYMENT / APPROVE, REJECT PAYMENT / REJECT, CLOSE CHAT CONSULT / CLOSE CONSULTATION / CLOSE CONSULT / CLOSE, BLOCK, UNBLOCK) are accepted ONLY when typed in the user's `consult-{phone}` Slack channel. WF-10 rejects them in `chinmay-admin-commands` with an admin-channel alert pointing the admin to the correct location.
+  - **Admin-wide commands** (no phone argument: LIST, STATS, HELP) are accepted ONLY in `chinmay-admin-commands`. WF-10 rejects them in consult channels with an alert pointing the admin to the admin channel.
+- **Phone-match rule (SP-03):** For user-targeted commands, the phone token typed by the admin in the command text MUST exactly match the phone derived from the channel name (`consult-<phone>` → `<phone>`). Phone omission OR mismatch are both rejected with enriched feedback. Rationale: admin typing `APPROVE PAYMENT` without a phone in a payment-pending channel could otherwise approve the wrong user inadvertently — the strictness is intentional. The typed phone is canonical; channel-derived phone is the validation reference.
 - **Ambiguities / Notes:**
   - Slack payload field paths use `$json.body.*` (Slack wraps the event under `body`).
   - Bot-loop guard (skip if `body.authorizations[0].user_id == body.event.user`) sits between `Respond 200 OK` and `Extract Required Fields`.
   - WF-10 passes `messageText` (camelCase) downstream to WF-11 and `{phoneNumber, adminMessage}` (camelCase) to WF-41 — input contract uses camelCase consistently across the dispatch boundary.
   - Postgres SQL alias rule: SELECT statements use snake_case column names (no unquoted camelCase aliases — postgres silently lowercases them). camelCase payload shaping happens in a Set node *after* the SELECT, not via projection inside it.
-  - WF-41 inactive-user feedback: the FALSE branch of the consultation-active guard routes to a Set → WF-51 admin-feedback chain in the user's `consult-<phone>` channel. Silent drop is not acceptable on the admin-action critical path.
+  - Per-command expected-state table (used at Step 17):
+    - APPROVE PAYMENT → payment_submitted
+    - REJECT (PAYMENT) → payment_submitted
+    - CLOSE (CONSULT/CONSULTATION/CHAT CONSULT) → consultation_active
+    - BLOCK → any state (no state check; defensive — only user-exists + phone-match are checked)
+    - UNBLOCK → blocked
+    - Relay text (no command keyword in user channel) → consultation_active
+  - Failure-mode messages use business language per [[feedback_admin_message_tone]] — no WF-XX names, no DB column jargon.
+  - **Free text in admin channel:** for MVP, replies with a brief "Type HELP for commands" prompt. Post-MVP enhancement: route free text in `chinmay-admin-commands` to a Gemini-powered assistant with admin-manual context. Tracked in sprint followups.md.
 
 ---
 
@@ -25,49 +34,126 @@ Step 1: Start — receive HTTP POST on /slack-webhook from Slack Events API.
 Step 2: Switch on body.type:
   - 'url_verification' → go to Step 3.
   - 'event_callback' → go to Step 4.
-  - Anything else (fallback) → go to Step 20 (respond 200 fallback).
+  - Anything else (fallback) → go to Step 30 (respond 200 fallback).
 Step 3: Respond 200 with {"challenge": body.challenge} (Slack endpoint verification). End.
 Step 4: Respond 200 OK immediately (acknowledge to Slack within 3s).
 Step 5: Check: body.authorizations[0].user_id != body.event.user (i.e., the message was sent by a human, not the bot itself)?
   - If YES → go to Step 6.
   - If NO (bot's own message) → End (loop prevention).
 Step 6: Extract fields: channelId=body.event.channel, adminUserId=body.event.user, messageText=body.event.text, timestamp=body.event.ts.
-Step 7: Call Slack API channel.get on channelId to retrieve channel name.
+Step 7: Call Slack API channel.get on channelId to retrieve channel name. (Also: side-branch — Build WF-60 Payload (Slack Inbound) → Call WF-60 Message Logger. Fire-and-forget; does not gate downstream routing.)
 Step 8: Merge the channel info (id, name) with the extracted message fields (combine by id == channelId).
 Step 9: Switch on channel name:
   - name == 'chinmay-admin-commands' → go to Step 10 (admin channel branch).
-  - name starts with 'consult-' → go to Step 13 (user consultation channel branch).
+  - name starts with 'consult-' → go to Step 15 (user consultation channel branch).
   - Otherwise → End (channel not relevant).
-Step 10: Detect Command (admin channel) — strip mrkdwn formatting; uppercase; trim. Classify:
-  - If message starts with one of admin-wide commands [LIST, STATS, HELP] (no phone argument) → set isAdminCommand=true, set commandHint=<keyword>. Allowed here.
-  - Else if message starts with one of user-targeted commands [APPROVE, APPROVE PAYMENT, REJECT, REJECT PAYMENT, CLOSE, CLOSE CONSULT, CLOSE CONSULTATION, CLOSE CHAT CONSULT, BLOCK, UNBLOCK] → set wrongChannel=true (user-targeted commands must be typed in the user's consult-{phone} channel, not chinmay-admin-commands).
-  - Else → set isAdminCommand=false (chatter; ignore).
-Step 11: Check: isAdminCommand == true?
-  - If YES → call WF-11 (Command Parser) with payload {messageText, adminUserId, channelId, channelName, commandHint}. End.
-  - If wrongChannel == true → post Slack reply to channelId: "⚠️ <commandHint> is a user-targeted command. Please type it inside the user's `consult-{phone}` channel." End.
-  - If NO → End (ignore non-command chatter in admin channel).
-Step 12: (unused — admin channel has no relay branch.)
-Step 13: Detect Command (user consultation channel) — strip mrkdwn formatting; uppercase; trim. Check if message starts with one of [APPROVE, APPROVE PAYMENT, REJECT, REJECT PAYMENT, CLOSE, CLOSE CONSULT, CLOSE CONSULTATION, CLOSE CHAT CONSULT, BLOCK, UNBLOCK, LIST, STATS, HELP]. Set isCommand accordingly.
-Step 14: Check: isCommand == true?
-  - If YES → call WF-11 (Command Parser) with payload {messageText, adminUserId, channelId, channelName}. End. (User-targeted commands work here per the channel-scope design rule; admin-wide LIST/STATS/HELP also accepted here.)
-  - If NO → go to Step 15.
-Step 15: SELECT id, status, name, phone_number FROM chinmay_astro.users WHERE slack_channel_id = $channelId LIMIT 1. Postgres node configured with `alwaysOutputData=true` so an empty result emits an empty row `{}` rather than halting silently.
-Step 15a: User Row Exists? (IF node) — check `$('Load User Status').item.json.id` is not null/undefined.
-  - If YES (row returned for this slack_channel_id) → go to Step 16.
-  - If NO  (orphaned consult channel — no users row maps to this slack_channel_id) → go to Step 18a.
-Step 16: Check: user.status == 'consultation_active'?
-  - If YES → go to Step 17.
-  - If NO  → go to Step 18 (user exists but is in a non-active state — e.g. consultation_closed, payment_pending, blocked).
-Step 17: Build WF-41 Payload (Set node) — emit {
-    phoneNumber: <Load User Status row>.phone_number,
-    adminMessage: $('Detect Command - User Channel').item.json.messageText
-  }. Then call WF-41 (Admin → User Relay). End. (Chinmay's text reply will be sent to the user via WhatsApp.)
-Step 18: Build Admin Feedback (Set node) — emit {
-    channelId: $('Detect Command - User Channel').item.json.channelId,
-    messageText: "⚠️ User not in active consultation — message not relayed to WhatsApp."
-  }. Then call WF-51 (Send Slack Message) — posts the feedback into the same consult-<phone> channel so the admin sees their relay attempt was dropped. End.
-Step 18a: Build Orphan Channel Alert (Set node) — emit {
+
+---
+
+(Admin channel branch — chinmay-admin-commands)
+
+Step 10: Classify Admin Channel Message (Code node). Strip Slack mrkdwn formatting; uppercase; trim. Output:
+  - messageText, adminUserId, channelId, channelName
+  - kind ∈ {admin_wide_cmd, user_targeted_cmd, free_text}
+    - admin_wide_cmd: starts with LIST | STATS | HELP
+    - user_targeted_cmd: starts with APPROVE | REJECT | CLOSE | BLOCK | UNBLOCK
+    - free_text: anything else (including chatter)
+  - commandHint = matched keyword if applicable, else null
+Step 11: Switch on kind:
+  - admin_wide_cmd → go to Step 12 (dispatch to WF-11).
+  - user_targeted_cmd → go to Step 13 (reject — wrong channel for user-targeted command).
+  - free_text → go to Step 14 (graceful prompt).
+Step 12: Build WF-11 input passthrough payload {messageText, adminUserId, channelId, channelName}. Call WF-11 (Command Parser). End. (WF-11 trusts input: admin-wide commands don't need user/state validation.)
+Step 13: Build admin-channel alert (Set node): {
+    channelId: $('Extract Required Fields').item.json.channel_id,
+    messageText: "⚠️ `<commandHint>` is a user-targeted command. Please type it inside the user's `consult-<phone>` channel."
+  }. Call WF-51 (Send Slack Message — Wrong Channel). End.
+Step 14: Build help-prompt (Set node): {
+    channelId: $('Extract Required Fields').item.json.channel_id,
+    messageText: "🤖 Type `HELP` to see available commands."
+  }. Call WF-51 (Send Slack Message — Help Prompt). End.
+  [Post-MVP enhancement: route to Gemini-powered assistant — see followups.md.]
+
+---
+
+(User consultation channel branch — consult-<phone>)
+
+Step 15: Classify User Channel Message (Code node). Strip Slack mrkdwn formatting; uppercase; trim. Output:
+  - messageText (original), messageUpper, adminUserId, channelId, channelName
+  - kind ∈ {admin_wide_cmd, user_targeted_cmd, relay_text}
+    - admin_wide_cmd: starts with LIST | STATS | HELP (wrong channel for these)
+    - user_targeted_cmd: starts with APPROVE | REJECT | CLOSE | BLOCK | UNBLOCK
+    - relay_text: anything else (admin's free-text reply to be relayed to user)
+  - commandKeyword: matched user-targeted keyword (canonical form: APPROVE_PAYMENT | REJECT_PAYMENT | CLOSE_CONSULTATION | BLOCK_USER | UNBLOCK_USER) or null
+  - typedPhone: first phone-like token (^\+?\d{10,15}$) found anywhere in messageText after the command keyword, normalized (leading + stripped). null if not present.
+  - channelDerivedPhone: parse channelName (matches /^consult-(\+?\d{10,15})$/) → captured group with leading + stripped. null if channelName doesn't match.
+
+Step 16: Switch on kind:
+  - admin_wide_cmd → go to Step 25 (reject — wrong channel for admin-wide command).
+  - user_targeted_cmd → go to Step 17 (validation gate).
+  - relay_text → go to Step 17 (validation gate; relay_text uses a reduced check set).
+
+Step 17: Load User Status (Postgres, alwaysOutputData=true): SELECT id, status, name, phone_number FROM chinmay_astro.users WHERE slack_channel_id = $channelId LIMIT 1.
+
+Step 18: User Row Exists? (IF node) — check `$('Load User Status').item.json.id` is not null/undefined.
+  - If NO  → go to Step 26 (orphan-channel alert).
+  - If YES → go to Step 19.
+
+Step 19: Phone Match? (IF node — applies to user_targeted_cmd only; relay_text bypasses).
+  - For user_targeted_cmd: check typedPhone is non-null AND typedPhone == channelDerivedPhone (string equality after normalization).
+    - If FALSE (no phone typed) → go to Step 27 (phone-absent alert).
+    - If FALSE (phone mismatch) → go to Step 28 (phone-mismatch alert).
+    - If TRUE → go to Step 20.
+  - For relay_text: bypass; go to Step 20.
+
+Step 20: State Match? (IF node) — compare $('Load User Status').item.json.status against the expected state for this command/relay:
+  - APPROVE_PAYMENT / REJECT_PAYMENT → expect 'payment_submitted'
+  - CLOSE_CONSULTATION → expect 'consultation_active'
+  - BLOCK_USER → no state check (any state allowed) → treat as TRUE.
+  - UNBLOCK_USER → expect 'blocked'
+  - relay_text → expect 'consultation_active'
+  - If FALSE → go to Step 29 (wrong-state alert).
+  - If TRUE → go to Step 21.
+
+Step 21: Dispatch Switch:
+  - kind == user_targeted_cmd → go to Step 22 (Call WF-11).
+  - kind == relay_text → go to Step 23 (Build WF-41 Payload).
+
+Step 22: Build WF-11 input payload {messageText, adminUserId, channelId, channelName}. Call WF-11 (Command Parser). End. WF-11 trusts input — no user-exists or state guards downstream.
+
+Step 23: Build WF-41 Payload (Set node) — emit {
+    phoneNumber: $('Load User Status').item.json.phone_number,
+    adminMessage: $('Classify User Channel Message').item.json.messageText
+  }.
+Step 24: Call WF-41 (Admin → User Relay). End.
+
+---
+
+(User-channel failure paths — Steps 25-29 — all post enriched feedback into the SAME channel where admin typed, using $('Extract Required Fields').item.json.channel_id.)
+
+Step 25: Build Wrong-Channel Alert (admin-wide cmd in user channel) — Set node: {
+    channelId: $('Extract Required Fields').item.json.channel_id,
+    messageText: "⚠️ `<commandKeyword>` is an admin command. Please type it in the `chinmay-admin-commands` channel."
+  }. Call WF-51. End.
+
+Step 26: Build Orphan Channel Alert (no user row for this slack_channel_id) — Set node: {
     channelId: 'C0A5B0ZE81E',
     messageText: "⚠️ Slack channel `<channelId>` (`<channelName>`) has no matching customer. Admin typed: \"<messageText>\". This channel may have been created without a customer, or the customer was removed. Please check."
-  }. Then call WF-51 (Send Slack Message) — posts the alert into chinmay-admin-commands (C0A5B0ZE81E). End. The orphan consult channel itself is not posted to (degenerate by definition; no in-context admin coverage). Message text uses business language only — see [[feedback_admin_message_tone]].
-Step 20: Respond 200 fallback for unknown body types. End.
+  }. Call WF-51. End. (Posts to chinmay-admin-commands — the orphan consult channel itself is degenerate.)
+
+Step 27: Build Phone-Absent Alert — Set node: {
+    channelId: $('Extract Required Fields').item.json.channel_id,
+    messageText: "⚠️ `<commandKeyword>` needs the user's phone number. Example: `APPROVE PAYMENT 614914...`. No action taken."
+  }. Call WF-51. End.
+
+Step 28: Build Phone-Mismatch Alert — Set node: {
+    channelId: $('Extract Required Fields').item.json.channel_id,
+    messageText: "⚠️ `<commandKeyword> <typedPhone>` ignored — this channel belongs to `<channelDerivedPhone>`. Please re-check the phone you typed. No action taken."
+  }. Call WF-51. End.
+
+Step 29: Build Wrong-State Alert — Set node: {
+    channelId: $('Extract Required Fields').item.json.channel_id,
+    messageText: "⚠️ `<commandKeyword>` ignored — user is currently in `<user.status>`, expected `<expectedState>`. No action taken."
+  }. Call WF-51. End. (For relay_text: messageText = "⚠️ Message not relayed — user is currently in `<user.status>`, expected `consultation_active`. WhatsApp send skipped.")
+
+Step 30: Respond 200 fallback for unknown body types. End.

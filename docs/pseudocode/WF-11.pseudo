@@ -6,6 +6,7 @@ WF-11 — Command Parser
 - Outputs: Dispatches to a specific command-handler sub-workflow, or queries/posts directly to Slack for LIST/STATS/HELP/UNBLOCK/Unknown
 - State Transitions: UNBLOCK_USER path: users.status: blocked → consultation_closed (and inserts admin_actions row). Other state changes happen inside the sub-workflows called.
 - Calls Sub-Workflows: WF-33 (Payment Approval), WF-34 (Payment Rejection), WF-42 (Consultation Closer), WF-46 (User Blocker)
+- **Trust-mode input (SP-03):** Input is pre-validated by WF-10's centralized gate — user exists, phone-in-command matches channel-derived phone, and state matches the command's expected state. WF-11 does NOT re-validate; the historical inline UNBLOCK `Blocked User Found?` IF + `No Blocked User Found` admin-feedback branch are removed because they are guaranteed unreachable post-gate. WF-11's internal `Lookup Blocked User` SELECT is retained only to fetch the user record (id, name) needed for the UNBLOCK UPDATE+INSERT and confirmation message.
 
 ---
 
@@ -48,11 +49,9 @@ Step 12: SELECT counts from chinmay_astro tables: total_users, active_consultati
 Step 13: Format stats message and post to Slack channel (channelName). End.
 Step 14: Build HELP text (list of all available commands and examples).
 Step 15: Post HELP text to Slack channel (channelName). End.
-Step 16: SELECT id, name, phone_number, status FROM chinmay_astro.users WHERE phone_number = $targetPhone AND status = 'blocked' LIMIT 1.
-Step 17: Check: did the query return a row (user exists and is blocked)?
-  - If YES → go to Step 18.
-  - If NO → go to Step 20.
-Step 18: UPDATE chinmay_astro.users SET status='consultation_closed', updated_at=NOW() WHERE phone_number=$targetPhone; INSERT INTO chinmay_astro.admin_actions (user_id, action_type, notes, created_at) VALUES (<id from lookup>, 'unblocked', 'Admin UNBLOCK command', NOW()).
-Step 19: Post to chinmay-admin-commands: "✅ User <name> (<targetPhone>) has been unblocked. Status is now consultation_closed. They can REBOOK when ready." End.
-Step 20: Post to chinmay-admin-commands: "❌ No blocked user found with number <targetPhone>". End.
-Step 21: Post to Slack channel (channelName): "❓ Unknown command: `<originalMessage>` Type `HELP` to see available commands." End.
+Step 16: SELECT id, name, phone_number, status FROM chinmay_astro.users WHERE phone_number = $targetPhone AND status = 'blocked' LIMIT 1. (Pre-validated upstream — row is guaranteed to exist; fetched solely for downstream id/name use.)
+Step 17: (removed — old `Blocked User Found?` IF; pre-validated by WF-10.)
+Step 18: UPDATE chinmay_astro.users SET status='consultation_closed', updated_at=NOW() WHERE phone_number=$targetPhone; INSERT INTO chinmay_astro.admin_actions (user_id, action_type, notes, created_at) VALUES (<id from lookup>, 'unblocked', 'Admin UNBLOCK command', NOW()). (admin_actions table is deprecated per [[project_admin_actions_deprecated]] — INSERT remains in live code as a no-op write to be cleaned in TD-NEW-026.)
+Step 19: Post to Parse Command channelId: "✅ User <name> (<targetPhone>) has been unblocked. Status is now consultation_closed. They can REBOOK when ready." End.
+Step 20: (removed — old `No Blocked User Found` admin feedback; pre-validated by WF-10.)
+Step 21: Post to Slack channel (channelName): "❓ Unknown command: `<originalMessage>` Type `HELP` to see available commands." End. (Defensive fallback — should be unreachable post-WF-10-gate; retained as safety net.)

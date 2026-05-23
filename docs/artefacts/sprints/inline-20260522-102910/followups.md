@@ -28,3 +28,18 @@ Surfaced during Test C (anomaly_interactive path verification): the WhatsApp Flo
 **Crucial-to-fix-before-release** per user. Do NOT ship MVP without addressing.
 
 ---
+
+## 2026-05-23 — SP-03 hoisted-gate design: Gemini-powered admin assistant (post-MVP)
+
+Surfaced while drafting the WF-10 validation-gate decision tree. The "free text typed in `chinmay-admin-commands`" branch currently does the minimum graceful thing — replies with "Type HELP for commands." That's fine for MVP, but the admin channel is a natural place for a richer assistant.
+
+**Idea (post-MVP):** Route any free-text (i.e., not a recognized command) typed in `chinmay-admin-commands` to a Gemini call with the admin manual / runbooks / workflow registry as the system prompt context. Admin can ask "how do I unblock a user?" or "what does state X mean?" and get an in-channel answer.
+
+**Why later, not now:**
+- MVP scope is operationally tight; HELP is sufficient for the small admin command set.
+- Needs a curated admin-manual corpus (we don't have one cleanly extracted from `CLAUDE.md` + `workflow-registry.md` yet — would be its own deliverable).
+- Cost monitoring: Gemini calls per free-text admin message could be unbounded if not gated.
+
+**Disposition:** Add as a post-MVP enhancement TD when ready to pursue. Not blocking SP-03 (which only needs the graceful "Type HELP" reject for now).
+
+---

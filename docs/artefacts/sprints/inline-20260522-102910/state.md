@@ -3,7 +3,7 @@ input_source: inline-20260522-102910
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/inline-20260522-102910/working.md
 planned_at: 2026-05-22T10:29:10Z
-last_updated: 2026-05-22T22:58:46Z
+last_updated: 2026-05-23T00:58:20Z
 planning_complete: true
 context: |
   Sprint scope was derived from a session-long interactive walk-through of the 2026-05-22 pseudo↔live drift report (6 flagged workflows: WF-12, WF-23, WF-41, WF-46, WF-51, WF-60). For each, we discussed whether pseudocode or live code should be treated as authoritative, given functional position in the user journey, history (e.g. TD-002 multi-transport rebuild, DR-10 channel-archival rule, deactivation history), and surrounding architectural concerns. Several items grew beyond their original audit-finding scope when surrounding investigation revealed systemic issues (passthrough vs defineBelow contract pattern; postgres `alwaysOutputData` hygiene; admin-action precondition feedback gaps; postgres unquoted-camelCase SQL alias lowercasing).
@@ -45,7 +45,8 @@ items:
   - id: SP-03
     description: Admin-action precondition audit + remediation — produce a coverage matrix for the user-targeted admin commands APPROVE PAYMENT, REJECT, CLOSE, BLOCK, UNBLOCK plus the text-relay path (WF-10 → WF-41). For each verify (a) user-exists check, (b) state-precondition check, (c) admin Slack feedback on either failure (no silent drops). TD-021 (WF-33 APPROVE state guard) and TD-022 (WF-42 CLOSE state guard) already exist — confirm they emit admin feedback, not silent drops. Remediate gaps found.
     priority: P2
-    status: pending
+    status: in-progress
+    started_at: 2026-05-23T00:58:20Z
     batch: 2
     depends_on:
       - id: SP-01
