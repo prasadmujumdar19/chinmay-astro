@@ -3,8 +3,25 @@ input_source: inline-20260522-102910
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/inline-20260522-102910/working.md
 planned_at: 2026-05-22T10:29:10Z
-last_updated: 2026-05-23T11:24:13Z
+last_updated: 2026-05-23T12:25:00Z
 planning_complete: true
+drift_check_deferred:
+  status: deferred
+  decided_at: 2026-05-23T11:52:00Z
+  decided_by: user (explicit, in-session)
+  defer_until: |
+    Two preconditions must both be satisfied before /n8n-whatsapp-methodology:pseudo-md-drift-check is run again on this project:
+      1. SP-10 plugin update — ALL FOUR invocations landed. Current status (2026-05-23T12:25Z): Invocation 1 (c+n+g → 1.26.0) done; Invocation 2 (j+k+m → 1.27.0) done; Invocations 3 (a+b+d+h → 1.28.0), 4 (e+f+i → 1.28.1) NOT started.
+      2. SP-05 "enhanced scope" — the Contract-First Sub-Workflow Calls multi-sprint initiative (deferred from SP-05 per its `decision_required` block, line ~125) brainstormed, planned, and executed to completion. This initiative will substantially rewrite sub-workflow .pseudo Inputs sections (D9 contract declarations) and convert all 18 defineBelow+schema:[] call sites to Set+passthrough — both of which are the dominant drift sources today.
+    Running drift-check before BOTH are done burns ~15 min walking a tracker whose findings are already known to be cascading D9 / D4 contract drift that the planned plugin + sprint work explicitly remediates.
+  if_gate_fires: |
+    pre-build-sprint-drift-gate.sh (plugin v1.26.0, unchanged in v1.25/1.26 cache) will BLOCK every /build-sprint invocation until docs/artefacts/drift-checks/.last-run exists with status=CLEAN, age ≤24h. There is no hook-side override flag. When the gate fires on a fresh session:
+      1. Do NOT auto-run /n8n-whatsapp-methodology:pseudo-md-drift-check.
+      2. Surface this deferral block to the user verbatim and confirm they still want to proceed with the deferral.
+      3. If yes, options to unblock SP-10 Invocation 2+ work: (a) ask the user to temporarily disable the hook in .claude/settings.local.json for the session, then re-enable; (b) work the plugin updates by direct invocation of `n8n-whatsapp-methodology:flush-plugin-improvements` (NOT /build-sprint) so the gate hook never fires — the flush-plugin-improvements skill is the actual mechanic for SP-10 invocations and is not gated; (c) the user manually toggles permission on the BLOCKED Skill call.
+      Option (b) is the cleanest: SP-10's execution_sub_plan explicitly says "Next concrete step: invoke flush-plugin-improvements" — we don't need /build-sprint to drive SP-10 work, that was a convenience entry point.
+  partial_run_today: |
+    A drift-check was started at 2026-05-23T11:31:17Z (this session, before user interrupt). Compared WF-00 (CLEAN) and WF-01 (🔴 DRIFT: D4 WF-21 call payload mismatch + D9 vague Inputs section). Aborted at WF-02 read. Tracker and folder removed at 2026-05-23T11:52:00Z; the WF-01 findings are not lost — they are restated here and will be re-derived correctly by the next drift-check run after SP-10 + SP-05-expanded land. Both findings are exactly the class SP-10 principle (n) + the Contract-First initiative are designed to eliminate.
 context: |
   Sprint scope was derived from a session-long interactive walk-through of the 2026-05-22 pseudo↔live drift report (6 flagged workflows: WF-12, WF-23, WF-41, WF-46, WF-51, WF-60). For each, we discussed whether pseudocode or live code should be treated as authoritative, given functional position in the user journey, history (e.g. TD-002 multi-transport rebuild, DR-10 channel-archival rule, deactivation history), and surrounding architectural concerns. Several items grew beyond their original audit-finding scope when surrounding investigation revealed systemic issues (passthrough vs defineBelow contract pattern; postgres `alwaysOutputData` hygiene; admin-action precondition feedback gaps; postgres unquoted-camelCase SQL alias lowercasing).
 dependency_conflicts_found: []
@@ -265,8 +282,25 @@ items:
           - matches expected count: 18 defineBelow sites (SP-05 audit) + ~10 additional Code-upstream cases not in original audit + 19 Set v3.4 derive-pattern instances
       - invocation: 2
         principles: [j, k, m]
-        plugin_version: 1.27.0 (pending)
-        status: not-started
+        plugin_version: 1.27.0
+        commit: 9a7ed81
+        landed_at: 2026-05-23T12:25:00Z
+        landed_files:
+          - skills/build-workflow/SKILL.md (Step 5 scope rubric split: jq-on-disk vs author-fresh; new Step 5e.0 Author-fresh gate with explicit-approval + 3 justification criteria; new Step 5e.1a typeVersion floor with pre-PUT snapshot + post-PUT array-diff procedure; new Step 5g Message authoring conventions with forbidden-token table + small-business-owner sanity test; Step 6 lint enumeration updated with both new advisory checks)
+          - scripts/lint-workflows.py (FORBIDDEN_MESSAGE_TOKENS regex set + scan helpers; forbidden_tokens_in_message_strings check on Set assignments + Code jsCode string literals ≥12 chars, bypass via lint-allow: message-tone-bypass note; check_typeversion_bump_against_live function + --typeversion-snapshot CLI flag with per-workflow guard; manual arg parser with --help)
+          - CHANGELOG.md, .claude-plugin/plugin.json, .claude-plugin/marketplace.json (1.26.0 → 1.27.0)
+        cache_sync:
+          - cache dir renamed 1.26.0 → 1.27.0
+          - symlink 1.26.0 → 1.27.0 created
+          - installed_plugins.json + marketplace cache plugin.json updated
+        verification:
+          - python3 -c ast.parse on updated lint-workflows.py — OK
+          - python3 scripts/lint-workflows.py --help — prints updated module docstring with both new checks listed
+          - python3 scripts/lint-workflows.py workflows/ (chinmay-astro, 27 workflows) — 153 advisory findings, 0 fails, exit 0
+          - new j-check (forbidden tokens) flagged 2 legitimate-false-positive jsCode literals (WF-01 'Prepare User Data', WF-10 'Build WF-60 Payload (Slack Inbound)') — both internal field-name patterns in Code-node logic, not delivered-message text; exactly the false-positive class the advisory severity is designed for
+          - new m-check (typeVersion bump) smoke-tested with synthetic pre-snapshot {set:[3.3], if:[2.2]} against WF-01 post — correctly flagged set 3.4 and if 2 as new, plus 4 .types not present in pre
+          - 3-file version-drift script: CHANGELOG / plugin.json / marketplace.json all show 1.27.0
+          - 4-source post-sync alignment script: cache dir / installed_plugins / marketplace cache / plugin.json all show 1.27.0
       - invocation: 3
         principles: [a, b, d, h]
         plugin_version: 1.28.0 (pending)
