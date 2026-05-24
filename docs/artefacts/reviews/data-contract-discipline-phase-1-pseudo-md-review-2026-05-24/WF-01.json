@@ -1,0 +1,75 @@
+{
+  "wf": "WF-01",
+  "summary_one_line": "Added Build WF-01 Envelope + Build WF-01 Envelope (Opted-Out) Code nodes and User-Load Gate + Anomaly Route? IF node to emit the §2.1 core envelope on every output branch before calling WF-02 or WF-21",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Major",
+      "title": "Step 9 pseudo claims opted-out envelope carries full user row, but implementation emits user:null",
+      "evidence": "docs/pseudocode/WF-01.pseudo:37 — 'build the §2.1 core envelope via the Build WF-01 Envelope (Opted-Out) Code node (re-SELECT or carry forward the full user row as needed to fill user.{id, phone_number, name, status, slack_channel_id, current_consultation_id})'; WF-01.md Build WF-01 Envelope (Opted-Out) jsCode — hardcodes user: null, pendingUser: null with no re-SELECT",
+      "recommended_action": "Either (a) reconcile pseudo Step 9 to acknowledge user is null on the opted-out branch (since Lookup: Blacklisted Users only fetches id/phone_number/status/blocked_reason and name/slack_channel_id/current_consultation_id are not available without a second SELECT), or (b) add a re-SELECT inside Build WF-01 Envelope (Opted-Out) to load the full user row. Option (a) is simpler and correct — WF-21 on the re-engagement path does not need user.slack_channel_id. Update pseudo Step 9 to state user:null is intentional on this branch."
+    },
+    {
+      "severity": "Minor",
+      "title": "Residual sub-letter step numbering (Steps 12a–12d) — known Wave-1 minimal-change reconciliation artifact",
+      "evidence": "docs/pseudocode/WF-01.pseudo:46-61 — Steps 12a, 12b, 12c, 12d exist rather than linear renumbering; state.md line 9 'residual sub-letters in step numbering (e.g. Step 12a, Step 12b) … Flag step-numbering as Minor unless it produces a see Step N that does not resolve'",
+      "recommended_action": "Full linear renumbering deferred per state.md; no Step N forward references are broken by sub-letters on this WF. Park as Wave-3 cleanup."
+    },
+    {
+      "severity": "Minor",
+      "title": "Step 18 WF-50 call uses legacy prose ('Please send text messages only. Images and audio are not supported.') — md shows corrected messageType:'text' + messageContent canonical fields",
+      "evidence": "docs/pseudocode/WF-01.pseudo:66 — 'Call WF-50 with phoneNumber and message …'; WF-01.md Silent Reject (Message Type) jsCode now emits { phoneNumber, messageType: 'text', messageContent: '…' } (per WF-01.md.diff hunk at line 87-88)",
+      "recommended_action": "Update pseudo Step 18 to say 'Call WF-50 with { phoneNumber, messageType: 'text', messageContent: \"…\" }' matching the §2.3-aligned jsCode in the md."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Blocker",
+      "title": "Build WF-01 Envelope reads d.user.slackChannelId but Prepare User Data never maps slack_channel_id to slackChannelId — user.slack_channel_id will always be null in the emitted envelope",
+      "evidence": "WF-01.md Build WF-01 Envelope jsCode line: 'slack_channel_id: d.user.slackChannelId || null'; WF-01.md Prepare User Data jsCode — userData object maps: id, phoneNumber, name, dateOfBirth, timeOfBirth, placeOfBirth, status, currentConsultationId, totalConsultations, context, createdAt, updatedAt, lastMessageAt, awaitingFeedback, blockedAt, blockedBy, blockedReason — slackChannelId is ABSENT. d.user.slackChannelId is always undefined → null. §2.1 requires user.slack_channel_id as a required envelope field consumed by every leaf posting to the consult channel.",
+      "recommended_action": "Add 'slackChannelId: userResult.slack_channel_id' to the userData object inside Prepare User Data jsCode (WF-01 n8n node). This is a live n8n fix. Alternatively, change Build WF-01 Envelope to read d.user.slack_channel_id (snake_case, directly from a pre-camelCase mapping path) — but the cleaner fix is to populate slackChannelId in Prepare User Data alongside currentConsultationId which IS already mapped correctly."
+    },
+    {
+      "severity": "Major",
+      "title": "Pseudo Step 12 documents Prepare User Data mapping of slackChannelId but the actual jsCode omits it",
+      "evidence": "docs/pseudocode/WF-01.pseudo:43 — 'map snake_case columns → camelCase fields: id, phoneNumber, name, dateOfBirth, timeOfBirth, placeOfBirth, status, currentConsultationId, totalConsultations, context, createdAt, updatedAt, lastMessageAt, awaitingFeedback, slackChannelId, stage, blockedAt, blockedBy, blockedReason, feedback'; WF-01.md Prepare User Data jsCode — slackChannelId absent from userData. This is not a pseudo-only doc gap; it reveals the root cause of the Blocker above.",
+      "recommended_action": "Fix the live jsCode (see Blocker finding above). Pseudo Step 12 already correctly declares slackChannelId — no pseudo edit needed; just the n8n node fix."
+    },
+    {
+      "severity": "Minor",
+      "title": "Commented-out dead code block in Prepare User Data jsCode (~80 lines) not reflected in pseudo",
+      "evidence": "WF-01.md Prepare User Data jsCode — large // commented-out block of prior implementation retained in the live node. Pseudo Step 12 does not mention this noise.",
+      "recommended_action": "Remove the commented-out block from the live n8n node in a follow-up housekeeping pass. No semantic impact but increases node size and review noise."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Blocker",
+      "title": "Same as Dimension B Blocker — slackChannelId missing from Prepare User Data → user.slack_channel_id always null in envelope (md evidence)",
+      "evidence": "WF-01.md.diff does not add slackChannelId to Prepare User Data jsCode (unchanged node). Build WF-01 Envelope jsCode (new node, diff lines +49–+55) reads d.user.slackChannelId which is never populated.",
+      "recommended_action": "Apply a targeted partial update to the Prepare User Data node in live n8n: add slackChannelId: userResult.slack_channel_id to the userData construction block."
+    },
+    {
+      "severity": "Minor",
+      "title": "node_count delta 18→24 (+6) — new nodes: Anomaly Route?, Build Admin Anomaly Alert, Build WF-01 Envelope, Build WF-01 Envelope (Opted-Out), Call WF-51 (Admin Anomaly Alert), User-Load Gate — all expected per manifest sub-5 scope",
+      "evidence": "WF-01.md.diff lines 9-13: node_count 18→24, live_updated_at updated; all 6 new nodes visible in diff as additions",
+      "recommended_action": "Expected change per manifest. No action."
+    },
+    {
+      "severity": "Minor",
+      "title": "Silent Reject (Message Type) jsCode updated to emit messageType:'text' + messageContent (was legacy message:) — expected WF-50 §2.3 alignment",
+      "evidence": "WF-01.md.diff lines 87-88: minus line uses legacy 'message:' key; plus line uses 'messageType: text, messageContent:' — matches WF-50 §2.3 contract requirement",
+      "recommended_action": "Expected change per §2.3 caller alignment. No action."
+    },
+    {
+      "severity": "Minor",
+      "title": "Connection rewiring: Opted Out? main#0 now routes to Build WF-01 Envelope (Opted-Out) instead of directly to Route Opted-Out to WF-21; Prepare User Data main#0 now routes to User-Load Gate instead of directly to Call WF-02 Rule Router — expected sprint additions",
+      "evidence": "WF-01.md.diff Connections section: minus lines show direct old routing; plus lines show new envelope/gate intermediaries",
+      "recommended_action": "Expected changes per sub-5 scope. No action."
+    }
+  ],
+  "questions_for_human": [
+    "BLOCKER RESOLUTION PATH: The slackChannelId omission in Prepare User Data is a live n8n bug introduced before this sprint (the node predates the sprint; Build WF-01 Envelope assumed camelCase mapping was complete). The fix is a single-line addition to the existing Prepare User Data jsCode. Should this be applied as an inline hotfix before the WF-02 entry guard (sub-8) runs in testing — since WF-02's guard validates the envelope and a null slack_channel_id would pass guard but silently corrupt every consult-channel leaf?",
+    "OPTED-OUT ENVELOPE: The Build WF-01 Envelope (Opted-Out) node intentionally sets user:null. WF-21 is called on this path. Does WF-21 require user.slack_channel_id or user.id from the envelope, or does it create a fresh user and can safely receive user:null? If WF-21 needs any user fields from the envelope, a second SELECT would be needed inside Build WF-01 Envelope (Opted-Out) — or user fields could be backfilled from Lookup: Blacklisted Users output (which provides id/phone_number/status/blocked_reason)."
+  ]
+}

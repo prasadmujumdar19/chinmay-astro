@@ -1,0 +1,50 @@
+{
+  "wf": "WF-43",
+  "summary_one_line": "Extract Gemini Reply jsCode rewritten to emit canonical WF-50 shape (messageType:'text' + messageContent) replacing legacy message: key; Gemini HTTP node also gained retryOnFail:true/maxTries:3 (undocumented in sub-12.md)",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Nit",
+      "title": "Step 4 passes 'userId' but envelope field is user.id — pseudo informal shorthand",
+      "evidence": "docs/pseudocode/WF-43.pseudo:23 — 'Call WF-45 (Rebook) with phoneNumber, userId' vs. Step 6 which correctly says 'userId (user.id)'",
+      "recommended_action": "Optionally make Step 4 consistent with Step 6 phrasing: 'userId (user.id)'. Low priority — both Route to Rebook WF-45 nodes use passthrough so no runtime impact."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Minor",
+      "title": "Prompt for Feedback node uses emoji literal in .md; pseudo uses Unicode escape text — cosmetic only",
+      "evidence": "docs/pseudocode/WF-43.md:93 — emoji stored as literal Unicode code points (\\u270d\\ufe0f) in jsCode JSON; docs/pseudocode/WF-43.pseudo:24 — renders as '✍️'. Same character, different representation in source.",
+      "recommended_action": "No action needed — runtime behaviour identical. Note for completeness."
+    },
+    {
+      "severity": "Minor",
+      "title": "TD-DRIFT-009 noted in pseudo Summary but not reflected in .md node comments",
+      "evidence": "docs/pseudocode/WF-43.pseudo:9-10 — Summary Notes block cites TD-DRIFT-009 and states passthrough mode passes messageContent correctly. docs/pseudocode/WF-43.md:18-23 — Call WF-25 node uses mappingMode:passthrough with no comment.",
+      "recommended_action": "Known deferred bug per sub-12.md notes. No .md change needed — the .md node accurately reflects live state. Pseudo note is informational."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Major",
+      "title": "Undocumented functional change: retryOnFail:true/maxTries:3 added to Gemini General Response HTTP node",
+      "evidence": "docs/pseudocode/WF-43.md diff hunk 3 (lines 29-33 of diff): '+- error handling: +{\"retryOnFail\":true,\"maxTries\":3}' on the 'Gemini General Response' httpRequest node. sub-12.md WF-43 section lists only Extract Gemini Reply jsCode change — no mention of retry configuration.",
+      "recommended_action": "Either (a) confirm this retry addition was intentional and add a note to sub-12.md WF-43 section to retroactively document it, or (b) if unintentional (e.g. accidentally applied from another WF's edit), revert in n8n and regenerate .md. The retry policy itself is not harmful but it is an undocumented functional delta that the sprint plan doesn't account for."
+    },
+    {
+      "severity": "Nit",
+      "title": "Frontmatter timestamps updated — expected regen noise",
+      "evidence": "docs/pseudocode/WF-43.md diff hunk 1: live_updated_at 2026-05-18 → 2026-05-24, generated_at updated. Reflects actual n8n update timestamp.",
+      "recommended_action": "No action — correct and expected."
+    },
+    {
+      "severity": "Nit",
+      "title": "Extract Gemini Reply jsCode change — expected sprint change, confirmed clean",
+      "evidence": "docs/pseudocode/WF-43.md diff hunk 2: 'message: reply' replaced by 'messageType: \\'text\\', messageContent: reply'. Matches sub-12.md WF-43 node_modifications[0].new_jsCode exactly. No legacy 'message:' key remains.",
+      "recommended_action": "No action — correct."
+    }
+  ],
+  "questions_for_human": [
+    "Was the retryOnFail:true/maxTries:3 on the Gemini General Response HTTP node intentional as part of this sprint, or was it an accidental side-effect of the n8n edit session? sub-12.md does not mention it for WF-43. If intentional, please add a note to sub-12.md so the audit trail is complete."
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "wf": "WF-00",
+  "summary_one_line": "Added transport:'wa' discriminator field to the Build WF-60 Payload (Inbound) Code node, enabling WF-60's Phase-1 entry guard to accept this call; also surfaced an out-of-scope onError addition on the WhatsApp Webhook trigger node.",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Minor",
+      "title": "Residual sub-letter step numbering (Step 8a) — known reconciliation artifact",
+      "evidence": "docs/pseudocode/WF-00.pseudo:36 — 'Step 8a:'; state.md line 9 ('residual sub-letters in step numbering (12a, 12b) are KNOWN minimal-change reconciliation artifacts per state.md — Minor only'); manifest §Known cross-cutting items #2",
+      "recommended_action": "No action required this sprint. Park for full linear renumbering pass post-Phase-1."
+    },
+    {
+      "severity": "Minor",
+      "title": "WhatsApp Webhook trigger onError='continueRegularOutput' not documented in pseudo",
+      "evidence": "docs/pseudocode/WF-00.pseudo has no mention of onError on the trigger node; WF-00.md line 136-140 shows onError:continueRegularOutput on the WhatsApp Webhook trigger node; this setting was added in the same sprint edit as confirmed by the .md diff hunk at line 133-140",
+      "recommended_action": "Add a note to pseudo Step 1 (or a bullet in the Summary) documenting that the WhatsApp Webhook trigger has onError='continueRegularOutput'. Low urgency — trigger-node onError is effectively inert for routing — but pseudo should mirror .md state."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Minor",
+      "title": "Trigger node onError setting present in .md but absent from .pseudo",
+      "evidence": "docs/pseudocode/WF-00.md lines 136-140: WhatsApp Webhook node shows '{\"onError\":\"continueRegularOutput\"}'; docs/pseudocode/WF-00.pseudo: no mention of this setting on Step 1 (trigger). The WF-60 call onError is correctly documented in both (pseudo Step 8a prose; .md lines 42-46).",
+      "recommended_action": "Update pseudo Step 1 to note onError='continueRegularOutput' on the trigger node, matching .md. Minor drift — does not affect runtime correctness reasoning."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Nit",
+      "title": "Frontmatter live_updated_at / generated_at timestamps updated — expected regen noise",
+      "evidence": "WF-00.md.diff lines 9-12: live_updated_at 2026-05-21→2026-05-24T16:44:00.594Z; generated_at 2026-05-22→2026-05-24T18:44:35Z. Expected after between_waves_step .md regeneration.",
+      "recommended_action": "No action."
+    },
+    {
+      "severity": "Nit",
+      "title": "transport:'wa' addition in Build WF-60 Payload (Inbound) jsCode — expected sprint change",
+      "evidence": "WF-00.md.diff lines 20-21: return object gains transport:'wa' field before direction:'inbound'. Matches manifest §WF-00 '1-line sprint intent' and §2.6 contract.",
+      "recommended_action": "No action — correct and complete."
+    },
+    {
+      "severity": "Nit",
+      "title": "onError:continueRegularOutput added to Call WF-60 Message Logger — expected sprint change",
+      "evidence": "WF-00.md.diff lines 29-33: new error handling block on the executeWorkflow node. Matches pseudo Step 8a prose ('failures here MUST NOT block routing — wrap in onError=continueRegularOutput') and is within the sprint's stated scope for WF-00.",
+      "recommended_action": "No action — correct and complete."
+    },
+    {
+      "severity": "Minor",
+      "title": "onError:continueRegularOutput added to WhatsApp Webhook trigger node — not in sprint scope",
+      "evidence": "WF-00.md.diff lines 42-46: new error handling block on the WhatsApp Webhook trigger (type n8n-nodes-base.webhook v2). State.md sub-7 scope (line 143-144) states only 'Rename Build WF-60 Payload node … Update WF-00.pseudo Inputs/Outputs blocks for the renamed node' — no mention of adding onError to the trigger. No sub-plan covers this. The setting is harmless on a trigger node (continueRegularOutput on a trigger node has no effect on the execution path since trigger nodes don't participate in error-handling chains the same way), but it is an undocumented out-of-scope change.",
+      "recommended_action": "Confirm with sprint owner whether this onError was an intentional companion to the WF-60 call onError (e.g. to handle trigger-level webhook delivery failures gracefully) or an accidental side-effect of the n8n partial update. If intentional: add a note to pseudo Step 1 and state.md sub-7 verify entry. If accidental: revert via mcp__n8n__n8n_update_partial_workflow removing the onError block from the WhatsApp Webhook node. Either way: update pseudo to match."
+    }
+  ],
+  "questions_for_human": [
+    "The WhatsApp Webhook trigger node gained onError:'continueRegularOutput' in this sprint (visible in .md diff). Sub-7 scope only covers the Build WF-60 Payload node change. Was this intentional (e.g. to make the entry point resilient to upstream delivery errors) or an inadvertent side-effect? The pseudo does not document it either way."
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "wf": "WF-20",
+  "summary_one_line": "Send HELP Response renamed messageBody→messageContent + messageType:'text' added; 5 user.status ternary branches updated from flat userStatus; Normalize Keyword userId expression hardened from optional-chain to direct property access.",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Minor",
+      "title": "Step 5 references `userStatus` local that is never assigned in this WF",
+      "evidence": "docs/pseudocode/WF-20.pseudo:36 — 'Step 5: Call WF-47 (Unsubscribe) with phoneNumber, userId, userStatus.' Step 2 declares 'Carry forward phoneNumber, userId, messageContent as messageText' — no `userStatus` carry-forward. sub-12.md explicitly notes 'userStatus carry-forward NOT added (TD-DRIFT-006 deferred)'.",
+      "recommended_action": "Update Step 5 in WF-20.pseudo to read: 'Call WF-47 (Unsubscribe) with phoneNumber, userId. (userStatus not passed — TD-DRIFT-006 deferred.)' This matches the actual Normalize Keyword node output and the sub-12.md deferred-bug note."
+    },
+    {
+      "severity": "Minor",
+      "title": "Step 1 introduces `userStatus` as a local alias but Step 2 does not include it in the carry-forward list",
+      "evidence": "docs/pseudocode/WF-20.pseudo:20 defines `userStatus (from envelope user.status)` as a named input in Step 1, but Step 2 (line 22) lists 'Carry forward phoneNumber, userId, messageContent as messageText' — userStatus is absent, which is intentional (TD-DRIFT-006) but inconsistent with Step 1's declaration implying it will be available downstream.",
+      "recommended_action": "Add a clarifying note in Step 1 or Step 2: 'userStatus is NOT carried forward by Normalize Keyword (TD-DRIFT-006 deferred — WF-47 path does not receive userStatus).' Keeps the pseudo honest about runtime state."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Blocker",
+      "title": "Call WF-47 Unsubscribe node passes `$json.userStatus` which is never set by Normalize Keyword — runtime expression evaluates to undefined/empty on the STOP path",
+      "evidence": "docs/pseudocode/WF-20.md (node: 'Call WF-47 Unsubscribe', workflowInputs): `\"userStatus\":\"={{ $json.userStatus }}\"`. Normalize Keyword node (same .md) only assigns: keyword, phoneNumber, userId, messageText. No `userStatus` assignment exists. sub-12.md WF-20 edit plan adds no userStatus carry-forward ('userStatus carry-forward NOT added (TD-DRIFT-006 deferred)'). The STOP keyword path will relay an empty userStatus to WF-47 at runtime.",
+      "recommended_action": "This is a pre-existing bug (TD-DRIFT-006), not introduced by this sprint. However, the pseudo (Step 5) now documents 'Call WF-47 with phoneNumber, userId, userStatus' which is inconsistent with actual runtime behaviour. Two options: (a) accept as known TD-DRIFT-006 and downgrade to Major if WF-47 handles null/empty userStatus safely, or (b) treat as Blocker since the .md node expression `$json.userStatus` will silently pass undefined to WF-47. Recommend verifying WF-47's handling of empty userStatus before shipping, and updating pseudo Step 5 to omit userStatus to match reality."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Nit",
+      "title": "Timestamp metadata update only — expected regen artifact",
+      "evidence": "WF-20.md.diff lines 9-12: live_updated_at and generated_at updated to 2026-05-24 values.",
+      "recommended_action": "No action needed — normal .md regeneration after n8n edit."
+    },
+    {
+      "severity": "Nit",
+      "title": "Normalize Keyword: $json.user?.id → $json.user.id — expected sprint change",
+      "evidence": "WF-20.md.diff line 21: k3 assignment changed from optional-chain to direct property access. Matches sub-12.md edit plan and manifest intent.",
+      "recommended_action": "No action needed — correct and intentional."
+    },
+    {
+      "severity": "Nit",
+      "title": "Send HELP Response: messageBody→messageContent + messageType:'text' + user.status ternary — all expected sprint changes",
+      "evidence": "WF-20.md.diff lines 29-30: canonical WF-50 caller shape applied. Matches sub-12.md template exactly. §2.3 contract satisfied.",
+      "recommended_action": "No action needed — correct and intentional."
+    }
+  ],
+  "questions_for_human": [
+    "TD-DRIFT-006: The Normalize Keyword node intentionally does NOT carry forward userStatus to the WF-47 call (per sub-12.md). The Call WF-47 Unsubscribe node in the .md still passes `$json.userStatus` which will be undefined/empty at runtime. Is WF-47 defensive against a null/missing userStatus input? If not, this is a latent runtime defect on the STOP keyword path — not introduced by this sprint but worth confirming before go-live. The pseudo Step 5 should be corrected regardless to omit userStatus from the WF-47 call description."
+  ]
+}

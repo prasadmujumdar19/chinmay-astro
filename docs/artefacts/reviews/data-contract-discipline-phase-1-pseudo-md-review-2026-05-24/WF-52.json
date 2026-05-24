@@ -1,0 +1,63 @@
+{
+  "wf": "WF-52",
+  "summary_one_line": "Added Validate Inputs entry guard (Step 2) for phoneNumber/name/userId; removed phone_number and userName legacy fallbacks from inputs block; step-renumbered 1–11 linearly.",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Minor",
+      "title": "Step 9 pseudo merges two distinct nodes (Filter + Return) into one step",
+      "evidence": "docs/pseudocode/WF-52.pseudo:42 — Step 9 reads 'Filter that list for the one whose name equals the prepared channelName, then build existing-channel return'. The live .md has two separate nodes: 'Filter - Existing User Channel' (filter v2.2) and 'Return Channel Info - Existing' (code v2), each with their own connection topology.",
+      "recommended_action": "Split pseudo Step 9 into Step 9 (Filter — find channel whose name equals channelName, go to Step 10) and Step 10 (Build existing-channel return: {success:true, channelId, channelName, channelUrl, isNew:false}, go to Step 12); renumber Step 10→11 Error and Step 11→12 End accordingly. Alternatively accept the merge as intentional prose-level compression if the project treats filter+transform as a single logical step — but document the convention."
+    },
+    {
+      "severity": "Minor",
+      "title": "Entry guard pseudo spec says 'name is a non-empty string' but live guard only checks typeof, not empty",
+      "evidence": "docs/pseudocode/WF-52.pseudo:31 — Step 2 states 'name is a non-empty string'. Live Validate Inputs jsCode (docs/pseudocode/WF-52.md:101) checks only `typeof input.name !== 'string'`, without the `|| input.name.trim() === ''` trim-guard that phoneNumber has.",
+      "recommended_action": "Either (a) tighten the jsCode guard to also reject empty-string name (matching the pseudo spec), or (b) update the pseudo to say 'name is a string (may be empty)' if empty name is acceptable for this field. Given name is used for channel-creation context, non-empty is the safer choice."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Blocker",
+      "title": "'Prepare Channel Name' node jsCode still contains legacy phone_number and userName fallbacks — contradicts both the pseudo and the entry guard contract",
+      "evidence": "docs/pseudocode/WF-52.md:69 — jsCode: `const phoneNumber = input.phone_number || input.phoneNumber || '';` and `userName: input.name || input.userName || ''`. The pseudo Step 3 (docs/pseudocode/WF-52.pseudo:32) states only 'channelName = \"consult-\" + phoneNumber. Carry name, phoneNumber, userId forward' with no fallback. The Inputs block (pseudo line 17) explicitly states 'Legacy aliases removed: phone_number and userName are no longer accepted.' The node was not updated as part of this sprint.",
+      "recommended_action": "Update 'Prepare Channel Name' jsCode in live n8n: (1) remove `input.phone_number || ` prefix from phoneNumber resolution (guard already ensures input.phoneNumber exists); (2) remove `|| input.userName` fallback from the userName key; (3) rename the emitted key from `userName` to `name` to match canonical contract — the node currently emits `userName:` in its output object, but callers and the pseudo expect `name`. Verify no downstream node in WF-52 reads `$json.userName` after this fix (only 'Create Slack Channel' is next; it reads channelName, not userName/name, so the rename is safe)."
+    },
+    {
+      "severity": "Minor",
+      "title": "'Prepare Channel Name' node emits output key 'userName' but pseudo carries field as 'name'",
+      "evidence": "docs/pseudocode/WF-52.md:69 — emitted object has key `userName: input.name || input.userName || ''`. docs/pseudocode/WF-52.pseudo:32 — Step 3 says 'Carry name, phoneNumber, userId forward'. No downstream node within WF-52 consumes this key, so no runtime break, but the pseudo↔.md field-name mismatch is a documentation contract violation.",
+      "recommended_action": "Covered by the Blocker finding above — rename emitted key to 'name' when fixing the fallback removal."
+    },
+    {
+      "severity": "Minor",
+      "title": "'Return Error - Slack Failure' jsCode comment references stale step number 'Step 6a'",
+      "evidence": "docs/pseudocode/WF-52.md:93 — comment `// WF-52 Step 6a — structured error return`. After sprint renumbering this node corresponds to Step 10 in the pseudo (docs/pseudocode/WF-52.pseudo:43).",
+      "recommended_action": "Update the jsCode comment from 'Step 6a' to 'Step 10' at next n8n edit opportunity. Low urgency — cosmetic only."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Minor",
+      "title": "node_count and live_updated_at / generated_at metadata update — Expected regen",
+      "evidence": "WF-52.md.diff lines 9–14: node_count 10→11, live_updated_at 2026-05-17T14:20:54.437Z→2026-05-24T16:45:31.304Z, generated_at updated. Expected — entry guard node added (sub-1), .md regenerated as part of between_waves_step.",
+      "recommended_action": "No action."
+    },
+    {
+      "severity": "Minor",
+      "title": "'Create Slack Channel' onError:continueErrorOutput surfaced in regen — Expected noise",
+      "evidence": "WF-52.md.diff lines 30–35: error handling block `{\"onError\":\"continueErrorOutput\"}` added to Create Slack Channel. This node's main#1 error-output connection to Check if Name Taken Error already existed in the prior .md (visible in the pre-sprint connections block). The setting was always in live n8n; prior .md generation simply omitted it. This is .md regen fidelity improvement, not a functional change.",
+      "recommended_action": "No action — Expected regeneration artifact confirming pre-existing live configuration."
+    },
+    {
+      "severity": "Minor",
+      "title": "New 'Validate Inputs' node and rewired trigger connection — Expected per sprint",
+      "evidence": "WF-52.md.diff lines 43–60: Validate Inputs code node added with correct §2.5 guard jsCode (phoneNumber string+non-empty, name string, userId integer). Connection When Executed by Another Workflow → Validate Inputs → Prepare Channel Name. Matches sprint TD-DCP-010 / sub-1 scope and §2.5 entry guard canonical reference. state.md sub-1 scope_summary confirms 'Add Validate Inputs entry-guard Code node as first node per design.md §2.5.'",
+      "recommended_action": "No action — change is correct and expected."
+    }
+  ],
+  "questions_for_human": [
+    "Blocker B-D1: 'Prepare Channel Name' jsCode was not updated in this sprint — the legacy phone_number and userName fallback removal was scoped only to the Inputs block and entry guard. Was the Prepare Channel Name node cleanup intentionally deferred, or is this an oversight? (The entry guard means the fallback code path is now dead code, but the emitted 'userName' key name mismatch is a live pseudo↔md contract gap.)",
+    "Pseudo step compression: Step 9 currently merges 'Filter' + 'Return' into one step. Is this intentional editorial compression, or should the pseudo be split to mirror the two-node reality? Affects future .md generation freshness assertions."
+  ]
+}

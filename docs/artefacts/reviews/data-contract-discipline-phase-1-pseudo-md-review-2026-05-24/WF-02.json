@@ -1,0 +1,44 @@
+{
+  "wf": "WF-02",
+  "summary_one_line": "Added Validate Inputs entry guard (Code v2) as first node validating WF-01 §2.1 envelope (phoneNumber, messageType, messageContent, user fields, pendingUser presence); trigger rewired through guard; incidental improvement to Build UNHANDLED Alert formatting.",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Minor",
+      "title": "Step 5a sub-letter in step numbering (known reconciliation artifact)",
+      "evidence": "docs/pseudocode/WF-02.pseudo:37-39 — Step 5a used rather than renumbering Step 6→7→8 linearly",
+      "recommended_action": "Known cross-cutting item per manifest §'Known cross-cutting items' item 2 (Wave 2 minimal-change reconciliation). Full linear renumbering deferred; all 'see Step N' forward refs resolve correctly (Step 5 → 5a → 6, Step 3 → 6 both resolve). No action required this sprint."
+    },
+    {
+      "severity": "Minor",
+      "title": "Guard reads trigger node by name ($('When Executed by Another Workflow').item.json) rather than $input.first().json",
+      "evidence": "docs/pseudocode/WF-02.pseudo:14-20 says 'Read envelope from the workflow trigger' — pseudo is silent on the read expression. docs/pseudocode/WF-02.md:159 jsCode uses $('When Executed by Another Workflow').item.json. Canonical guard pattern in contracts.md §2.3 uses $input.first().json.",
+      "recommended_action": "Both are functionally equivalent in n8n (trigger node is the only upstream node). The divergence from the canonical pattern in §2.3 is a stylistic inconsistency, not a runtime risk. Flag as Minor; align to $input.first().json in a future cleanup pass for consistency across all entry guards."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Nit",
+      "title": "Pseudo Step 1 does not specify the read expression used by the guard (node-name ref vs $input)",
+      "evidence": "docs/pseudocode/WF-02.pseudo:14 says 'Read envelope from the workflow trigger' — implementation detail (node-name ref) is not documented. docs/pseudocode/WF-02.md:159 shows $('When Executed by Another Workflow').item.json.",
+      "recommended_action": "No semantic drift — pseudo intentionally omits implementation detail. Nit only; no action required."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Minor",
+      "title": "Build UNHANDLED Alert jsCode modified but not listed in sub-8 scope",
+      "evidence": "docs/pseudocode/WF-02.md.diff hunk starting at line 31 — Build UNHANDLED Alert jsCode replaced: message now multi-line, content truncation extended 120→200 chars, 'pendingUser' label changed to 'Onboarding in progress'. sub-8.md node_modifications is empty ([]) and state.md sub-8 entry says only '1 node added (Validate Inputs); trigger rewired' — no mention of UNHANDLED Alert edit.",
+      "recommended_action": "Change is non-breaking and an improvement; pseudo was updated in sync (Step 6 UNHANDLED branch matches new message text). No functional regression. Document as an out-of-scope cosmetic change that landed alongside sub-8. No rollback required, but should be noted in sprint handoff for traceability."
+    },
+    {
+      "severity": "Nit",
+      "title": "node_count increment 18→19 and timestamp updates",
+      "evidence": "docs/pseudocode/WF-02.md.diff lines 9-14 — node_count, live_updated_at, generated_at all updated.",
+      "recommended_action": "Expected .md regeneration metadata. No action."
+    }
+  ],
+  "questions_for_human": [
+    "The Build UNHANDLED Alert node was modified (message format + 120→200 char truncation) as part of the sub-8 apply session, but sub-8.md scope only describes adding the Validate Inputs guard. Was this intentional (main-thread improvement applied opportunistically) or an unintended edit that should be tracked separately? No functional risk either way, but traceability note may be useful for state.md."
+  ]
+}

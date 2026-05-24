@@ -1,0 +1,63 @@
+{
+  "wf": "WF-10",
+  "summary_one_line": "Wave 1 added Build WF-10 Command Envelope + Build WF-10 Relay Envelope Code nodes (sub-6a); Wave 2 reconciled pseudo with 6 WF-51 caller renames, WF-60 Slack-inbound payload rename, and inline documentation of known-incomplete SELECT (sub-6b).",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Major",
+      "title": "Command Envelope user.slack_channel_id will always be null — gap undocumented in Step 22",
+      "evidence": "docs/pseudocode/WF-10.pseudo:99 (Step 17 SELECT: `id, status, name, phone_number` — no slack_channel_id column); docs/pseudocode/WF-10.pseudo:125 (Step 22 states Command Envelope emits `user:{id, name, phone_number, status, slack_channel_id}`); WF-10.md Build WF-10 Command Envelope jsCode reads `row.slack_channel_id` from Load User Status. State.md followup #2 documents the SELECT gap but only names current_consultation_id — slack_channel_id is also missing from the SELECT. sub-6b.md drift findings list omits this column.",
+      "recommended_action": "Either (a) add slack_channel_id to the Load User Status SELECT in Step 17 (and update the pseudo), or (b) add a note in Step 22 matching Step 23a's documented gap — 'slack_channel_id is emitted as null until Phase-2 SELECT expansion.' The contract table in §2.2 lists slack_channel_id as a required field on the user object for the Command Envelope. state.md followup #2 should be updated to name both missing columns (current_consultation_id AND slack_channel_id)."
+    },
+    {
+      "severity": "Minor",
+      "title": "Step 23a uses sub-letter numbering (residual Wave-1 reconciliation artifact)",
+      "evidence": "docs/pseudocode/WF-10.pseudo:131 — 'Step 23a:' inserted between Step 23 and Step 24. Known per manifest cross-cutting item #2 (Wave 1 pseudos may retain residual sub-letters; full linear renumbering deferred). No 'see Step N' dangling reference introduced.",
+      "recommended_action": "Deferred per manifest — renumber linearly in a follow-up pass. No blocker."
+    },
+    {
+      "severity": "Minor",
+      "title": "commandType enum abbreviated forms in DR-13 prose (known cross-cutting item)",
+      "evidence": "docs/pseudocode/WF-10.pseudo:11-12 — DR-13 block lists 'CLOSE CHAT CONSULT / CLOSE CONSULTATION / CLOSE CONSULT / CLOSE' and 'BLOCK', 'UNBLOCK' as aliases without the FULL canonical enum forms (CLOSE_CONSULTATION, BLOCK_USER, UNBLOCK_USER). These are alias display labels, not enum values, so functional impact is nil — but the proximity to §2.2 could mislead. Known cross-cutting item per manifest #1.",
+      "recommended_action": "Known and parked. No action this sprint. Could add a parenthetical '(canonicalises to CLOSE_CONSULTATION)' etc. on a follow-up doc pass."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Minor",
+      "title": "Step 23 pseudo retains intermediate adminMessage key without cross-reference to Relay Envelope translation",
+      "evidence": "docs/pseudocode/WF-10.pseudo:127-130 (Step 23 Set node emits `adminMessage`); WF-10.md Build WF-41 Payload Set node confirms `adminMessage` key; Step 23a then maps `inp.adminMessage → messageText` in Relay Envelope. The translation is correct and documented, but the pseudo Summary block (line 10) says the Relay Envelope carries `messageText` — a reader jumping from the Summary to Step 23 (before Step 23a) sees `adminMessage` with no inline note that this is an intermediate shape.",
+      "recommended_action": "Add a one-line note in Step 23 prose: '(intermediate shape; Build WF-10 Relay Envelope at Step 23a translates adminMessage → messageText per §2.2)'. Low priority — no functional impact."
+    },
+    {
+      "severity": "Nit",
+      "title": "Pseudo Summary line 18 says WF-10 passes {phoneNumber, adminMessage} to WF-41 but post-Wave-1 the Relay Envelope replaces that shape",
+      "evidence": "docs/pseudocode/WF-10.pseudo:18 — 'WF-10 passes … {phoneNumber, adminMessage} (camelCase) to WF-41'. After sub-6a, WF-41 now receives the Relay Envelope (messageText not adminMessage). The Build WF-41 Payload Set node is still an intermediate step, but the final shape dispatched to WF-41 is the Relay Envelope.",
+      "recommended_action": "Update Ambiguities/Notes line 18 to read 'WF-10 passes the Relay Envelope {phoneNumber, messageText, user, adminUserId, channelId, channelName} to WF-41 (built by Build WF-10 Relay Envelope Code node per §2.2)'. Minor doc cleanup."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Major",
+      "title": "Webhook trigger node has onError:continueRegularOutput — not in any sub-plan; violates error-handling design rule",
+      "evidence": "WF-10.md diff hunk at line 357+: `{\"onError\":\"continueRegularOutput\"}` added to the Webhook node (Slack Events API entry point). sub-6b.md n8n edit plan lists node_additions/modifications/removals all empty (no n8n edits). sub-6a scope was 'envelopes only'. CLAUDE.md Design Rule: 'Do NOT add error handling beyond the entry guard pattern.' The Webhook trigger's continueRegularOutput means that if the trigger itself errors, execution silently continues — this could swallow Slack signature verification failures or malformed webhook bodies instead of returning a 4xx to Slack. No sprint doc (sub-6a, sub-6b, design.md §2.2) authorizes this.",
+      "recommended_action": "Confirm whether this change was intentional (perhaps added manually outside sprint scope) or an accidental Wave-1 subagent side-effect. If unintentional, remove onError from the Webhook node. If intentional (e.g. to prevent Slack retry storms), add a note in state.md with rationale and cross-reference sub-6a."
+    },
+    {
+      "severity": "Minor",
+      "title": "onError:continueRegularOutput on Call WF-60 Message Logger — not in sub-plan but functionally correct",
+      "evidence": "WF-10.md diff hunk at line 53+: `{\"onError\":\"continueRegularOutput\"}` added to Call WF-60 Message Logger. sub-6b.md n8n edit plan lists no node modifications. However, the pseudo Step 7 explicitly says 'Fire-and-forget; does not gate downstream routing' — continueRegularOutput is the correct n8n implementation of fire-and-forget. CLAUDE.md 'Do NOT add error handling beyond entry guard pattern' is arguably satisfied (this is a side-branch logger, not the main guard). Functionally expected, but not documented in sub-6b plan.",
+      "recommended_action": "Downgraded to Minor because the pseudo Step 7 explicitly specifies fire-and-forget semantics. Add a note to sub-6b drift findings or state.md acknowledging this was applied as part of the WF-60 side-branch implementation. No code change needed."
+    },
+    {
+      "severity": "Nit",
+      "title": "node_count delta (40 → 42) consistent with 2 new Code nodes",
+      "evidence": "WF-10.md frontmatter: node_count 40 → 42. Two new nodes added: Build WF-10 Command Envelope + Build WF-10 Relay Envelope. Arithmetic correct.",
+      "recommended_action": "No action needed — confirmed expected."
+    }
+  ],
+  "questions_for_human": [
+    "Q1 (Webhook onError): The Webhook trigger node in WF-10 now has onError:continueRegularOutput — this was not in sub-6a or sub-6b plans and appears to violate the no-extra-error-handling design rule. Was this added intentionally (e.g. to prevent Slack retry loops on transient errors)? If yes, it should be documented. If no, it should be reverted.",
+    "Q2 (slack_channel_id in Command Envelope): state.md followup #2 documents that the Load User Status SELECT is missing current_consultation_id and slack_channel_id. The pseudo's Step 23a acknowledges current_consultation_id being emitted as null, but Step 22 does NOT mention that slack_channel_id will also be null in the Command Envelope user object. Should followup #2 be updated to explicitly name both missing columns, and should Step 22 prose be patched to match Step 23a's documented-null pattern?"
+  ]
+}

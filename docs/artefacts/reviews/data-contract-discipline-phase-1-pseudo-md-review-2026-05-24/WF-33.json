@@ -1,0 +1,56 @@
+{
+  "wf": "WF-33",
+  "summary_one_line": "Remove Load User by Phone SELECT and rewire all downstream nodes to read user fields from §2.2 Command Envelope (user.id, user.name, user.phone_number, user.slack_channel_id); also remove wrong-state IF guard and related nodes (now guaranteed unreachable via SP-03 pre-validation).",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Minor",
+      "title": "Stale 'wrong state' output description in Summary",
+      "evidence": "docs/pseudocode/WF-33.pseudo:6 — Outputs field reads: '...If user is in wrong state, only a Slack warning is posted via WF-51.' The wrong-state branch (User in Correct State? IF node + Prepare WF-51 Payload (Wrong State) + Call WF-51 Notify Admin Wrong State) was removed as part of this sprint. This clause is now dead prose.",
+      "recommended_action": "Remove the sentence 'If user is in wrong state, only a Slack warning is posted via WF-51.' from the Outputs line in WF-33.pseudo summary."
+    },
+    {
+      "severity": "Minor",
+      "title": "Step 2 extracts command/subCommand fields that are not present in §2.2 envelope",
+      "evidence": "docs/pseudocode/WF-33.pseudo:19 — Step 2 reads: 'keep phoneNumber, adminUserId, command, subCommand from envelope.' The §2.2 envelope (contracts.md §2.2) does not include command or subCommand fields — those were pre-envelope legacy fields. The Extract Command Data jsCode (WF-33.md:47) also extracts input.command and input.subCommand. These may be present as pass-through keys at runtime but are not part of the formal §2.2 shape.",
+      "recommended_action": "Update Step 2 prose to only reference fields defined in §2.2: 'keep phoneNumber, adminUserId from envelope (commandType is APPROVE_PAYMENT).' Also update the Extract Command Data jsCode comment block in the .md to reflect the §2.2 envelope fields — or confirm command/subCommand are harmless extras and note them as legacy pass-through."
+    },
+    {
+      "severity": "Minor",
+      "title": "Step 3 pseudo says payment status = 'approved' but .md SQL sets status = 'verified'",
+      "evidence": "docs/pseudocode/WF-33.pseudo:20 — 'UPDATE chinmay_astro.payments SET status=\\'approved\\'...'; docs/pseudocode/WF-33.md:71 — actual SQL sets 'status = \\'verified\\''. This is a pre-existing pseudo↔md drift (not introduced this sprint) but is visible in the current state.",
+      "recommended_action": "Update pseudo Step 3 to use status='verified' to match actual SQL. (Pre-existing drift, Minor severity.)"
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Major",
+      "title": "Extract Command Data jsCode: adminUserId set to input.channelId (stale pre-envelope mapping)",
+      "evidence": "docs/pseudocode/WF-33.md:47 — jsCode: 'adminUserId: input.channelId' — maps channelId to adminUserId. The §2.2 envelope emits adminUserId as a first-class field (contracts.md §2.2: 'adminUserId | Slack U-ID string | required'). The Extract Command Data node should read input.adminUserId directly. Using input.channelId is the pre-envelope bug pattern (TD-DRIFT-017's sibling — the field mapping that caused verified_by to receive the wrong value). The pseudo (Step 2, Step 3) says 'adminUserId from envelope' but the .md jsCode reads channelId instead.",
+      "recommended_action": "Update Extract Command Data jsCode to read 'adminUserId: input.adminUserId' (not input.channelId). This aligns .md with pseudo Step 2 and with §2.2 contract. Note: the Update Payment Status queryReplacement correctly references $(\"Extract Command Data\").item.json.adminUserId — so fixing the Extract node source is sufficient to propagate the correct Slack user ID downstream. (TD-DRIFT-017 concerns verified_by column semantics and is out of scope per design.md §1.5 — but the field mapping error in Extract Command Data is a separate, in-scope contract conformance issue: the .md does not read the §2.2 envelope field adminUserId as documented in pseudo Step 2.)"
+    },
+    {
+      "severity": "Minor",
+      "title": "Prepare WF-51 Payload (Notify Admin) messageText differs between pseudo and .md",
+      "evidence": "docs/pseudocode/WF-33.pseudo:26 (Step 9) — messageText includes 'Consultation Activated — User: <name>, Phone: +<phone_number>, DOB: <date_of_birth>, TOB: <time_of_birth>, Place: <place_of_birth>. User has been notified. They can now send their questions. To close consultation when done, type: CLOSE CHAT CONSULT <phone_number>'. docs/pseudocode/WF-33.md:63 — jsCode uses: '✅ Payment approved for ${user.name} (${user.phone_number}). User notified via WhatsApp; consultation is now active.' The .md version is shorter and consistent with sub-13.md's prescribed jsCode. The pseudo is more verbose and includes DOB/TOB/Place fields not present in the §2.2 envelope.",
+      "recommended_action": "Update WF-33.pseudo Step 9 messageText to match the actual .md jsCode: '✅ Payment approved for <user.name> (<user.phone_number>). User notified via WhatsApp; consultation is now active.' The longer version references DOB/TOB/Place which are not in the §2.2 envelope — it is unreachable without a separate SELECT."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Minor",
+      "title": "Extract Command Data node comment block references pre-envelope field names",
+      "evidence": "docs/pseudocode/WF-33.md:47 — jsCode comment reads: '// Input from WF-11 (Command Parser) will contain:\\n// - command: \"APPROVE\"\\n// - subCommand: \"PAYMENT\"\\n// - phoneNumber: \"61466927921\"\\n// - adminUserId: \"U0A4A6X857D\"' — this comment does not reflect the §2.2 envelope shape (missing commandType, reason, channelId, channelName, messageText, user object).",
+      "recommended_action": "Update the jsCode comment to reflect the §2.2 envelope fields received from WF-11. Low-risk cosmetic fix."
+    },
+    {
+      "severity": "Minor",
+      "title": "node_count and live_updated_at metadata update is expected; confirmed clean",
+      "evidence": "docs/pseudocode/WF-33.md:9-13 — node_count changed 14→10, live_updated_at updated to 2026-05-24T18:38:21.240Z, generated_at updated. Expected .md regen metadata; no anomaly.",
+      "recommended_action": "No action required."
+    }
+  ],
+  "questions_for_human": [
+    "Dimension B — Extract Command Data stale adminUserId mapping: the .md jsCode sets adminUserId: input.channelId (not input.adminUserId). This is the pre-envelope mapping that was never updated when WF-10 began emitting adminUserId as a first-class envelope field. This is distinct from TD-DRIFT-017 (which concerns the verified_by DB column semantics). Should fixing adminUserId: input.channelId → input.adminUserId in the Extract Command Data jsCode be treated as in-scope for Phase 1 (it is a direct contract conformance defect — the .md does not consume the §2.2 envelope field as documented), or should it also be parked to Phase 2 alongside TD-DRIFT-017? If parked, the pseudo Step 2 description ('keep phoneNumber, adminUserId...from envelope') becomes misleading documentation."
+  ]
+}

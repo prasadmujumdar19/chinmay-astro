@@ -1,0 +1,9 @@
+{
+  "wf": "WF-42",
+  "summary_one_line": "Load User by Phone SELECT removed; all downstream nodes (Close Consultation Record, Update User Status, Prepare Feedback Message, Prepare WF-51 Payload) rewired to read user.* from the §2.2 Command Envelope via $('When Executed by Another Workflow').item.json.user",
+  "verdict": "clean",
+  "dimension_a_pseudo": [],
+  "dimension_b_drift": [],
+  "dimension_c_md": [],
+  "questions_for_human": []
+}

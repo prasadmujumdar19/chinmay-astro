@@ -1,0 +1,44 @@
+{
+  "wf": "WF-11",
+  "summary_one_line": "Added Step-1 entry guard (Validate Inputs Code node) validating the WF-10 commandType envelope with 8 FULL-form enum values; renumbered 4 tombstone slots (7/9/17/20) to produce a clean linear 1–17 sequence",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Minor",
+      "title": "commandType enum in contracts.md §2.2 lists abbreviated forms (known cross-cutting drift)",
+      "evidence": "docs/pseudocode/WF-11.pseudo:6,25 — pseudo and guard correctly use FULL forms (CLOSE_CONSULTATION / BLOCK_USER / UNBLOCK_USER). contracts.md §2.2 table still lists CLOSE_CONSULT / BLOCK / UNBLOCK. Manifest cross-cutting item #1 explicitly calls this out.",
+      "recommended_action": "Deferred follow-up per user decision: update contracts.md §2.2 table to replace abbreviated forms with FULL forms (CLOSE_CONSULT→CLOSE_CONSULTATION, BLOCK→BLOCK_USER, UNBLOCK→UNBLOCK_USER). No pseudo or .md change needed — live implementation is already correct."
+    },
+    {
+      "severity": "Nit",
+      "title": "Step 2 (trigger description) appears after Step 1 (guard) in pseudo — inverted narrative order",
+      "evidence": "docs/pseudocode/WF-11.pseudo:34 — Step 2 describes the trigger ('Start — triggered by WF-10'); Step 1 is the entry guard. Physically the trigger fires first, then the guard runs. The inversion is consistent with the WF-02 precedent (sub-8 used the same pattern) and doesn't affect correctness.",
+      "recommended_action": "Acceptable as-is given WF-02 precedent; optionally relabel Step 2 as a narrative note rather than an execution step to avoid confusion."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Nit",
+      "title": "Confirm User Unblocked node reads channelId/phoneNumber from trigger node directly, not from Validate Inputs output",
+      "evidence": "docs/pseudocode/WF-11.md:55 — Confirm User Unblocked jsCode uses $('When Executed by Another Workflow').item.json.channelId and $('When Executed by Another Workflow').item.json.phoneNumber rather than $('Validate Inputs').item.json.*. Pseudo Step 16 says 'Post to input channelId' without specifying source node, so no pseudo↔md divergence on semantics.",
+      "recommended_action": "Not a defect — trigger data remains in scope after guard pass-through (return [{ json: i }] preserves all fields). Style-only; no action required this sprint."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Nit",
+      "title": "node_count metadata bumped from 18 to 19 — expected",
+      "evidence": "docs/pseudocode/WF-11.md.diff lines 9,22 — node_count 18→19 reflects the one added Validate Inputs node.",
+      "recommended_action": "Expected per sub-9 plan. No action."
+    },
+    {
+      "severity": "Nit",
+      "title": "live_updated_at and generated_at timestamps refreshed — expected",
+      "evidence": "docs/pseudocode/WF-11.md.diff lines 10-11 — live_updated_at 2026-05-23T06:44:30.390Z→2026-05-24T18:13:43.286Z; generated_at updated. Reflects the live n8n PUT that added Validate Inputs.",
+      "recommended_action": "Expected. No action."
+    }
+  ],
+  "questions_for_human": [
+    "The sub-9 plan's 'Pseudo revision' section (sub-9.md lines 79-103) still shows the OLD tombstone step numbering (Steps 7/9/17/20 marked deleted/removed, Switch routing to Steps 8/10/12/14/16/21). The committed pseudo was correctly renumbered linearly per state.md's pseudo_renumber note. The sub-9.md plan is now a historical artefact with stale step numbers. Is this acceptable, or should sub-9.md be updated to reflect the as-applied linear numbering for future reference?"
+  ]
+}

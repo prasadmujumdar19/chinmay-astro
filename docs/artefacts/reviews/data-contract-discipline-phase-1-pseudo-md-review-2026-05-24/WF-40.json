@@ -1,0 +1,54 @@
+{
+  "wf": "WF-40",
+  "summary_one_line": "Removed Load User Record SELECT node; rewired trigger direct to Call WF-25; rewrote Call WF-25 + Format Slack Message to read envelope paths user.id/user.status/user.slack_channel_id/user.name from $('When Executed by Another Workflow').item.json.",
+  "verdict": "clean",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Nit",
+      "title": "Step numbering is linear and gap-free (Steps 1-7); no issues",
+      "evidence": "docs/pseudocode/WF-40.pseudo:20-36 — Steps 1 through 7 are monotonically increasing with no tombstones",
+      "recommended_action": "No action needed."
+    },
+    {
+      "severity": "Nit",
+      "title": "Change-note mention of Load User Record in Summary is informational only (not a dangling ref)",
+      "evidence": "docs/pseudocode/WF-40.pseudo:14 — 'Phase 1 change: Load User Record SELECT removed'",
+      "recommended_action": "No action needed — this is an intended change annotation per sprint conventions."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Nit",
+      "title": "Pseudo Step 3 NO-branch description vs. .md topology: minor prose imprecision",
+      "evidence": "docs/pseudocode/WF-40.pseudo:24-26 says 'NO → skip Step 4, go directly to Step 5'; WF-40.md connections show Call WF-25 fans out to BOTH Format Slack Message and Stop Intent? simultaneously — Format Slack is always triggered (not conditional on NO branch of Stop Intent?). Functionally identical outcome.",
+      "recommended_action": "Minor prose refinement: pseudo Step 3 could clarify that Format Slack relay runs unconditionally in parallel with the Stop Intent? branch — not as the NO output of Stop Intent?. Low priority."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Nit",
+      "title": "node_count 8→7, live_updated_at, generated_at updated — expected",
+      "evidence": "WF-40.md.diff lines 9-14 — node_count decreased by 1 (Load User Record removed); timestamps updated to 2026-05-24",
+      "recommended_action": "No action needed — expected regen artifact."
+    },
+    {
+      "severity": "Nit",
+      "title": "Call WF-25 workflowInputs rewritten from $json.id/$json.status to envelope paths — expected per sub-12",
+      "evidence": "WF-40.md.diff lines 30-31 — userId now $('When Executed by Another Workflow').item.json.user.id, userStatus now ...user.status; matches sub-12.md WF-40 node_modifications",
+      "recommended_action": "No action needed — correct envelope path consumption per §2.1."
+    },
+    {
+      "severity": "Nit",
+      "title": "Format Slack Message rewritten from $('Load User Record').item.json.* to envelope paths — expected per sub-12",
+      "evidence": "WF-40.md.diff lines 39-48 — channelId and messageText now read from $('When Executed by Another Workflow').item.json.user.slack_channel_id and user.name; Load User Record node block removed entirely",
+      "recommended_action": "No action needed — correct per sub-12.md connection_changes and §2.1."
+    },
+    {
+      "severity": "Nit",
+      "title": "Connections: Load User Record removed from topology; trigger wired direct to Call WF-25 — expected per sub-12",
+      "evidence": "WF-40.md.diff lines 56-59 — removes 'Load User Record --> Call WF-25' and 'When Executed by Another Workflow --> Load User Record'; adds 'When Executed by Another Workflow --> Call WF-25 (Intent Classifier)'",
+      "recommended_action": "No action needed — exactly matches sub-12.md connection_changes spec."
+    }
+  ],
+  "questions_for_human": []
+}

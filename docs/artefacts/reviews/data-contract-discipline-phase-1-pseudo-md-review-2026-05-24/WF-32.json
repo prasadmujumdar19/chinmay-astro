@@ -1,0 +1,9 @@
+{
+  "wf": "WF-32",
+  "summary_one_line": "Removed `Load User Channel from DB` SELECT; rewired Call WF-50 → Prepare Admin Notification directly; `Prepare Admin Notification` jsCode now reads user.* from §2.1 envelope via `$('When Executed by Another Workflow').item.json.user`.",
+  "verdict": "clean",
+  "dimension_a_pseudo": [],
+  "dimension_b_drift": [],
+  "dimension_c_md": [],
+  "questions_for_human": []
+}

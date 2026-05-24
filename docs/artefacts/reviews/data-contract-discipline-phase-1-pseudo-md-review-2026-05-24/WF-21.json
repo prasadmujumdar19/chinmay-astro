@@ -1,0 +1,44 @@
+{
+  "wf": "WF-21",
+  "summary_one_line": "Pseudo-only: Summary and Step 1/4 updated to declare §2.1 envelope consumption and §2.3 WF-50 call shape; no n8n node changes; .md diff is regeneration-noise only (frontmatter timestamps only).",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Minor",
+      "title": "contactName not in §2.1 core envelope — listed as 'additional field' with no source clarification",
+      "evidence": "docs/pseudocode/WF-21.pseudo:5 — 'Additional fields passed by WF-01/WF-02: `contactName`, `messageId`, `wasOptedOut`'; contracts.md §2.1 does not include contactName in the core envelope table; sub-11.md (pseudo revision block) — approved text includes the same wording",
+      "recommended_action": "The 'additional fields' note is intentional per sub-11 approved text; however, §2.1 does not formally define where contactName originates (pending_users.contact_name pre-onboarding, or WhatsApp profile name passed by WF-00/WF-01). Consider adding a footnote to §2.1 or the pseudo clarifying the source of contactName so future consumers know whether it is safe to rely on it. Park as follow-up — not a Phase 1 blocker."
+    },
+    {
+      "severity": "Minor",
+      "title": "messageContent listed in envelope inputs but used only as logging context (userMessage) in Build Welcome Message node",
+      "evidence": "docs/pseudocode/WF-21.pseudo:5 — envelope declares `messageContent`; WF-21.md Build Welcome Message jsCode: `const userMessage = input.messageContent || null` (passed to WF-50 as optional `userMessage` logging key, not as primary message body); contracts.md §2.1 — messageContent is 'required' for 'All free-form-text leaves → WF-25'",
+      "recommended_action": "WF-21 is not a free-form-text leaf (it never calls WF-25), so `messageContent` is correctly received but only used as logging context. The pseudo could note this explicitly (e.g. 'messageContent received from envelope but used only as inboundMessageId logging context — WF-21 does not process inbound text'). Low priority; current pseudo is accurate enough."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Nit",
+      "title": "Step 2 (INSERT pending_users) precedes Step 3 (Build message) in pseudo; .md connection topology is Trigger → Insert Pending User → Build Welcome Message → Call WF-50 — consistent",
+      "evidence": "docs/pseudocode/WF-21.pseudo:14-21 (Steps 1-5); docs/pseudocode/WF-21.md Connections block — same order",
+      "recommended_action": "No action — topology matches. Note for record only."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Nit",
+      "title": "live_updated_at advanced from 2026-05-18T07:50:51.355Z to 2026-05-22T21:50:33.365Z — sub-11 states no n8n edits to WF-21",
+      "evidence": "WF-21.md.diff hunk: -live_updated_at: 2026-05-18T07:50:51.355Z / +live_updated_at: 2026-05-22T21:50:33.365Z; sub-11.md line 4: 'WF-21 (`zM8WbxSdt9nXRoLZ`) — pseudo-only, no n8n edits'",
+      "recommended_action": "No node content changed (diff shows only frontmatter timestamps). The live_updated_at advance is consistent with n8n updating the workflow's updatedAt metadata when Wave-1 changes (e.g. WF-01 Build Envelope node) were applied to the calling workflow — or the .md was regenerated on 2026-05-24 against a live n8n that had WF-21 last modified 2026-05-22 (possibly during sub-6b/sub-11 execution). Since no node content differs, this is regeneration-noise. No action required; noting for audit completeness."
+    },
+    {
+      "severity": "Nit",
+      "title": "generated_at advanced from 2026-05-22T11:49:58Z to 2026-05-24T18:44:35Z — expected regen",
+      "evidence": "WF-21.md.diff hunk: generated_at line change; consistent with .md regeneration on 2026-05-24 (sprint execution date)",
+      "recommended_action": "Expected. No action."
+    }
+  ],
+  "questions_for_human": [
+    "The live_updated_at for WF-21 advanced to 2026-05-22 despite sub-11 declaring 'no n8n edits'. Was WF-21 inadvertently touched in n8n during the sprint (e.g. opened and saved), or is n8n propagating updatedAt from a caller change (WF-01)? No node content changed so this is likely benign, but confirming the cause would close the audit trail."
+  ]
+}

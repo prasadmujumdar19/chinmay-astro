@@ -1,0 +1,9 @@
+{
+  "wf": "WF-44",
+  "summary_one_line": "Prepare Ack Message jsCode and Send Ack via WF-50 workflowInputs migrated from legacy message: key to canonical §2.3 shape (messageType:'text' + messageContent); pseudo updated to match with TD-DRIFT-009 noted for WF-25 caller",
+  "verdict": "clean",
+  "dimension_a_pseudo": [],
+  "dimension_b_drift": [],
+  "dimension_c_md": [],
+  "questions_for_human": []
+}

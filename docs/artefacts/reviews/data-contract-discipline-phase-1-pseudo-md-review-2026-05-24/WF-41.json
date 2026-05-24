@@ -1,0 +1,40 @@
+{
+  "wf": "WF-41",
+  "summary_one_line": "Latent runtime bug fix: Prepare WhatsApp Message jsCode updated to read input.messageText (was input.adminMessage) so admin relay no longer emits undefined messageContent to WF-50.",
+  "verdict": "clean",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Nit",
+      "title": "History entry uses 2026-05-25 for a sprint named 2026-05-24",
+      "evidence": "docs/pseudocode/WF-41.pseudo line 16: 'On 2026-05-25 (data-contract Phase 1, sub-14)...'",
+      "recommended_action": "Minor date inconsistency vs. sprint folder name 2026-05-24-data-contract-discipline-phase-1; align to 2026-05-24 or accept if edit was made on 2026-05-25."
+    }
+  ],
+  "dimension_b_drift": [],
+  "dimension_c_md": [
+    {
+      "severity": "Nit",
+      "title": "WF-50 executeWorkflow node uses passthrough mappingMode with convertFieldsToString:true",
+      "evidence": "docs/pseudocode/WF-41.md lines 31-32: workflowInputs mappingMode=passthrough, convertFieldsToString=true",
+      "recommended_action": "convertFieldsToString:true is a pre-existing parameter setting, not a sprint change. No action needed; noted only for awareness since WF-50 entry guard expects typed values (phoneNumber string, messageType string, messageContent string). Passthrough preserves types so no runtime risk."
+    }
+  ],
+  "special_verifications": {
+    "critical_1_messageText_fix": {
+      "status": "PASS",
+      "evidence": "WF-41.md line 23: jsCode contains `messageContent: input.messageText`. WF-41.pseudo Step 2: `messageContent = $json.messageText`. No occurrence of `adminMessage` anywhere in current pseudo or .md.",
+      "detail": "Both the .md (live JSON excerpt) and .pseudo now correctly read input.messageText, not input.adminMessage. The diff confirms the old jsCode had `input.adminMessage` and the new has `input.messageText`."
+    },
+    "critical_2_wf50_output_shape": {
+      "status": "PASS",
+      "evidence": "WF-41.md line 23: jsCode returns { phoneNumber: input.phoneNumber, messageType: 'text', messageContent: input.messageText }. WF-41.pseudo Step 2 mirrors same three fields.",
+      "detail": "Output shape is {phoneNumber, messageType:'text', messageContent} — exactly the WF-50 §2.3 text-variant contract. No missing or extra fields."
+    },
+    "critical_3_other_nodes_unchanged": {
+      "status": "PASS",
+      "evidence": "WF-41.md.diff: only hunk is in the Prepare WhatsApp Message jsCode parameter (adminMessage→messageText) and frontmatter timestamps (live_updated_at, generated_at). WF-50 executeWorkflow node and When Executed by Another Workflow trigger node are untouched.",
+      "detail": "3-node topology (trigger → Prepare WhatsApp Message → WF-50) and all connection wiring are unchanged. Node types and typeVersions are unchanged."
+    }
+  },
+  "questions_for_human": []
+}

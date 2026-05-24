@@ -1,0 +1,42 @@
+{
+  "wf": "WF-34",
+  "summary_one_line": "Simplified Load User by Phone to fetch only payment_id; rewired Prepare Rejection Message and Prepare WF-51 Payload to read user fields from WF-10 Command Envelope; removed 6 dead-branch nodes (User Found?, User in Correct State?, 2x error-path Prepare WF-51, 2x error-path Call WF-51) as part of trust-mode cleanup.",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Minor",
+      "title": "sub-14 plan lists node_removals:[] but 6 nodes were removed in this sprint",
+      "evidence": "docs/pseudocode/WF-34.pseudo (current): no tombstone steps; sub-14.md WF-34 section: node_removals: []; WF-34.md.diff: removes User Found?, User in Correct State?, Prepare WF-51 Payload (User Not Found), Prepare WF-51 Payload (Wrong State), Call WF-51 Notify Admin User Not Found, Call WF-51 Notify Admin Wrong State",
+      "recommended_action": "No code change needed — removals were correct and pre-announced as tombstone Steps 3/4 in the pre-sprint pseudo. Sub-14 plan should have listed the 6 node_removals explicitly. Document discrepancy in sprint state.md followups as a planning-accuracy note for future sub-plans."
+    },
+    {
+      "severity": "Nit",
+      "title": "Step 7 prose uses shorthand 'user.slack_channel_id' without the full expression path",
+      "evidence": "docs/pseudocode/WF-34.pseudo:29 — 'channelId=user.slack_channel_id' — contrast with Step 5 which correctly writes the full $('When Executed by Another Workflow').first().json.user.phone_number path",
+      "recommended_action": "Optionally expand Step 7 to use the full envelope path for consistency with Step 5, e.g. 'channelId=$(\\'When Executed by Another Workflow\\').first().json.user.slack_channel_id'. Low priority."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Minor",
+      "title": "Pseudo Steps 3-4 order (payments UPDATE then users UPDATE) matches .md connection topology but the pseudo doesn't call out the data-flow dependency on $json.payment_id",
+      "evidence": "docs/pseudocode/WF-34.pseudo:22 (Step 3 UPDATE payments WHERE id=payment_id); WF-34.md connections: Load User by Phone --[main#0]--> Update Payment Record. The Update Payment Record node uses $json.payment_id from Load User by Phone output — this is implicit in pseudo but not stated.",
+      "recommended_action": "No blocking drift. Optionally add a note in Step 3 that payment_id is sourced from $json.payment_id (i.e., Load User by Phone output flows into Update Payment Record). Purely documentation clarity."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Minor",
+      "title": "6 node removals not documented in sub-14 node_removals list — but all removals are correct and sprint-sanctioned",
+      "evidence": "WF-34.md.diff: removes User Found? (if v2), User in Correct State? (if v2), Prepare WF-51 Payload (User Not Found) (code v2), Prepare WF-51 Payload (Wrong State) (code v2), Call WF-51 Notify Admin User Not Found (executeWorkflow v1.2), Call WF-51 Notify Admin Wrong State (executeWorkflow v1.2). sub-14.md WF-34 section: node_removals: []. Old pseudo tombstoned Steps 3+4 as pre-validated-away.",
+      "recommended_action": "Known cross-cutting: removals are consistent with SP-03 trust-mode work and pre-announced in old pseudo tombstones. No functional concern. Flag in sprint retrospective for sub-plan completeness."
+    },
+    {
+      "severity": "Minor",
+      "title": "Update Payment Record queryReplacement uses .item.json.reason instead of .first().json.reason — minor node-context inconsistency",
+      "evidence": "WF-34.md:71 — queryReplacement: ={{ [$json.payment_id, $('When Executed by Another Workflow').item.json.reason || 'Payment not verified'] }}. All other trigger reads in this workflow use .first().json. In a single-item executeWorkflow trigger, .item and .first() are functionally equivalent, but inconsistent style.",
+      "recommended_action": "Low risk — .item.json and .first().json are equivalent for single-item triggers. Optionally normalize to .first().json for consistency. Not a runtime defect."
+    }
+  ],
+  "questions_for_human": []
+}

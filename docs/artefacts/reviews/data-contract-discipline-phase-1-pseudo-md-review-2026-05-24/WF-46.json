@@ -1,0 +1,16 @@
+{
+  "wf": "WF-46",
+  "summary_one_line": "Load User by Phone SELECT removed; Update User to Blocked Status and Prepare WF-51 Payload rewired to read user.id / user.name / user.phone_number / user.slack_channel_id from §2.2 Command Envelope trigger input; node_count 5→4.",
+  "verdict": "clean",
+  "dimension_a_pseudo": [],
+  "dimension_b_drift": [],
+  "dimension_c_md": [
+    {
+      "severity": "Nit",
+      "title": "Prepare WF-51 Payload reads trigger node twice with different accessor styles",
+      "evidence": "docs/pseudocode/WF-46.md — Prepare WF-51 Payload jsCode: `const user = $('When Executed by Another Workflow').item.json.user` then `const trigger = $('When Executed by Another Workflow').first().json` — two references to the same trigger node, different methods (.item.json vs .first().json)",
+      "recommended_action": "Collapse to a single `const input = $('When Executed by Another Workflow').first().json; const user = input.user;` pattern for consistency with sibling WFs (WF-42 / WF-33). No functional bug — both accessors return the same item."
+    }
+  ],
+  "questions_for_human": []
+}

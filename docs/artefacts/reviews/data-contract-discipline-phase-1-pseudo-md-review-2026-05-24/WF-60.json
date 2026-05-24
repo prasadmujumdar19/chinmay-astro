@@ -1,0 +1,56 @@
+{
+  "wf": "WF-60",
+  "summary_one_line": "Added discriminated-union Validate Inputs entry guard (Step 2) enforcing transport/direction/messageType + transport-specific required fields; renumbered downstream Steps 2-8 to 3-11 linearly.",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Minor",
+      "title": "Step 3 Extract Message Data retains dead ?? default-fallbacks for required fields",
+      "evidence": "docs/pseudocode/WF-60.pseudo:69-72 — 'transport ← input.transport ?? \"wa\"', 'direction ← input.direction ?? \"inbound\"', 'messageType ← input.messageType ?? ...' are still documented with ?? defaults. The Inputs block (line 16) explicitly states 'legacy default-application for absent fields has been removed', so the entry guard (Step 2) now throws if these are absent. The ?? defaults in Step 3 are unreachable dead code branches that contradict the stated contract intent.",
+      "recommended_action": "Update Step 3 prose in WF-60.pseudo to remove the ?? fallback notation for transport, direction, and messageType (or replace with 'transport ← input.transport [validated present by Step 2]') to accurately reflect that these defaults are no longer reachable. Also update the matching ?? defaults in the Extract Message Data jsCode in WF-60.md for consistency."
+    },
+    {
+      "severity": "Minor",
+      "title": "Step numbering clean — residual sub-letter artifact note (known, per manifest cross-cutting #2)",
+      "evidence": "docs/pseudocode/WF-60.pseudo — Steps 1-11 are fully linear, no gaps, no tombstones, no sub-letters. All 'Go to Step N' forward references resolve correctly (Step 3→4, 4→5 or 9, 5→6 or 7, 6→7, 7→8 or 10, 8→11). WF-60 is a Wave 1 WF; the main-thread pseudo reconciliation in commit 7b4daf7 produced clean linear numbering here. No residual sub-letters observed. This is a clean pass — noting it explicitly since the manifest (cross-cutting #2) warned of potential residual sub-letters.",
+      "recommended_action": "No action required — step numbering is clean."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Blocker",
+      "title": "slackMessageTs enforcement scope: pseudo says direction=outbound check; .md implements it inside !userId block",
+      "evidence": "docs/pseudocode/WF-60.pseudo:66 — Step 2 last bullet: 'transport == \"slack\" AND direction == \"outbound\" AND slackMessageTs (or alias) absent' — this check is NOT conditioned on userId absence; it is a standalone direction-scoped check. docs/pseudocode/WF-60.md:109 (Validate Inputs jsCode, decoded) — the slackMessageTs check is INSIDE the 'if (!userId)' block, meaning it is only enforced when userId is absent. For a slack+outbound payload that includes userId but omits slackMessageTs, the .md implementation would NOT throw, while the pseudo Step 2 says it SHOULD throw. This is a concrete pseudo↔md divergence on the enforcement scope of slackMessageTs. This is the OPEN parse-ambiguity question flagged in manifest cross-cutting note #3 and state.md followups #1. The reviewer cannot determine which is correct from sprint docs alone — §2.6 plain text says slackMessageTs is 'required on outbound (direction=outbound)' with no userId qualifier, which aligns with the pseudo (not with the .md implementation).",
+      "recommended_action": "Flag as question_for_human (see below). If §2.6 plain reading is canonical (slackMessageTs required on all slack+outbound regardless of userId presence), the Validate Inputs jsCode in n8n must be updated to move the slackMessageTs check outside the !userId block. If the intent is only to enforce it when userId is absent, then §2.6 and the pseudo Step 2 wording both need updating to reflect that qualifier."
+    },
+    {
+      "severity": "Nit",
+      "title": "Extract Message Data jsCode comment says 'WF-60 Step 2' but node is now Step 3",
+      "evidence": "docs/pseudocode/WF-60.md:39 (Extract Message Data jsCode, first line) — comment reads '// WF-60 Step 2: Normalize input to canonical shape...' — stale after renumbering; node is now Step 3.",
+      "recommended_action": "Update the comment in the Extract Message Data jsCode (both in n8n live and in WF-60.md) to read '// WF-60 Step 3:'. Low-risk cosmetic fix."
+    },
+    {
+      "severity": "Minor",
+      "title": "Extract Message Data node comment in .md uses old step number — pseudo↔md minor comment drift",
+      "evidence": "docs/pseudocode/WF-60.md:39 Validate Inputs node jsCode comment in .md is 'WF-60 Step 1' (the guard is now Step 2, not Step 1 which is the trigger Start). The pseudo correctly says Step 2. The .md jsCode comment says 'Step 1' for Validate Inputs — see decoded jsCode: '// WF-60 Step 1: Discriminated-union entry guard'. The trigger (When Executed by Another Workflow) is Step 1; the guard should be Step 2.",
+      "recommended_action": "Update Validate Inputs jsCode comment from 'Step 1' to 'Step 2' in the live n8n node (and WF-60.md will auto-update on next regeneration). Also update Extract Message Data comment from 'Step 2' to 'Step 3'."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Nit",
+      "title": "onError: continueRegularOutput now surfaced in .md — positive delta vs. prior D6 generator gap note",
+      "evidence": "docs/pseudocode/WF-60.md:66-70 — 'error handling: {\"onError\":\"continueRegularOutput\"}' section added for Log to Messages Table. The WF-60.pseudo Notes section (D6 note) previously flagged this as a '.md-generator completeness gap'. The gap is now closed — the .md does surface this setting. No action needed; noting for completeness.",
+      "recommended_action": "Consider updating the D6 note in WF-60.pseudo to reflect that the gap is now closed (the .md does surface top-level error-handling settings). Low priority."
+    },
+    {
+      "severity": "Minor",
+      "title": "Expected: Validate Inputs node added (node_count 11→12), trigger connection rewired through guard",
+      "evidence": "docs/pseudocode/WF-60.md.diff lines 9-14, 43-50, 54-61 — node_count delta, new Validate Inputs code node, connection change 'When Executed by Another Workflow → Validate Inputs → Extract Message Data'. All match sub-2 scope (state.md batch_2_wave_1 sub-2 scope_summary: 'Add discriminated-union Validate Inputs entry-guard'). No unexpected changes.",
+      "recommended_action": "No action required — expected change."
+    }
+  ],
+  "questions_for_human": [
+    "slackMessageTs enforcement scope (manifest cross-cutting note #3, state.md followups #1): The pseudo Step 2 enforces slackMessageTs on ALL slack+outbound payloads (regardless of userId presence), matching §2.6 plain text ('required on outbound'). The live .md Validate Inputs jsCode enforces slackMessageTs only INSIDE the 'if (!userId)' block — meaning a slack+outbound payload that includes userId but omits slackMessageTs would PASS the guard in .md but FAIL per the pseudo and §2.6 plain reading. Which is canonical? If §2.6 plain reading is correct, the live n8n Validate Inputs jsCode needs a surgical fix to move the slackMessageTs check outside the !userId block. If the scoped-by-userId interpretation is correct, §2.6 wording and pseudo Step 2 both need a qualifying clause added."
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "wf": "WF-50",
+  "summary_one_line": "Entry guard added (discriminated union: text/interactive/template) + transport:'wa' emitted in both WF-60 payload nodes (drop path + success path); three send nodes gained retryOnFail:3 with no sprint-doc evidence.",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Minor",
+      "title": "Step 5 drop-path WF-60 call omits transport:'wa' discriminator",
+      "evidence": "docs/pseudocode/WF-50.pseudo:39 — Step 5 lists WF-60 call fields as '{ userId, consultationId, phoneNumber, messageType, messageContent: ..., messageId: null, direction=\\'outbound\\', success: false, error: ..., metadata:{...} }' with no transport field. Contrast with Step 13 which correctly shows 'transport:\\'wa\\''. The live Build WF-60 Drop Payload node in .md emits transport:\\'wa\\' (confirmed in WF-50.md:31). Sprint evidence: state.md last_update_reason (Wave 1 Batch 2) — 'transport:\\'wa\\' on WF-00/50/50-drop' listed as systemic fix applied.",
+      "recommended_action": "Add 'transport:\\'wa\\'' to the Step 5 field list, mirroring Step 13. Exact insertion: after 'direction=\\'outbound\\'' in Step 5, insert ', transport:\\'wa\\''. No n8n change needed — this is doc-only."
+    },
+    {
+      "severity": "Minor",
+      "title": "Step 3 (Prepare Payload) pseudo says legacy alias resolution removed, but residual fallback code not explicitly called out",
+      "evidence": "docs/pseudocode/WF-50.pseudo:32 — Step 3 states '(No legacy alias resolution — entry guard at Step 2 enforces canonical names.)'. The live Prepare Payload node (WF-50.md:79) still contains 'const messageContent = input.messageContent || input.message || input.messageBody || null;'. While this code is dead (entry guard throws before it runs for text, and for non-text messageType the entry guard doesn't require messageContent), the pseudo implies the fallback was removed. Known cross-cutting item per manifest: Wave 1 pseudo-reconciliation gap (state.md line 9) — minimal-change reconciliation artifacts are Minor.",
+      "recommended_action": "Either note in pseudo Step 3 that the Prepare Payload node retains the legacy alias fallback as dead code (safety net), or update the n8n node to remove the dead fallback. Documentation clarification preferred; no functional impact."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Minor",
+      "title": "Pseudo Step 5 drop-path WF-60 call shape diverges from live Build WF-60 Drop Payload node (missing transport field)",
+      "evidence": "docs/pseudocode/WF-50.pseudo:39 lists the drop WF-60 payload without transport:\\'wa\\'. docs/pseudocode/WF-50.md:31 (Build WF-60 Drop Payload jsCode) emits 'transport: \\'wa\\''. Both paths to WF-60 should be identical in this regard per §2.6 contract, and the success path (Step 13 / Build WF-60 Payload (Outbound)) correctly declares it. The pseudo and .md therefore diverge on this one field for the drop path.",
+      "recommended_action": "Fix pseudo Step 5 (Dimension A finding above) to add transport:\\'wa\\'. That resolves the drift."
+    },
+    {
+      "severity": "Nit",
+      "title": "Pseudo step count (16 steps) vs. .md node list (18 nodes) — expected delta",
+      "evidence": "docs/pseudocode/WF-50.pseudo has Steps 1–16. docs/pseudocode/WF-50.md has 18 nodes (node_count:18). The two extra nodes beyond the pseudo steps are: Sticky Note1 (not a logical step) and Build Drop Return (pseudo treats Steps 14-15 as Return Status + return, which maps to the same code node). No inconsistency in logic — just note that the Sticky Note inflates node count relative to pseudo step count.",
+      "recommended_action": "No action needed — Sticky Note nodes are excluded from pseudo logic by convention."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Major",
+      "title": "retryOnFail:true/maxTries:3 added to Send Interactive Message, Send Template Message, and Send Text Message — no sprint-doc evidence",
+      "evidence": "WF-50.md.diff lines 48-78 — three hunks each adding '{\"retryOnFail\":true,\"maxTries\":3}' error handling to the three send nodes. Sub-3 scope_summary (state.md parallel_waves.batch_2_wave_1.units[sub-3]): 'Add discriminated-union Validate Inputs entry-guard per design.md §2.3. Audit the Build WF-60 Payload outbound node — emit canonical WF-60 shape per §2.6 for transport=wa direction=outbound. Update WF-50.pseudo.' No mention of retry changes. design.md §2.3 contract spec does not include retry behaviour. CLAUDE.md subagent dispatch brief template constraint: 'Do NOT add error handling beyond the entry guard pattern (per [[feedback_pseudo_tech_separation]])'. Retry policy changes are a functional change (silent retry on WhatsApp API error vs. fail-fast) with implications for duplicate-send risk.",
+      "recommended_action": "Confirm with user whether retryOnFail:3 on WF-50 send nodes was intentional. If yes, add a sprint-doc entry (state.md followup or note in sub-3 apply record) and update pseudo to document retry behaviour. If not intentional, revert the three error-handling blocks via mcp__n8n__n8n_update_partial_workflow. This cannot be silently accepted — the CLAUDE.md constraint explicitly prohibits adding error handling beyond the entry guard pattern in subagent scope."
+    },
+    {
+      "severity": "Minor",
+      "title": "Build WF-60 Drop Payload transport:'wa' addition — expected sprint change, no pseudo update for drop-path field",
+      "evidence": "WF-50.md.diff lines 30-31 — 'transport: \\'wa\\'' added to Build WF-60 Drop Payload return object. state.md last_update_reason Wave 1 Batch 2 mentions 'transport:\\'wa\\' on WF-00/50/50-drop' as a systemic fix. Expected. However pseudo Step 5 not updated to reflect this (Dimension A finding). The .md change itself is correct and expected.",
+      "recommended_action": "No .md change needed. Fix pseudo Step 5 per Dimension A recommendation."
+    },
+    {
+      "severity": "Minor",
+      "title": "Build WF-60 Payload (Outbound) transport:'wa' addition — expected sprint change",
+      "evidence": "WF-50.md.diff lines 39-40 — 'transport: \\'wa\\'' added to Build WF-60 Payload (Outbound) return object. Matches pseudo Step 13 ('transport:\\'wa\\'') and sub-3 scope ('emit canonical WF-60 shape per §2.6 for transport=wa direction=outbound'). Fully expected.",
+      "recommended_action": "None — change is correct and documented."
+    },
+    {
+      "severity": "Nit",
+      "title": "Validate Inputs node uses 'language':'javaScript' parameter — minor cosmetic inconsistency with other Code nodes in same WF",
+      "evidence": "WF-50.md:168 — Validate Inputs node JSON includes '\"language\":\"javaScript\"'. Other Code nodes in this WF do not specify the language parameter (rely on default). This is a cosmetic difference with no functional impact.",
+      "recommended_action": "No action needed — default behaviour is the same. Note for future uniformity if desired."
+    }
+  ],
+  "questions_for_human": [
+    "Were the retryOnFail:true/maxTries:3 settings on Send Interactive Message, Send Template Message, and Send Text Message intentional additions in this sprint? They are not in the sub-3 scope_summary or design.md §2.3, and the CLAUDE.md subagent brief template explicitly prohibits adding error handling beyond the entry guard pattern. Retry-on-fail on WA send nodes has duplicate-send risk (if the API call succeeded but the response was lost). Please confirm intent and either document it or revert."
+  ]
+}

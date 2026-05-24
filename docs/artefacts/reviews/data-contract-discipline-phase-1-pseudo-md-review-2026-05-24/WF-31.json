@@ -1,0 +1,68 @@
+{
+  "wf": "WF-31",
+  "summary_one_line": "Removed redundant Load User for Relay DB SELECT (slack_channel_id now read from WF-01 envelope), rewired trigger fan-out direct to Prepare Admin Relay, and renamed legacy message→messageContent in Prepare Under Review Message",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Minor",
+      "title": "Step 5 merges two nodes (Prepare Under Review Message + Send Under Review via WF-50) into one step without sub-labels",
+      "evidence": "docs/pseudocode/WF-31.pseudo:30-31 — Step 5 embeds both the build and the WF-50 call in a single step block; the .md has two distinct nodes (Prepare Under Review Message, Send Under Review via WF-50)",
+      "recommended_action": "Split Step 5 into Step 5 (build) and Step 6 (send), renumbering 6→7, 7→8, 8→9, 9→10, 10→11; or add sub-labels 5a/5b as a minimal-change reconciliation. No runtime impact — pseudo-only clarity fix."
+    },
+    {
+      "severity": "Nit",
+      "title": "Step 8 inline note restates removed-node rationale already covered in Summary Notes",
+      "evidence": "docs/pseudocode/WF-31.pseudo:39 — '(no DB SELECT — redundant Load User for Relay node removed)' duplicates the Notes bullet at line 13",
+      "recommended_action": "Drop the parenthetical from Step 8 to reduce duplication; it adds no incremental info."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Minor",
+      "title": "Pseudo Step 5 call is embedded in the build step; .md has two distinct nodes (Prepare Under Review Message → Send Under Review via WF-50)",
+      "evidence": "docs/pseudocode/WF-31.pseudo:30-31 vs docs/pseudocode/WF-31.md nodes list — .md has 9 nodes, pseudo steps 1-10 account for 9 nodes but map 2 into Step 5 without sub-labels",
+      "recommended_action": "Same as Dimension A finding above — split or sub-label Step 5 to mirror the two-node reality in the .md."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Nit",
+      "title": "node_count metadata updated from 10→9 — expected",
+      "evidence": "docs/pseudocode/WF-31.md:9 (frontmatter) and line 22 — both updated; matches actual 9-node list in file",
+      "recommended_action": "No action. Correct."
+    },
+    {
+      "severity": "Nit",
+      "title": "live_updated_at and generated_at timestamps updated — expected regeneration metadata",
+      "evidence": "docs/pseudocode/WF-31.md:11-13 — live_updated_at: 2026-05-24T18:22:21.853Z, generated_at: 2026-05-24T18:44:35Z",
+      "recommended_action": "No action. Correct."
+    },
+    {
+      "severity": "Nit",
+      "title": "Load User for Relay node block fully removed — expected per sub-11 plan",
+      "evidence": "WF-31.md.diff hunk at line 30-36 (old) — entire postgres node block removed; no remnant. sub-11.md node_removals confirms intent.",
+      "recommended_action": "No action. Correct."
+    },
+    {
+      "severity": "Nit",
+      "title": "Connection rewire: trigger → Load User for Relay removed; trigger → Prepare Admin Relay added — expected per sub-11 plan",
+      "evidence": "WF-31.md.diff lines 64-66 — old connection removed, new direct connection added. Matches sub-11 connection_changes spec.",
+      "recommended_action": "No action. Correct."
+    },
+    {
+      "severity": "Nit",
+      "title": "Prepare Admin Relay jsCode updated to read triggerData.user?.slack_channel_id — expected per sub-11 plan",
+      "evidence": "WF-31.md.diff line 44 — old code used $('Load User for Relay').item.json.slack_channel_id; new code uses triggerData.user?.slack_channel_id. Matches sub-11 new_jsCode exactly.",
+      "recommended_action": "No action. Correct."
+    },
+    {
+      "severity": "Nit",
+      "title": "Prepare Under Review Message jsCode updated: message→messageContent + messageType:'text' added — expected per sub-11 plan",
+      "evidence": "WF-31.md.diff line 53 — old return used { phoneNumber, message: msg }; new return uses { phoneNumber, messageType: 'text', messageContent: msg }. Matches sub-11 new_jsCode exactly.",
+      "recommended_action": "No action. Correct."
+    }
+  ],
+  "questions_for_human": [
+    "Prepare Admin Relay reads triggerData.messageContent (line 55 in .md jsCode). If WF-02 passes the field as messageText (as noted in TD-DRIFT-009), the relay body will be an empty string for every message. Should this be triggerData.messageContent || triggerData.messageText || '' as a defensive fallback until TD-DRIFT-009 is resolved, or is the deferred-from-Phase-1 decision intentional here too?"
+  ]
+}

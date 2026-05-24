@@ -1,0 +1,38 @@
+{
+  "wf": "WF-22",
+  "summary_one_line": "Insert `Prepare WF-52 Payload` Set node between Create User Record → Ensure Slack Channel Exists, reshaping DB keys (phone_number→phoneNumber, id→userId) to §2.5 canonical shape; NO Load-User removal per design.",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Nit",
+      "title": "Step 6 is a pure conditional redirect with no node action",
+      "evidence": "docs/pseudocode/WF-22.pseudo:33 — 'Step 6: If WF-52 returns success=true (channel created or already exists) → go to Step 8.'",
+      "recommended_action": "Step 6 could be folded into Step 5's branching description to avoid an otherwise-empty step slot; not a blocking issue but slightly misleading as a standalone step."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Minor",
+      "title": "Prepare Payment Instructions reads legacy path `Create User Record` directly instead of Prepare WF-52 Payload output",
+      "evidence": "docs/pseudocode/WF-22.md:77 — jsCode: `const userData = $('Create User Record').first().json; const phone = userData.phone_number;` reads snake_case `phone_number` from the Create User Record RETURNING row, not from the canonical `Prepare WF-52 Payload` output. Pseudo Step 9 says 'phoneNumber = user's phone' without specifying source.",
+      "recommended_action": "No functional defect (the DB RETURNING row does contain phone_number), but pseudo Step 9 should explicitly document that Prepare Payment Instructions reads from Create User Record directly (not from the WF-52 Payload set node), to avoid confusion about whether the canonical phoneNumber rename is in scope for this node. Low priority — parking as follow-up."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Major",
+      "title": "Create User Record gained `onError:continueRegularOutput` — unintended functional change not in sub-10 plan",
+      "evidence": "docs/pseudocode/WF-22.md diff hunk at line 30-34: `{\"onError\":\"continueRegularOutput\"}` added to Create User Record error handling. sub-10.md `node_modifications: []` lists zero modifications to existing nodes.",
+      "recommended_action": "Verify whether this error-handling change was intentional or a side-effect of the n8n edit. If the UPSERT fails (e.g. constraint error beyond phone_number conflict), `continueRegularOutput` silently passes an empty/error JSON downstream to `Prepare WF-52 Payload`, which would then emit `phoneNumber=undefined, name=undefined, userId=undefined` — causing WF-52's entry guard to throw. Recommend changing to `onError:stopWorkflow` (n8n default) or explicitly documenting the intent in sub-10.md if the behaviour is desired."
+    },
+    {
+      "severity": "Nit",
+      "title": "Set node typeVersion in .md is 3.4 but sub-10.md plan specifies typeVersion 3",
+      "evidence": "docs/pseudocode/WF-22.md:81 — `n8n-nodes-base.set (v3.4)`. sub-10.md plan specifies `\"typeVersion\": 3`.",
+      "recommended_action": "v3.4 is a minor-version bump within the v3 family — functionally equivalent. No action required; noted for awareness."
+    }
+  ],
+  "questions_for_human": [
+    "Was the `onError:continueRegularOutput` addition to Create User Record intentional? It is not listed in sub-10.md's node_modifications and changes the failure mode: a DB UPSERT error would silently propagate downstream rather than stopping the workflow. If intentional, update sub-10.md to document the rationale."
+  ]
+}

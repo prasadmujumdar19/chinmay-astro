@@ -1,0 +1,50 @@
+{
+  "wf": "WF-30",
+  "summary_one_line": "Prepare Payment Reminder renamed message→messageContent + messageType:'text' added; Send Payment Reminder via WF-50 mapping updated to canonical §2.3 fields; pseudo Summary + Step 1/5/7 updated to declare WF-01 envelope consumption.",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Minor",
+      "title": "Step 2 still references legacy flat fields (userId, messageText, userStatus) without envelope path qualification",
+      "evidence": "docs/pseudocode/WF-30.pseudo:20 — 'Step 2: Call WF-25 with phoneNumber, userId, messageText, userStatus.' These are WF-02 passthrough fields documented in the Summary as additional fields, but pseudo Step 2 uses the bare unqualified names that could imply they are top-level envelope fields from §2.1 rather than legacy passthrough fields.",
+      "recommended_action": "Add a parenthetical clarifier e.g. 'Call WF-25 with phoneNumber, userId (from WF-02 passthrough), messageText (from WF-02 passthrough; TD-DRIFT-009), userStatus (from WF-02 passthrough).' Consistent with how WF-23.pseudo:Step 2 documents the same call."
+    },
+    {
+      "severity": "Minor",
+      "title": "Step 3 go-to reference 'go to Step 7' skips Steps 6 — non-linear hop is intentional but warrants a note",
+      "evidence": "docs/pseudocode/WF-30.pseudo:23 — 'If NO (only stop_intent reachable per WF-25 contract) → go to Step 7'. Steps are numbered 1–8 linearly and Step 6 is 'End' for the main path; the jump over Step 6 is structurally correct but could confuse a reader.",
+      "recommended_action": "Add a parenthetical e.g. '(skips Step 6 — End is main-path only)' in Step 3's NO branch, or reorder Steps 6-8 so the stop-clarifier path uses Steps 6-7-8 and End becomes Step 9. Low priority."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Minor",
+      "title": "Call WF-50 (Stop Clarifier) uses mappingMode:passthrough in .md but pseudo Step 8 implies explicit field passing",
+      "evidence": "docs/pseudocode/WF-30.md line 39 — 'mappingMode:passthrough' for 'Call WF-50 (Stop Clarifier)'. docs/pseudocode/WF-30.pseudo:31-34 — Step 7 builds an explicit payload {phoneNumber, messageType, messageContent} and Step 8 says 'Call WF-50 (Stop Clarifier) with the prepared payload'. Passthrough mode will forward all fields from 'Build WF-50 (Stop Clarifier) Payload' Set node output — which does set exactly {phoneNumber, messageType, messageContent} — so runtime is correct. But the pseudo implies defineBelow-style explicit mapping, creating a minor documentation impression mismatch.",
+      "recommended_action": "Either update pseudo Step 8 to note 'passthrough forwards the Set node output' OR change .md node to use defineBelow to match the pseudo's intent. Functionally safe either way since the Set node output contains exactly the three required fields."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Nit",
+      "title": "live_updated_at and generated_at timestamps updated — expected regen metadata change",
+      "evidence": "docs/pseudocode/WF-30.md diff lines 9-12 — timestamps changed from 2026-05-23 to 2026-05-24. Expected from n8n .md regeneration after node edits.",
+      "recommended_action": "No action — expected."
+    },
+    {
+      "severity": "Nit",
+      "title": "Prepare Payment Reminder jsCode change is correctly scoped — legacy message: key replaced",
+      "evidence": "docs/pseudocode/WF-30.md diff lines 20-21 — return changes from '{ phoneNumber: d.phoneNumber, message: paymentMsg }' to '{ phoneNumber: d.phoneNumber, messageType: 'text', messageContent: paymentMsg }'. No legacy message: key remains.",
+      "recommended_action": "No action — change is correct and complete."
+    },
+    {
+      "severity": "Nit",
+      "title": "Send Payment Reminder via WF-50 workflowInputs mapping updated — legacy message field replaced",
+      "evidence": "docs/pseudocode/WF-30.md diff lines 29-30 — mapping changed from {phoneNumber, message} to {phoneNumber, messageType, messageContent}. Fully aligns with §2.3 defineBelow canonical mapping.",
+      "recommended_action": "No action — change is correct and complete."
+    }
+  ],
+  "questions_for_human": [
+    "The 'Call WF-50 (Stop Clarifier)' node uses mappingMode:passthrough (not defineBelow). This is functionally equivalent because the preceding 'Build WF-50 (Stop Clarifier) Payload' Set node emits exactly {phoneNumber, messageType, messageContent}. However if a future node is inserted between them that adds extra fields, passthrough would forward those extras to WF-50. Intentional design choice (passthrough for brevity) or should this be defineBelow for defensiveness, matching the Send Payment Reminder via WF-50 pattern?"
+  ]
+}

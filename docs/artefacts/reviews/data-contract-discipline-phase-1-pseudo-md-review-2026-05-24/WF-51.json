@@ -1,0 +1,38 @@
+{
+  "wf": "WF-51",
+  "summary_one_line": "Added Validate Inputs entry guard (channelId regex + non-empty messageText) between Execute Workflow Trigger and Post to Slack; step-renumbered pseudo 2–6; no other functional changes.",
+  "verdict": "findings",
+  "dimension_a_pseudo": [
+    {
+      "severity": "Nit",
+      "title": "Summary note still references the old TD-DRIFT-028/TD-DRIFT-011 convention but without cross-referencing the new entry guard",
+      "evidence": "docs/pseudocode/WF-51.pseudo:16 — 'Trigger uses inputSource=passthrough with no enforced schema ... Accepted-as-is per WF-46 D8 (TD-DRIFT-028) / WF-25 D2 (TD-DRIFT-011)'",
+      "recommended_action": "Minor wording update: note that schema enforcement now occurs at the first Code node (Step 2 entry guard) rather than only at caller-side mappings, so the accepted-as-is clause describes the trigger boundary only, not the full contract scope. Not blocking."
+    }
+  ],
+  "dimension_b_drift": [
+    {
+      "severity": "Minor",
+      "title": "onError:continueRegularOutput on Call WF-60 Message Logger not reflected in pseudo",
+      "evidence": "docs/pseudocode/WF-51.md:34-38 — 'error handling: {\"onError\":\"continueRegularOutput\"}' on Call WF-60 Message Logger node; docs/pseudocode/WF-51.pseudo has no corresponding annotation",
+      "recommended_action": "Add a parenthetical to pseudo Step 5: '(node-level onError=continueRegularOutput — WF-60 errors do not halt WF-51)'. Aligns with the existing prose in Step 6 ('WF-60 result not propagated upstream') and the TD-NEW-028 note. Not a runtime risk — just a documentation gap."
+    }
+  ],
+  "dimension_c_md": [
+    {
+      "severity": "Major",
+      "title": "onError:continueRegularOutput added to Call WF-60 Message Logger with no sprint-doc evidence",
+      "evidence": "docs/pseudocode/WF-51.md.diff hunk +31..+38 — new error handling block on 'Call WF-60 Message Logger'; sub-4 scope (state.md batch_2_wave_1 sub-4) covers only 'Add Validate Inputs entry guard + audit Build WF-60 Payload outbound node'; no mention of modifying error handling on the WF-60 call node",
+      "recommended_action": "Confirm this change was intentional: if yes, add a one-line note to state.md wave_2_apply_progress sub-4 (or followups.md) documenting the rationale (ensures WF-60 errors do not surface to callers, consistent with TD-NEW-028 intent). If unintentional, revert the onError setting on that node. The functional effect is benign — prevents WF-60 failure from halting WF-51 — but the change is outside the stated sprint scope and should be documented."
+    },
+    {
+      "severity": "Nit",
+      "title": "Dead-code fallback in Build WF-60 Payload: channelId reads slackResp.channel after guard guarantees triggerInput.channelId is non-null",
+      "evidence": "docs/pseudocode/WF-51.md:23 — 'const channelId = triggerInput.channelId || slackResp.channel || null' — post-guard, triggerInput.channelId is guaranteed non-empty so the slackResp.channel branch can never fire",
+      "recommended_action": "Consider simplifying to 'const channelId = triggerInput.channelId' for clarity. Not a defect — the guard makes the fallback unreachable. Pre-dates this sprint (unchanged in diff); park as follow-up."
+    }
+  ],
+  "questions_for_human": [
+    "Was the onError:continueRegularOutput setting on 'Call WF-60 Message Logger' an intentional change in this sprint (consistent with TD-NEW-028 design intent) or a side-effect of the node-export/re-import cycle? If intentional, a one-liner in state.md or followups.md would close the audit gap."
+  ]
+}
