@@ -5,9 +5,9 @@ input_hash: c7adf059a8f94100a833061ae768688ebf5ca282c52b6bb89d026315a210606c
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/2026-05-18-canonical-executeworkflow-shape-sweep/working.md
 planned_at: 2026-05-18T00:50:00Z
-last_updated: 2026-05-18T01:10:00Z
+last_updated: 2026-05-18T01:35:00Z
 batch_1_status: "Verified end-to-end by user smoke test. P0 complete (all 10 items done)."
-commit_strategy: "Deferred to sprint end (POST-3 bulk commit). Per-batch commits skipped at user direction."
+commit_strategy: "Bulk commit at sprint end (commit 5a7bc00, 62 files). Pushed to main."
 planning_complete: true
 dependency_conflicts_found: []
 priority_adjustments_confirmed: "WF-31 and WF-25 scheduled first in Batch 1: WF-31 is the live smoke-test resume blocker (phone 61466927921 in payment_submitted state); WF-25 is the critical-path callee. User-suggested batching from plan retained — verified mutually independent (each item modifies one workflow, idempotent jq transform; broken pattern is in caller node shape so callee fix order doesn't matter)."
@@ -110,7 +110,8 @@ items:
   - id: POST-1
     description: "Bulk export all live workflows to workflows/*.json (scripts/export-all-workflows.sh) — overrides any stale local/GitHub copies (user noted UI-only fixes on WF-32, WF-22, etc. not yet exported)."
     priority: P1
-    status: pending
+    status: done
+    completed_at: 2026-05-18T01:35:00Z
     batch: 4
     depends_on:
       - id: WF-47
@@ -119,7 +120,8 @@ items:
   - id: POST-2
     description: "Generate .md companion docs for each workflow JSON (one .md per workflows/*.json) summarising trigger, nodes, callers/callees. Format to be confirmed at execution time."
     priority: P1
-    status: pending
+    status: done
+    completed_at: 2026-05-18T01:35:00Z
     batch: 4
     depends_on:
       - id: POST-1
@@ -128,7 +130,8 @@ items:
   - id: POST-3
     description: "Single git commit + push: workflows/*.json + companion .md files + dependency-map regeneration + this sprint's artefacts."
     priority: P1
-    status: pending
+    status: done
+    completed_at: 2026-05-18T01:35:00Z
     batch: 4
     depends_on:
       - id: POST-2

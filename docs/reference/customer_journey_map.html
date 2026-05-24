@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chinmay Astro — How Users Experience Your Service</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #faf9f6;
+    color: #2a2520;
+    font-family: 'Nunito Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .hero {
+    background: linear-gradient(135deg, #1a0a2e 0%, #2d1245 50%, #1a0a2e 100%);
+    padding: 48px 56px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '🌟';
+    position: absolute;
+    font-size: 180px;
+    opacity: 0.06;
+    top: -20px;
+    right: 40px;
+    line-height: 1;
+  }
+
+  .hero-label {
+    font-family: 'Nunito', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #c9a84c;
+    margin-bottom: 10px;
+  }
+
+  .hero h1 {
+    font-family: 'Nunito', sans-serif;
+    font-size: 30px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+
+  .hero p {
+    font-size: 15px;
+    color: #a090c0;
+    max-width: 600px;
+    line-height: 1.6;
+  }
+
+  /* ── Intro strip ── */
+  .intro-strip {
+    background: #fff;
+    border-bottom: 1px solid #ede9e0;
+    padding: 20px 56px;
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .intro-stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .intro-stat-icon {
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .intro-stat-text {
+    font-size: 13px;
+    color: #5a5060;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+  }
+
+  .intro-stat-text span {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    color: #9a9098;
+  }
+
+  /* ── Section headers ── */
+  .section-wrap {
+    padding: 40px 56px 8px;
+  }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .section-emoji {
+    font-size: 24px;
+    line-height: 1;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+
+  .section-label h2 {
+    font-family: 'Nunito', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+
+  .section-label p {
+    font-size: 13px;
+    color: #7a7080;
+    margin-top: 2px;
+  }
+
+  /* ── Journey cards ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    padding: 0 56px 16px;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1.5px solid #ede9e0;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transition: box-shadow 0.15s, transform 0.15s;
+  }
+
+  .card:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.09);
+    transform: translateY(-2px);
+  }
+
+  .card-top {
+    padding: 16px 18px 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border-bottom: 1px solid #f3efe8;
+  }
+
+  .card-icon {
+    font-size: 22px;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .card-top-text { flex: 1; }
+
+  .card-step-num {
+    font-family: 'Nunito', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  .card-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    color: #1a1520;
+    line-height: 1.3;
+  }
+
+  .card-body {
+    padding: 14px 18px;
+  }
+
+  /* Trigger row */
+  .trigger {
+    background: #f7f5f0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: #6a6070;
+    line-height: 1.5;
+    border-left: 3px solid;
+  }
+
+  .trigger strong {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+
+  /* Steps */
+  .step-list {
+    list-style: none;
+  }
+
+  .step-list li {
+    display: flex;
+    gap: 10px;
+    padding: 5px 0;
+    font-size: 13px;
+    color: #4a4050;
+    line-height: 1.55;
+    border-bottom: 1px solid #f7f5f0;
+  }
+
+  .step-list li:last-child { border-bottom: none; }
+
+  .step-num {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    font-family: 'Nunito', sans-serif;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Message bubbles */
+  .bubble-row {
+    margin: 8px 0 4px;
+  }
+
+  .bubble {
+    display: inline-block;
+    padding: 7px 12px;
+    border-radius: 14px;
+    font-size: 12px;
+    line-height: 1.5;
+    max-width: 90%;
+  }
+
+  .bubble-bot {
+    background: #f0f0f0;
+    color: #2a2520;
+    border-bottom-left-radius: 4px;
+  }
+
+  .bubble-user {
+    background: #dcf8c6;
+    color: #1a3010;
+    border-bottom-right-radius: 4px;
+    float: right;
+    clear: both;
+  }
+
+  .bubble-admin {
+    background: #e8e0ff;
+    color: #2a1060;
+    border-bottom-left-radius: 4px;
+  }
+
+  .bubble-label {
+    font-size: 10px;
+    color: #9a9098;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    margin-bottom: 3px;
+    display: block;
+  }
+
+  .clearfix::after { content:''; display:block; clear:both; }
+
+  /* Outcome banner */
+  .outcome {
+    margin-top: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Nunito', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  /* Card footer tags */
+  .card-footer {
+    padding: 8px 18px 12px;
+    border-top: 1px solid #f3efe8;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-size: 10px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 99px;
+  }
+
+  /* ── Flow diagram ── */
+  .flow-wrap {
+    padding: 8px 56px 40px;
+    overflow-x: auto;
+  }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: nowrap;
+    min-width: max-content;
+    padding: 8px 0;
+  }
+
+  .flow-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .flow-bubble {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    border: 2.5px solid;
+  }
+
+  .flow-label {
+    font-family: 'Nunito', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    max-width: 80px;
+    line-height: 1.3;
+    color: #4a4050;
+  }
+
+  .flow-arrow {
+    font-size: 20px;
+    color: #c9a84c;
+    padding: 0 4px;
+    margin-bottom: 18px;
+    flex-shrink: 0;
+  }
+
+  /* ── Divider ── */
+  .section-divider {
+    height: 1px;
+    background: #ede9e0;
+    margin: 8px 56px;
+  }
+
+  /* ── Admin explainer ── */
+  .admin-box {
+    background: linear-gradient(135deg, #1a0a2e, #2d1245);
+    border-radius: 16px;
+    padding: 24px 28px;
+    color: #e0d8f8;
+    margin: 0 56px 16px;
+  }
+
+  .admin-box h3 {
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .admin-box p {
+    font-size: 13px;
+    color: #b0a8c8;
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .admin-cmds {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+
+  .admin-cmd {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+
+  .admin-cmd-name {
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    color: #c9a84c;
+    margin-bottom: 3px;
+  }
+
+  .admin-cmd-desc {
+    font-size: 12px;
+    color: #9080b0;
+    line-height: 1.4;
+  }
+
+  /* ── Colour themes per section ── */
+
+  /* Onboarding — amber/gold */
+  .t-onboard .section-emoji { background:#fff8e8; }
+  .t-onboard .card-step-num { color: #c9a84c; }
+  .t-onboard .step-num { background:#fff3d0; color:#a07820; }
+  .t-onboard .trigger { border-color:#e8c060; background:#fffdf5; }
+  .t-onboard .tag { background:#fff3d0; color:#a07820; }
+  .t-onboard .card { border-color:#f0e4c0; }
+  .t-onboard .card-top { background:#fffdf7; }
+  .t-onboard .outcome { background:#fff8e8; color:#8a6010; }
+
+  /* Payment — blue */
+  .t-payment .section-emoji { background:#eef3ff; }
+  .t-payment .card-step-num { color: #4a74ba; }
+  .t-payment .step-num { background:#deeaff; color:#2a4a90; }
+  .t-payment .trigger { border-color:#6090d0; background:#f5f8ff; }
+  .t-payment .tag { background:#deeaff; color:#2a4a90; }
+  .t-payment .card { border-color:#c8d8f8; }
+  .t-payment .card-top { background:#f7faff; }
+  .t-payment .outcome { background:#eef3ff; color:#2a4a90; }
+
+  /* Consultation — green */
+  .t-consult .section-emoji { background:#edfff5; }
+  .t-consult .card-step-num { color: #2a9060; }
+  .t-consult .step-num { background:#d0f5e8; color:#1a6040; }
+  .t-consult .trigger { border-color:#40c080; background:#f5fff9; }
+  .t-consult .tag { background:#d0f5e8; color:#1a6040; }
+  .t-consult .card { border-color:#b8e8d0; }
+  .t-consult .card-top { background:#f5fff9; }
+  .t-consult .outcome { background:#edfff5; color:#1a6040; }
+
+  /* Post-consult — orange */
+  .t-post .section-emoji { background:#fff5ee; }
+  .t-post .card-step-num { color: #c06830; }
+  .t-post .step-num { background:#ffe8d0; color:#903820; }
+  .t-post .trigger { border-color:#e08040; background:#fff8f2; }
+  .t-post .tag { background:#ffe8d0; color:#903820; }
+  .t-post .card { border-color:#f8d8b8; }
+  .t-post .card-top { background:#fff8f2; }
+  .t-post .outcome { background:#fff5ee; color:#903820; }
+
+  /* Edge — soft grey-red */
+  .t-edge .section-emoji { background:#fff0f0; }
+  .t-edge .card-step-num { color: #b05050; }
+  .t-edge .step-num { background:#ffe0e0; color:#802828; }
+  .t-edge .trigger { border-color:#e08080; background:#fff7f7; }
+  .t-edge .tag { background:#ffe0e0; color:#802828; }
+  .t-edge .card { border-color:#f8c8c8; }
+  .t-edge .card-top { background:#fff7f7; }
+  .t-edge .outcome { background:#fff0f0; color:#802828; }
+
+  /* ── Full journey timeline ── */
+  .timeline {
+    margin: 0 56px 40px;
+    position: relative;
+  }
+
+  .timeline-track {
+    position: absolute;
+    left: 30px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, #c9a84c, #4a74ba, #2a9060, #c06830);
+    border-radius: 2px;
+  }
+
+  .tl-item {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 2px;
+    position: relative;
+  }
+
+  .tl-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 3px solid #faf9f6;
+    flex-shrink: 0;
+    margin-top: 16px;
+    position: relative;
+    z-index: 1;
+    margin-left: 21px;
+  }
+
+  .tl-card {
+    flex: 1;
+    background: #fff;
+    border: 1.5px solid #ede9e0;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+
+  .tl-card-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tl-card-desc {
+    font-size: 13px;
+    color: #5a5060;
+    line-height: 1.55;
+  }
+
+  .tl-card-desc .msg {
+    margin-top: 6px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  .msg-bot  { background: #f0f0f0; color: #2a2520; }
+  .msg-user { background: #dcf8c6; color: #1a3010; }
+  .msg-you  { background: #e8e0ff; color: #2a1060; }
+
+</style>
+</head>
+<body>
+
+<!-- ────────── HERO ────────── -->
+<div class="hero">
+  <div class="hero-label">Chinmay Astro · Service Guide for Chinmay</div>
+  <h1>How Your Clients Experience<br>Chinmay Astro</h1>
+  <p>A simple walkthrough of exactly what happens — from the moment a client messages you, to when the consultation ends and they book again.</p>
+</div>
+
+<!-- ────────── INTRO STATS ────────── -->
+<div class="intro-strip">
+  <div class="intro-stat">
+    <div class="intro-stat-icon">📱</div>
+    <div class="intro-stat-text">WhatsApp Only
+      <span>Clients never need to install anything</span>
+    </div>
+  </div>
+  <div class="intro-stat">
+    <div class="intro-stat-icon">🤖</div>
+    <div class="intro-stat-text">Bot Handles Routine Steps
+      <span>Welcoming, forms, payments, reminders</span>
+    </div>
+  </div>
+  <div class="intro-stat">
+    <div class="intro-stat-icon">💬</div>
+    <div class="intro-stat-text">You Work from Slack
+      <span>Approve payments, chat with clients, close sessions</span>
+    </div>
+  </div>
+  <div class="intro-stat">
+    <div class="intro-stat-icon">₹</div>
+    <div class="intro-stat-text">₹500 per Consultation
+      <span>Paid via GPay, you approve before session starts</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════
+     MAIN FLOW — visual timeline
+═══════════════════════════════════════════════ -->
+
+<div class="section-wrap">
+  <div class="section-label">
+    <div class="section-emoji t-onboard" style="font-size:22px;">🗺️</div>
+    <div>
+      <h2>The Complete Client Journey — At a Glance</h2>
+      <p>Every new client goes through these steps, in order</p>
+    </div>
+  </div>
+</div>
+
+<!-- Horizontal flow diagram -->
+<div class="flow-wrap">
+  <div class="flow">
+
+    <div class="flow-step">
+      <div class="flow-bubble" style="background:#fff8e8; border-color:#c9a84c;">👋</div>
+      <div class="flow-label">Client says Hi</div>
+    </div>
+    <div class="flow-arrow">→</div>
+
+    <div class="flow-step">
+      <div class="flow-bubble" style="background:#fff8e8; border-color:#c9a84c;">✅</div>
+      <div class="flow-label">Agrees to Terms</div>
+    </div>
+    <div class="flow-arrow">→</div>
+
+    <div class="flow-step">
+      <div class="flow-bubble" style="background:#fff8e8; border-color:#c9a84c;">📝</div>
+      <div class="flow-label">Fills Birth Details Form</div>
+    </div>
+    <div class="flow-arrow">→</div>
+
+    <div class="flow-step">
+      <div class="flow-bubble" style="background:#eef3ff; border-color:#4a74ba;">₹</div>
+      <div class="flow-label">Pays ₹500 via GPay</div>
+    </div>
+    <div class="flow-arrow">→</div>
+
+    <div class="flow-step">
+      <div class="flow-bubble" style="background:#eef3ff; border-color:#4a74ba;">👆</div>
+      <div class="flow-label">Taps "Payment Done"</div>
+    </div>
+    <div class="flow-arrow">→</div>
+
+    <div class="flow-step">
+      <div class="flow-bubble" style="background:#e8e0ff; border-color:#8a5abf;">🔔</div>
+      <div class="flow-label">You get notified on Slack</div>
+    </div>
+    <div class="flow-arrow">→</div>
+
+    <div class="flow-step">
+      <div class="flow-bubble" style="background:#e8e0ff; border-color:#8a5abf;">✔️</div>
+      <div class="flow-label">You approve in Slack</div>
+    </div>
+    <div class="flow-arrow">→</div>
+
+    <div class="flow-step">
+      <div class="flow-bubble" style="background:#edfff5; border-color:#2a9060;">💬</div>
+      <div class="flow-label">Consultation begins</div>
+    </div>
+    <div class="flow-arrow">→</div>
+
+    <div class="flow-step">
+      <div class="flow-bubble" style="background:#edfff5; border-color:#2a9060;">🔚</div>
+      <div class="flow-label">You close on Slack</div>
+    </div>
+    <div class="flow-arrow">→</div>
+
+    <div class="flow-step">
+      <div class="flow-bubble" style="background:#fff5ee; border-color:#c06830;">⭐</div>
+      <div class="flow-label">Client gives feedback / Rebooks</div>
+    </div>
+
+  </div>
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ════════════════════════════════════════════
+     SECTION 1: ONBOARDING
+═══════════════════════════════════════════════ -->
+
+<div class="section-wrap t-onboard">
+  <div class="section-label">
+    <div class="section-emoji" style="background:#fff8e8; font-size:22px;">👋</div>
+    <div>
+      <h2 style="color:#8a6010;">Step 1 — Client Discovers & Signs Up</h2>
+      <p>What happens when someone messages your WhatsApp number for the very first time</p>
+    </div>
+  </div>
+</div>
+
+<div class="cards-grid t-onboard">
+
+  <div class="card t-onboard">
+    <div class="card-top">
+      <div class="card-icon">💬</div>
+      <div class="card-top-text">
+        <div class="card-step-num">Situation 1 of 3</div>
+        <div class="card-title">A brand-new client messages you</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="trigger" style="border-color:#c9a84c;">
+        <strong>What triggers this</strong>
+        Someone sends your WhatsApp number any message for the first time — could be "Hi", "Namaste", or even a full question about their horoscope.
+      </div>
+      <ul class="step-list">
+        <li>
+          <div class="step-num">1</div>
+          <div>The bot sends a friendly welcome message explaining your service and the ₹500 fee — regardless of what they wrote. It asks them to reply YES to agree to the terms.</div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div>Nothing is saved yet — the bot is just introducing itself.</div>
+        </li>
+      </ul>
+      <div class="bubble-row">
+        <span class="bubble-label">Bot says:</span>
+        <div class="bubble bubble-bot">🙏 Namaste! Welcome to Chinmay Astro — a personal Vedic astrology consultation service. One session is ₹500 paid via GPay. Reply <strong>YES</strong> to agree to our terms and get started.</div>
+      </div>
+      <div class="outcome">✅ Client now knows what they're signing up for</div>
+    </div>
+    <div class="card-footer">
+      <span class="tag">New Client</span>
+      <span class="tag">Bot Handles</span>
+    </div>
+  </div>
+
+  <div class="card t-onboard">
+    <div class="card-top">
+      <div class="card-icon">✅</div>
+      <div class="card-top-text">
+        <div class="card-step-num">Situation 2 of 3</div>
+        <div class="card-title">Client agrees and fills the birth details form</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="trigger" style="border-color:#c9a84c;">
+        <strong>What triggers this</strong>
+        Client replies YES (or taps a YES button).
+      </div>
+      <ul class="step-list">
+        <li>
+          <div class="step-num">1</div>
+          <div>The bot opens a neat form <em>inside WhatsApp</em> (no links, no browser needed) asking for: <strong>Full Name, Date of Birth, Time of Birth, Place of Birth.</strong></div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div>Client fills and submits the form. All details are saved automatically.</div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div>Bot immediately sends GPay UPI details and asks them to pay ₹500.</div>
+        </li>
+      </ul>
+      <div class="outcome">📝 Birth details saved. Client is now in "Awaiting Payment" stage.</div>
+    </div>
+    <div class="card-footer">
+      <span class="tag">WhatsApp Form</span>
+      <span class="tag">Bot Handles</span>
+    </div>
+  </div>
+
+  <div class="card t-onboard">
+    <div class="card-top">
+      <div class="card-icon">❌</div>
+      <div class="card-top-text">
+        <div class="card-step-num">Situation 3 of 3</div>
+        <div class="card-title">Client says NO or doesn't respond</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="trigger" style="border-color:#c9a84c;">
+        <strong>What triggers this</strong>
+        Client replies NO, or sends something unrelated after the welcome message.
+      </div>
+      <ul class="step-list">
+        <li>
+          <div class="step-num">1</div>
+          <div>Bot politely acknowledges — no pressure applied.</div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div>If they message again later, the bot starts fresh — shows the welcome message again as if it's their first time.</div>
+        </li>
+      </ul>
+      <div class="bubble-row">
+        <span class="bubble-label">Bot says:</span>
+        <div class="bubble bubble-bot">No problem at all! If you ever change your mind and want an astrology consultation, just message us again. 🙏</div>
+      </div>
+      <div class="outcome">🤝 Clean exit. No data stored. No awkwardness.</div>
+    </div>
+    <div class="card-footer">
+      <span class="tag">Graceful Exit</span>
+      <span class="tag">Bot Handles</span>
+    </div>
+  </div>
+
+</div>
+
+
+<div class="section-divider"></div>
+
+<!-- ════════════════════════════════════════════
+     SECTION 2: PAYMENT
+═══════════════════════════════════════════════ -->
+
+<div class="section-wrap t-payment">
+  <div class="section-label">
+    <div class="section-emoji" style="background:#eef3ff; font-size:22px;">₹</div>
+    <div>
+      <h2 style="color:#2a4a90;">Step 2 — Payment</h2>
+      <p>How the ₹500 payment flows from client to your approval</p>
+    </div>
+  </div>
+</div>
+
+<div class="cards-grid t-payment">
+
+  <div class="card t-payment">
+    <div class="card-top">
+      <div class="card-icon">💰</div>
+      <div class="card-top-text">
+        <div class="card-step-num">Situation 1 of 3</div>
+        <div class="card-title">Client completes the payment</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="trigger" style="border-color:#4a74ba;">
+        <strong>What triggers this</strong>
+        Client pays ₹500 via GPay to the UPI ID shown by the bot, then taps the "Payment Completed ✓" button in WhatsApp.
+      </div>
+      <ul class="step-list">
+        <li>
+          <div class="step-num">1</div>
+          <div>A new private channel is created in <strong>your Slack</strong> — named after this client (e.g., <em>#consult-Meena-9876</em>).</div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div>Slack shows you the client's birth details and a note that payment is pending your verification.</div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div>Client gets a message saying their payment is being reviewed and you'll confirm shortly.</div>
+        </li>
+      </ul>
+      <div class="outcome">🔔 You're now notified in Slack. Your turn to verify.</div>
+    </div>
+    <div class="card-footer">
+      <span class="tag">Your Action Needed</span>
+      <span class="tag">Slack Notification</span>
+    </div>
+  </div>
+
+  <div class="card t-payment">
+    <div class="card-top">
+      <div class="card-icon">🤔</div>
+      <div class="card-top-text">
+        <div class="card-step-num">Situation 2 of 3</div>
+        <div class="card-title">Client messages while waiting for your approval</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="trigger" style="border-color:#4a74ba;">
+        <strong>What triggers this</strong>
+        Client sends a message after tapping "Payment Completed" while they're waiting for you to approve.
+      </div>
+      <ul class="step-list">
+        <li>
+          <div class="step-num">1</div>
+          <div>The bot responds reassuringly — confirms their payment is under review.</div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div>If the client has a genuine question, the bot answers it smartly using AI.</div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div>Their message is also passed to your Slack channel as a note, so you're in the loop.</div>
+        </li>
+      </ul>
+      <div class="bubble-row">
+        <span class="bubble-label">Bot says:</span>
+        <div class="bubble bubble-bot">Your payment is being verified by Chinmay right now. You'll hear back very shortly! ⏳</div>
+      </div>
+      <div class="outcome">😌 Client feels taken care of. No awkward silence.</div>
+    </div>
+    <div class="card-footer">
+      <span class="tag">Bot Handles</span>
+      <span class="tag">AI-assisted</span>
+    </div>
+  </div>
+
+  <div class="card t-payment">
+    <div class="card-top">
+      <div class="card-icon">⚠️</div>
+      <div class="card-top-text">
+        <div class="card-step-num">Situation 3 of 3</div>
+        <div class="card-title">Payment not made within 24 hours</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="trigger" style="border-color:#4a74ba;">
+        <strong>What triggers this</strong>
+        Client filled the form but hasn't paid even after 24 hours.
+      </div>
+      <ul class="step-list">
+        <li>
+          <div class="step-num">1</div>
+          <div>The bot automatically sends a gentle reminder the next morning.</div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div>Resends the GPay UPI details and the payment button.</div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div>After 7 days of no payment, the slot is quietly released.</div>
+        </li>
+      </ul>
+      <div class="outcome">📩 Automated follow-up. You don't have to do anything.</div>
+    </div>
+    <div class="card-footer">
+      <span class="tag">Automated Reminder</span>
+      <span class="tag">Bot Handles</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ════════════════════════════════════════════
+     YOUR SLACK ACTIONS
+═══════════════════════════════════════════════ -->
+
+<div class="section-wrap">
+  <div class="section-label">
+    <div class="section-emoji" style="background:#e8e0ff; font-size:22px;">🎮</div>
+    <div>
+      <h2 style="color:#4a1a90;">Your Controls — Everything You Do is in Slack</h2>
+      <p>You never need to open any other app. Just type commands in Slack.</p>
+    </div>
+  </div>
+</div>
+
+<div class="admin-box">
+  <h3>🎯 Your Slack Commands</h3>
+  <p>When a client's Slack channel appears, here's everything you can do by just typing a short command:</p>
+  <div class="admin-cmds">
+    <div class="admin-cmd">
+      <div class="admin-cmd-name">APPROVE PAYMENT &lt;phone&gt;</div>
+      <div class="admin-cmd-desc">You've verified the GPay payment — this starts the consultation and opens the chat relay.</div>
+    </div>
+    <div class="admin-cmd">
+      <div class="admin-cmd-name">REJECT &lt;phone&gt;</div>
+      <div class="admin-cmd-desc">Payment couldn't be verified. Client is asked to pay again.</div>
+    </div>
+    <div class="admin-cmd">
+      <div class="admin-cmd-name">CLOSE CHAT CONSULT &lt;phone&gt;</div>
+      <div class="admin-cmd-desc">Consultation is done. Client receives a thank-you + feedback form.</div>
+    </div>
+    <div class="admin-cmd">
+      <div class="admin-cmd-name">BLOCK &lt;phone&gt;</div>
+      <div class="admin-cmd-desc">Permanently blocks a client from reaching your service (for spam/abuse).</div>
+    </div>
+    <div class="admin-cmd">
+      <div class="admin-cmd-name">LIST</div>
+      <div class="admin-cmd-desc">Shows all currently active consultations.</div>
+    </div>
+    <div class="admin-cmd">
+      <div class="admin-cmd-name">STATS</div>
+      <div class="admin-cmd-desc">Quick summary — total clients, consultations today, pending payments.</div>
+    </div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ════════════════════════════════════════════
+     SECTION 3: CONSULTATION
+═══════════════════════════════════════════════ -->
+
+<div class="section-wrap t-consult">
+  <div class="section-label">
+    <div class="section-emoji" style="background:#edfff5; font-size:22px;">💬</div>
+    <div>
+      <h2 style="color:#1a6040;">Step 3 — The Consultation</h2>
+      <p>Once you approve, it's a live WhatsApp chat — completely seamless</p>
+    </div>
+  </div>
+</div>
+
+<div class="cards-grid t-consult">
+
+  <div class="card t-consult">
+    <div class="card-top">
+      <div class="card-icon">🔁</div>
+      <div class="card-top-text">
+        <div class="card-step-num">How the relay works</div>
+        <div class="card-title">Client chats on WhatsApp — you reply on Slack</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="trigger" style="border-color:#40c080;">
+        <strong>What triggers this</strong>
+        You type APPROVE PAYMENT in Slack. Consultation starts immediately.
+      </div>
+      <ul class="step-list">
+        <li>
+          <div class="step-num">1</div>
+          <div>Client receives: <em>"Your consultation has started! You can now ask Chinmay your questions."</em></div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div>Every message the client sends on WhatsApp <strong>appears instantly in your Slack channel</strong> for this client.</div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div>Every message <strong>you type in Slack</strong> is instantly delivered to the client's WhatsApp.</div>
+        </li>
+        <li>
+          <div class="step-num">4</div>
+          <div>The client has no idea you're using Slack — to them it feels like a normal WhatsApp conversation.</div>
+        </li>
+      </ul>
+      <div class="bubble-row">
+        <span class="bubble-label">Client's WhatsApp →</span>
+        <div class="bubble bubble-user">What does my Kundli say about my career this year?</div>
+      </div>
+      <div class="clearfix"></div>
+      <div class="bubble-row" style="margin-top:8px;">
+        <span class="bubble-label">You type in Slack →</span>
+        <div class="bubble bubble-you" style="background:#e8e0ff; color:#2a1060;">Saturn's transit in your 10th house this year suggests...</div>
+      </div>
+      <div class="bubble-row" style="margin-top:6px;">
+        <span class="bubble-label" style="color:#2a9060;">Client sees on WhatsApp ↑</span>
+      </div>
+      <div class="outcome">🌟 You concentrate on the astrology. Everything else is handled.</div>
+    </div>
+    <div class="card-footer">
+      <span class="tag">Live Relay</span>
+      <span class="tag">WhatsApp ↔ Slack</span>
+    </div>
+  </div>
+
+  <div class="card t-consult">
+    <div class="card-top">
+      <div class="card-icon">🔚</div>
+      <div class="card-top-text">
+        <div class="card-step-num">Ending the session</div>
+        <div class="card-title">You decide when to close the consultation</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="trigger" style="border-color:#40c080;">
+        <strong>What triggers this</strong>
+        When you feel the consultation is complete, you type the close command in Slack.
+      </div>
+      <ul class="step-list">
+        <li>
+          <div class="step-num">1</div>
+          <div>You type: <strong>CLOSE CHAT CONSULT &lt;phone&gt;</strong></div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div>The Slack channel for this client is automatically archived (stays in history but moves out of your way).</div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div>Client gets a warm closing message with three buttons: <em>Provide Feedback, Book Again,</em> or <em>All done, thank you</em>.</div>
+        </li>
+      </ul>
+      <div class="outcome">✅ Consultation wrapped. Slack stays clean.</div>
+    </div>
+    <div class="card-footer">
+      <span class="tag">Your Action</span>
+      <span class="tag">Auto-Cleanup</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ════════════════════════════════════════════
+     SECTION 4: POST-CONSULTATION
+═══════════════════════════════════════════════ -->
+
+<div class="section-wrap t-post">
+  <div class="section-label">
+    <div class="section-emoji" style="background:#fff5ee; font-size:22px;">⭐</div>
+    <div>
+      <h2 style="color:#903820;">Step 4 — After the Consultation</h2>
+      <p>Feedback, repeat bookings — all handled automatically</p>
+    </div>
+  </div>
+</div>
+
+<div class="cards-grid t-post">
+
+  <div class="card t-post">
+    <div class="card-top">
+      <div class="card-icon">💌</div>
+      <div class="card-top-text">
+        <div class="card-step-num">Situation 1 of 3</div>
+        <div class="card-title">Client wants to leave feedback</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="trigger" style="border-color:#e08040;">
+        <strong>What triggers this</strong>
+        Client taps "Provide Feedback" after the consultation closes.
+      </div>
+      <ul class="step-list">
+        <li>
+          <div class="step-num">1</div>
+          <div>Bot prompts: <em>"Please share your experience in a message."</em></div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div>Client types their feedback freely.</div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div>Feedback is saved and bot thanks them warmly.</div>
+        </li>
+      </ul>
+      <div class="outcome">📊 Feedback saved. You can review it anytime.</div>
+    </div>
+    <div class="card-footer">
+      <span class="tag">Bot Handles</span>
+      <span class="tag">Auto-saved</span>
+    </div>
+  </div>
+
+  <div class="card t-post">
+    <div class="card-top">
+      <div class="card-icon">🔄</div>
+      <div class="card-top-text">
+        <div class="card-step-num">Situation 2 of 3</div>
+        <div class="card-title">Returning client books again</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="trigger" style="border-color:#e08040;">
+        <strong>What triggers this</strong>
+        Client taps "Book Another Consultation" or sends the word <strong>REBOOK</strong> anytime after their first session ends.
+      </div>
+      <ul class="step-list">
+        <li>
+          <div class="step-num">1</div>
+          <div><strong>No need to fill the form again.</strong> Birth details are already saved from last time.</div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div>Bot sends payment instructions directly.</div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div>Same flow as before — pay → you approve → consultation starts.</div>
+        </li>
+      </ul>
+      <div class="outcome">🎉 Repeat booking in under 2 minutes. Smooth experience for loyal clients.</div>
+    </div>
+    <div class="card-footer">
+      <span class="tag">Returning Client</span>
+      <span class="tag">No Re-onboarding</span>
+    </div>
+  </div>
+
+  <div class="card t-post">
+    <div class="card-top">
+      <div class="card-icon">💭</div>
+      <div class="card-top-text">
+        <div class="card-step-num">Situation 3 of 3</div>
+        <div class="card-title">Client sends a random message after the session</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="trigger" style="border-color:#e08040;">
+        <strong>What triggers this</strong>
+        Client texts something after the consultation is closed — could be a follow-up question or just curiosity.
+      </div>
+      <ul class="step-list">
+        <li>
+          <div class="step-num">1</div>
+          <div>The bot uses AI to understand what the client is asking.</div>
+        </li>
+        <li>
+          <div class="step-num">2</div>
+          <div>If they're asking a general question, the bot answers helpfully.</div>
+        </li>
+        <li>
+          <div class="step-num">3</div>
+          <div>If they seem to want another session, the bot gently guides: <em>"To book a new consultation, just send REBOOK."</em></div>
+        </li>
+      </ul>
+      <div class="outcome">🤖 Bot handles it. You're not disturbed unless a payment comes in.</div>
+    </div>
+    <div class="card-footer">
+      <span class="tag">AI-handled</span>
+      <span class="tag">Bot Handles</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ════════════════════════════════════════════
+     SECTION 5: EDGE CASES
+═══════════════════════════════════════════════ -->
+
+<div class="section-wrap t-edge">
+  <div class="section-label">
+    <div class="section-emoji" style="background:#fff0f0; font-size:22px;">🛡️</div>
+    <div>
+      <h2 style="color:#802828;">Protecting Your Service — Unusual Situations</h2>
+      <p>The bot handles these automatically so you never have to worry about them</p>
+    </div>
+  </div>
+</div>
+
+<div class="cards-grid t-edge">
+
+  <div class="card t-edge">
+    <div class="card-top">
+      <div class="card-icon">📸</div>
+      <div class="card-top-text">
+        <div class="card-step-num">Edge Case</div>
+        <div class="card-title">Client sends images, voice notes or stickers</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <ul class="step-list">
+        <li><div class="step-num">1</div><div>WhatsApp reactions (thumbs up, hearts) — <strong>silently ignored.</strong> No disruption.</div></li>
+        <li><div class="step-num">2</div><div>Images / audio messages — bot politely replies: <em>"Please send text messages only."</em></div></li>
+        <li><div class="step-num">3</div><div>During an active consultation, images are flagged to your Slack so you're aware.</div></li>
+      </ul>
+      <div class="outcome">🛡️ Service stays text-only. No clutter.</div>
+    </div>
+    <div class="card-footer"><span class="tag">Auto-handled</span></div>
+  </div>
+
+  <div class="card t-edge">
+    <div class="card-top">
+      <div class="card-icon">🚫</div>
+      <div class="card-top-text">
+        <div class="card-step-num">Edge Case</div>
+        <div class="card-title">Spam, abuse, or a client you need to block</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <ul class="step-list">
+        <li><div class="step-num">1</div><div>You type <strong>BLOCK &lt;phone&gt;</strong> in Slack at any time.</div></li>
+        <li><div class="step-num">2</div><div>That number is silently blocked — no response is ever sent to them.</div></li>
+        <li><div class="step-num">3</div><div>The block is recorded for your records.</div></li>
+      </ul>
+      <div class="outcome">🔒 You're in full control of who can reach you.</div>
+    </div>
+    <div class="card-footer"><span class="tag">Your Control</span></div>
+  </div>
+
+  <div class="card t-edge">
+    <div class="card-top">
+      <div class="card-icon">🌍</div>
+      <div class="card-top-text">
+        <div class="card-step-num">Edge Case</div>
+        <div class="card-title">Messages from outside India</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <ul class="step-list">
+        <li><div class="step-num">1</div><div>Your service is set up to accept only Indian phone numbers (+91).</div></li>
+        <li><div class="step-num">2</div><div>Messages from foreign numbers are automatically rejected.</div></li>
+        <li><div class="step-num">3</div><div>This can be changed later if you want to expand.</div></li>
+      </ul>
+      <div class="outcome">🇮🇳 India-only by default. No international noise.</div>
+    </div>
+    <div class="card-footer"><span class="tag">Auto-filtered</span></div>
+  </div>
+
+  <div class="card t-edge">
+    <div class="card-top">
+      <div class="card-icon">🆘</div>
+      <div class="card-top-text">
+        <div class="card-step-num">Edge Case</div>
+        <div class="card-title">Client sends HELP or STOP</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <ul class="step-list">
+        <li><div class="step-num">1</div><div><strong>HELP:</strong> Bot gives a personalised status update — tells the client exactly where they are in the process and what to do next.</div></li>
+        <li><div class="step-num">2</div><div><strong>STOP:</strong> Client is unsubscribed and their data is no longer active. Polite farewell message sent.</div></li>
+        <li><div class="step-num">3</div><div>Both are handled completely by the bot. You're not notified unless it's during an active consultation.</div></li>
+      </ul>
+      <div class="outcome">💬 Clients feel supported even when you're offline.</div>
+    </div>
+    <div class="card-footer"><span class="tag">Self-Service</span><span class="tag">Bot Handles</span></div>
+  </div>
+
+</div>
+
+<div class="section-divider"></div>
+
+<!-- ════════════════════════════════════════════
+     SECTION 6: AUTOMATIC MAINTENANCE
+═══════════════════════════════════════════════ -->
+
+<div class="section-wrap">
+  <div class="section-label">
+    <div class="section-emoji" style="background:#f0eaff; font-size:22px;">⚙️</div>
+    <div>
+      <h2 style="color:#4a1a90;">Running in the Background — You Don't Need to Do Anything</h2>
+      <p>These tasks run automatically every day while you sleep</p>
+    </div>
+  </div>
+</div>
+
+<div class="cards-grid" style="padding-bottom:24px;">
+
+  <div class="card" style="border-color:#e0d8ff;">
+    <div class="card-top" style="background:#f8f5ff;">
+      <div class="card-icon">🏥</div>
+      <div class="card-top-text">
+        <div class="card-step-num" style="color:#6a40b0;">Every Hour</div>
+        <div class="card-title">Health Check</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <p style="font-size:13px; color:#5a5060; line-height:1.6;">The system checks itself every hour — WhatsApp, payments, database, everything. If anything is wrong, you get an alert on Slack immediately.</p>
+    </div>
+    <div class="card-footer">
+      <span class="tag" style="background:#ede8ff; color:#5a30a0;">Auto-monitoring</span>
+    </div>
+  </div>
+
+  <div class="card" style="border-color:#e0d8ff;">
+    <div class="card-top" style="background:#f8f5ff;">
+      <div class="card-icon">📨</div>
+      <div class="card-top-text">
+        <div class="card-step-num" style="color:#6a40b0;">Every Morning</div>
+        <div class="card-title">Payment Reminders</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <p style="font-size:13px; color:#5a5060; line-height:1.6;">Any client who filled the form but didn't pay gets a gentle reminder automatically at 9 AM. You never have to chase them yourself.</p>
+    </div>
+    <div class="card-footer">
+      <span class="tag" style="background:#ede8ff; color:#5a30a0;">Auto-reminder</span>
+    </div>
+  </div>
+
+  <div class="card" style="border-color:#e0d8ff;">
+    <div class="card-top" style="background:#f8f5ff;">
+      <div class="card-icon">🧹</div>
+      <div class="card-top-text">
+        <div class="card-step-num" style="color:#6a40b0;">Daily</div>
+        <div class="card-title">Inactive Client Cleanup</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <p style="font-size:13px; color:#5a5060; line-height:1.6;">Clients who haven't interacted in 90 days are quietly marked as inactive. Old records are cleaned up every month to keep things tidy.</p>
+    </div>
+    <div class="card-footer">
+      <span class="tag" style="background:#ede8ff; color:#5a30a0;">Auto-cleanup</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════
+     SUMMARY BOX
+═══════════════════════════════════════════════ -->
+
+<div style="margin: 8px 56px 56px; background: linear-gradient(135deg, #1a0a2e, #2d1245); border-radius: 16px; padding: 28px 32px; color: #e0d8f8;">
+  <div style="font-family:'Nunito',sans-serif; font-size:18px; font-weight:900; color:#fff; margin-bottom:12px;">🌟 In Summary — What You Actually Need to Do</div>
+  <div style="font-size:14px; color:#b0a8c8; line-height:1.9;">
+    As the astrologer, your entire workflow lives in <strong style="color:#c9a84c;">Slack</strong>. Here's your complete to-do list for each client:
+  </div>
+  <ol style="margin-top:16px; padding-left:20px; font-size:14px; color:#c0b8d8; line-height:2.2; font-family:'Nunito',sans-serif; font-weight:600;">
+    <li>Wait for a Slack notification that a new client has paid</li>
+    <li>Check GPay — confirm the ₹500 arrived</li>
+    <li>Type <span style="background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:4px; font-family:monospace; color:#c9a84c;">APPROVE PAYMENT &lt;phone&gt;</span> in Slack</li>
+    <li>Chat with the client through Slack (they see it on WhatsApp)</li>
+    <li>When done, type <span style="background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:4px; font-family:monospace; color:#c9a84c;">CLOSE CHAT CONSULT &lt;phone&gt;</span></li>
+  </ol>
+  <div style="margin-top:16px; font-size:13px; color:#8070a8;">Everything else — welcoming, forms, reminders, feedback, rebooking — is handled by the bot automatically. 🤖</div>
+</div>
+
+</body>
+</html>

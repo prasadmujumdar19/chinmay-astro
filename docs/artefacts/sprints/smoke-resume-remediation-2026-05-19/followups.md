@@ -64,3 +64,15 @@ No strict-class findings across the 12 scoped un-exercised workflows. No P0 runt
 ### Plugin improvements (out of scope of this project sprint)
 - **PLUGIN-T1:** tighten C13 regex to avoid false-positive on `={{ $json.preBuiltJsonString }}` pattern (current regex matches both safe whole-body expression and broken raw-string template). Flush via `flush-plugin-improvements`.
 - **PLUGIN-T2:** extend C12 with `accepts_aliases` declaration in `docs/well-known-downstreams.yml` to suppress false-positives where the downstream sub-workflow has explicit alias tolerance (e.g. WF-52's `input.phone_number || input.phoneNumber`). Flush via `flush-plugin-improvements`.
+
+## [2026-05-20] — TD-003 redirection (admin_actions → messages coverage)
+
+### Decision — `admin_actions` table deprecated (single-admin model)
+- **Trigger:** User challenged the TD-003 premise during batch-3 audit. `messages` is the canonical communication log; `admin_actions` is redundant for single-admin operation (no "who did it" question — always Chinmay in prod, project owner on test user 61466927921 only).
+- **Decision:** TD-003 redirected from "build admin_actions audit-log" to "close messages-table touchpoint-coverage gaps (Slack side)". admin_actions removal logged separately to post-MVP tech debt as **TD-NEW-026** (P3 housekeeping).
+- **Existing partial writes stay in place** for now (WF-11 Unblock node — works but no performed_by; WF-47 Log to admin_actions — silently no-ops). Harmless since nothing reads from the table.
+- **Audit doc:** `docs/artefacts/sprints/smoke-resume-remediation-2026-05-19/td003-touchpoint-audit.md`
+
+### Adjacent — TD-NEW-T3 (admin_actions missing user_id index) is now moot
+- **Earlier finding (post-batch-1 regression, 2026-05-19):** flagged `admin_actions.user_id` lacked an index; deferred to user.
+- **Updated (2026-05-20):** TD-NEW-026 will drop the table entirely. No index needed. **Decision: dropped (superseded by TD-NEW-026).**

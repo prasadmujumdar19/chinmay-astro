@@ -1,0 +1,1031 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Test Report — smoke-pre-golive-continued-2026-05-20</title>
+<style>
+:root {
+  --bg: #0d1117; --bg-card: #161b22; --bg-card-2: #1c2128;
+  --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --border: #30363d;
+  --critical: #ff4d4f; --major: #ff9f43; --minor: #f1c40f; --ok: #27ae60;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--bg); color: var(--fg); }
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+nav { background: #010409; border-right: 1px solid var(--border); padding: 20px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; font-size: 13px; }
+nav h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 20px 0 6px; font-weight: 600; }
+nav h2:first-child { margin-top: 0; }
+nav a { display: block; color: var(--fg); text-decoration: none; padding: 5px 8px; border-radius: 4px; margin: 1px 0; }
+nav a:hover { background: var(--bg-card); color: var(--accent); }
+nav a.depth-1 { padding-left: 18px; color: var(--muted); }
+main { padding: 28px 40px 80px; max-width: 1100px; }
+header.page { border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 28px; }
+header.page h1 { margin: 0 0 4px; font-size: 22px; }
+header.page .meta { color: var(--muted); font-size: 13px; }
+section.layer { margin: 40px 0; }
+section.layer > h1 { font-size: 24px; margin: 0 0 4px; padding-bottom: 10px; border-bottom: 2px solid var(--accent); }
+section.layer > .layer-blurb { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+h2 { margin-top: 28px; font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+h3 { margin-top: 22px; font-size: 15.5px; color: var(--accent); }
+h4 { margin-top: 16px; font-size: 14px; }
+code { background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+pre { background: var(--bg-card); padding: 14px 16px; border-radius: 6px; overflow-x: auto; border: 1px solid var(--border); }
+pre code { background: transparent; padding: 0; font-size: 13px; }
+table { border-collapse: collapse; margin: 14px 0; width: 100%; font-size: 13.5px; }
+th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--bg-card); font-weight: 600; }
+tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+ul, ol { padding-left: 22px; }
+li { margin: 4px 0; }
+/* Story cards — each h3 in story section starts a card */
+#story h3 {
+  background: var(--bg-card-2); margin-top: 20px; padding: 12px 16px; border-radius: 6px 6px 0 0;
+  border: 1px solid var(--border); border-bottom: none; color: var(--fg); font-size: 15px;
+}
+#story h3 + p, #story h3 + p + p, #story h3 + p + p + p,
+#story h3 ~ p, #story h3 ~ pre, #story h3 ~ ul, #story h3 ~ ol {
+  /* default rendering — wrap will come from JS */
+}
+.story-card { background: var(--bg-card); border: 1px solid var(--border); border-top: none; padding: 14px 18px 4px; margin-bottom: 18px; border-radius: 0 0 6px 6px; }
+.story-card p:first-child { margin-top: 0; }
+/* Appendix collapsibles */
+details.appendix-item, details.appendix-section { border: 1px solid var(--border); border-radius: 6px; margin: 12px 0; background: var(--bg-card); }
+details summary { padding: 12px 16px; cursor: pointer; font-weight: 600; user-select: none; }
+details summary:hover { background: var(--bg-card-2); }
+details[open] summary { border-bottom: 1px solid var(--border); }
+details > *:not(summary) { padding: 0 18px; }
+details summary .src { color: var(--muted); font-weight: normal; font-size: 12px; margin-left: 6px; }
+/* Severity chips (applied via JS) */
+.sev-chip { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #0d1117; margin: 0 2px; }
+.status-ok { color: var(--ok); }
+.status-warn { color: var(--major); }
+</style>
+</head><body>
+<div class="layout">
+  <nav>
+    <h2>Report layers</h2>
+    <a href="#tldr">1. TL;DR</a>
+    <a href="#story">2. The Story</a>
+    <a href="#appendix">3. Appendix</a>
+    <h2>Story scenarios</h2>
+    <div id="nav-scenarios"></div>
+    <h2>Appendix</h2>
+    <a href="#appendix-session" class="depth-1">session.md</a>
+    <a href="#appendix-followups-for-plan-sprint" class="depth-1">followups-for-plan-sprint.md</a>
+  </nav>
+  <main>
+    <header class="page">
+      <h1>Test Report — smoke-pre-golive-continued-2026-05-20</h1>
+      <div class="meta">Generated 2026-05-23T21:31:39+00:00 · Folder <code>/Users/prasadmujumdar/Library/CloudStorage/GoogleDrive-prasadmujumdar.aws@gmail.com/My Drive/Chinmay Astro/docs/artefacts/tests/smoke-pre-golive-continued-2026-05-20/</code></div>
+    </header>
+
+    <section class="layer" id="tldr">
+      <h1>1. TL;DR</h1>
+      <div class="layer-blurb">Verdict, bugs at a glance, scope, and tomorrow's queue. Skim this; the rest is detail.</div>
+      <p><strong>Verdict (post-remediation, verified 2026-05-24):</strong> 8 functional issues + 3 plugin-improvement candidates surfaced during this smoke session. After downstream <code>plan-sprint</code> → <code>build-sprint</code> cycles, <strong>7 of 8 functional issues are fixed and live; 1 remains as a deferred verification item (TD-H, hard-dep on TD-A which is already done).</strong> All 3 PICs landed in plugin v1.20.0 / 1.21.0 / 1.22.0, plus 3 bonus PICs (PIC-04/05/06 + PIC-21A) bundled into the same plugin batch.</p>
+<p><strong>Source of truth for remediation:</strong> <code>docs/artefacts/sprints/followups-for-plan-sprint/state.md</code> — <code>sprint_status: complete</code>.</p>
+<h2>Bugs at a glance</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Sev</th>
+<th>Workflow(s)</th>
+<th>What broke</th>
+<th>Fix applied</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ISSUE-01 / TD-F</td>
+<td>[major]</td>
+<td>WF-00, WF-50</td>
+<td><code>messages.content</code> NULL on outbound interactive + template; inbound interactive captured only <code>button_id</code></td>
+<td>Per-<code>message_type</code> content extractors in WF-50 outbound mappers + WF-00 <code>Parse WhatsApp Message</code> now emits <code>interactiveLabel</code></td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td>ISSUE-02 / TD-H</td>
+<td>[minor]</td>
+<td>WF-20 → WF-45</td>
+<td>REBOOK keyword burned an unnecessary Gemini hop via WF-25 instead of going WF-20 → WF-45 directly</td>
+<td>Auto-resolves with TD-A — needs live retest</td>
+<td>⏸ Deferred (verification-only; hard-deps on TD-A which is done)</td>
+</tr>
+<tr>
+<td>ISSUE-03 / TD-C</td>
+<td>[critical]</td>
+<td>WF-34 (+ sweep WF-44/46/47/11)</td>
+<td><code>User Found?</code> IF strict-string + <code>$json.id</code> (number) → every REJECT errored deterministically</td>
+<td>Pseudocode-first revision; IF leftValue cast / type-aligned; sweep audited siblings</td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td>ISSUE-04 / TD-D → FOLLOWUP-ERR</td>
+<td>[major]</td>
+<td>All admin-action WFs</td>
+<td>Admin got ZERO Slack feedback on workflow exceptions</td>
+<td>Scope expanded by operator to BOTH user + admin error UX; full think→plan→build cycle delivered</td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td>ISSUE-05 / TD-G</td>
+<td>[major]</td>
+<td>WF-41</td>
+<td>Stale <code>$('Detect Direction')</code> node reference after orphan-branch removal</td>
+<td>Operator patched in n8n UI mid-session; exported + committed; PIC-01/02/03 added as prevention</td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td>ISSUE-06 / TD-E</td>
+<td>[major]</td>
+<td>WF-40</td>
+<td>Free-form text in <code>consultation_active</code> relayed verbatim — no WF-25 intent gate → DR-6 violation, no auto-block for abuse</td>
+<td>Pseudocode-first revision; WF-25 inserted at head; fan-out with stop-intent clarifier branch</td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td>ISSUE-07 / TD-A</td>
+<td>[critical]</td>
+<td>WF-20</td>
+<td><code>Normalize Keyword</code> read <code>$json.messageText</code> / <code>$json.userId</code> but caller emitted <code>messageContent</code> / <code>user.id</code> → no-op for ALL keywords</td>
+<td>Field names aligned to caller contract; pseudocode revised first</td>
+<td>✅ Fixed</td>
+</tr>
+<tr>
+<td>ISSUE-08 / TD-B</td>
+<td>[critical]</td>
+<td>WF-47 (+ sweep)</td>
+<td><code>$1 out of range</code> — Postgres node missing <code>queryReplacement</code> (same pattern as prior WF-44 bug)</td>
+<td>queryReplacement added; project-wide sweep for Postgres-<code>$N</code>-without-replacement caught no other instances</td>
+<td>✅ Fixed</td>
+</tr>
+</tbody>
+</table>
+<h2>Plugin improvements</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>What</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PIC-01</td>
+<td><code>impact-analysis</code> Step 2a — enumerate intra-workflow <code>$('NodeName')</code> refs before removal</td>
+<td>✅ Shipped (plugin 1.20.0)</td>
+</tr>
+<tr>
+<td>PIC-02</td>
+<td><code>build-workflow</code> Step 6a — post-change dangling-ref re-scan as AFTER-gate</td>
+<td>✅ Shipped (plugin 1.21.0)</td>
+</tr>
+<tr>
+<td>PIC-03</td>
+<td><code>technical-workflow-review</code> C16 — standing dangling-ref check across reviewed workflows</td>
+<td>✅ Shipped (plugin 1.22.0)</td>
+</tr>
+<tr>
+<td>PIC-04 / PIC-21A / PIC-05 / PIC-06</td>
+<td>Bonus: drift detector, interactive-label content gap, classify gates pseudocode-first, drift hook at build-sprint invocation</td>
+<td>✅ Shipped (bundled in plugin Batch 3)</td>
+</tr>
+</tbody>
+</table>
+<h2>Test scope</h2>
+<ul>
+<li><strong>User exercised:</strong> id=28 / <code>+61466927921</code></li>
+<li><strong>Scenarios touched during the original session:</strong> onboarding form, payment_pending → payment_submitted → consultation_active (APPROVE), user→admin + admin→user relay, CLOSE, text rebook-intent (WF-43 → WF-25 → WF-45), STOP, HELP, REJECT PAYMENT</li>
+<li><strong>Scenarios deferred to next monitor-test-run:</strong> REBOOK keyword path (TD-H acceptance), STOP unconditional path (TD-B-expanded acceptance), REJECT PAYMENT happy path (TD-C acceptance)</li>
+</ul>
+<h2>State carry-forward</h2>
+<p>Test user 28 / <code>+61466927921</code> ended the original session in <code>payment_pending</code>. Subsequent end-to-end smoke (<code>smoke-wf10-centralized-gate-2026-05-23</code>) advanced and re-cycled this user; current state is owned by that subsequent session, not this one. Slack channel <code>C0B567A175W</code> preserved (DR-10).</p>
+<h2>Tomorrow's queue</h2>
+<p>The deferred TD-H verification + the 3 explicit acceptance retests above were carried forward into the next monitor-test-run cycle (<code>smoke-wf10-centralized-gate-2026-05-23</code>), which reported all 10 phases green — providing strong indirect end-to-end verification that TD-A/B/C/E/F land cleanly.</p>
+    </section>
+
+    <section class="layer" id="story">
+      <h1>2. The Story</h1>
+      <div class="layer-blurb">Each scenario as a card with narrative + fix snippets. Tells you what happened without making you read raw logs.</div>
+      <p>Exploratory pre-go-live smoke walked the full critical path on a single test user (<code>+61466927921</code>) and surfaced eight functional issues plus three plugin-improvement candidates. The session was deliberately kept open — <code>report.html</code> was deferred until downstream remediation could be verified end-to-end. This card-by-card walkthrough records the original observation and, where the fix has since landed, the remediation that closed it.</p>
+<hr />
+<h3>TC-WF20-KEYWORD — STOP / HELP / REBOOK keyword interception was a no-op  ❌ → ✅ (after TD-A)</h3>
+<p>WF-20's <code>Normalize Keyword</code> Set node read <code>$json.messageText</code> and <code>$json.userId</code>, but the WF-02 caller emitted <code>messageContent</code> and <code>user.id</code>. The result: <code>keyword = null</code> on every invocation, the <code>Match Keyword</code> Switch always fell through to passthrough, and WF-20 was effectively dead code for every keyword. The bug had been masked since deployment because the downstream state-handlers and WF-25 caught the fall-through and routed correctly in most cases — HELP returned the wrong text, REBOOK burned a needless Gemini call, and STOP exposed the latent WF-47 bug (TD-B / ISSUE-08). Sprint Batch 1 / TD-A revised the WF-20 pseudocode first to lock the canonical field-name contract, then aligned the live <code>Normalize Keyword</code> assignments to read <code>$json.messageContent</code> and <code>$json.user?.id</code>.</p>
+<hr />
+<h3>TC-WF47-STOP — STOP keyword crashed Postgres update  ❌ → ✅ (after TD-B)</h3>
+<p>When STOP finally reached WF-47, the <code>Update User Status to opted_out</code> Postgres node used a <code>$1</code> positional parameter without <code>parameters.options.queryReplacement</code>, producing <code>Variable $1 out of range. Parameters array length: 0</code> — identical pattern to the prior WF-44 BUG-NEW-03. TD-B added the missing <code>queryReplacement: ={{ [$('When Executed by Another Workflow').first().json.phoneNumber] }}</code> and, per the pre-fix sweep, audited every other Postgres node project-wide for the same <code>$N</code> + missing replacement combination. TD-B's scope expanded mid-sprint to redesign STOP as unconditional (no consultation-active hold-branch), adding consultation auto-close + Slack notice when the user was mid-consultation; admin_actions write removed per TD-NEW-026.</p>
+<hr />
+<h3>TC-WF34-REJECT — REJECT PAYMENT errored on every attempt  ❌ → ✅ (after TD-C)</h3>
+<p>WF-34's <code>User Found?</code> IF node used <code>leftValue: $json.id</code> (a Postgres int) with <code>operator.type: "string"</code> and <code>typeValidation: "strict"</code>. Strict mode refused to coerce → <code>Wrong type: '28' is a number but was expecting a string</code> on every REJECT. TD-C fixed the WF-34 IF type-alignment and ran a sweep across sibling admin-action workflows (WF-44, WF-46, WF-47, WF-11) — no other strict-string-on-numeric-id IFs surfaced. A subsequent BUG-06 in <code>smoke-wf10-centralized-gate-2026-05-23</code> Phase E2 surfaced a separate REJECT-reason propagation bug (producer/consumer field-name drift <code>reason</code> vs <code>rejectionReason</code> + series-after-sub-workflow contract drop); that was fixed mid-smoke (commit <code>53b95fd</code>) and is end-to-end verified in the later session.</p>
+<hr />
+<h3>TC-ADMIN-ERR — Admin got zero Slack feedback on workflow exceptions  ❌ → ✅ (FOLLOWUP-ERR)</h3>
+<p>When any admin-action workflow threw a node exception, the explicit failure-branch Slack responses (<code>Prepare WF-51 Payload (User Not Found)</code>, <code>(Wrong State)</code>, etc.) never fired because execution short-circuited. Admin saw nothing happen. Operator expanded scope mid-planning: not just admin paths, but ALL inbound user paths and background jobs need an error-feedback story, because user-facing UX in a silent vacuum is a worse churn risk than admin's. The original TD-D was lifted out of the surgical sprint into FOLLOWUP-ERR — a dedicated brainstorm → spec → plan → build cycle covering cross-workflow error handling. FOLLOWUP-ERR has since shipped (<code>status: done</code> in sprint state.md).</p>
+<hr />
+<h3>TC-WF40-RELAY — Free-form text during consultation relayed verbatim with no intent gate  ❌ → ✅ (after TD-E)</h3>
+<p>CLAUDE.md Design Rule #6 states every state accepting free-form text must run WF-25 first. WF-40 (User → Admin Relay) was the last DR-6 violator — during <code>consultation_active</code>, garbage and abusive text were forwarded straight to Chinmay's Slack channel, and the auto-block path (WF-25 → WF-46) never fired. TD-E revised <code>docs/pseudocode/WF-40.pseudo</code> first, then inserted WF-25 at the head with fan-out: always relay verbatim to admin AND conditionally send a stop-intent clarifier via WF-50 if WF-25 classifies as <code>stop_intent</code> (avoiding false-positive auto-opt-out). Garbage / malicious_abusive / inappropriate intents are handled inside WF-25's own warn+block branches. 4 nodes → 8 nodes; pseudo-first per <code>[[feedback_pseudocode_first_refactor]]</code>.</p>
+<hr />
+<h3>TC-MESSAGES-CONTENT — <code>messages.content</code> NULL for interactive + template message types  ❌ → ✅ (after TD-F)</h3>
+<p>WF-50's <code>Build WF-60 Payload (Outbound)</code> Code mapper extracted content only for <code>message_type='text'</code>. Every payment-instructions / feedback-prompt / template row landed in <code>messages</code> with <code>content=NULL</code>, and inbound interactive messages (WF-00 path) captured only the routable <code>button_id</code>, missing the human-readable label. TD-F revised the relevant <code>.pseudo</code> sections first to lock the canonical per-<code>message_type</code> extraction contract; both WF-50 outbound mappers (<code>Build WF-60 Payload (Outbound)</code> and <code>Build WF-60 Drop Payload</code>) now do per-type extraction (text → <code>messageContent</code>; interactive → <code>body.text || JSON-serialise</code> + <code>metadata.buttons</code>; template → <code>'template:' + templateName</code> + <code>metadata.templateParams</code>). WF-00's <code>Parse WhatsApp Message</code> now extracts <code>interactiveLabel</code> in parallel with the routable <code>messageContent</code>; <code>Build WF-60 Payload (Inbound)</code> writes <code>interactiveLabel || messageContent</code> into <code>messages.content</code>, preserving the original button-id in <code>metadata.interactiveButtonId</code> for traceability.</p>
+<hr />
+<h3>TC-WF41-DANGLING — WF-41 carried a stale <code>$('Detect Direction')</code> reference after orphan-branch removal  ❌ → ✅ (after TD-G)</h3>
+<p>Mid-session, after the orphaned WA→Slack branch was excised from WF-41 (4 nodes removed: <code>Detect Direction</code>, <code>Route by Direction</code>, <code>Prepare Channel Lookup</code>, <code>Post to Slack Channel</code>), a surviving downstream node still expression-referenced the removed <code>Detect Direction</code>. The first admin "Hi back" relay failed at expression-eval time — n8n's static validator hadn't caught it. The operator patched the live workflow in the UI mid-session; TD-G exported the fixed WF-41 to disk and committed it, then the same incident triggered PIC-01 / PIC-02 / PIC-03 (intra-workflow <code>$('NodeName')</code> enumeration / post-change re-scan / standing review check) so the class of bug cannot recur silently.</p>
+<hr />
+<h3>TC-REBOOK-KW — REBOOK keyword burned a Gemini hop instead of going direct  ⏸ Deferred (TD-H)</h3>
+<p>TD-H is verification-only: with TD-A's <code>Normalize Keyword</code> fix, the REBOOK keyword path should now go WF-20 → WF-45 directly (~2s), bypassing WF-43 → WF-25 (~6s). The sprint explicitly deferred this acceptance test to the next <code>monitor-test-run</code> cycle because it's a behavioural verification, not a code change. The dependency (TD-A) is done; the verification has not yet been exercised in a recorded test session. <code>smoke-wf10-centralized-gate-2026-05-23</code> did not specifically tick REBOOK as a keyword (the text rebook-intent path was tested earlier). Tomorrow's queue.</p>
+<hr />
+<h3>TC-PLUGIN-IMPROVEMENTS — Three (then six) plugin gaps surfaced by ISSUE-05  ✅ (shipped)</h3>
+<p>ISSUE-05 (WF-41 dangling reference) was caught by the operator in seconds, but its existence demonstrated three latent gaps in the plugin's own discipline: <code>impact-analysis</code> didn't enumerate intra-workflow <code>$('NodeName')</code> references before node removal (PIC-01); <code>build-workflow</code>'s AFTER-gate didn't catch dangling refs because n8n's static validator only complains at expression evaluation time (PIC-02); and <code>technical-workflow-review</code> had no standing check for the same class of bug (PIC-03). All three landed in plugin versions 1.20.0 / 1.21.0 / 1.22.0 respectively. The same Batch 3 picked up three additional improvement candidates surfaced during sprint execution (PIC-04 drift detector, PIC-05 build-workflow classify-gates-pseudocode-first, PIC-06 drift hook at build-sprint invocation) plus PIC-21A for the interactive-label content gap that became TD-F.</p>
+<hr />
+    </section>
+
+    <section class="layer" id="appendix">
+      <h1>3. Appendix</h1>
+      <div class="layer-blurb">Full raw artefacts. Click to expand. The session log is verbatim — use it to grep, re-trace, or audit.</div>
+      <details class="appendix-item" id="appendix-session">
+        <summary>Session log <span class="src">(session.md — raw chronological)</span></summary>
+        <h1>Monitor Test Run — smoke / pre-golive-continued</h1>
+<p><strong>Started:</strong> 2026-05-20T09:35:04Z
+<strong>Operator:</strong> prasadmujumdar
+<strong>Test type:</strong> smoke (continuation of <code>smoke-pre-golive-resume-2026-05-19</code>)
+<strong>Slug:</strong> pre-golive-continued
+<strong>Folder:</strong> <code>docs/artefacts/tests/smoke-pre-golive-continued-2026-05-20/</code></p>
+<h2>Reference docs</h2>
+<ul>
+<li><code>docs/artefacts/tests/smoke-pre-golive-resume-2026-05-19/tldr.md</code> — verdict + open items from prior session</li>
+<li><code>docs/artefacts/tests/smoke-pre-golive-resume-2026-05-19/followups-wf60-architecture.md</code> — context for the open <code>messages.consultation_id</code> issue</li>
+<li><code>docs/workflow-registry.md</code> — WF-XX master list</li>
+<li><code>docs/CONTEXT.md</code> — architecture, DB schema, admin commands</li>
+<li>Functional test cases: TC-0303-reject, TC-0501 (REBOOK), TC-06xx (STOP/HELP), TC-07xx (BLOCK/UNBLOCK), onboarding (WF-21/22)</li>
+</ul>
+<h2>Watch surface</h2>
+<ul>
+<li><strong>n8n executions:</strong> all active workflows</li>
+<li><strong>Postgres tables:</strong> <code>users</code>, <code>pending_users</code>, <code>consultations</code>, <code>messages</code>, <code>payments</code>, <code>admin_actions</code></li>
+<li><strong>Slack channels:</strong> <code>C0B567A175W</code> (consult-61466927921), admin command channel (per CLAUDE.md DR-3a, user-targeted commands now scoped to the consult channel)</li>
+<li><strong>Latency threshold:</strong> 5000 ms</li>
+</ul>
+<h2>Baselines (captured at start)</h2>
+<ul>
+<li><strong>Last execution id:</strong> <code>1438</code></li>
+<li><strong>Time cursor:</strong> <code>2026-05-20T09:35:04Z</code></li>
+<li><strong>Row counts:</strong> users=1, pending_users=2, consultations=2, messages=4, payments=2, admin_actions=0</li>
+<li><strong>Test user state:</strong> id=28, phone=61466927921, name="Abcs", status=<code>consultation_closed</code>, slack_channel_id=<code>C0B567A175W</code></li>
+<li><strong>Messages snapshot:</strong> rows 8–11 all have <code>user_id=28</code> populated; <code>consultation_id</code> is NULL on every row (the open item carried forward). Rows 8+9 carry the pre-fix literal-quote wrap; rows 10+11 are clean (post-fix verified 2026-05-20T09:07Z).</li>
+</ul>
+<h2>Carry-forward decision</h2>
+<p>Continue from user id=28 (<code>consultation_closed</code>) — exercise REJECT/REBOOK/STOP/HELP/BLOCK/UNBLOCK paths against this user where applicable. Only do a clean-slate wipe when getting to fresh onboarding (WF-21/22) testing — at that point: run CLAUDE.md clean-slate SQL on <code>61466927921</code> + manually delete Slack channel <code>C0B567A175W</code> (per DR-10, n8n won't archive it).</p>
+<h2>Pending scenarios (queued for this session)</h2>
+<table>
+<thead>
+<tr>
+<th>TC</th>
+<th>Scenario</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-0802</td>
+<td>REJECT PAYMENT</td>
+<td>Needs user back in <code>payment_submitted</code>; start via REBOOK</td>
+</tr>
+<tr>
+<td>TC-0501</td>
+<td>REBOOK</td>
+<td>From <code>consultation_closed</code></td>
+</tr>
+<tr>
+<td>TC-06xx</td>
+<td>STOP / HELP keywords</td>
+<td>Per WF-20 intercept; STOP → <code>opted_out</code>, HELP → policy reply</td>
+</tr>
+<tr>
+<td>TC-07xx</td>
+<td>BLOCK / UNBLOCK</td>
+<td>Admin commands</td>
+</tr>
+<tr>
+<td>Onboarding</td>
+<td>WF-21 / WF-22 fresh flow</td>
+<td>Requires clean-slate wipe — defer to end</td>
+</tr>
+</tbody>
+</table>
+<h2>Open items already known (carried in, NOT new findings)</h2>
+<ol>
+<li><strong><code>messages.consultation_id</code> always NULL</strong> — confirmed at baseline (rows 8–11 all NULL despite user_id=28 being populated). Will be re-confirmed against any new rows produced this session. <strong>Note for sprint planning:</strong> use <code>n8n-whatsapp-methodology:impact-analysis</code> against WF-60 to map upstream callers and decide where <code>consultation_id</code> resolution lives — per [[feedback_pseudocode_first_refactor]], revise <code>docs/pseudocode/WF-60.pseudo</code> first to define the canonical-shape contract, then impact-analyse the revised pseudo across the 3–5 callers (inbound WA chain, WF-50, WF-51, WF-33, WF-43), then implement.</li>
+<li><strong><code>user_id</code> null suspicion — NOT REPRODUCED at baseline.</strong> All 4 existing rows in <code>messages</code> have <code>user_id=28</code> populated. If new rows produced this session show <code>user_id</code> NULL, log as fresh finding; otherwise this is resolved.</li>
+<li><strong>ADJ-T1 … ADJ-T5</strong> from <code>technical-workflow-review</code> — awaiting operator classification before sprint planning.</li>
+</ol>
+<h2>Issues found (this session)</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Sev</th>
+<th>Workflow</th>
+<th>Where surfaced</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ISSUE-01</td>
+<td>[major]</td>
+<td>WF-50 / WF-60 / WF-00</td>
+<td>TC-0501 + TC-0303 ticks</td>
+<td>Outbound <code>Build WF-60 Payload</code> mapper(s) don't extract content for non-<code>text</code> message types — confirmed on <code>interactive</code> (rows 13, 14) AND <code>template</code> (row 17). Inbound interactive also loses the button display label (only <code>button_id</code> captured). Skill: <code>impact-analysis</code> across WF-00 + WF-50 → WF-60 canonical contract.</td>
+</tr>
+<tr>
+<td>RESOLVED-NOT-A-BUG</td>
+<td>n/a</td>
+<td>WF-60</td>
+<td>TC-0303 tick @ 10:00:39Z</td>
+<td>Prior session's "consultation_id NULL" carry-in: <strong>NOT a defect.</strong> When a row has <code>consultation_id</code> populated (e.g. rows 17–19 with id=11) it's because an active consultation existed. Prior NULL rows (8–11) were all post-close — no active consultation existed to attribute to. Correct null-when-no-active behaviour.</td>
+</tr>
+<tr>
+<td>ISSUE-02</td>
+<td>[minor / observation]</td>
+<td>WF-20 / WF-25</td>
+<td>TC-0501 tick @ 09:41:53Z</td>
+<td>"REBOOK" as text burns a Gemini call (WF-25) before reaching WF-45 because WF-20 owns only STOP/HELP. Not a defect — sprint discussion item.</td>
+</tr>
+<tr>
+<td>ISSUE-03</td>
+<td>[critical]</td>
+<td>WF-34 (+ likely siblings)</td>
+<td>TC-0802 tick @ 09:51:59Z</td>
+<td><code>User Found?</code> IF node has <code>operator.type:"string" + typeValidation:"strict"</code> but <code>$json.id</code> from Postgres is a number → every REJECT PAYMENT errors at the IF and short-circuits. Cascades through WF-11 + WF-10 (both show error). State + payments + messages all unchanged. Almost certainly present in WF-33/42/46/47 too — use <code>impact-analysis</code> to sweep before patching.</td>
+</tr>
+<tr>
+<td>ISSUE-04</td>
+<td>[major]</td>
+<td>All admin-action workflows</td>
+<td>TC-0802 tick @ 09:51:59Z</td>
+<td>Node-exception failures inside an admin-action workflow short-circuit before the explicit failure-branch Slack responses fire, leaving the admin with NO feedback in Slack. Pattern fix: error-trigger workflow that posts "⚠️ Command failed (exec NNNN)" to the admin channel.</td>
+</tr>
+<tr>
+<td>ISSUE-05</td>
+<td>[major / process]</td>
+<td>WF-41 + methodology</td>
+<td>TC-040x relay tick @ 10:20:51Z</td>
+<td>WF-41 had a node referencing a node removed in last session's cleanup → "Hi back" admin→user relay errored at runtime. Operator-fixed via UI. <code>build-workflow</code> skill's impact-analysis (BEFORE) + regression (AFTER) gates both missed the dangling <code>$('NodeName')</code> reference. Plugin improvements PIC-01/02/03 captured. WF-34 (REJECT) → narrowed: ISSUE-03 specifically about <code>$json.id</code> numeric. WF-42 (CLOSE) uses <code>phone_number</code> (string) so unaffected.</td>
+</tr>
+<tr>
+<td>ISSUE-06</td>
+<td>[major]</td>
+<td>WF-40</td>
+<td>TC-040x tick @ 10:20:51Z</td>
+<td>Garbage + abusive user messages relayed verbatim to admin during <code>consultation_active</code>. WF-40 doesn't invoke WF-25 — direct violation of CLAUDE.md DR-6 ("Every state accepting free-form text must run WF-25 first"). Auto-block path (WF-25 → WF-46) never fires for in-consultation abuse.</td>
+</tr>
+<tr>
+<td>ISSUE-07</td>
+<td>[critical]</td>
+<td>WF-20</td>
+<td>TC-06xx tick @ 10:30:53Z</td>
+<td><code>Normalize Keyword</code> Set node references <code>$json.messageText</code> + <code>$json.userId</code> but the caller payload supplies <code>messageContent</code> + <code>user.id</code>. Result: <code>keyword=null</code>, Switch falls through, WF-20 is a no-op for ALL keywords. Prior REBOOK/HELP/STOP all silently bypassed it and worked (when they did) only because state-handlers + WF-25 caught the intent downstream. Short keyword fast-path doesn't exist in practice. Fix: rename <code>$json.messageText</code> → <code>$json.messageContent</code>, <code>$json.userId</code> → <code>$json.user?.id</code>.</td>
+</tr>
+<tr>
+<td>ISSUE-08</td>
+<td>[critical]</td>
+<td>WF-47</td>
+<td>TC-06xx tick @ 10:30:53Z</td>
+<td><code>Update User Status to opted_out</code> Postgres node has <code>$1</code> placeholder but no <code>queryReplacement</code> → <code>Variable $1 out of range</code>. <strong>Same pattern as BUG-NEW-03</strong> (yesterday's WF-44 fix). WF-47 was overlooked in sprint TD-001's sweep. Use <code>impact-analysis</code> to find other Postgres nodes across the codebase with <code>$N</code> placeholders and missing <code>queryReplacement</code> before patching.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>Action — 2026-05-20T09:38:43Z — TC-0501 REBOOK</h3>
+<p><strong>Operator action:</strong> Send "REBOOK" (or rebook-intent text) from <code>61466927921</code> via WhatsApp.
+<strong>Starting state:</strong> user id=28, status=<code>consultation_closed</code>, slack_channel_id=<code>C0B567A175W</code> (preserved per DR-10).
+<strong>Expected:</strong>
+- WF-00 → WF-01 routes to closed-state handler → WF-45 (rebook path), not WF-21 (onboarding).
+- <code>users.status</code> transitions <code>consultation_closed</code> → <code>payment_pending</code>.
+- WhatsApp reply with payment instructions (₹500 UPI to +91-9653240263) — sent via WF-50.
+- Slack consult channel <code>C0B567A175W</code> reused (NOT a fresh channel — WF-45 reads existing <code>slack_channel_id</code> from DB, does NOT call WF-52, per DR-10).
+- New row(s) in <code>messages</code> (inbound REBOOK + outbound payment-instruction).
+<strong>Will check after operator says "check".</strong></p>
+<h3>Tick — 2026-05-20T09:41:53Z</h3>
+<p><strong>Trigger:</strong> operator said "check" after action TC-0501 REBOOK
+<strong>New executions:</strong> 13 (1439–1451), all <code>status=success</code>, none slow
+- 1439 WF-00 Webhook Receiver (inbound REBOOK, ~3.3s)
+- 1440 WF-60 Message Logger (inbound log, 50ms)
+- 1441 WF-01 Message Router
+- 1442 WF-02 User State Router
+- 1443 WF-20 Keyword Handler (passed through — does not own REBOOK keyword)
+- 1444 WF-43 Post-Consultation Handler (POST_CONSULT_TEXT)
+- 1445 WF-25 Intent Classifier (~1.2s — classified as rebook_intent)
+- 1446 WF-45 Rebook Handler (~1.6s)
+- 1447 WF-50 Send WhatsApp (~1.5s)
+- 1448 WF-60 Message Logger (outbound log, 83ms)
+- 1449–1451 WF-00 Webhook Receiver (3 follow-up Meta delivery/status callbacks)</p>
+<p><strong>DB deltas:</strong>
+- <code>users</code>: id=28 updated — status <code>consultation_closed</code> → <code>payment_pending</code> at 2026-05-20T09:39:18.144Z; <code>slack_channel_id</code> preserved as <code>C0B567A175W</code> ✅
+- <code>messages</code>: 2 new rows
+  - id=12: inbound, content="REBOOK", user_id=28, consultation_id=NULL, message_type=text
+  - id=13: outbound, content=<strong>NULL</strong>, user_id=28, consultation_id=NULL, message_type=<code>interactive</code>, whatsapp_message_id=<code>wamid.HBg…ARGBIyRjU2…</code>
+- <code>consultations</code> / <code>payments</code> / <code>pending_users</code> / <code>admin_actions</code>: unchanged</p>
+<p><strong>Slack:</strong> <code>C0B567A175W</code> — no new messages (WF-45 by design does not post to Slack on rebook; admin-side rebook awareness is implicit until APPROVE arrives).</p>
+<p><strong>Cross-check vs expected:</strong>
+- ✅ WF-45 (rebook path) reached — via <code>WF-20 → WF-02 → WF-43 → WF-25(rebook_intent) → WF-45</code>. Note: this is the <em>text-path</em> route. The shorter path (WF-43 → WF-45 directly) only fires for the <code>btn_rebook</code> interactive button per registry note on WF-43; text "REBOOK" correctly goes through WF-25 classification. NOT routed to WF-21 ✅
+- ✅ <code>users.status</code> transitioned to <code>payment_pending</code>
+- ✅ Outbound WhatsApp sent (WF-50 success, <code>whatsapp_message_id</code> populated → please confirm user-side received the UPI message with button)
+- ✅ Slack channel <code>C0B567A175W</code> reused (no WF-52 call in execution list)
+- ✅ 2 new <code>messages</code> rows</p>
+<p><strong>Issues observed this tick:</strong></p>
+<ul>
+<li><strong>NEW [major] — <code>messages.content</code> is NULL for outbound interactive messages.</strong> Row id=13 (the rebook payment-instructions message sent via WF-50) has <code>message_type=interactive</code>, <code>whatsapp_message_id</code> populated, but <code>content=NULL</code>. WF-60's mapper appears to read the text body field, which doesn't exist on interactive payloads (the human-readable copy lives inside <code>interactive.body.text</code>). Impact: identical to consultation_id problem class — operationally we lose conversation history for every button-bearing outbound (payment instructions, post-consult feedback prompt, etc.). <strong>Suggested skill for analysis:</strong> <code>n8n-whatsapp-methodology:impact-analysis</code> against WF-50's <code>Build WF-60 Payload (Outbound)</code> Code mapper — needs to extract <code>interactive.body.text</code> (and ideally also serialise button labels into a metadata.buttons array) when <code>message_type='interactive'</code>. Per [[feedback_pseudocode_first_refactor]], revise the relevant section of WF-50's <code>.pseudo</code> first.</li>
+<li><strong>CONFIRMED carry-in — <code>consultation_id</code> NULL on new rows 12+13.</strong> Same as baseline; nothing new to add.</li>
+<li><strong>NOT-REPRODUCED — <code>user_id</code> NULL.</strong> Both new rows have <code>user_id=28</code> populated; the user_id-null suspicion remains unreproduced.</li>
+<li><strong>Observation (not a bug) — REBOOK as text takes the long path</strong> (WF-20 → WF-43 → WF-25 → WF-45) burning a Gemini call on a deterministic keyword. WF-20 owns STOP/HELP only per its design note; REBOOK keyword detection lives in WF-25. Worth a sprint discussion ("should WF-20 also intercept REBOOK to skip Gemini?") but not a defect against current design.</li>
+</ul>
+<p><strong>Cursors updated:</strong> exec=1451, time=2026-05-20T09:41:53Z. Ready for next action.</p>
+<hr />
+<h3>Action — 2026-05-20T09:43:37Z — TC-0303 setup / button click "Payment Completed"</h3>
+<p><strong>Operator action:</strong> Tapped "Payment Completed" interactive button on the rebook payment-instructions message. Confirmed receipt of bot reply on WhatsApp + Slack notification.
+<strong>Starting state:</strong> user id=28, status=<code>payment_pending</code>.
+<strong>Expected:</strong> WF-32 fires → status→<code>payment_submitted</code>, new <code>payments</code> row, WA confirmation to user, Slack post to consult channel asking admin to APPROVE PAYMENT.</p>
+<h3>Tick — 2026-05-20T09:46:19Z</h3>
+<p><strong>Trigger:</strong> operator confirmation that button click + bot reply + Slack post all landed
+<strong>New executions:</strong> 13 (1452–1464), all <code>status=success</code>
+- 1452 WF-00 Webhook Receiver (interactive button payload, ~2.3s)
+- 1453 WF-60 Message Logger (inbound interactive)
+- 1454 WF-01 Message Router
+- 1455 WF-02 User State Router (button_reply → PAYMENT_CONFIRM)
+- 1456 <strong>WF-32 Payment Confirmation Receiver</strong> (~1.9s) ✅
+- 1457 WF-50 Send WhatsApp (confirmation reply, ~1.3s)
+- 1458 WF-60 Message Logger (outbound WA log)
+- 1459 WF-51 Send Slack Message (post to consult channel)
+- 1460 WF-60 Message Logger (outbound Slack log) — <strong>WF-60 fired for Slack transport</strong> ✅ (TD-003 F2)
+- 1461 WF-00 (Meta delivery callback)
+- 1462 WF-10 Slack Admin Handler (~8ms — bot-message filter, dropped)
+- 1463–1464 WF-00 (Meta status callbacks)</p>
+<p><strong>DB deltas:</strong>
+- <code>users</code>: id=28 → status <code>payment_pending</code> → <code>payment_submitted</code> at 09:43:37.520Z ✅
+- <code>payments</code>: new row id=12 (user_id=28, amount=500.00 INR, payment_method=gpay, status=<code>pending_verification</code>) ✅
+- <code>messages</code>: 3 new rows
+  - id=14: inbound interactive, content=<code>payment_completed</code> ✅ (interactive button payload content extracted — only the button id, not body text — same class as ISSUE-01 but with the button_id captured)
+  - id=15: outbound text, content present ("Thank you Abcs! Your payment confirmation has been received...") ✅
+  - id=16: outbound <code>slack_text</code>, content present + <code>slack_message_ts=1779270219.125589</code> ✅ (WF-60 logging Slack-transport messages, per TD-003 F2)
+- <code>consultations</code> / <code>pending_users</code> / <code>admin_actions</code>: unchanged</p>
+<p><strong>Slack:</strong> new bot post in <code>C0B567A175W</code> (logged in row id=16): "🔔 New Payment Submission — User: Abcs / Phone: +61466927921 / Amount: ₹500 / Payment ID: 12 / Please…" → admin prompt for APPROVE PAYMENT ✅</p>
+<p><strong>Cross-check vs expected (4/4 ✅):</strong>
+- ✅ WF-32 fired
+- ✅ Status → <code>payment_submitted</code>
+- ✅ New <code>payments</code> row (id=12, pending_verification)
+- ✅ WA confirmation + Slack admin prompt both delivered + both logged in <code>messages</code></p>
+<p><strong>New observations / clarifications on prior issues:</strong>
+- <strong>ISSUE-01 nuance — inbound side captures button_id, not body text.</strong> Row 14 has <code>content="payment_completed"</code> — this is the button's <code>id</code> not its display label. For outbound interactives (row 13) <code>content</code> was entirely NULL. So the bug splits into two cases:
+  - <strong>Outbound interactive</strong> (sender path WF-50 → WF-60): nothing extracted (content=NULL) ← primary defect
+  - <strong>Inbound interactive</strong> (webhook path WF-00 → WF-60): button id captured, but display label / body text missing ← secondary
+- <strong>Slack transport logging works as designed.</strong> Row 16 with <code>message_type='slack_text'</code> + <code>slack_message_ts</code> is the canonical example for the TD-003 F2 mapper.
+- <strong>consultation_id still NULL on all 3 new rows.</strong> Carry-in confirmed across one more action.
+- <strong>user_id still populated (=28) on all rows.</strong> Not-reproduced standing.
+- <strong>Schema observation worth noting:</strong> <code>payments</code> uses <code>status='pending_verification'</code> here, but per MINOR-01 in prior tldr the canonical states are <code>pending_verification</code> / <code>verified</code> / (presumably) <code>rejected</code>. Worth verifying WF-33 / WF-11 STATS reads still align — but the value matches, so no action.</p>
+<p><strong>Cursors updated:</strong> exec=1464, time=2026-05-20T09:46:19Z. Ready for APPROVE PAYMENT (TC-0303 continuation) or REJECT PAYMENT (TC-0802) — your call.</p>
+<hr />
+<h3>Action — 2026-05-20T09:49:15Z — TC-0802 REJECT PAYMENT</h3>
+<p><strong>Operator action:</strong> Typed <code>REJECT PAYMENT 61466927921</code> (with optional reason) in Slack channel <code>C0B567A175W</code>.
+<strong>Starting state:</strong> user id=28, status=<code>payment_submitted</code>, payment id=12 status=<code>pending_verification</code>.
+<strong>Expected:</strong> WF-10 → WF-11 → WF-34. Status → <code>payment_pending</code>. Payment id=12 → <code>rejected</code> with <code>rejected_at</code> + <code>rejection_reason</code> set. WA rejection message to user. Slack confirmation to admin.
+<strong>Operator-reported:</strong> "workflow has failed".</p>
+<h3>Tick — 2026-05-20T09:51:59Z</h3>
+<p><strong>Trigger:</strong> operator reported failure on REJECT PAYMENT
+<strong>New executions:</strong> 3 — <strong>ALL ERRORED</strong>
+- 1465 WF-10 Slack Admin Handler — <code>status=error</code>, lastNode=<code>Call WF-11 Command Parser</code>
+- 1466 WF-11 Command Parser — <code>status=error</code>, lastNode=<code>Call WF-34 Payment Rejection Processor</code>
+- 1467 WF-34 Payment Rejection Processor — <code>status=error</code>, lastNode=<code>User Found?</code></p>
+<p><strong>Root cause identified:</strong></p>
+<p>WF-34's <code>User Found?</code> IF node (typeVersion 2) has:</p>
+<pre><code class="language-json">{
+  &quot;leftValue&quot;: &quot;={{ $json.id }}&quot;,
+  &quot;operator&quot;: {&quot;type&quot;: &quot;string&quot;, &quot;operation&quot;: &quot;notEmpty&quot;, &quot;singleValue&quot;: true},
+  &quot;options&quot;: {&quot;typeValidation&quot;: &quot;strict&quot;}
+}
+</code></pre>
+<p>Upstream <code>Load User by Phone</code> Postgres query returns <code>u.*</code> from <code>chinmay_astro.users</code> — <code>id</code> is a Postgres <code>int</code> → JS <code>number</code> (28). The IF node operator is typed <code>string</code> with <code>typeValidation: "strict"</code> → n8n refuses to coerce and throws <code>NodeOperationError: Wrong type: '28' is a number but was expecting a string [condition 0, item 0]</code>. Error cascades back through WF-11 and WF-10 (both show the same message from the child execution).</p>
+<p>The error is deterministic — it fires on every REJECT against any existing user (every <code>users.id</code> is numeric).</p>
+<p><strong>DB deltas:</strong> NONE
+- <code>users</code>: status unchanged (<code>payment_submitted</code>, last update still 09:43:37.520Z from earlier button click)
+- <code>payments</code>: id=12 unchanged (<code>pending_verification</code>, <code>rejected_at</code>=NULL, <code>rejection_reason</code>=NULL)
+- <code>messages</code>: 0 new rows (WF-50 / WF-51 never reached)
+- <code>admin_actions</code>: 0 new rows (table is deprecated per [[project_admin_actions_deprecated]] — expected)</p>
+<p><strong>Slack:</strong> Admin command landed in <code>C0B567A175W</code> but <strong>no bot acknowledgement was posted</strong> — user (admin) gets zero feedback that the command failed. Silent failure from admin's POV.</p>
+<p><strong>Cross-check vs expected (0/5 ✅):</strong>
+- ❌ Status transition payment_submitted → payment_pending — DID NOT HAPPEN
+- ❌ payment row update (rejected status + rejected_at + reason) — DID NOT HAPPEN
+- ❌ WA rejection message to user — NOT SENT
+- ❌ Slack admin confirmation — NOT POSTED
+- ❌ Workflow execution success — ALL 3 LINKED EXECUTIONS ERRORED</p>
+<p><strong>New issue:</strong></p>
+<ul>
+<li><strong>NEW [critical] ISSUE-03 — WF-34 <code>User Found?</code> IF type strictness blocks every REJECT PAYMENT.</strong> Strict string-type validation against numeric <code>users.id</code>. Fix options:</li>
+<li>Best: change operator <code>type</code> from <code>"string"</code> to <code>"number"</code> (or use <code>exists</code> operator which is type-agnostic)</li>
+<li>Safer (no node-config change): cast in leftValue → <code>={{ String($json.id) }}</code> or <code>={{ $json.id?.toString() }}</code></li>
+<li>Workaround: <code>options.typeValidation: "loose"</code> (broader compatibility but loses safety)</li>
+<li>
+<p><strong>Strongly recommended:</strong> before implementing, run <code>n8n-whatsapp-methodology:impact-analysis</code> to scan <strong>all sibling admin-action workflows</strong> for the same <code>User Found?</code> IF pattern with <code>type:"string" + typeValidation:"strict"</code> against <code>$json.id</code>. Likely candidates: WF-33 (APPROVE PAYMENT), WF-42 (CLOSE CONSULT), WF-46 (BLOCK), WF-47 (UNBLOCK), maybe more. The bug almost certainly exists in siblings because they were authored from the same template — but APPROVE worked yesterday in the prior session, so either (a) APPROVE uses a different IF pattern, or (b) something about the typed input made it pass. Worth a sweep before patching one at a time.</p>
+</li>
+<li>
+<p><strong>NEW [major] sub-finding — admin gets ZERO Slack feedback on a workflow exception.</strong> WF-11 / WF-34 have explicit failure-branch responses (<code>Prepare WF-51 Payload (User Not Found)</code>, <code>(Wrong State)</code>, etc.) but a <em>node exception</em> short-circuits the workflow entirely → no Slack post. Operator only knows it failed by either inspecting executions or noticing the user didn't receive anything. Pattern-level concern: every admin-action workflow needs an error trigger that posts "⚠️ Command failed — see exec NNNN" to the admin channel. Sprint-discussion item; mark as ISSUE-04.</p>
+</li>
+</ul>
+<p><strong>Cursors updated:</strong> exec=1467, time=2026-05-20T09:51:59Z. User state remains <code>payment_submitted</code>. Recommend: do NOT retry REJECT (it'll fail identically); proceed to APPROVE PAYMENT to continue testing forward, treating REJECT as a known sprint item.</p>
+<hr />
+<h3>Action — 2026-05-20T09:53:28Z — TC-0303 APPROVE PAYMENT</h3>
+<p><strong>Operator action:</strong> Typed <code>APPROVE PAYMENT 61466927921</code> in Slack channel <code>C0B567A175W</code>.
+<strong>Starting state:</strong> user id=28, status=<code>payment_submitted</code>; payment id=12 status=<code>pending_verification</code>.
+<strong>Expected:</strong> WF-10 → WF-11 → WF-33. Status → <code>consultation_active</code>. Payment id=12 → <code>verified</code> (with <code>verified_at</code>, <code>verified_by</code>). New <code>consultations</code> row (active). WA confirmation to user. Slack admin ack ("Payment approved" or similar).
+<strong>Critical cross-check vs ISSUE-03:</strong> If WF-33 was authored from the same template as WF-34, its <code>User Found?</code> IF would have the same string/strict bug — but APPROVE worked yesterday on this same user, so we should see success. If it ERRORS now with the same <code>Wrong type: '28' is a number</code> message, ISSUE-03 escalates to "all admin actions broken" and APPROVE-worked-yesterday was a fluke.
+<strong>Will check after operator says "check".</strong></p>
+<h3>Tick — 2026-05-20T10:00:39Z</h3>
+<p><strong>Trigger:</strong> operator confirmed WhatsApp receipt of consultation_active notification + said "check"
+<strong>New executions:</strong> 12 (1468–1479), <strong>all <code>status=success</code></strong>
+- 1468 WF-10 Slack Admin Handler
+- 1469 WF-11 Command Parser
+- 1470 <strong>WF-33 Payment Approval Processor</strong> ✅
+- 1471 WF-50 Send WhatsApp (user notify)
+- 1472 WF-60 Message Logger (outbound WA)
+- 1473 WF-51 Send Slack Message (admin ack in channel)
+- 1474 WF-60 Message Logger (outbound Slack)
+- 1475 WF-60 Message Logger (inbound Slack — admin command itself, per TD-003 F2)
+- 1476–1479 WF-00 Webhook + Slack callbacks</p>
+<p><strong>Why WF-33 didn't hit ISSUE-03:</strong></p>
+<p>Inspected WF-33's IF nodes — WF-33 has only <code>User in Correct State?</code> which compares <code>$json.status</code> (string) against <code>"payment_submitted"</code> (string). That's string-vs-string under strict validation → fine. WF-33 does NOT have a <code>User Found?</code> IF at all. So ISSUE-03 is specific to workflows that include the <code>User Found?</code> IF pattern checking <code>$json.id</code> (number) with string strict typing. <strong>Sweep target for impact-analysis remains: WF-42 (CLOSE), WF-46 (BLOCK), WF-47 (UNBLOCK), WF-44 (Save Feedback) and any utility workflow doing the same lookup-then-IF pattern.</strong></p>
+<p><strong>DB deltas:</strong>
+- <code>users</code>: id=28 → status <code>payment_submitted</code> → <code>consultation_active</code> at 09:54:14.709Z ✅
+- <code>payments</code>: id=12 → <code>status='verified'</code>, <code>verified_at=09:54:14.685Z</code>, <code>verified_by='C0B567A175W'</code> ✅
+- <code>consultations</code>: <strong>new row id=11</strong>, status=<code>active</code>, started_at=09:54:14.700Z ✅
+- <code>messages</code>: 3 new rows
+  - id=17: outbound <code>template</code> (WA consultation_active notify), <code>content=NULL</code>, <code>consultation_id=11</code> ✅ (id populated!)
+  - id=18: outbound <code>slack_text</code> admin-channel ack ("✅ Payment approved for Abcs…"), <code>content</code> populated, <code>slack_message_ts</code> populated ✅
+  - id=19: <strong>inbound <code>slack_text</code></strong> logging admin's own command <code>"\</code>APPROVE PAYMENT 61466927921`"<code>,</code>consultation_id=11` ✅ (admin command audit working via TD-003 F2)</p>
+<p><strong>🟢 MAJOR FINDING — <code>consultation_id</code> NULL was MISDIAGNOSED in prior session.</strong></p>
+<p>All 3 new rows (17, 18, 19) have <strong><code>consultation_id=11</code> correctly populated</strong>. WF-60 IS resolving the active consultation — when one exists. Re-reading the prior session's NULL rows (id=8–11): every one of those was either feedback-after-close or post-CLOSE; the user was in <code>consultation_closed</code> with NO active consultation in the DB at that moment. NULL is the <em>correct</em> answer in that semantic — there is no consultation to attribute the message to.</p>
+<p>So the original "open item" (consultation_id NULL needs impact-analysis on WF-60) is <strong>NOT a real defect</strong> — it's correct null-when-no-active-consultation behaviour. <strong>De-escalating this from the carry-in list.</strong> No impact-analysis sweep needed on WF-60 for this; ISSUE-01 (content NULL on interactive/template) remains the real WF-60 family bug.</p>
+<p><strong>🟠 ISSUE-01 expanded further — also affects outbound <code>template</code> messages.</strong></p>
+<p>Row 17 (<code>message_type=template</code>, the WA consultation_active confirmation) has <code>content=NULL</code> too. So ISSUE-01 now spans 3 message types on the outbound side: <code>interactive</code>, <code>template</code>, and probably any non-<code>text</code> payload. WF-50's <code>Build WF-60 Payload (Outbound)</code> mapper only handles plain text; the template name + body params (which carry the user-visible copy) aren't extracted.</p>
+<p><strong>Cross-check vs expected (5/5 ✅):</strong>
+- ✅ Status → <code>consultation_active</code>
+- ✅ Payment id=12 → <code>verified</code> (<code>verified_at</code> + <code>verified_by</code> populated)
+- ✅ New <code>consultations</code> row id=11 (active)
+- ✅ WA confirmation to user (operator confirmed receipt; row 17 logged)
+- ✅ Slack admin ack ("✅ Payment approved for Abcs…" posted, row 18 logged)</p>
+<p><strong>Slack:</strong> consult channel <code>C0B567A175W</code> now has the "Payment approved" bot post; admin's own <code>APPROVE PAYMENT</code> command was also captured by WF-60 via TD-003 F2 (inbound slack_text log).</p>
+<p><strong><code>admin_actions</code> table:</strong> still 0 rows — expected per [[project_admin_actions_deprecated]]; messages table now carries the audit (row 19).</p>
+<p><strong>Cursors updated:</strong> exec=1479, time=2026-05-20T10:00:39Z. User now in <code>consultation_active</code>, consultation id=11 open.</p>
+<h3>Plan for remaining scenarios</h3>
+<p>Per operator: continue forward with the usual post-approval path (user↔admin relay → CLOSE), then sweep remaining admin actions (BLOCK / UNBLOCK), then STOP/HELP, then onboarding (requires wipe).</p>
+<p>Suggested order:
+1. <strong>TC-040x</strong> — User↔admin relay (1–2 round trips, light coverage since this was thoroughly tested yesterday — focus on whether WF-60 still logs Slack-transport correctly and watches for fresh interactive/template content issues)
+2. <strong>TC-0403</strong> — CLOSE CONSULT — <strong>important ISSUE-03 retest target</strong>: WF-42 likely has the same <code>User Found?</code> IF pattern; this is the natural next admin command
+3. <strong>TC-07xx</strong> — BLOCK + UNBLOCK on user 28 (post-close) — sweeps WF-46 + WF-47 for ISSUE-03
+4. <strong>TC-06xx</strong> — STOP / HELP keywords — purely user-side, WF-20 owns these
+5. <strong>Onboarding (WF-21/22)</strong> — requires clean-slate wipe; do last</p>
+<hr />
+<h3>Action — 2026-05-20T10:02:45Z → 2026-05-20T10:15:39Z — TC-040x relay + TC-04xx garbage/abuse + TC-0403 CLOSE</h3>
+<p><strong>Operator narration (consolidated):</strong>
+1. Sent "Hi" from user (61466927921) — relayed cleanly to admin via WF-40
+2. Tried "Hi back" from admin — <strong>WF-41 errored</strong> (stale node reference, see Tick below)
+3. Operator patched WF-41 via UI (updated the broken reference to point at the correct node) and retried — works
+4. Several more text round trips both directions (admin "Saying Hi one more time", user "That's great", admin "Great this side too..!!!") — all clean
+5. User sent garbage <code>/&amp;/&amp;rodkwkwldk</code> then abusive "This is shit" — <strong>both got relayed to admin</strong> as plain consultation messages, no warn / no auto-block triggered
+6. Operator sent <code>CLOSE CONSULT 61466927921</code> from the consult channel — appears to have worked
+7. Operator wants to verify everything is logged, capture process-level gap on WF-41 stale-reference, then proceed with <strong>text-based rebook intent</strong> (NOT the literal REBOOK keyword) as next action</p>
+<h3>Tick — 2026-05-20T10:20:51Z</h3>
+<p><strong>Trigger:</strong> operator consolidated narration covering relay + garbage/abuse + close
+<strong>New executions:</strong> 42 total (1480–1521) — 40 success, <strong>2 errors</strong> (both at 10:02:52 — the WF-41 "Hi back" failure before operator's UI fix). Detailed counts validated against execution dump.</p>
+<p><strong>WF-41 "Hi back" failure (execs 1489 WF-10 + 1490 WF-41):</strong>
+- Error message: <code>Cannot assign to read only property 'name' of object 'Error: Referenced node doesn't exist'</code>
+- lastNodeExecuted: <code>Prepare WhatsApp Message</code> (a downstream node referencing a node that was REMOVED in the prior session's WF-41 cleanup)
+- Operator-applied fix: edited the broken reference via n8n UI to point at the surviving canonical node; subsequent admin→user relays (1491+ at 10:04:46, 1492–1494, 1498–1502) all succeed.
+- <strong>No code change in this skill</strong> — operator handled inline before claude saw it.</p>
+<p><strong>🟠 NEW [major] PROCESS GAP — <code>build-workflow</code> skill missed orphaned references on node removal (ISSUE-05)</strong></p>
+<p>Last session's WF-41 cleanup removed a node that was no longer in the active path (a 4-node orphaned WA→Slack branch — see registry note: "removed orphaned WA→Slack branch: Detect Direction, Route by Direction, Prepare Channel Lookup, Post to Slack Channel"). But a <strong>surviving</strong> node (<code>Prepare WhatsApp Message</code>) referenced one of the removed nodes by name in its expressions. That reference became dangling, n8n threw at runtime when the expression evaluated.</p>
+<p>Both methodology gates failed to catch this:
+- <strong><code>impact-analysis</code> BEFORE change:</strong> The skill scans upstream callers / downstream callees / siblings, but did NOT scan <strong>intra-workflow node-name references</strong> in the expressions of other surviving nodes. The orphaned branch was correctly identified as removable from a <em>connection topology</em> standpoint — but the <code>$('NodeName')</code> references buried inside other expressions weren't enumerated.
+- <strong>regression check AFTER change:</strong> The post-change validation (likely a test execution or static lint) didn't exercise the actual relay path with realistic input, OR n8n's static validator doesn't flag dangling <code>$('NodeName')</code> references until the expression actually evaluates. A simple "execute the workflow against a fresh sample payload" would have caught it; a static <code>grep "$('&lt;removed_name&gt;')"</code> across all nodes' parameters before the deletion would have caught it earlier still.</p>
+<p><strong>Plugin improvement candidates (deferred to next <code>flush-plugin-improvements</code> run):</strong></p>
+<ol>
+<li><strong><code>impact-analysis</code>:</strong> add a step that grep-scans ALL surviving nodes' <code>parameters</code> JSON for <code>$('&lt;name&gt;')</code> references where <code>&lt;name&gt;</code> matches any node-about-to-be-removed. Trivial to implement: jq-walk parameters → regex extract <code>\$\('([^']+)'\)</code> → set-diff against removed names → fail if non-empty.</li>
+<li><strong><code>build-workflow</code>:</strong> add a post-change "execute once with a synthetic payload" gate before declaring complete. Or at minimum the static reference-scan from improvement #1 applied to the <em>final</em> workflow JSON. Either catches the same class of bug pre-runtime.</li>
+<li><strong><code>technical-workflow-review</code>:</strong> add a "dangling node-name references" check on every workflow as part of the standard battery. Catches latent versions of the same bug across the codebase (workflows that haven't been edited recently but may have been left in this state by earlier edits).</li>
+</ol>
+<p>Recorded in <code>## Plugin improvement candidates</code> section at the end of this log for the eventual flush.</p>
+<p><strong>🟠 NEW [major] ISSUE-06 — WF-25 intent classifier NOT invoked during <code>consultation_active</code> relay (Design Rule #6 violation)</strong></p>
+<p>User sent garbage <code>/&amp;/&amp;rodkwkwldk</code> (row 29) and abusive "This is shit" (row 31). Both were relayed to admin as ordinary <code>consultation_active</code> messages (rows 30 + 32, message_type=<code>slack_text</code>) with no intervention.</p>
+<p>Why: WF-02 routes <code>consultation_active</code> + text → WF-40 (User → Admin Relay). WF-40 does NOT call WF-25 — it just bundles + forwards to WF-51. Per WF-25 registry note, its callers are: WF-23, WF-30, WF-31, WF-43, WF-44. WF-40 is missing.</p>
+<p>This contradicts <strong>CLAUDE.md Design Rule #6:</strong> "Every state accepting free-form text must run WF-25 first. No state should blindly process user text without intent classification." <code>consultation_active</code> very much accepts free-form text and is currently doing exactly the prohibited thing.</p>
+<p>Impact: during active consultation, abusive/malicious user input reaches the admin without any guardrail. Garbage messages waste admin attention. Auto-block (WF-46 via WF-25's <code>malicious_abusive</code>/<code>inappropriate</code> paths) never fires.</p>
+<p>Suggested fix: WF-40 must invoke WF-25 first; if intent is <code>general_enquiry</code>/<code>wants_consultation</code>/<code>feedback_intent</code> proceed with relay, if <code>malicious_abusive</code>/<code>inappropriate</code>/<code>garbage</code> short-circuit to WF-25's warn+block branches. Use <code>impact-analysis</code> against WF-40 to confirm no other caller depends on its current unconditional-relay contract.</p>
+<p><strong>WF-42 (CLOSE CONSULT) succeeded — narrows ISSUE-03 scope further:</strong></p>
+<p>Inspected WF-42's IF nodes — has both <code>User Found?</code> (<code>leftValue=$json.phone_number</code> — string vs string, fine) and <code>User in Correct State?</code> (<code>leftValue=$json.status</code> — string vs string, fine). <strong><code>phone_number</code> is the discriminator that protects WF-42.</strong> WF-34's bug is specifically <code>$json.id</code> (number) + string operator + strict. Sibling sweep should check WF-44/46/47 specifically for IFs against <code>$json.id</code>, NOT against User Found? generically.</p>
+<p><strong>DB deltas (17 new rows across <code>messages</code>, 1 across <code>users</code>, 1 across <code>consultations</code>):</strong>
+- <code>users</code>: id=28 → <code>consultation_active</code> → <code>consultation_closed</code> at 10:15:39.234Z
+- <code>consultations</code>: id=11 → status=<code>closed</code>, ended_at=10:15:39.228Z ✅
+- <code>payments</code>: unchanged
+- <code>messages</code>: 17 new rows (20–36). All have <code>user_id=28</code>. Rows 20–32 (during consultation_active) have <code>consultation_id=11</code> ✅; rows 33–36 (post-close: feedback prompt + admin acks + admin command audit) have <code>consultation_id=NULL</code> — correct semantics (no active consultation post-close). Row 33 outbound <code>interactive</code> (the btn_feedback / btn_rebook prompt) has <code>content=NULL</code> — ISSUE-01 reproducing on the feedback prompt.</p>
+<p><strong>Slack:</strong> Lots of activity. All admin commands captured by WF-60 Slack-inbound logging (rows 24, 28, 36 = "Saying Hi one more time", "Great this side too..!!!", "CLOSE CONSULT 61466927921"). All bot posts captured outbound. Audit trail is complete.</p>
+<p><strong>Cross-check vs expected (3/3 ✅ for the happy paths; 1 broken-then-fixed for "Hi back"; 1 ❌ for garbage/abuse):</strong>
+- ✅ User→admin relay round trips (Hi, That's great)
+- ✅ Admin→user relay after WF-41 UI patch (Hi back, Saying Hi one more time, Great this side too..!!!)
+- ❌ Garbage + abusive relayed to admin without intervention → ISSUE-06
+- ✅ CLOSE CONSULT — state + DB transitions clean; feedback prompt sent (row 33 content NULL = ISSUE-01)
+- ⚠️ "Hi back" originally failed but operator-patched via UI → ISSUE-05 process gap captured</p>
+<p><strong>Cursors updated:</strong> exec=1521, time=2026-05-20T10:20:51Z. User now in <code>consultation_closed</code>, consultation id=11 closed. Slack channel <code>C0B567A175W</code> preserved per DR-10.</p>
+<p><strong>Go-ahead for next action: ✅</strong> Per operator request — proceed with <strong>text-based rebook intent</strong> (e.g. "I want to book again" or similar natural phrasing, NOT the literal <code>REBOOK</code> keyword). Expected path: WF-00 → WF-01 → WF-02 (POST_CONSULT_TEXT, since status=consultation_closed) → WF-20 (passthrough, doesn't own this) → WF-43 → WF-25 (should classify as <code>rebook_intent</code>) → WF-45. Expected outcome: identical to the prior keyword REBOOK test (status→payment_pending, payment instructions sent, slack channel reused).</p>
+<hr />
+<h3>Action — 2026-05-20T10:23:19Z — Text-based rebook intent</h3>
+<p><strong>Operator action:</strong> Sent "I want to book again" from <code>61466927921</code> via WhatsApp (natural phrasing, NOT the <code>REBOOK</code> keyword).
+<strong>Starting state:</strong> user id=28, status=<code>consultation_closed</code>.
+<strong>Expected:</strong> WF-00 → WF-01 → WF-02 (POST_CONSULT_TEXT) → WF-20 (pass-through) → WF-43 → WF-25 (classifies <code>rebook_intent</code>) → WF-45 → WF-50. Status → <code>payment_pending</code>. WA payment instructions delivered. Slack channel <code>C0B567A175W</code> reused.</p>
+<h3>Tick — 2026-05-20T10:24:45Z</h3>
+<p><strong>Trigger:</strong> operator said "check" after sending the rebook-intent text
+<strong>New executions:</strong> 13 (1557–1569), <strong>all <code>status=success</code></strong>
+- 1557 WF-00 Webhook Receiver (~6.3s end-to-end — bulk of which is the WF-25 Gemini call downstream)
+- 1558 WF-60 Message Logger (inbound)
+- 1559 WF-01 Message Router
+- 1560 WF-02 User State Router (POST_CONSULT_TEXT)
+- 1561 WF-20 Keyword Handler (pass-through, ~6ms)
+- 1562 WF-43 Post-Consultation Handler ✅
+- 1563 <strong>WF-25 Intent Classifier</strong> (~4.0s, longest single step — classified as <code>rebook_intent</code>) ✅
+- 1564 WF-45 Rebook Handler ✅
+- 1565 WF-50 Send WhatsApp
+- 1566 WF-60 Message Logger (outbound)
+- 1567–1569 WF-00 (Meta delivery + status callbacks)</p>
+<p><strong>Path matches expectation exactly.</strong> This is the canonical natural-language rebook flow — confirms WF-25's <code>rebook_intent</code> classification works against a non-keyword phrasing.</p>
+<p><strong>DB deltas:</strong>
+- <code>users</code>: id=28 → <code>consultation_closed</code> → <code>payment_pending</code> at 10:23:24.404Z ✅
+- <code>messages</code>: 2 new rows
+  - id=37: inbound text "I want to book again", consultation_id=NULL (correct — no active consultation in the closed state)
+  - id=38: outbound interactive (payment instructions), <strong>content=NULL</strong> (ISSUE-01 reproducing yet again — same template/interactive content extraction gap)
+- <code>consultations</code> / <code>payments</code> / <code>pending_users</code>: unchanged</p>
+<p><strong>Slack:</strong> channel <code>C0B567A175W</code> — no new admin-facing posts (WF-45 by design doesn't notify on rebook). Consistent with prior keyword-REBOOK test.</p>
+<p><strong>Cross-check vs expected (5/5 ✅):</strong>
+- ✅ WF-43 → WF-25 → WF-45 path engaged
+- ✅ WF-25 returned <code>rebook_intent</code> against natural phrasing
+- ✅ Status → <code>payment_pending</code>
+- ✅ WA payment instructions sent (row 38, whatsapp_message_id present)
+- ✅ Slack channel <code>C0B567A175W</code> reused (no WF-52 in execution list)</p>
+<p><strong>Latency comparison reinforces ISSUE-02 observation:</strong>
+- Keyword REBOOK earlier (Tick @ 09:41:53Z): WF-25 took ~1.2s, total flow ~3.3s
+- Text rebook intent now: WF-25 took ~4.0s, total flow ~6.3s
+- Difference is essentially the same Gemini call — neither path skips it. ISSUE-02 remains a "make REBOOK keyword skip Gemini in WF-20" optimisation opportunity but is unchanged by this tick.</p>
+<p><strong>Note on exec coverage:</strong> The previous tick's exec count ("42 executions, 2 errors") was correct <em>narratively</em> but understated because the <code>limit=50</code> jq cutoff on the executions API hid execs 1522–1556 (those covered the same time window 10:11–10:16 that the narration described — the relay round trips, garbage + abuse relays, and CLOSE CONSULT path including WF-42 + WF-50 + 3× WF-51 admin acks). No factual correction needed — the workflow IDs all line up with the registry mapping in the narration. Future ticks should use <code>limit=100</code> or paginate when many side-branches fire in a short window. Logged this caveat for the report appendix.</p>
+<p><strong>Cursors updated:</strong> exec=1569, time=2026-05-20T10:24:45Z. User now in <code>payment_pending</code>. Ready for next action.</p>
+<hr />
+<h3>Action — 2026-05-20T10:26:52Z — TC-06xx STOP keyword</h3>
+<p><strong>Operator action:</strong> Sent "STOP" from user <code>61466927921</code> via WhatsApp.
+<strong>Starting state:</strong> user id=28, status=<code>payment_pending</code>.
+<strong>Expected per DR-4 + DR-5:</strong> WF-00 → WF-01 → WF-02 → WF-20 (exact-match interception, no LLM) → WF-47 (Unsubscribe Handler) → status <code>opted_out</code> + opt-out confirmation WA reply.
+<strong>Operator-reported:</strong> workflow failed.</p>
+<h3>Tick — 2026-05-20T10:30:53Z</h3>
+<p><strong>Trigger:</strong> operator reported failure on STOP
+<strong>New executions:</strong> 8 (1570–1577), <strong>5 errors</strong>
+- 1570 WF-00 — <code>error</code> (cascade)
+- 1571 WF-60 — success (inbound log fired before cascade)
+- 1572 WF-01 — <code>error</code> (cascade)
+- 1573 WF-02 — <code>error</code> (cascade)
+- 1574 WF-20 — <strong>success</strong> (but routed wrong — see below)
+- 1575 WF-30 Payment Pending Intent Filter — <code>error</code> (cascade)
+- 1576 WF-25 — success (classified as <code>stop_intent</code>)
+- 1577 <strong>WF-47 Unsubscribe Handler — <code>error</code></strong> (the root failure)</p>
+<p>Single root error message bubbled up the chain: <code>Variable $1 out of range. Parameters array length: 0</code> at WF-47 node <code>Update User Status to opted_out</code>.</p>
+<p><strong>TWO distinct bugs uncovered:</strong></p>
+<p><strong>🔴 NEW [critical] ISSUE-07 — WF-20 Normalize Keyword references wrong field names → keyword interception is broken for ALL keywords (STOP / HELP / REBOOK)</strong></p>
+<p>WF-20's <code>Normalize Keyword</code> Set node:</p>
+<pre><code>keyword:   ={{ $json.messageText.trim().toUpperCase() }}
+userId:    ={{ $json.userId }}
+</code></pre>
+<p>But the input from WF-02's caller payload contains <code>messageContent</code> (NOT <code>messageText</code>) and <code>user.id</code> (NOT <code>userId</code> at top level). Verified in this tick's exec data — <code>Normalize Keyword</code> output was:</p>
+<pre><code>{ keyword: null, phoneNumber: &quot;61466927921&quot;, userId: null, messageText: null }
+</code></pre>
+<p>Because <code>keyword=null</code>, the downstream <code>Match Keyword</code> Switch falls through to the passthrough/<code>extra</code> output. WF-20 silently does NOTHING for any keyword. Then WF-02 also routes the message to the state-specific handler (WF-30 here because status=<code>payment_pending</code>), which calls WF-25, which catches <code>stop_intent</code> and routes to WF-47 anyway — so the user-facing flow APPEARED to work for the prior REBOOK + "I want to book again" tests (both fell through to WF-43 → WF-25 → WF-45). <strong>WF-20 was never the actual router</strong> — it's been a no-op all session.</p>
+<p>This explains the observation in ISSUE-02 ("REBOOK as text takes the long path") more completely: the long path is the ONLY path that works. Short keyword-fast-path doesn't exist in practice.</p>
+<p><strong>Fix:</strong> in <code>Normalize Keyword</code>, change <code>$json.messageText</code> → <code>$json.messageContent</code> and <code>$json.userId</code> → <code>$json.user?.id</code>. After the fix, retest STOP / HELP / REBOOK keywords to confirm WF-20 intercepts; expect total latency to drop dramatically (no Gemini hop on the keyword path).</p>
+<p><strong>🔴 NEW [critical] ISSUE-08 — WF-47 <code>Update User Status to opted_out</code> Postgres node missing <code>queryReplacement</code> (BUG-NEW-03 pattern recurrence)</strong></p>
+<pre><code class="language-sql">UPDATE chinmay_astro.users
+SET status = 'opted_out', updated_at = NOW()
+WHERE phone_number = $1
+</code></pre>
+<p>But the node's <code>options</code> block has only <code>queryBatching: "independently"</code> — no <code>queryReplacement</code>. n8n throws <code>Variable $1 out of range. Parameters array length: 0</code>.</p>
+<p>Exactly the same pattern as <strong>BUG-NEW-03</strong> from yesterday's WF-44 <code>Save Feedback to DB</code> (fixed in sprint TD-001 with <code>queryReplacement: ={{ [ trigger.field1, trigger.field2 ] }}</code>). WF-47 was missed in that sprint's sweep.</p>
+<p><strong>Fix:</strong> add <code>options.queryReplacement: ={{ [$('When Executed by Another Workflow').first().json.phoneNumber] }}</code> (array-form, per the established convention) so the <code>$1</code> placeholder gets the user's phone number.</p>
+<p><strong>Wider remediation question:</strong> sprint TD-001 fixed WF-44. WF-47 was overlooked. Are there <em>other</em> Postgres nodes across the codebase with <code>$N</code> positional params and no <code>queryReplacement</code>? <strong>Run an <code>impact-analysis</code>-style sweep before patching one at a time</strong> — same pattern as ISSUE-03's request. Specifically: jq-walk every workflow JSON for <code>n8n-nodes-base.postgres</code> nodes where <code>parameters.query</code> matches <code>/\$\d+/</code> AND <code>parameters.options.queryReplacement</code> is absent or null. Likely cheap; high value.</p>
+<p><strong>DB deltas:</strong> NONE (WF-47 errored before the UPDATE landed)
+- <code>users</code>: id=28 status unchanged at <code>payment_pending</code> ✅ (still payment_pending — opt-out did NOT happen)
+- <code>messages</code>: 1 new row (39: inbound text "STOP", logged by WF-60 before WF-47 failed) — the outbound opt-out confirmation never sent
+- <code>admin_actions</code>: still 0 rows — expected per deprecation memory; WF-47 used to write here (per registry note: "logs to admin_actions, sends opt-out confirmation") but that's also broken / deprecated</p>
+<p><strong>Slack:</strong> no new posts. WF-47's downstream "archive consult-{phone} Slack channel" never ran. Channel <code>C0B567A175W</code> still preserved.</p>
+<p><strong>Cross-check vs expected (0/3 ✅):</strong>
+- ❌ WF-20 keyword interception — NEVER FUNCTIONAL (ISSUE-07)
+- ❌ Status → <code>opted_out</code> — DID NOT HAPPEN (ISSUE-08)
+- ❌ Opt-out WA confirmation — NOT SENT</p>
+<p><strong>Compounded with ISSUE-04 from REJECT failure:</strong> admin again gets ZERO Slack feedback — STOP failures fly under the radar. If a real user types STOP and the workflow errors silently, they think nothing happened and may regulatory-complain.</p>
+<p><strong>Cursors updated:</strong> exec=1577, time=2026-05-20T10:30:53Z. User remains <code>payment_pending</code>. <strong>STOP is broken end-to-end</strong> — do not retry; will fail identically until ISSUE-07 AND ISSUE-08 are fixed. Recommend moving on to BLOCK / UNBLOCK or HELP keyword (HELP at least won't try to mutate DB, so even if WF-20 doesn't intercept, the state-handler path may give the user a reply — worth testing to learn whether HELP is functionally broken from user POV).</p>
+<hr />
+<h3>Action — 2026-05-20T10:32:41Z — TC-06xx HELP keyword</h3>
+<p><strong>Operator action:</strong> Sent "HELP" from user <code>61466927921</code> via WhatsApp.
+<strong>Starting state:</strong> user id=28, status=<code>payment_pending</code>.
+<strong>Expected per WF-20 design (TD-027):</strong> WF-20 intercepts HELP → returns canonical status-aware HELP text for <code>payment_pending</code> (UPI re-prompt + retry hint).
+<strong>Operator-reported:</strong> "seems to have gone through" — confirming receipt of A response but not whether it was the canonical HELP text.</p>
+<h3>Tick — 2026-05-20T10:36:14Z</h3>
+<p><strong>Trigger:</strong> operator narrated HELP success + session-end intent
+<strong>New executions:</strong> 12 (1578–1589), all <code>status=success</code></p>
+<p>Path: WF-00 → WF-60 → WF-01 → WF-02 → <strong>WF-20 (passthrough, ~8ms — once again no-op)</strong> → WF-30 → WF-25 (~4s Gemini) → WF-50 → WF-60 → Meta callbacks.</p>
+<p><strong>Confirms ISSUE-07.</strong> WF-20 again did NOT intercept the keyword. The user got a reply only because WF-30's contextual fall-through replied with the standard "payment instructions" reminder.</p>
+<p><strong>DB delta:</strong> 2 messages rows (40 inbound HELP / 41 outbound payment-reminder text). Row 41's content preview:</p>
+<blockquote>
+<p>"Great! You're almost there. To confirm your consultation, please complete the payment below. 💰 <em>Payment Details</em> Send ₹500 via GPay / PhonePe / any UPI app to: <em>+91-9653240263 (Chinmay Mujumdar)</em> …"</p>
+</blockquote>
+<p>That is the <strong>payment-reminder text from WF-30</strong>, not the canonical HELP response from WF-20 (which per TD-027 is supposed to be a status-aware help message explaining the bot's options at each state). So HELP "worked" only in the sense that the user received some response. The HELP feature itself is <strong>functionally broken</strong> — WF-20 isn't running its HELP branch.</p>
+<p><strong>Cross-check vs expected (0/2 ✅ for canonical HELP, 1/1 ✅ for "user got something back"):</strong>
+- ❌ Canonical TD-027 status-aware HELP text — NOT delivered
+- ❌ WF-20 HELP branch — NOT triggered
+- ✅ User received a response (via WF-30 fall-through) — partial mitigation but the message is misleading at best (acts as if user just asked about payment) and would be wrong / confusing in other states (e.g. <code>consultation_active</code> — there HELP would fall into WF-40 relay which we already established doesn't call WF-25, so HELP would be relayed verbatim to admin like garbage was).</p>
+<p><strong>Cursors updated:</strong> exec=1589, time=2026-05-20T10:36:14Z. User remains <code>payment_pending</code>.</p>
+<hr />
+<h2>Conclusion — Round closed (HTML report deferred)</h2>
+<p><strong>Session paused, not closed.</strong> Per operator: take the followups file into <code>plan-sprint</code> to fix the issues found, then return for review. HTML report (<code>report.html</code>) will be generated only after the review checkpoint.</p>
+<h3>Bugs found this round (8 total — 4 critical, 3 major, 1 observation)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Sev</th>
+<th>Workflow</th>
+<th>One-liner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ISSUE-01</td>
+<td>major</td>
+<td>WF-50/60 + WF-00</td>
+<td><code>messages.content</code> NULL for interactive + template message types (3 sub-cases)</td>
+</tr>
+<tr>
+<td>ISSUE-02</td>
+<td>minor (obs)</td>
+<td>WF-20 / WF-25</td>
+<td>Long-path Gemini hit on REBOOK keyword — moot until ISSUE-07 fixed, may resolve itself</td>
+</tr>
+<tr>
+<td>ISSUE-03</td>
+<td><strong>critical</strong></td>
+<td>WF-34</td>
+<td>REJECT PAYMENT errors at <code>User Found?</code> IF (number vs string-strict). Narrowed scope: only IFs against <code>$json.id</code> (WF-42 safe). Likely also in WF-44/46/47 — sweep before patching.</td>
+</tr>
+<tr>
+<td>ISSUE-04</td>
+<td>major</td>
+<td>All admin workflows</td>
+<td>Node exceptions short-circuit before failure-branch Slack acks → admin gets ZERO Slack feedback on errors</td>
+</tr>
+<tr>
+<td>ISSUE-05</td>
+<td>major (process)</td>
+<td>WF-41 + methodology</td>
+<td>Stale <code>$('NodeName')</code> reference left over from prior session's cleanup. Build-workflow skill's gates missed it → PIC-01/02/03 plugin improvements</td>
+</tr>
+<tr>
+<td>ISSUE-06</td>
+<td>major</td>
+<td>WF-40</td>
+<td>Garbage + abusive messages relayed to admin verbatim during <code>consultation_active</code>. WF-40 doesn't call WF-25 — DR-6 violation</td>
+</tr>
+<tr>
+<td>ISSUE-07</td>
+<td><strong>critical</strong></td>
+<td>WF-20</td>
+<td>Field-name mismatch (<code>messageText</code>/<code>userId</code> vs caller's <code>messageContent</code>/<code>user.id</code>) → keyword interception is a no-op for STOP/HELP/REBOOK. Has been silently masked all session because state-handlers + WF-25 catch the fall-through.</td>
+</tr>
+<tr>
+<td>ISSUE-08</td>
+<td><strong>critical</strong></td>
+<td>WF-47</td>
+<td><code>Update User Status to opted_out</code> Postgres node missing <code>queryReplacement</code> → STOP errors. Same pattern as BUG-NEW-03 (WF-44, fixed yesterday).</td>
+</tr>
+</tbody>
+</table>
+<p>Plus 3 plugin-improvement candidates: PIC-01 / PIC-02 / PIC-03 (see Plugin improvement candidates section below).</p>
+<p>Plus 1 misdiagnosis cleanup: prior tldr's "consultation_id NULL" issue resolved as not-a-bug (correct null-when-no-active-consultation semantics).</p>
+<h3>What still needs testing (input for next round)</h3>
+<p><strong>🔵 User-side scenarios deferred to next round:</strong></p>
+<ul>
+<li><strong>STOP re-test</strong> — after ISSUE-07 + ISSUE-08 fix</li>
+<li><strong>Opt-out re-engagement</strong> — once STOP works, user messaging back after opt_out should be treated as new user, routed to WF-21</li>
+<li><strong>Onboarding from scratch (WF-21/22)</strong> — requires clean-slate wipe of user 28 (CLAUDE.md clean-slate SQL on <code>61466927921</code> + delete Slack channel <code>C0B567A175W</code> manually)</li>
+<li><strong>Garbage / abusive messages during <code>payment_pending</code> / <code>payment_submitted</code></strong> — we only tested abuse during <code>consultation_active</code> (which exposed ISSUE-06). The non-relay states route through WF-30 / WF-31 → WF-25 — should auto-block via WF-46. Confirm.</li>
+<li><strong>Inappropriate / malicious during onboarding states</strong> — would route through WF-23 → WF-25 → WF-46 auto-block. Confirm.</li>
+<li><strong>Whitespace-only message</strong> — TD-034 guard in WF-00; should be silently dropped (or no-op)</li>
+<li><strong>Non-text messages</strong> (image, audio, reaction) — should silent-reject with deflection message per ICV-001</li>
+<li><strong>HELP in <code>consultation_active</code></strong> — would fall through ISSUE-07 → WF-40 → relayed to admin verbatim (like garbage was). Worth confirming and either fixing WF-20 or guarding in WF-40.</li>
+</ul>
+<p><strong>🟣 Admin-side scenarios deferred to next round:</strong></p>
+<ul>
+<li><strong>REJECT PAYMENT</strong> — after ISSUE-03 + ISSUE-04 fix (retest with the IF type fix applied)</li>
+<li><strong>BLOCK</strong> — likely hits ISSUE-03 sibling-sweep pattern; needs verifying before/after the sweep</li>
+<li><strong>UNBLOCK</strong> — same</li>
+<li><strong>DR-13 scope tests</strong> — admin types <code>APPROVE PAYMENT &lt;phone&gt;</code> (user-targeted) in <code>chinmay-admin-commands</code> instead of consult channel: should be rejected with reminder. And admin types <code>LIST</code> / <code>STATS</code> / <code>HELP</code> (admin-wide) in a user channel: should still work.</li>
+<li><strong>Command aliases (DR-3a)</strong> — <code>APPROVE</code> ≡ <code>APPROVE PAYMENT</code>, <code>REJECT</code> ≡ <code>REJECT PAYMENT</code>, <code>CLOSE</code> ≡ <code>CLOSE CONSULT</code> ≡ <code>CLOSE CONSULTATION</code> ≡ <code>CLOSE CHAT CONSULT</code></li>
+<li><strong>LIST / STATS / HELP</strong> (admin-wide commands)</li>
+<li><strong>Admin command typed in non-existent user channel</strong> — should give "user not found" / wrong-channel reply</li>
+<li><strong>Admin command during wrong user state</strong> — e.g. APPROVE on a <code>payment_pending</code> user → state-guard rejection path</li>
+</ul>
+<p><strong>🟢 What's been verified end-to-end this session (don't re-test unless something changes):</strong></p>
+<ul>
+<li>WF-00 → WF-01 → WF-02 routing for <code>consultation_closed → text</code> (POST_CONSULT_TEXT) ✅</li>
+<li>REBOOK keyword path (via long-path through WF-43/WF-25/WF-45 because WF-20 was a no-op — but the user-facing outcome is correct) ✅</li>
+<li>"Payment Completed" button → WF-32 → payment_submitted + payments row + WA + Slack ✅</li>
+<li>APPROVE PAYMENT → WF-33 → consultation_active + payment.verified + new consultation row + WA + Slack ack ✅</li>
+<li>User→admin relay (WF-40 → WF-51) ✅</li>
+<li>Admin→user relay (WF-41 → WF-50) ✅ (after operator's UI fix on ISSUE-05)</li>
+<li>CLOSE CONSULT → WF-42 → consultation_closed + ended_at + feedback prompt (interactive, content=NULL per ISSUE-01) + Slack acks ✅</li>
+<li>Text rebook intent ("I want to book again") → WF-43 → WF-25 (<code>rebook_intent</code>) → WF-45 ✅</li>
+<li>WF-60 Slack-transport logging (TD-003 F2) ✅</li>
+<li>consultation_id resolution on <code>messages</code> (now confirmed correct semantic, not a bug) ✅</li>
+</ul>
+<h3>Sprint-input file</h3>
+<p>A separate file <code>followups-for-plan-sprint.md</code> has been written to this session folder. It distills the 8 issues + 3 plugin-improvement candidates into a sprint-ready input format. <strong>Operator: take <code>followups-for-plan-sprint.md</code> into <code>plan-sprint</code>.</strong></p>
+<h3>When you return for review</h3>
+<p>The HTML report (<code>report.html</code>) will be generated as the final step — once you've confirmed the fixes via <code>plan-sprint</code> → <code>build-sprint</code>, return here and say "build the report" (or restart <code>monitor-test-run</code> for a fresh next-round). The session folder is preserved for diffing.</p>
+<h3>Post-sprint operational note — PIC-06 drift-gate</h3>
+<p>Sprint Batch 3 shipped PIC-06 (plugin 1.25.0): a PreToolUse hook now gates every <code>build-sprint</code> Skill invocation on <code>pseudo-md-drift-check</code> having completed cleanly within 24h. Chinmay Astro has 28 <code>.pseudo</code> files and no <code>drift-checks/.last-run</code> marker yet → the <strong>next <code>/n8n-whatsapp-methodology:build-sprint</code> invocation on this project will be blocked until <code>/n8n-whatsapp-methodology:pseudo-md-drift-check</code> is run</strong>. Expected behavior, not a regression. Run drift-check first; that establishes the baseline and unblocks the rest of the workflow.</p>
+<hr />
+<h2>Plugin improvement candidates</h2>
+<h3>PIC-01 — <code>impact-analysis</code>: enumerate intra-workflow <code>$('NodeName')</code> references before node removal</h3>
+<p>Triggered by ISSUE-05 (WF-41 stale-node-reference bug). When the skill considers removing a node, it currently scans connection topology and external caller/callee surfaces, but does NOT scan <strong>other nodes' expression bodies</strong> for <code>$('&lt;removed-name&gt;')</code> references. Implementation: jq-walk every surviving node's <code>parameters</code> JSON → regex extract <code>\$\('([^']+)'\)</code> → set-difference against the names of nodes-about-to-be-removed → fail the impact-analysis step if non-empty, surfacing the referencing node + path.</p>
+<h3>PIC-02 — <code>build-workflow</code>: post-change validation must catch dangling refs OR execute a synthetic payload</h3>
+<p>Triggered by ISSUE-05. The regression check after a workflow edit currently doesn't catch dangling <code>$('NodeName')</code> references — n8n's static validator only complains at expression evaluation time. Fix options:
+- (a) re-run PIC-01's static scan on the FINAL workflow JSON before declaring complete
+- (b) trigger one synthetic test execution as part of the AFTER gate
+Either gate would have caught the "Hi back" failure before operator hit it.</p>
+<h3>PIC-03 — <code>technical-workflow-review</code>: add "dangling node-name reference" check to the standard battery</h3>
+<p>Triggered by ISSUE-05. Catches latent versions of the same class of bug in workflows that weren't edited this session — the codebase may have other stale refs from earlier edits. Cheap to implement (same jq scan as PIC-01) and surfaces in the review HTML.</p>
+<p>(All three to be applied when the issues from this session are next fixed via a sprint → <code>flush-plugin-improvements</code> afterwards.)</p>
+<hr />
+      </details>
+      <div id="appendix-followups-for-plan-sprint"><details class="appendix-item"><summary>Followup — For Plan Sprint <span class="src">(followups-for-plan-sprint.md)</span></summary><h1>Sprint input — Follow-ups from smoke test <code>smoke-pre-golive-continued-2026-05-20</code></h1>
+<p><strong>Source:</strong> <code>docs/artefacts/tests/smoke-pre-golive-continued-2026-05-20/session.md</code>
+<strong>Generated:</strong> 2026-05-20T10:36:14Z
+<strong>Test user:</strong> id=28 / phone <code>61466927921</code> / current state <code>payment_pending</code>
+<strong>For:</strong> <code>n8n-whatsapp-methodology:plan-sprint</code></p>
+<p>8 functional issues + 3 plugin-improvement candidates. Listed in suggested execution order; final sequencing is <code>plan-sprint</code>'s call.</p>
+<hr />
+<h2>TD-A — WF-20 keyword interception is a no-op (ISSUE-07) <code>[critical]</code> <code>[critical-path]</code></h2>
+<p><strong>Problem:</strong> WF-20's <code>Normalize Keyword</code> Set node reads <code>$json.messageText</code> and <code>$json.userId</code>, but the caller payload from WF-02 supplies <code>messageContent</code> and <code>user.id</code>. Result: <code>keyword=null</code>, the <code>Match Keyword</code> Switch falls through to passthrough, WF-20 is a no-op for ALL keywords (STOP / HELP / REBOOK). The bug has been masked since deployment because state-handlers + WF-25 catch the fall-through and route correctly <em>most</em> of the time — but HELP returns wrong text, REBOOK burns an unnecessary Gemini call, and STOP exposes ISSUE-08.</p>
+<p><strong>Fix:</strong>
+- In <code>Normalize Keyword</code>: change assignments
+  - <code>keyword</code> value: <code>={{ $json.messageContent.trim().toUpperCase() }}</code> (was <code>messageText</code>)
+  - <code>userId</code> value: <code>={{ $json.user?.id }}</code> (was <code>userId</code>)
+  - <code>messageText</code> value: <code>={{ $json.messageContent }}</code> (alias for downstream compat if needed)</p>
+<p><strong>Acceptance:</strong>
+- Send "STOP" from any non-<code>consultation_active</code> state → WF-20's STOP branch fires (verifiable via runData → <code>Match Keyword</code> output 1 is non-empty) → WF-47 invoked directly without WF-25 hop.
+- Send "HELP" from <code>payment_pending</code> → WF-20's HELP branch fires → status-aware HELP text returned per TD-027 (NOT the WF-30 payment-reminder).
+- Send "REBOOK" from <code>consultation_closed</code> → WF-20's REBOOK branch fires → WF-45 reached without going through WF-43/WF-25 (latency should drop from ~6s to ~2s).</p>
+<p><strong>Pre-fix step (REQUIRED):</strong> invoke <code>n8n-whatsapp-methodology:impact-analysis</code> on WF-20 to confirm no other workflow expects the old field names (it would be a no-op since WF-20 hasn't been working anyway, but check anyway).</p>
+<p><strong>Per [[feedback_pseudocode_first_refactor]]:</strong> revise <code>docs/pseudocode/WF-20.pseudo</code> first to lock in the canonical field-name contract for the <code>Normalize Keyword</code> step; then implement; then re-run impact-analysis on the revised pseudo.</p>
+<hr />
+<h2>TD-B — WF-47 <code>Update User Status to opted_out</code> missing <code>queryReplacement</code> (ISSUE-08) <code>[critical]</code> <code>[critical-path]</code></h2>
+<p><strong>Problem:</strong> Postgres node uses <code>$1</code> positional parameter but <code>options.queryReplacement</code> is absent → <code>Variable $1 out of range. Parameters array length: 0</code>. Same pattern as <strong>BUG-NEW-03</strong> from yesterday's WF-44; sprint TD-001 fixed WF-44 but missed WF-47.</p>
+<p><strong>Fix:</strong>
+- Add <code>parameters.options.queryReplacement: ={{ [$('When Executed by Another Workflow').first().json.phoneNumber] }}</code> to the <code>Update User Status to opted_out</code> node.</p>
+<p><strong>Acceptance:</strong> STOP flow completes; <code>users.status</code> → <code>opted_out</code>; opt-out confirmation WA reply sent; consult-{phone} Slack channel archive step succeeds.</p>
+<p><strong>Pre-fix sweep (REQUIRED):</strong> invoke <code>impact-analysis</code> to find ALL Postgres nodes across all active workflows where <code>parameters.query</code> contains <code>$N</code> AND <code>parameters.options.queryReplacement</code> is absent / null. Patch all in one sprint to prevent third-recurrence-of-same-pattern. Likely jq one-liner; cheap.</p>
+<hr />
+<h2>TD-C — WF-34 <code>User Found?</code> IF type strictness blocks REJECT PAYMENT (ISSUE-03) <code>[critical]</code> <code>[critical-path]</code></h2>
+<p><strong>Problem:</strong> WF-34's <code>User Found?</code> IF node uses <code>leftValue: $json.id</code> (a Postgres int → JS number) with <code>operator.type:"string"</code> + <code>typeValidation:"strict"</code>. Strict mode refuses to coerce → <code>Wrong type: '28' is a number but was expecting a string</code>. Every REJECT errors deterministically.</p>
+<p><strong>Fix (operator chooses one):</strong>
+- <strong>Best:</strong> change operator <code>type</code> from <code>"string"</code> to <code>"number"</code> and use a number-domain existence check (e.g. <code>larger than 0</code>).
+- <strong>Safe &amp; minimal:</strong> keep operator type <code>"string"</code> but cast leftValue → <code>={{ String($json.id) }}</code> or <code>={{ $json.id?.toString() }}</code>.
+- <strong>Loose:</strong> set <code>parameters.conditions.options.typeValidation: "loose"</code> — broader compatibility but loses type safety.</p>
+<p><strong>Pre-fix sweep (REQUIRED):</strong> invoke <code>impact-analysis</code> to find IF nodes with the pattern <code>leftValue = $json.id</code> (or similar numeric column) + <code>operator.type:"string"</code> + <code>typeValidation:"strict"</code> across all admin-action workflows. <strong>Known scope-narrowing from this session:</strong> WF-42 (CLOSE) uses <code>phone_number</code> → safe. WF-33 (APPROVE) has no <code>User Found?</code> at all → safe. Likely suspects: <strong>WF-44 (Save Feedback), WF-46 (BLOCK), WF-47 (UNBLOCK branch in WF-11)</strong> — check before patching.</p>
+<p><strong>Acceptance:</strong> REJECT PAYMENT against an existing user in <code>payment_submitted</code> state successfully transitions status → <code>payment_pending</code>, sets <code>payments.rejected_at</code> + <code>rejection_reason</code>, sends WA rejection message, posts Slack admin ack.</p>
+<hr />
+<h2>TD-D — Admin gets ZERO Slack feedback on workflow exceptions (ISSUE-04) <code>[major]</code> <code>[pattern]</code></h2>
+<p><strong>Problem:</strong> When any admin-action workflow throws a node exception, the explicit failure-branch Slack responses (<code>Prepare WF-51 Payload (User Not Found)</code>, <code>(Wrong State)</code>, etc.) never fire because execution short-circuits. Admin sees nothing happen.</p>
+<p><strong>Fix options:</strong>
+- <strong>Per-workflow:</strong> add an Error Trigger to each admin-action workflow (WF-11, WF-33, WF-34, WF-42, WF-46, WF-47-unblock) that posts <code>⚠️ Command failed — see execution NNNN</code> to the admin's channel + admin-wide channel.
+- <strong>Global error-trigger workflow:</strong> dedicated <code>WF-19 Admin Error Notifier</code> that subscribes to all admin-action workflow error events.</p>
+<p><strong>Operator decision needed:</strong> per-workflow vs global error-trigger.</p>
+<p><strong>Acceptance:</strong> force a deliberate exception in WF-33 (e.g. point its Postgres node at an invalid table). Admin sees a Slack post in the relevant channel with execution ID + workflow name within 10 seconds of the error.</p>
+<hr />
+<h2>TD-E — WF-40 doesn't invoke WF-25 → garbage + abuse relayed verbatim in <code>consultation_active</code> (ISSUE-06) <code>[major]</code> <code>[DR-6 violation]</code></h2>
+<p><strong>Problem:</strong> During <code>consultation_active</code>, free-form user text routes from WF-02 → WF-40 (User → Admin Relay), which bundles + forwards to WF-51 / Slack with no intent classification. CLAUDE.md Design Rule #6 says "Every state accepting free-form text must run WF-25 first." Auto-block path (WF-25 → WF-46) never fires for in-consultation abuse.</p>
+<p><strong>Fix:</strong>
+- Add a WF-25 invocation at the head of WF-40.
+- Route by intent: <code>general_enquiry</code> / <code>wants_consultation</code> / <code>feedback_intent</code> / <code>rebook_intent</code> → proceed with relay; <code>malicious_abusive</code> / <code>inappropriate</code> / <code>garbage</code> → short-circuit to WF-25's warn+block branches.</p>
+<p><strong>Pre-fix step (REQUIRED):</strong> <code>impact-analysis</code> against WF-40 to confirm no other caller depends on its current unconditional-relay contract. Per [[feedback_pseudocode_first_refactor]], revise <code>docs/pseudocode/WF-40.pseudo</code> first.</p>
+<p><strong>Acceptance:</strong>
+- Send garbage <code>/&amp;/&amp;xyz</code> during <code>consultation_active</code> → user gets garbage-warning WA reply; admin gets ONLY a garbage notification post (not the relayed message); no relay occurs.
+- Send abusive "fuck off" during <code>consultation_active</code> → user gets warning + auto-block via WF-46 → status <code>blocked</code>.</p>
+<hr />
+<h2>TD-F — <code>messages.content</code> NULL on outbound interactive + template messages (ISSUE-01) <code>[major]</code> <code>[audit-gap]</code></h2>
+<p><strong>Problem:</strong> WF-50's <code>Build WF-60 Payload (Outbound)</code> Code mapper extracts content only for <code>text</code> message_type. For <code>interactive</code> and <code>template</code> types, the human-readable copy lives in nested fields (<code>interactive.body.text</code> for interactive, template name + body params for template), and the mapper doesn't read them. Result: every payment-instructions / feedback-prompt / consultation_active-template row in <code>messages</code> has <code>content=NULL</code>. Inbound interactive (WF-00 path) captures only <code>button_id</code>, missing the display label.</p>
+<p><strong>Fix:</strong>
+- <strong>WF-50 outbound mapper:</strong> when <code>message_type='interactive'</code>, extract from <code>interactive.body.text</code> plus serialise button labels into <code>metadata.buttons</code>. When <code>message_type='template'</code>, extract template name + serialised body parameters.
+- <strong>WF-00 inbound mapper:</strong> when <code>message_type='interactive'</code>, extract both <code>button_id</code> and the display label from the button-reply payload.</p>
+<p><strong>Pre-fix step (REQUIRED):</strong> <code>impact-analysis</code> against WF-50 + WF-00 → WF-60 canonical contract. Per [[feedback_pseudocode_first_refactor]], revise the relevant <code>.pseudo</code> sections first to lock in the canonical content-extraction contract per <code>message_type</code>.</p>
+<p><strong>Acceptance:</strong> rerun rebook flow + close flow + APPROVE PAYMENT. All resulting <code>messages</code> rows have non-NULL <code>content</code> regardless of <code>message_type</code>.</p>
+<hr />
+<h2>TD-G — WF-41 stale node reference (ISSUE-05) <code>[major]</code> <code>[process]</code></h2>
+<p><strong>Status:</strong> operator already patched in n8n UI mid-session. The DB-level workflow is fixed. <strong>Sprint action:</strong> export the fixed WF-41 to <code>workflows/</code>, commit to GitHub, and use the <em>process gap</em> as the trigger to apply PIC-01 / PIC-02 / PIC-03 (see plugin improvements below) so this class of bug doesn't recur.</p>
+<p><strong>Pre-fix step:</strong> confirm via <code>scripts/export-all-workflows.sh &amp;&amp; scripts/assert-md-fresh.sh WF-41</code> that the exported JSON matches live and the <code>.md</code> companion is fresh.</p>
+<hr />
+<h2>TD-H — REBOOK keyword Gemini-call observation (ISSUE-02) <code>[minor]</code> <code>[likely auto-resolves]</code></h2>
+<p><strong>Likely outcome:</strong> resolved automatically when TD-A (WF-20 fix) lands. Once WF-20 actually intercepts REBOOK, the keyword path skips WF-25 entirely and goes WF-20 → WF-45 directly (~2s instead of ~6s).</p>
+<p><strong>Sprint action:</strong> include a retest as part of TD-A's acceptance. Don't allocate separate dev time.</p>
+<hr />
+<h2>Plugin improvement candidates (for <code>flush-plugin-improvements</code> AFTER sprint completes)</h2>
+<h3>PIC-01 — <code>impact-analysis</code>: enumerate intra-workflow <code>$('NodeName')</code> references before node removal</h3>
+<p>Triggered by ISSUE-05. Current skill scans connection topology + caller/callee surfaces but doesn't scan surviving nodes' expression bodies for <code>$('&lt;removed-name&gt;')</code> references. Implementation: jq-walk every surviving node's <code>parameters</code> JSON → regex extract <code>\$\('([^']+)'\)</code> → set-difference against names-of-nodes-about-to-be-removed → fail if non-empty.</p>
+<h3>PIC-02 — <code>build-workflow</code>: post-change validation must catch dangling refs OR execute a synthetic payload</h3>
+<p>Triggered by ISSUE-05. The AFTER-gate currently doesn't catch dangling <code>$('NodeName')</code> references because n8n's static validator only complains at expression evaluation time. Either re-run PIC-01's scan on the FINAL workflow JSON, or trigger one synthetic test execution as part of the AFTER gate.</p>
+<h3>PIC-03 — <code>technical-workflow-review</code>: add "dangling node-name reference" check to the standard battery</h3>
+<p>Triggered by ISSUE-05. Catches latent versions of the same bug class in workflows that weren't edited this session. Cheap to implement (same jq scan as PIC-01) and surfaces in the review HTML.</p>
+<hr />
+<h2>Suggested execution order (subject to plan-sprint validation)</h2>
+<ol>
+<li><strong>TD-A</strong> (WF-20 normalize-keyword fix) — fixes ISSUE-07 + indirectly enables TD-H acceptance retest</li>
+<li><strong>TD-B</strong> + its pre-sweep — fixes ISSUE-08; the sweep may surface 1–N more Postgres-queryReplacement bugs, batch them into the same sprint item</li>
+<li><strong>TD-C</strong> + its pre-sweep — fixes ISSUE-03; the sweep may surface IF-typestrict issues in WF-44/46/47</li>
+<li><strong>TD-F</strong> (interactive/template content extraction) — fixes ISSUE-01</li>
+<li><strong>TD-E</strong> (WF-40 → WF-25) — fixes ISSUE-06</li>
+<li><strong>TD-D</strong> (admin error-notifier) — fixes ISSUE-04; operator decision on per-workflow vs global needed before scoping</li>
+<li><strong>TD-G</strong> (commit operator's WF-41 UI fix) — quick housekeeping</li>
+<li><strong>PIC-01 / PIC-02 / PIC-03</strong> — via <code>flush-plugin-improvements</code> after the above are merged</li>
+</ol>
+<h2>State carry-forward</h2>
+<p>Test user 28 (<code>61466927921</code>) is in <code>payment_pending</code> with payment id=12 already <code>verified</code> from earlier APPROVE (mid-test state — was advanced to <code>consultation_active</code>, then closed, then rebook landed it back here). For sprint retest:
+- TD-A retest from <code>payment_pending</code> state covers STOP and HELP keyword interception
+- TD-B / TD-C retest from <code>payment_pending</code> (move user to <code>payment_submitted</code> first via button click)
+- TD-E retest from <code>consultation_active</code> (move user forward via APPROVE)
+- Onboarding from scratch needs CLAUDE.md clean-slate wipe of 28 + delete Slack channel <code>C0B567A175W</code></p>
+<p>Slack channel <code>C0B567A175W</code> preserved per DR-10.</p></details></div>
+    </section>
+
+  </main>
+</div>
+<script>
+// 1) Severity chip styling for [critical] / [major] / [minor]
+const sevColors = { critical: "#ff4d4f", major: "#ff9f43", minor: "#f1c40f", slow: "#e67e22" };
+function chipifySeverity(root) {
+  root.querySelectorAll("td, p, li, h3, h4").forEach(el => {
+    const html = el.innerHTML;
+    const newHtml = html.replace(/`?\[(critical|major|minor|slow)\]`?/gi, (s, k) => {
+      const key = k.toLowerCase();
+      return `<span class="sev-chip" style="background:${sevColors[key]}">${k}</span>`;
+    });
+    if (newHtml !== html) el.innerHTML = newHtml;
+  });
+}
+chipifySeverity(document);
+
+// 2) Wrap story h3 + following content into card containers
+(function wrapStoryCards() {
+  const story = document.getElementById("story");
+  if (!story) return;
+  const h3s = Array.from(story.querySelectorAll("h3"));
+  h3s.forEach(h3 => {
+    const card = document.createElement("div");
+    card.className = "story-card";
+    let next = h3.nextSibling;
+    while (next && !(next.nodeType === 1 && (next.tagName === "H3" || next.tagName === "HR" || next.tagName === "H2"))) {
+      const cur = next;
+      next = next.nextSibling;
+      card.appendChild(cur);
+    }
+    h3.after(card);
+  });
+  // remove <hr> separators since cards already provide separation
+  story.querySelectorAll("hr").forEach(hr => hr.remove());
+})();
+
+// 3) Build scenario nav from h3s in story section
+(function buildScenarioNav() {
+  const nav = document.getElementById("nav-scenarios");
+  if (!nav) return;
+  document.querySelectorAll("#story h3").forEach((h3, i) => {
+    const id = "scenario-" + (h3.textContent.match(/TC-\d+/)?.[0] || ("sc" + i)).toLowerCase();
+    h3.id = id;
+    const a = document.createElement("a");
+    a.href = "#" + id;
+    a.className = "depth-1";
+    a.textContent = h3.textContent.replace(/\s*[✅❌→].*/g, "").trim();
+    nav.appendChild(a);
+  });
+})();
+
+// 4) Color ✅ / ❌ in story headings
+document.querySelectorAll("#story h3").forEach(h3 => {
+  h3.innerHTML = h3.innerHTML
+    .replace(/✅/g, '<span class="status-ok">✅</span>')
+    .replace(/❌/g, '<span class="status-warn">❌</span>');
+});
+</script>
+</body></html>
