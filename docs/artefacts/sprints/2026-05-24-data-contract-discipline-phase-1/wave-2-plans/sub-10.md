@@ -1,0 +1,79 @@
+# sub-10 — WF-22 caller alignment + envelope audit
+
+**WF:** WF-22 (n8n ID `dr8QM0m92Ml8MvIh`)
+**Items:** TD-DCP-010, TD-DCP-052
+**n8n change:** Insert new `Prepare WF-52 Payload` Set node between `Create User Record` and `Ensure Slack Channel Exists (WF-52)` to reshape DB row keys (phone_number→phoneNumber, id→userId) to WF-52's canonical contract. NO Load-User removal — WF-22's `Create User Record` is authoritative UPSERT.
+
+## n8n edit plan
+
+```json
+{
+  "WF-22": {
+    "node_additions": [
+      {
+        "name": "Prepare WF-52 Payload",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3,
+        "position": "between Create User Record and Ensure Slack Channel Exists (WF-52)",
+        "parameters_assignments": {
+          "phoneNumber": "={{ $json.phone_number }}",
+          "name": "={{ $json.name }}",
+          "userId": "={{ $json.id }}"
+        }
+      }
+    ],
+    "node_modifications": [],
+    "node_removals": [],
+    "connection_changes": [
+      "Remove: Create User Record --[main#0]--> Ensure Slack Channel Exists (WF-52)",
+      "Add: Create User Record --[main#0]--> Prepare WF-52 Payload",
+      "Add: Prepare WF-52 Payload --[main#0]--> Ensure Slack Channel Exists (WF-52)"
+    ],
+    "note": "Ensure Slack Channel Exists (WF-52) remains in passthrough mode — payload is now shaped by the new Prepare WF-52 Payload Set node upstream."
+  }
+}
+```
+
+## Pseudo revision — write to `docs/pseudocode/WF-22.pseudo`
+
+```
+WF-22 — Form Response Handler
+
+## Summary
+
+- Inputs: WF-01 envelope (via WF-02) carrying `{ phoneNumber, rawMessage, user, pendingUser, … }`. `phoneNumber` is the top-level canonical phone. `rawMessage` contains the WhatsApp interactive payload with `nfm_reply.response_json` holding the Flow form fields. Called by WF-02 when a user submits the WhatsApp Flow form.
+- Outputs: First-ever `users` row (status=payment_pending), Slack consultation channel created and `slack_channel_id` saved, payment instructions message sent on WhatsApp.
+- State Transitions: [no record] → payment_pending. (If row already existed, no transition.) Opted_out → payment_pending (re-engagement re-submitting the form overwrites status).
+- Calls Sub-Workflows: WF-52 (Ensure Slack Channel Exists), WF-50 (Send WhatsApp), WF-51 (admin alert on WF-52 failure path only)
+- **Notes:** Form `response_json` is delivered cleartext (Flow `1408011897720771` is configured in send-only mode — no encryption-svc decryption needed; verified live 2026-05-17). WF-22 does NOT have a redundant Load-User SELECT: the `Create User Record` node is the authoritative UPSERT that creates/updates the users row; it cannot be replaced by the WF-01 envelope because the envelope's `user` field may be null (new user) or stale (opted-out re-engagement), and the UPSERT is the business event that first creates the row.
+
+## Inputs (data-contract-discipline Phase 1 — design.md §2.1)
+
+WF-22 consumes the WF-01 core envelope forwarded by WF-02:
+
+| Field | Type | Required | Used by |
+|---|---|---|---|
+| `phoneNumber` | E.164 string | required | Extract Form Data (fallback), Create User Record, Prepare WF-52 Payload |
+| `rawMessage` | WhatsApp message object | required | Extract Form Data — `rawMessage.interactive.nfm_reply.response_json` contains form fields |
+| `user` | `{id, phone_number, name, status, slack_channel_id, current_consultation_id}` or null | required (null for new user) | Not consumed directly — WF-22's UPSERT is authoritative; `user` from envelope may be null or stale |
+| `pendingUser` | `{id, contact_name}` or null | required (object ref) | Not consumed directly — WF-22's UPSERT is authoritative |
+
+**Redundant Load-User audit (§3.4):** No Load-User SELECT exists in WF-22 to remove. WF-22's `Create User Record` node is an INSERT … ON CONFLICT … RETURNING — an authoritative write, not a redundant read. The WF-01 envelope does not supply form-submission data (full_name, date_of_birth, time_of_birth, place_of_birth) — these come from `rawMessage.interactive.nfm_reply.response_json` parsed in Step 2. Therefore WF-22 is correctly classified as "keep" in the §3.4 consumer audit.
+
+---
+
+## Algorithm
+
+Step 1: Start — workflow triggered by another workflow (WF-02 forwarding the WF-01 envelope) with `phoneNumber` and `rawMessage` from WhatsApp.
+Step 2: Extract form data — parse rawMessage.interactive.nfm_reply.response_json as JSON and pull out: full_name, date_of_birth, time_of_birth, place_of_birth, consent (true if contains "agree"), flow_token. phoneNumber falls back to rawMessage.from.
+Step 3: INSERT INTO chinmay_astro.users (phone_number, name, date_of_birth, time_of_birth, place_of_birth, status, created_at, updated_at, last_message_at) VALUES (phoneNumber, full_name, date_of_birth, time_of_birth, place_of_birth, 'payment_pending', NOW(), NOW(), NOW()) ON CONFLICT (phone_number) DO UPDATE SET name=EXCLUDED.name, date_of_birth=EXCLUDED.date_of_birth, time_of_birth=EXCLUDED.time_of_birth, place_of_birth=EXCLUDED.place_of_birth, status='payment_pending', updated_at=NOW(), last_message_at=NOW() RETURNING id, name, phone_number, status, slack_channel_id, (xmax = 0) AS inserted. Per design rule, this is the first `users` write for this user. (Opted_out re-engagement: ON CONFLICT updates the existing row back to payment_pending — supersedes the previous status.)
+Step 4: Prepare WF-52 canonical payload — reshape the RETURNING row into the WF-52 contract (design.md §2.5): { phoneNumber: phone_number, name: name, userId: id }. (Renames snake_case DB key `phone_number` → `phoneNumber`; renames DB key `id` → `userId`; `name` is unchanged.)
+Step 5: Call WF-52 (Ensure Slack Channel Exists) with the canonical payload { phoneNumber, name, userId }. WF-52 creates a consultation Slack channel and returns `{success, channelId, channelName, channelUrl, isNew}`. If WF-52 returns `success=false` → go to Step 7.
+Step 6: If WF-52 returns `success=true` (channel created or already exists) → go to Step 8.
+Step 7: WF-52 failure handler — call WF-51 with channelId='chinmay-admin-commands' (C0A5B0ZE81E) and messageText="❌ WF-22 aborted for phone=<phoneNumber> name=<full_name>. WF-52 returned error: <error>. User has a DB row but no Slack channel — manual intervention needed." DO NOT send payment instructions to the user (Step 9 skipped). End.
+Step 8: UPDATE chinmay_astro.users SET slack_channel_id = <channelId from WF-52>, updated_at = NOW() WHERE id = <user id from Step 3 RETURNING> RETURNING id, slack_channel_id.
+Step 9: Prepare payment instructions message:
+  - phoneNumber = user's phone, messageType = "interactive".
+  - interactivePayload: type="button", body="Thank you <name>! Your details have been received. Payment Information: Amount ₹500. Please send ₹500 via GPay / PhonePe / any UPI app to +91-9653240263 (Chinmay Mujumdar). Once done, tap the button below:", buttons=[{id:"payment_completed", title:"Payment Completed ✓"}].
+Step 10: Call WF-50 with the prepared phoneNumber, messageType, and interactivePayload. End.
+```
