@@ -2,30 +2,29 @@ WF-32 — Payment Confirmation Receiver
 
 ## Summary
 
-- Inputs: phoneNumber, user (id, name, phone_number, status) — triggered when user taps "Payment Completed" button (from WF-01 routing)
+- Inputs: WF-01 §2.1 core envelope — { phoneNumber, messageType, messageContent, user:{id, phone_number, name, status, slack_channel_id, current_consultation_id}, pendingUser } — triggered when user taps "Payment Completed" button (from WF-01 routing via WF-02)
 - Outputs: New row in payments table; user status moved to payment_submitted; WhatsApp confirmation to user; Slack notification to admin in the user's consult channel
 - State Transitions: payment_pending → payment_submitted (if not already submitted); otherwise no change
-- Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack). Does NOT call WF-52 — reads existing slack_channel_id from DB (set at WF-22).
+- Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack). Does NOT call WF-52 — reads existing slack_channel_id from envelope (set at WF-22).
 
 ---
 
 ## Algorithm
 
-Step 1: Start — Triggered by WF-01 with {phoneNumber, user{id, name, phone_number, status, ...}}.
+Step 1: Start — Triggered by WF-01 (via WF-02) with §2.1 envelope: { phoneNumber, messageType, messageContent, user:{id, phone_number, name, status, slack_channel_id, current_consultation_id}, pendingUser }.
 Step 2: Check: Is user.status == "payment_submitted" already?
   - If YES → go to Step 3 (duplicate tap — reassure only)
   - If NO → go to Step 5 (first-time tap)
 Step 3: Build reassurance message: "Your payment has already been received and is under review ✅ Chinmay will approve your consultation shortly — please wait a moment! 🙏" with phoneNumber = user.phone_number, messageType=text.
-Step 4: Call WF-50 with phoneNumber, messageType, messageContent. Go to Step 14.
+Step 4: Call WF-50 with phoneNumber, messageType, messageContent. Go to Step 11.
 
 (First-time tap)
 Step 5: INSERT INTO chinmay_astro.payments (user_id, amount, currency, status, payment_method) VALUES (user.id, 500, 'INR', 'pending_verification', 'gpay') RETURNING *. Capture payment.id.
 Step 6: UPDATE chinmay_astro.users SET status='payment_submitted', updated_at=NOW(), last_message_at=NOW() WHERE id=user.id RETURNING *. Capture updated user row.
 Step 7: Build user confirmation: phoneNumber = updated user.phone_number; messageType=text; messageContent = "Thank you <name>! Your payment confirmation has been received. We'll verify your payment and activate your consultation within 24 hours. You'll receive a confirmation message once approved."
 Step 8: Call WF-50 with phoneNumber, messageType, messageContent.
-Step 9: SELECT id, name, phone_number, slack_channel_id FROM chinmay_astro.users WHERE id = user.id LIMIT 1. (Read existing channel — set previously by WF-22; do NOT call WF-52.)
-Step 10: Build admin notification: channelId = slack_channel_id; messageText = "🔔 New Payment Submission\nUser: <name>\nPhone: +<phone_number>\nAmount: ₹500\nPayment ID: <payment.id>\nPlease verify payment and run: APPROVE PAYMENT <phone_number>".
-Step 11: Call WF-51 (Send Slack) with the admin notification payload.
-Step 12: End.
-Step 13: (reserved)
-Step 14: End.
+Step 9: Build admin notification using envelope fields — channelId = user.slack_channel_id (from §2.1 envelope); messageText = "🔔 New Payment Submission\nUser: <user.name>\nPhone: +<user.phone_number>\nAmount: ₹500\nPayment ID: <payment.id>\nPlease verify payment and run: APPROVE PAYMENT <user.phone_number>".
+Step 10: Call WF-51 (Send Slack) with the admin notification payload.
+Step 11: End.
+
+**Phase 1 change:** `Load User Channel from DB` SELECT removed — user.slack_channel_id read from §2.1 envelope. Caller fan-out rewired: Call WF-50 (Send Payment Confirmation Received Message) → Prepare Admin Notification (direct).

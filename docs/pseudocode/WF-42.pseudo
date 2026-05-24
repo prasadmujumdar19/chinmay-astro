@@ -2,29 +2,25 @@ WF-42 — Consultation Closer
 
 ## Summary
 
-- Inputs: phoneNumber, channelId, channelName (Slack channel where admin typed CLOSE)
+- Inputs: WF-10 §2.2 Command Envelope — { commandType, phoneNumber, reason, adminUserId, channelId, channelName, messageText, user:{id, name, phone_number, status, slack_channel_id} } — triggered by WF-11 (admin CLOSE handler)
 - Outputs: consultations row closed, users row updated, WhatsApp feedback/rebook prompt sent (2 buttons), Slack confirmation in consult channel
 - State Transitions: consultation_active → consultation_closed
-- Calls Sub-Workflows: WF-50 (Send WhatsApp)
+- Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack via Notify Admin in Slack node)
 - **Design rule (DR-10):** Slack channel is NOT archived — same channel is reused on rebook (WF-45 reads existing slack_channel_id from DB). Channel archival/deletion is a separate post-MVP maintenance workflow.
-- **Trust-mode input (SP-03):** Input is pre-validated by WF-10's centralized gate — user exists, is in `consultation_active` state, and phone-in-command matches channel-derived phone. WF-42 does NOT re-validate; the historical `User Found?` + `User in Correct State?` IFs and their feedback branches are removed because they are guaranteed unreachable. `Load User by Phone` is retained only to fetch the user record needed for the downstream UPDATE + interactive WhatsApp payload.
+- **Trust-mode input (SP-03):** Input is pre-validated by WF-10's centralized gate — user exists, is in `consultation_active` state, and phone-in-command matches channel-derived phone. WF-42 does NOT re-validate. The historical `Load User by Phone` SELECT is removed: all required fields (id, name, phone_number, slack_channel_id) are provided in the §2.2 Command Envelope `user` object.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — triggered by WF-11 (admin CLOSE handler) with phoneNumber, channelId, channelName.
-Step 2: SELECT id, name, phone_number, status, slack_channel_id FROM chinmay_astro.users WHERE phone_number = <phoneNumber> LIMIT 1. Pre-validated upstream — row is guaranteed to exist and be in `consultation_active` state.
-Step 3: (removed — old `User Found?` IF; pre-validated by WF-10.)
-Step 4: (removed — old `User in Correct State?` IF; pre-validated by WF-10.)
-Step 5: UPDATE chinmay_astro.consultations SET status='closed', ended_at=NOW(), closed_by='admin' WHERE user_id = <user.id> AND status='active' RETURNING *.
-Step 6: UPDATE chinmay_astro.users SET status='consultation_closed', current_consultation_id=NULL, total_consultations = total_consultations + 1, updated_at=NOW() WHERE id = <user.id> RETURNING *.
-Step 7: Build interactive WhatsApp payload (two buttons):
+Step 1: Start — triggered by WF-11 (admin CLOSE handler) with §2.2 Command Envelope: { commandType, phoneNumber, reason, adminUserId, channelId, channelName, messageText, user:{id, name, phone_number, status, slack_channel_id} }.
+Step 2: UPDATE chinmay_astro.consultations SET status='closed', ended_at=NOW(), closed_by='admin' WHERE user_id = user.id AND status='active' RETURNING *. (user.id read from §2.2 envelope.)
+Step 3: UPDATE chinmay_astro.users SET status='consultation_closed', current_consultation_id=NULL, total_consultations = total_consultations + 1, updated_at=NOW() WHERE id = user.id RETURNING *. (user.id read from §2.2 envelope.)
+Step 4: Build interactive WhatsApp payload using envelope fields (two buttons):
+  - phoneNumber = user.phone_number (from §2.2 envelope)
   - body.text = "✨ Your consultation with Chinmay is complete, <user.name>! We hope it was insightful.\n\nWould you like to share your experience or book another session?"
   - buttons: [ {id: btn_feedback, title: "Leave Feedback"}, {id: btn_rebook, title: "Book Again"} ]
-Step 8: Call WF-50 with phoneNumber, messageType=interactive, interactivePayload=<payload above>.
-Step 9: Post to Slack channel (channelId from input — admin's channel): "✅ *Consultation Closed*\n\n*User:* <user.name>\n*Phone:* +<user.phone_number>\n\nFeedback request sent to user."
-Step 10: End.
-
-Step 11: (removed — old user-not-found path; pre-validated by WF-10.)
-Step 12: (removed — old wrong-state guard; pre-validated by WF-10.)
+Step 5: Call WF-50 with phoneNumber, messageType=interactive, interactivePayload=<payload above>.
+Step 6: Post to Slack channel using envelope fields — channelId = user.slack_channel_id (from §2.2 envelope); messageText = "✅ Consultation closed for <user.name> (<user.phone_number>). Feedback prompt sent via WhatsApp; channel kept open for future rebook."
+Step 7: Call WF-51 with the Slack notification payload.
+Step 8: End.

@@ -2,30 +2,30 @@ WF-34 — Payment Rejection Processor
 
 ## Summary
 
-- Inputs: phoneNumber, reason (optional), channelId (admin's channel where REJECT was typed) — triggered by WF-11 command parser when admin sends "REJECT <phone>" or "REJECT PAYMENT <phone>"
-- Outputs: Latest pending_verification payment row marked rejected; user status reset to payment_pending; WhatsApp interactive button ("Payment Completed ✓") sent to user with retry instructions; Slack confirmation posted via WF-51 to the user's consult channel. If user is in wrong state, only a Slack warning is posted.
-- State Transitions: payment_submitted → payment_pending (only if user is currently payment_submitted)
+- Inputs: WF-10 Command Envelope (design.md §2.2) passed through by WF-11: { commandType:'REJECT_PAYMENT', phoneNumber, reason?, adminUserId, channelId, channelName, messageText, user:{id,name,phone_number,status,slack_channel_id} }. Trust-mode: pre-validated by WF-10's centralized gate — user exists, is in `payment_submitted` state, phone-in-command matches channel-derived phone.
+- Outputs: Latest pending_verification payment row marked rejected; user status reset to payment_pending; WhatsApp interactive button ("Payment Completed ✓") sent to user with retry instructions; Slack confirmation posted via WF-51 to the user's consult channel.
+- State Transitions: payment_submitted → payment_pending (guaranteed by WF-10 pre-validation)
 - Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack)
 - **Notes:**
   - Slack confirmation posts to the user's consult channel (via WF-51) for parity with WF-33.
   - **Field name alignment (2026-05-23):** Input field renamed `rejectionReason` → `reason` to match the convention used by WF-10's centralized classifier and the BLOCK path (WF-46). Pre-rename, WF-34 silently dropped the admin-typed reason (read `$json.rejectionReason`, undefined → SQL COALESCE fallback to 'Payment not verified'). DB column name `rejection_reason` is unchanged; only the in-flight payload field name was renamed.
   - **WA body intentionally generic (MVP):** the `Prepare Rejection Message` interactive payload does not surface the admin's reason in the customer-facing WhatsApp text. Post-MVP work tracker: once Razorpay payment-verification API is integrated, surface its specific failure reason (e.g., "transaction reference mismatch", "amount differs") to the customer-facing body.
-- **Trust-mode input (SP-03):** Input is pre-validated by WF-10's centralized gate — user exists, is in `payment_submitted` state, and phone-in-command matches channel-derived phone. WF-34 does NOT re-validate; the historical `User Found?` + `User in Correct State?` IFs and their feedback branches are removed because they are guaranteed unreachable. `Load User by Phone` is retained only to fetch the user record needed for the downstream UPDATEs + interactive WhatsApp payload.
+  - **Trust-mode input (SP-03):** Input is pre-validated by WF-10's centralized gate — user exists, is in `payment_submitted` state, and phone-in-command matches channel-derived phone. WF-34 does NOT re-validate; the historical `User Found?` + `User in Correct State?` IFs and their feedback branches are removed because they are guaranteed unreachable.
+  - **Envelope consumer (data-contract Phase 1, sub-14):** `Load User by Phone` is simplified to fetch only `payment_id` (the one field not carried in the WF-10 Command Envelope). All user-field reads (`name`, `phone_number`, `slack_channel_id`) are rewired to `$('When Executed by Another Workflow').first().json.user.*`.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — Triggered by WF-11 with {phoneNumber, reason?, channelId, channelName}.
-Step 2: SELECT u.*, p.id as payment_id FROM chinmay_astro.users u LEFT JOIN chinmay_astro.payments p ON p.user_id=u.id AND p.status='pending_verification' WHERE u.phone_number=phoneNumber ORDER BY p.created_at DESC LIMIT 1. Capture user row + payment_id. Pre-validated upstream — row is guaranteed to exist and be in `payment_submitted` state.
-Step 3: (removed — old `User Found?` IF; pre-validated by WF-10.)
-Step 4: (removed — old `User in Correct State?` IF; pre-validated by WF-10.)
-Step 5: UPDATE chinmay_astro.payments SET status='rejected', rejected_at=NOW(), rejection_reason=COALESCE(reason, 'Payment not verified') WHERE id=payment_id RETURNING *.
-Step 6: UPDATE chinmay_astro.users SET status='payment_pending', updated_at=NOW() WHERE phone_number=phoneNumber.
-Step 7: Build interactive WhatsApp payload:
-  - phoneNumber = user.phone_number
+Step 1: Start — Triggered by WF-11 with WF-10 Command Envelope: {commandType:'REJECT_PAYMENT', phoneNumber, reason?, adminUserId, channelId, channelName, messageText, user:{id,name,phone_number,status,slack_channel_id}}.
+Step 2: SELECT p.id as payment_id FROM chinmay_astro.payments p JOIN chinmay_astro.users u ON p.user_id=u.id WHERE u.phone_number=phoneNumber AND p.status='pending_verification' ORDER BY p.created_at DESC LIMIT 1. Capture payment_id. Pre-validated upstream — user row is guaranteed to exist and be in `payment_submitted` state. User fields (name, phone_number, slack_channel_id) are read from the trigger envelope user object; only payment_id requires a DB fetch.
+Step 3: UPDATE chinmay_astro.payments SET status='rejected', rejected_at=NOW(), rejection_reason=COALESCE(reason, 'Payment not verified') WHERE id=payment_id RETURNING *.
+Step 4: UPDATE chinmay_astro.users SET status='payment_pending', updated_at=NOW() WHERE phone_number=phoneNumber.
+Step 5: Build interactive WhatsApp payload:
+  - phoneNumber = $('When Executed by Another Workflow').first().json.user.phone_number
   - messageType = "interactive"
   - interactivePayload = button type with body "We couldn't verify your payment. Please check the details and try again.\n\nPayment Instructions:\nAmount: ₹500\nPlease send ₹500 via GPay / PhonePe / any UPI app to +91-9653240263 (Chinmay Mujumdar)\n\nAfter payment, tap the button below." and a single reply button {id: "payment_completed", title: "Payment Completed ✓"}.
-Step 8: Call WF-50 with the interactive payload.
-Step 9: Call WF-51 with channelId=user.slack_channel_id, messageText="❌ Payment rejected for <name or 'User'> (+<phone_number>). Reason: <reason or 'Payment not verified'>. User notified to retry payment."
-Step 10: End.
+Step 6: Call WF-50 with the interactive payload.
+Step 7: Build WF-51 payload reading from trigger envelope: channelId=user.slack_channel_id, messageText="❌ Payment rejected for <user.name or 'User'> (+<user.phone_number>). Reason: <reason or 'Payment not verified'>. User notified to retry payment."
+Step 8: Call WF-51 with payload from Step 7.
+Step 9: End.

@@ -2,17 +2,21 @@ WF-44 — Feedback Recorder
 
 ## Summary
 
-- Inputs: phoneNumber, userId, messageText, userStatus
+- Inputs (canonical WF-01 envelope per data-contract-discipline Phase 1 §2.1, forwarded by WF-43): `phoneNumber` (E.164 string, top-level), `messageContent` (string — the user's feedback text), `user.id` (integer), `user.status` (enum). No Load User SELECT — all required fields provided by the WF-01 envelope.
 - Outputs: feedback text saved to users row; WhatsApp acknowledgement sent; OR rerouted to WF-45/WF-47 if intent says so
 - State Transitions: none on the feedback path (clears `stage` to NULL). Rebook/stop paths delegate to other WFs.
 - Calls Sub-Workflows: WF-25 (Intent Classifier), WF-45 (Rebook), WF-47 (Unsubscribe), WF-50 (Send WhatsApp)
+- **Notes:**
+  - §3.4 listed a 'Load User for Relay' node for removal. Live AS-IS (2026-05-22T21:50:58.290Z) shows no such node — it was already absent. No removal action needed.
+  - TD-DRIFT-009: WF-25 caller sends `messageText` instead of `messageContent`. Deferred to post-Phase-1 bug-fix sprint.
+  - Save Feedback to DB already reads user.id from the WF-01 envelope via the trigger node — envelope-aware.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — triggered by WF-43 after the user typed a feedback message (or pressed Leave Feedback then typed).
-Step 2: Call WF-25 (Intent Classifier) with phoneNumber, messageText, userId, userStatus → returns intentResult.
+Step 1: Start — triggered by WF-43 after the user typed a feedback message (or pressed Leave Feedback then typed). Receives WF-01 canonical envelope containing phoneNumber, messageContent, user.{id, status}.
+Step 2: Call WF-25 (Intent Classifier) with phoneNumber, messageContent, userId (user.id), userStatus (user.status) → returns intentResult. (Note: live implementation passes messageText key due to TD-DRIFT-009 — deferred bug.)
 Step 3: Check: intentResult == "rebook_intent"?
   - If YES → go to Step 4
   - If NO  → go to Step 5
@@ -21,7 +25,7 @@ Step 5: Check: intentResult == "stop_intent"?
   - If YES → go to Step 6
   - If NO  → go to Step 7
 Step 6: Call WF-47 (Unsubscribe) with phoneNumber, userId, userStatus. End.
-Step 7: UPDATE chinmay_astro.users SET feedback = <messageText>, stage = NULL, updated_at = NOW() WHERE id = <userId>.
-Step 8: Build acknowledgement: "🙏 Thank you for your feedback! We really appreciate you taking the time to share your experience with Chinmay's consultation service. Your input helps us improve."
-Step 9: Call WF-50 with phoneNumber, message=<ack text>.
+Step 7: UPDATE chinmay_astro.users SET feedback = <messageContent>, stage = NULL, updated_at = NOW() WHERE id = <user.id>.
+Step 8: Build canonical WF-50 acknowledgement payload: { phoneNumber, messageType: 'text', messageContent: "🙏 Thank you for your feedback! We really appreciate you taking the time to share your experience with Chinmay's consultation service. Your input helps us improve." }
+Step 9: Call WF-50 with the canonical payload from Step 8.
 Step 10: End.
