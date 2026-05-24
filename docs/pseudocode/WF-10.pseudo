@@ -42,7 +42,7 @@ Step 5: Check: body.authorizations[0].user_id != body.event.user (i.e., the mess
   - If YES → go to Step 6.
   - If NO (bot's own message) → End (loop prevention).
 Step 6: Extract fields: channelId=body.event.channel, adminUserId=body.event.user, messageText=body.event.text, timestamp=body.event.ts.
-Step 7: Call Slack API channel.get on channelId to retrieve channel name. (Also: side-branch — Build WF-60 Payload (Slack Inbound) → Call WF-60 Message Logger. Fire-and-forget; does not gate downstream routing.)
+Step 7: Call Slack API channel.get on channelId to retrieve channel name. (Also: side-branch — `Build WF-60 Payload (Slack Inbound)` Code node emits canonical WF-60 shape per design.md §2.6: `{ transport: 'slack', direction: 'inbound', messageType: 'slack_text', content: message_text, slackChannelId: channel_id, slackMessageTs: timestamp, userId: null, consultationId: null, whatsappMessageId: null, phoneNumber: null, metadata: { transport, slackChannelId, slackUserId, slackMessageTs, channelName, timestamp } }` → Call WF-60 Message Logger. Fire-and-forget; does not gate downstream routing.)
 Step 8: Merge the channel info (id, name) with the extracted message fields (combine by id == channelId).
 Step 9: Switch on channel name:
   - name == 'chinmay-admin-commands' → go to Step 10 (admin channel branch).
@@ -66,14 +66,14 @@ Step 11: Switch on kind:
   - user_targeted_cmd → go to Step 13 (reject — wrong channel for user-targeted command).
   - free_text → go to Step 14 (graceful prompt).
 Step 12: Build WF-11 input payload (Set node — `Build WF-11 Payload (Admin)`): {messageText, adminUserId, channelId, channelName, commandType, phoneNumber: null, reason: ''}. Then run the canonical Command Envelope build (`Build WF-10 Command Envelope` Code node, per design.md §2.2) — for admin-wide commands no user row exists, so `user` is null in the emitted envelope. Call WF-11 (Command Parser). End. (WF-11 trusts input: admin-wide commands don't need user/state validation. `phoneNumber=null` and `reason=''` are included for shape consistency — WF-11's LIST/STATS/HELP handlers don't consume them.)
-Step 13: Build admin-channel alert (Set node): {
+Step 13: `Build Wrong-Channel Alert (Admin)` (Set node — canonical WF-51 shape per design.md §2.4): {
     channelId: $('Extract Required Fields').item.json.channel_id,
     messageText: "⚠️ `<commandHint>` is a user-targeted command. Please type it inside the user's `consult-<phone>` channel."
-  }. Call WF-51 (Send Slack Message — Wrong Channel). End.
-Step 14: Build help-prompt (Set node): {
+  }. Call WF-51 (`Call WF-51 (Wrong Channel Admin)`). End.
+Step 14: `Build Help Prompt` (Set node — canonical WF-51 shape per design.md §2.4): {
     channelId: $('Extract Required Fields').item.json.channel_id,
     messageText: "🤖 Type `HELP` to see available commands."
-  }. Call WF-51 (Send Slack Message — Help Prompt). End.
+  }. Call WF-51 (`Call WF-51 (Help Prompt)`). End.
   [Post-MVP enhancement: route to Gemini-powered assistant — see followups.md.]
 
 ---
@@ -135,29 +135,29 @@ Step 24: Call WF-41 (Admin → User Relay). End.
 
 (User-channel failure paths — Steps 25-29 — all post enriched feedback into the SAME channel where admin typed, using $('Extract Required Fields').item.json.channel_id.)
 
-Step 25: Build Wrong-Channel Alert (admin-wide cmd in user channel) — Set node: {
+Step 25: `Build Wrong-Channel Alert (User)` (Set node — canonical WF-51 shape per design.md §2.4): {
     channelId: $('Extract Required Fields').item.json.channel_id,
     messageText: "⚠️ `<commandType>` is an admin command. Please type it in the `chinmay-admin-commands` channel."
-  }. Call WF-51. End.
+  }. Call WF-51 (`Call WF-51 (Wrong Channel User)`). End.
 
-Step 26: Build Orphan Channel Alert (no user row for this slack_channel_id) — Set node: {
+Step 26: `Build Orphan Channel Alert` (Set node — canonical WF-51 shape per design.md §2.4): {
     channelId: 'C0A5B0ZE81E',
     messageText: "⚠️ Slack channel `<channelId>` (`<channelName>`) has no matching customer. Admin typed: \"<messageText>\". This channel may have been created without a customer, or the customer was removed. Please check."
-  }. Call WF-51. End. (Posts to chinmay-admin-commands — the orphan consult channel itself is degenerate.)
+  }. Call WF-51 (`Call WF-51 (Orphan Channel Alert)`). End. (Posts to chinmay-admin-commands — the orphan consult channel itself is degenerate.)
 
-Step 27: Build Phone-Absent Alert — Set node: {
+Step 27: `Build Phone-Absent Alert` (Set node — canonical WF-51 shape per design.md §2.4): {
     channelId: $('Extract Required Fields').item.json.channel_id,
     messageText: "⚠️ `<commandType>` needs the user's phone number. Example: `APPROVE PAYMENT 614914...`. No action taken."
-  }. Call WF-51. End.
+  }. Call WF-51 (`Call WF-51 (Phone Absent)`). End.
 
-Step 28: Build Phone-Mismatch Alert — Set node: {
+Step 28: `Build Phone-Mismatch Alert` (Set node — canonical WF-51 shape per design.md §2.4): {
     channelId: $('Extract Required Fields').item.json.channel_id,
     messageText: "⚠️ `<commandType> <typedPhone>` ignored — this channel belongs to `<channelDerivedPhone>`. Please re-check the phone you typed. No action taken."
-  }. Call WF-51. End.
+  }. Call WF-51 (`Call WF-51 (Phone Mismatch)`). End.
 
-Step 29: Build Wrong-State Alert — Set node: {
+Step 29: `Build Wrong-State Alert` (Set node — canonical WF-51 shape per design.md §2.4): {
     channelId: $('Extract Required Fields').item.json.channel_id,
     messageText: "⚠️ `<commandType>` ignored — user is currently in `<user.status>`, expected `<expectedState>`. No action taken."
-  }. Call WF-51. End. (For relay_text: messageText = "⚠️ Message not relayed — user is currently in `<user.status>`, expected `consultation_active`. WhatsApp send skipped.")
+  }. Call WF-51 (`Call WF-51 (Wrong State)`). End. (For relay_text: messageText = "⚠️ Message not relayed — user is currently in `<user.status>`, expected `consultation_active`. WhatsApp send skipped.")
 
 Step 30: Respond 200 fallback for unknown body types. End.

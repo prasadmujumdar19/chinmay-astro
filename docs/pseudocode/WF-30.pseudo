@@ -2,7 +2,7 @@ WF-30 — Payment Pending Intent Filter
 
 ## Summary
 
-- Inputs: phoneNumber, userId, messageText, userStatus (from caller WF-01 routing payment_pending users)
+- Inputs (WF-01 canonical envelope per data-contract-discipline Phase 1 — design.md §2.1): `phoneNumber` (E.164 string), `messageType`, `messageContent`, `user` (object: {id, phone_number, name, status, slack_channel_id, current_consultation_id}), `pendingUser` (null for payment_pending users). Additional fields passed by WF-02: `messageText`, `userId`, `userStatus`.
 - Outputs: Either a contextual WhatsApp payment reminder, or a stop-intent clarifier message.
 - State Transitions: none. Auto-opt-out on Gemini-classified stop_intent removed 2026-05-23 (SP-04); explicit STOP keyword via WF-20 still unsubscribes canonically.
 - Calls Sub-Workflows: WF-25 (Intent Classifier), WF-50 (Send WhatsApp)
@@ -10,12 +10,13 @@ WF-30 — Payment Pending Intent Filter
   - **stop_intent policy (2026-05-23 — SP-04, applying WF-40's TD-E pattern):** Gemini-classified stop_intent no longer auto-routes to WF-47 unsubscribe — false-positive risk (e.g. user typing "I want to stop waiting for confirmation"). Instead WF-30 sends a clarifier asking the user to send STOP exactly. Literal STOP still flows through WF-20 (Design Rule #5).
   - For intents in {garbage, malicious_abusive, inappropriate}, WF-25 already handles the response internally and does NOT return to caller — those messages terminate inside WF-25.
   - **Provably dead-code branch removed 2026-05-23 (SP-04):** the previous `Is Stop Intent?` IF's FALSE branch was unreachable by the WF-25 contract (see WF-23.pseudo Notes for the same analysis).
+  - WF-25 caller field name (TD-DRIFT-009): passes `messageText` but WF-25 reads `messageContent` — explicitly deferred from Phase 1 per §1.5.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — Triggered by parent workflow with {phoneNumber, userId, messageText, userStatus}.
+Step 1: Start — Triggered by parent workflow with WF-01 canonical envelope plus {messageText, userId, userStatus}. Read `phoneNumber` from top-level envelope field (canonical per §2.1).
 Step 2: Call WF-25 with phoneNumber, userId, messageText, userStatus. Receive intentResult.
 Step 3: Check `Is Pass-Through Intent?` — is intentResult NOT one of {garbage, malicious_abusive, inappropriate, stop_intent}?
   - If YES (wants_consultation, general_enquiry, rebook_intent, feedback_intent) → go to Step 4
@@ -25,10 +26,10 @@ Step 4: Build contextual payment reminder message:
   - Else if intentResult == "rebook_intent": prefix "For rebooking, please complete the pending payment first."
   - Else: prefix "Happy to help! Once your payment is confirmed, Chinmay will be ready for your consultation."
   - Append UPI block: ₹500 to +91-9653240263 (Chinmay Mujumdar), then "tap the Payment Completed button you received earlier."
-Step 5: Call WF-50 with phoneNumber and the assembled message (default text type).
+Step 5: Call WF-50 with { phoneNumber, messageType="text", messageContent=assembled message } per §2.3 canonical contract.
 Step 6: End.
-Step 7: Build WF-50 stop-intent clarifier payload:
-  - phoneNumber = <phoneNumber>
+Step 7: Build WF-50 stop-intent clarifier payload per §2.3 canonical contract:
+  - phoneNumber = <phoneNumber> (from top-level envelope)
   - messageType = "text"
   - messageContent = "This is an automated message from Chinmay Astro — we noticed your message mentioned STOP or unsubscribing. If this was unrelated, please ignore. If you do want to opt out of this service, simply send STOP at any time."
 Step 8: Call WF-50 (Stop Clarifier) with the prepared payload. End.

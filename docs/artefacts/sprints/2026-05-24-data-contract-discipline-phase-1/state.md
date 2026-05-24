@@ -5,8 +5,8 @@ input_hash: 40a8377aaf9a1c5d489af560e9074097b39784ebfec988264658d714e9598d66
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/2026-05-24-data-contract-discipline-phase-1/working.md
 planned_at: 2026-05-24T14:15:37Z
-last_updated: 2026-05-25T00:00:00Z
-last_update_reason: "Wave 2 dispatch + plans-saved session. Pre-wave cross-check passed (all 18 IDs verified live). Pseudo-hardening: subagent briefs required pseudo_revisions as non-optional complete-file return (Wave 1 brief had asked for pseudo_diff and got nothing). 8 Sonnet subagents dispatched via background Agent calls — all returned structured plans within 80–215s. NO live n8n mutations this session — all 8 plans persisted verbatim to docs/artefacts/sprints/2026-05-24-data-contract-discipline-phase-1/wave-2-plans/sub-*.md (with README + apply order). Apply phase deferred to fresh session per user direction (avoids mid-apply compaction risk on 8-subagent context). Strict findings captured in plans: WF-30/31 legacy 'message' key; WF-31/40/32/33/42/46 redundant Load-User SELECTs; WF-41 latent runtime bug (reads adminMessage vs canonical messageText from Wave 1 Relay Envelope). User decision: commandType enum full forms (live) canonical — design.md §2.2 shorthand to be updated post-sprint. Next session re-invokes build-sprint with same arg; resumes mid-Wave-2 reading plans from disk. Prior reason: Pre-Wave-2 verification session — caught and fixed pseudo-file gap. Wave 1 subagents updated live n8n + .md projections but did NOT update the handwritten .pseudo design docs (the dispatch brief asked for pseudo_diff but subagents omitted it; parent did not apply pseudo edits). User flagged the ambiguity verbatim before Wave 2 dispatch. Inline main-thread reconciliation applied to all 7 Wave-1 .pseudo files (WF-00, WF-01, WF-10, WF-50, WF-51, WF-52, WF-60) — entry guard steps added (WF-50/51/52/60), envelope-build steps added (WF-01/10), transport:'wa' discriminator added to WF-00 Step 8a. Verification: pre-edit grep confirmed gap, post-edit grep confirmed presence of new artifacts in each pseudo; step numbering monotonic in WF-52/60/50/51; residual sub-letters in WF-00/01/10 pre-date this session (minimal-change reconciliation, full linear renumbering deferred). Plugin-improvement candidates surfaced for Wave 2 dispatch brief — see handoff Session Updates §Lessons. Prior reason: Wave 1 (Batch 2) landed and verified — 7 subagents dispatched in parallel (Sonnet); all returned structured edit plans; main thread applied via mcp__n8n__n8n_update_partial_workflow with re-fetch verification per WF. 3 systemic contract violations caught + fixed (transport:'wa' on WF-00/50/50-drop); WF-01 Silent Reject patched. 3 adjacent findings logged to followups.md. Workflows re-exported, .md projections regenerated."
+last_updated: 2026-05-24T18:05:53Z
+last_update_reason: "Wave 2 apply session. Tunnel re-opened by user; all 18 Wave-2 IDs cross-checked vs live (✓ for all). sub-6b applied: WF-10.pseudo replaced with revised content (no n8n edits — Wave 1 sub-6a already deployed canonical node names). Grep verified Command Envelope (3), Relay Envelope (2), WF-60 Payload Slack Inbound (1), Wrong-Channel Alert Admin (1), Help Prompt (1), 30 linear Steps. See wave_2_apply_progress below for per-sub status. Prior reason: Wave 2 dispatch + plans-saved session. Pre-wave cross-check passed (all 18 IDs verified live). Pseudo-hardening: subagent briefs required pseudo_revisions as non-optional complete-file return (Wave 1 brief had asked for pseudo_diff and got nothing). 8 Sonnet subagents dispatched via background Agent calls — all returned structured plans within 80–215s. NO live n8n mutations this session — all 8 plans persisted verbatim to docs/artefacts/sprints/2026-05-24-data-contract-discipline-phase-1/wave-2-plans/sub-*.md (with README + apply order). Apply phase deferred to fresh session per user direction (avoids mid-apply compaction risk on 8-subagent context). Strict findings captured in plans: WF-30/31 legacy 'message' key; WF-31/40/32/33/42/46 redundant Load-User SELECTs; WF-41 latent runtime bug (reads adminMessage vs canonical messageText from Wave 1 Relay Envelope). User decision: commandType enum full forms (live) canonical — design.md §2.2 shorthand to be updated post-sprint. Next session re-invokes build-sprint with same arg; resumes mid-Wave-2 reading plans from disk. Prior reason: Pre-Wave-2 verification session — caught and fixed pseudo-file gap. Wave 1 subagents updated live n8n + .md projections but did NOT update the handwritten .pseudo design docs (the dispatch brief asked for pseudo_diff but subagents omitted it; parent did not apply pseudo edits). User flagged the ambiguity verbatim before Wave 2 dispatch. Inline main-thread reconciliation applied to all 7 Wave-1 .pseudo files (WF-00, WF-01, WF-10, WF-50, WF-51, WF-52, WF-60) — entry guard steps added (WF-50/51/52/60), envelope-build steps added (WF-01/10), transport:'wa' discriminator added to WF-00 Step 8a. Verification: pre-edit grep confirmed gap, post-edit grep confirmed presence of new artifacts in each pseudo; step numbering monotonic in WF-52/60/50/51; residual sub-letters in WF-00/01/10 pre-date this session (minimal-change reconciliation, full linear renumbering deferred). Plugin-improvement candidates surfaced for Wave 2 dispatch brief — see handoff Session Updates §Lessons. Prior reason: Wave 1 (Batch 2) landed and verified — 7 subagents dispatched in parallel (Sonnet); all returned structured edit plans; main thread applied via mcp__n8n__n8n_update_partial_workflow with re-fetch verification per WF. 3 systemic contract violations caught + fixed (transport:'wa' on WF-00/50/50-drop); WF-01 Silent Reject patched. 3 adjacent findings logged to followups.md. Workflows re-exported, .md projections regenerated."
 planning_complete: true
 
 slug_note: |
@@ -522,6 +522,63 @@ items:
         reason: "Memory captures completed pattern"
     files: ["~/.claude/projects/.../memory/feedback_data_contract_discipline.md", "MEMORY.md"]
     change_type: documentation
+
+# ===== Wave 2 apply progress (per-subagent) =====
+wave_2_apply_progress:
+  - sub_id: sub-6b
+    status: done
+    target_workflows: [WF-10]
+    applied_at: 2026-05-24T18:05:53Z
+    n8n_edits: none
+    pseudo_updated: [WF-10]
+    verify: "grep counts ≥1 for all expected artifacts; 30 linear Steps"
+    items_advanced: [TD-DCP-020 (sub-6b portion), TD-DCP-030 (sub-6b portion)]
+  - sub_id: sub-8
+    status: done
+    target_workflows: [WF-02]
+    applied_at: 2026-05-24T18:14:00Z
+    n8n_edits: "1 node added (Validate Inputs, code v2); trigger rewired through guard"
+    pseudo_updated: [WF-02]
+    verify: "post-PUT re-fetch confirmed node + connections + jsCode contract checks (13 hits)"
+    items_advanced: [TD-DCP-051]
+  - sub_id: sub-9
+    status: done
+    target_workflows: [WF-11]
+    applied_at: 2026-05-24T18:20:00Z
+    n8n_edits: "1 node added (Validate Inputs, code v2, 8 commandType enum FULL forms); trigger rewired"
+    pseudo_updated: [WF-11]
+    pseudo_renumber: "Source plan contained tombstone steps 7/9/17/20; renumbered linearly to 17 steps with Switch gotos updated per [[feedback_pseudo_linear_numbering]]"
+    verify: "post-PUT re-fetch: trigger→Validate Inputs→Switch; 12 'WF-11 contract' hits in jsCode"
+    items_advanced: [TD-DCP-061]
+  - sub_id: sub-10
+    status: done
+    target_workflows: [WF-22]
+    applied_at: 2026-05-24T18:30:00Z
+    n8n_edits: "1 Set node added (Prepare WF-52 Payload, v3.4 — typeVersion-floor matched to live WF-10 Set nodes, plan said v3); rewired Create User Record → Prepare → Ensure Slack Channel Exists"
+    pseudo_updated: [WF-22]
+    verify: "post-PUT re-fetch: v3.4 Set, 3 assignments (phoneNumber/name/userId), connection chain correct"
+    items_advanced: [TD-DCP-010 (sub-10 portion — fully completes TD-DCP-010 since sub-1 Wave 1 done), TD-DCP-052 (sub-10 portion)]
+  - sub_id: sub-11
+    status: done
+    target_workflows: [WF-21, WF-23, WF-30, WF-31]
+    applied_at: 2026-05-24T18:50:00Z
+    n8n_edits: "WF-21/23 pseudo-only (no n8n changes). WF-30: 2 mods (Prepare Payment Reminder jsCode message→messageContent + messageType, Send Payment Reminder mapping). WF-31: 2 mods (Prepare Under Review Message jsCode, Prepare Admin Relay reads user.slack_channel_id from envelope) + 1 removal (Load User for Relay) + trigger fan-out rewired direct to Prepare Admin Relay."
+    pseudo_updated: [WF-21, WF-23, WF-30, WF-31]
+    verify: "All 4 post-PUT re-fetches passed: messageContent in jsCode + mapping, Load User for Relay absent, fan-out direct to Prepare Admin Relay, user?.slack_channel_id in Prepare Admin Relay jsCode"
+    items_advanced: [TD-DCP-052 (sub-11 portion), TD-DCP-040 (sub-11 portion), TD-DCP-030 (sub-11 portion)]
+    strict_findings_resolved: ["WF-30 legacy 'message' key", "WF-31 legacy 'message' key", "WF-31 'Load User for Relay' redundant SELECT"]
+  - sub_id: sub-12
+    status: pending
+    target_workflows: [WF-20, WF-40, WF-43, WF-44]
+    items: [TD-DCP-052, TD-DCP-040, TD-DCP-030]
+  - sub_id: sub-13
+    status: pending
+    target_workflows: [WF-32, WF-33, WF-42, WF-46]
+    items: [TD-DCP-052, TD-DCP-062]
+  - sub_id: sub-14
+    status: pending
+    target_workflows: [WF-41, WF-34]
+    items: [TD-DCP-062, TD-DCP-040]
 
 # ===== Aggregate counts =====
 counts:

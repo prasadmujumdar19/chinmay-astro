@@ -2,7 +2,7 @@ WF-21 — New User Welcome + Form
 
 ## Summary
 
-- Inputs: phoneNumber, phoneNumberFormatted, contactName, id (user id if known, usually null), messageId, messageContent, wasOptedOut (boolean, optional — true when called by WF-01 for opted_out re-engagement). Called by WF-02 for first-time users OR by WF-01 directly for opted_out re-engagement.
+- Inputs (WF-01 canonical envelope per data-contract-discipline Phase 1 — design.md §2.1): `phoneNumber` (E.164 string), `messageType`, `messageContent`, `user` (object: {id, phone_number, name, status, slack_channel_id, current_consultation_id} or null for new users), `pendingUser` ({id, contact_name} or null). Additional fields passed by WF-01/WF-02: `contactName`, `messageId`, `wasOptedOut` (boolean, optional — true when called by WF-01 for opted_out re-engagement).
 - Outputs: One outbound WhatsApp interactive message containing welcome text + privacy policy URL + WhatsApp Flow form CTA. A row in `pending_users` keyed by phone_number.
 - State Transitions: none in `users` table (no `users` row yet — first `users` write happens in WF-22 on form submission). Writes to `pending_users` only. Opted_out users: status STAYS `opted_out` until they submit the form (WF-22 overwrites to `payment_pending`).
 - Calls Sub-Workflows: WF-50 (Send WhatsApp)
@@ -11,11 +11,11 @@ WF-21 — New User Welcome + Form
 
 ## Algorithm
 
-Step 1: Start — workflow triggered by WF-02 (new user) or WF-01 (opted_out re-engagement) with phoneNumber, contactName, messageId, messageContent, wasOptedOut (optional boolean).
+Step 1: Start — workflow triggered by WF-02 (new user) or WF-01 (opted_out re-engagement) with WF-01 canonical envelope plus `contactName`, `messageId`, `wasOptedOut`. Read `phoneNumber` from top-level envelope field (canonical; do NOT use `user.phone_number` for phone-only purposes per §2.1). Read `contactName` from top-level envelope field.
 Step 2: INSERT INTO chinmay_astro.pending_users (phone_number, contact_name, created_at) VALUES (phoneNumber, contactName, NOW()) ON CONFLICT (phone_number) DO UPDATE SET contact_name = EXCLUDED.contact_name, created_at = NOW() RETURNING phone_number. This is intentionally NOT a `users` write — design rule: first `users` row is created in WF-22 after form submission.
 Step 3: Build the welcome message:
   - If wasOptedOut == true: prepend "👋 Welcome back to Chinmay Astro! We're glad you're back. " to the greeting.
   - Plain text body: (welcome-back prefix if applicable) + greeting, intro from Chinmay, privacy policy URL (https://chinmaymujumdar.com/privacy-policy), how-it-works bullets (form → ₹500 → consultation), and prompt to fill the form.
   - Interactive payload: type="flow", header="Birth Details Form", body=welcome text, flowId="1408011897720771", flowCta="Fill Details".
-Step 4: Call WF-50 with phoneNumber, messageType="interactive", messageContent=welcome text, interactivePayload=the flow object.
+Step 4: Call WF-50 with { phoneNumber, messageType="interactive", messageContent=welcome text, interactivePayload=the flow object } per §2.3 canonical contract.
 Step 5: End.
