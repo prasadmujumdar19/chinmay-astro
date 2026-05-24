@@ -1,0 +1,180 @@
+<!doctype html><meta charset='utf-8'>
+<title>Drift Check — 2026-05-24</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;margin:2rem auto;max-width:1100px;color:#1f2937;line-height:1.5;padding:0 1rem}
+.header{background:#16a34a;color:white;padding:1.25rem 1.5rem;border-radius:8px;margin-bottom:1.5rem}
+.header h1{margin:0 0 .5rem}
+.header p{margin:0}
+h2{color:#111827;border-bottom:1px solid #e5e7eb;padding-bottom:.3rem}
+table{width:100%;border-collapse:collapse;margin:1rem 0}
+td,th{padding:.55rem .8rem;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:top}
+th{background:#f9fafb;font-weight:600}
+.finding{background:#f9fafb;padding:1rem 1.25rem;border-radius:6px;border-left:3px solid #6b7280}
+section{margin-top:1.5rem}
+a{color:#2563eb;text-decoration:none}
+a:hover{text-decoration:underline}
+code{background:#f3f4f6;padding:1px 5px;border-radius:3px;font-size:.92em}
+ul{margin:.4rem 0}
+.systemic{background:#fef3c7;padding:1rem 1.25rem;border-radius:6px;border-left:3px solid #d97706}
+</style>
+<div class='header'>
+  <h1>Pseudo-vs-MD Drift Check — 2026-05-24</h1>
+  <p>Overall: <strong>CLEAN</strong> · 0 pairs checked · 🔴 0 drift · ⚠️ 0 minor · ✅ 0 clean · dispatched via 27 parallel Sonnet subagents</p>
+</div>
+
+<h2>Roll-up</h2>
+<div class='finding'><ul>
+<li><strong>Pairs checked:</strong> 27</li>
+<li><strong>Status counts:</strong> ✅ 1 clean · 🔴 26 drift · ⚠️ 0 minor</li>
+<li><strong>Overall status:</strong> 🔴 DRIFT</li>
+<li><strong>Dispatch mode:</strong> 27 parallel Sonnet subagents (background), strict-JSON output, parent-aggregated</li>
+</ul></div>
+
+<h2>Systemic patterns</h2>
+<div class='systemic'>1. <strong>D9 universal gap (25 of 26 drift cases).</strong> Almost no <code>.pseudo</code> has a structured Inputs block with required/optional, types, and validity rules. Most have a prose summary or inline &quot;Inputs: a, b, c, etc.&quot; Only WF-21 and (arguably) WF-47, WF-51 are close to compliant.<br>
+2. <strong>D8 input contract validity (16 of 26 drift cases).</strong> Declared inputs not referenced by early nodes (dead declarations), or early nodes consume fields not in the Inputs block (undocumented inputs). Frequently both in the same workflow.<br>
+3. <strong><code>messageText</code> vs <code>messageContent</code> field-naming inconsistency</strong> appears across WF-23, WF-25, WF-31, WF-43, WF-44 — a project-wide canonical-name issue worth one cross-cutting fix.<br>
+4. <strong><code>channelId</code> vs <code>channelName</code> / channel-source ambiguity</strong> in WF-11, WF-34, WF-42, WF-46 — admin commands&#x27; channel destination drift.<br>
+5. <strong><code>alwaysOutputData=true</code> missing</strong> on Postgres nodes that need to handle zero-row results: WF-10 (Load User Status), WF-47 (Update User Status to opted_out).<br>
+6. <strong>Two real functional bugs surfaced</strong>, not just spec drift:<br>
+   - WF-00: <code>nfm_reply</code> (WhatsApp Flow form submissions) falls through to default branch — produces <code>[NFM_REPLY]</code> placeholder instead of cleartext form payload.<br>
+   - WF-33: payment row written with <code>status=&#x27;verified&#x27;</code> while spec + downstream readers expect <code>&#x27;approved&#x27;</code>.<br>
+7. <strong>Spec-only issues for sub-workflow call contracts</strong> (D4 passthrough vs explicit mapping) in WF-11, WF-31, WF-46 — caller sub-workflow inputs aren&#x27;t validated at the trigger boundary.<br></div>
+
+<h2>Per-workflow summary</h2>
+<table><thead><tr><th>WF</th><th>Status</th><th>Findings</th><th>Notes</th></tr></thead>
+<tbody></tbody></table>
+
+<h2>Per-workflow findings</h2>
+<section id='WF-00'><h2>WF-00</h2><div class='finding'><ul>
+<li><strong>D3 (Decision fork)</strong> — <code>.pseudo</code> Step 2 specifies that for <code>messageType=&#x27;nfm_reply&#x27;</code> (WhatsApp Flow form submission), <code>messageContent</code> should be set to <code>nfm_reply.response_json</code> (cleartext payload). The Parse WhatsApp Message node in <code>.md</code> has no case for <code>nfm_reply</code> in its switch — falls into default branch which sets <code>messageContent=&#x27;[NFM_REPLY]&#x27;</code>. <strong>Severity: 🔴 drift.</strong> Real bug: WF-60 logs useless placeholder; WF-01 receives no usable content for form-submission messages.</li>
+</ul></div></section>
+<section id='WF-01'><h2>WF-01</h2><div class='finding'><ul>
+<li><strong>D7 (Output contract)</strong> — <code>.pseudo</code> Step 12 declares <code>slackChannelId</code> and <code>stage</code> as camelCase fields in the <code>user</code> output object; <code>Load User</code> SQL fetches them but <code>Prepare User Data</code> Code node never writes them into <code>userData</code> — WF-02 never receives them. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D8 (Inputs validity)</strong> — Fields <code>messageContentUpper</code>, <code>messageId</code>, <code>timestamp</code>, <code>metadata</code> consumed by <code>User-Load Gate</code> and <code>Prepare User Data</code> but absent from <code>.pseudo</code> Inputs (hidden behind &#x27;etc.&#x27;). <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9 (Inputs shape)</strong> — Inputs section lists 6 fields followed by &#x27;etc.&#x27;, no required/optional, no types, no validity. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-02'><h2>WF-02</h2><div class='finding'><ul>
+<li><strong>D8</strong> — <code>.pseudo</code> never declares <code>phoneNumber</code> as input; <code>Build UNHANDLED Alert</code> reads <code>$input.first().json.phoneNumber</code>. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9</strong> — Summary uses vague prose, no formal Inputs block. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D6 (Error paths)</strong> — Neither artefact documents error paths; phrasing-only gap. <strong>Severity: ⚠️ minor.</strong></li>
+</ul></div></section>
+<section id='WF-10'><h2>WF-10</h2><div class='finding'><ul>
+<li><strong>D6 (Error paths)</strong> — <code>.pseudo</code> Step 17 specifies <code>alwaysOutputData=true</code> on Load User Status; live node lacks it. Without it, zero-row result drops items and User Row Exists? IF never fires — orphan-channel alert silently lost. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D7</strong> — Steps 27/29 alert templates use <code>&lt;commandType&gt;</code> in <code>.pseudo</code>; live nodes reference <code>commandHint</code>. Both carry same value but rename undocumented. <strong>Severity: ⚠️ minor.</strong></li>
+<li><strong>D1</strong> — Phone Match? described as IF in <code>.pseudo</code> Step 19; live uses Switch v3.3 with three named outputs. Same logic, different node type. <strong>Severity: ⚠️ minor.</strong></li>
+</ul></div></section>
+<section id='WF-11'><h2>WF-11</h2><div class='finding'><ul>
+<li><strong>D4 (Sub-workflow calls)</strong> — LIST/STATS/HELP send nodes (Send List/Stats/Help To Admin → WF-51) pass <code>channelId</code> from trigger to WF-51, not <code>channelName</code> as <code>.pseudo</code> Steps 11/13/15 specify. Format List/Stats embed <code>channelName</code> but send nodes pull <code>channelId</code> directly. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D8</strong> — Declared inputs <code>adminUserId</code> and <code>reason</code> never referenced by name in any <code>.md</code> node — travel implicitly via passthrough. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9</strong> — Single informal Inputs line, no types/optional/validity. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-20'><h2>WF-20</h2><div class='finding'><ul>
+<li><strong>D8</strong> — <code>userStatus</code> declared as carried input in <code>.pseudo</code> Step 1 but <code>Normalize Keyword</code> (the Set node right after trigger) does not assign <code>userStatus</code> in its output. <code>Call WF-47 Unsubscribe</code> uses <code>$json.userStatus</code> which after Match Keyword resolves against Normalize Keyword output → undefined. <strong>Severity: 🔴 drift.</strong> Real consequence: WF-47 receives <code>userStatus=undefined</code> on the STOP path.</li>
+<li><strong>D9</strong> — Inline summary sentence only. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-21'><h2>WF-21</h2><div class='finding'><ul>
+<li><strong>(none)</strong> — only fully clean workflow. Inputs block explicit, all fields consumed by early nodes, all decision forks match, DB upsert matches.</li>
+</ul></div></section>
+<section id='WF-22'><h2>WF-22</h2><div class='finding'><ul>
+<li><strong>D3</strong> — <code>.pseudo</code> Step 4 describes new-user vs existing-user branch; <code>.md</code> has no IF node on <code>inserted</code> flag (single edge directly to WF-52). Functionally equivalent (WF-52 idempotent) but phantom branch in spec. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D5</strong> — <code>.pseudo</code> Step 6 says <code>updated_at = NOW()</code>; live uses <code>$now</code> n8n expression. Functionally equivalent, representational gap. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D8</strong> — <code>rawMessage</code> sub-structure dependency (<code>rawMessage.interactive.nfm_reply.response_json</code>) consumed but never declared as structural requirement. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9</strong> — No structured Inputs block. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-23'><h2>WF-23</h2><div class='finding'><ul>
+<li><strong>D4</strong> — <code>Call WF-25 Intent Classifier</code> maps <code>messageText</code> directly, but WF-25 reads <code>messageContent</code> (latent bug flagged in <code>.pseudo</code> Notes but unresolved in live). <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D8</strong> — Stop-intent branch&#x27;s <code>Build WF-50 Stop Clarifier Payload</code> reads only <code>phoneNumber</code> from trigger; <code>userId</code>/<code>userStatus</code> declared but not consumed on that branch. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9</strong> — Prose summary only. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-25'><h2>WF-25</h2><div class='finding'><ul>
+<li><strong>D3 (×2)</strong> — Context-aware Gemini fallback (<code>userStatus=&#x27;consultation_closed&#x27;</code> → <code>intentResult=&#x27;feedback_intent&#x27;</code>, else <code>&#x27;general_enquiry&#x27;</code>) in both <code>Parse Intent</code> and <code>Handle Gemini Error</code> is entirely absent from <code>.pseudo</code>. <strong>Severity: 🔴 drift.</strong> Also <code>messageText</code> vs <code>messageContent</code> field-name mismatch noted as latent bug in <code>.pseudo</code> but not modelled as a branch. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D5</strong> — Intermediate <code>Prepare WF-51 Payload (Garbage Admin)</code> node and its re-reference to trigger node absent from <code>.pseudo</code>. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D7</strong> — <code>geminiError: true</code> field in error-path output not documented. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9</strong> — Inline Inputs in Summary paragraph. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D2</strong> — <code>.md</code> trigger has empty schema while <code>.pseudo</code> implies typed contract. <strong>Severity: ⚠️ minor.</strong></li>
+</ul></div></section>
+<section id='WF-30'><h2>WF-30</h2><div class='finding'><ul>
+<li><strong>D5</strong> — <code>Send Payment Reminder via WF-50</code> does not pass <code>messageType</code> to WF-50 (Prepare Payment Reminder only outputs <code>phoneNumber + message</code>); <code>.pseudo</code> Step 5 says &#x27;default text type&#x27;. Stop-clarifier path correctly passes <code>messageType=&#x27;text&#x27;</code>. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-31'><h2>WF-31</h2><div class='finding'><ul>
+<li><strong>D9</strong> — Inline summary, no structured block. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D8 (×2)</strong> — <code>userId</code>/<code>userStatus</code>/<code>messageText</code> declared as required but no early node explicitly references them — passthrough only. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D4</strong> — <code>.pseudo</code> Step 3 specifies WF-25 called with explicit args; live uses <code>mappingMode=passthrough</code> with empty schema — forwarding contract unverifiable. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-32'><h2>WF-32</h2><div class='finding'><ul>
+<li><strong>D8</strong> — <code>.pseudo</code> declares <code>phoneNumber</code> as top-level input but live never references <code>$json.phoneNumber</code> — derives phone from <code>user.phone_number</code> internally. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9</strong> — One-line summary only. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-33'><h2>WF-33</h2><div class='finding'><ul>
+<li><strong>D5</strong> — <code>Update Payment Status</code> sets <code>status=&#x27;verified&#x27;</code>; <code>.pseudo</code> Step 5 specifies <code>status=&#x27;approved&#x27;</code>. <strong>Severity: 🔴 drift.</strong> Real semantic divergence; downstream readers checking either value will be inconsistent.</li>
+<li><strong>D7</strong> — Live WF-51 Slack message significantly shorter than <code>.pseudo</code> Step 11: missing DOB, TOB, Place, and CLOSE CHAT CONSULT reminder. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D8</strong> — Declared input <code>channelId</code> consumed under alias <code>adminUserId</code> with no formal mapping. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9</strong> — Prose-only declaration. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-34'><h2>WF-34</h2><div class='finding'><ul>
+<li><strong>D8</strong> — <code>channelName</code> declared but never referenced in <code>.md</code>. <code>channelId</code> declared but live derives from DB (<code>user.slack_channel_id</code>), ignoring trigger value. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9</strong> — No structured Inputs block. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D3</strong> — Pseudo step-numbering retains tombstones for removed Steps 3/4 (User Found?, Correct State?); minor sequencing mismatch with linear live flow. <strong>Severity: ⚠️ (but counted) — recorded as drift per skill 3-finding rule.</strong></li>
+</ul></div></section>
+<section id='WF-40'><h2>WF-40</h2><div class='finding'><ul>
+<li><strong>D3/D4</strong> — <code>.pseudo</code> Step 4 describes a conditional fork where the Slack relay (Step 6) fires only after intent resolution; live wires <code>Format Slack Message</code> directly off <code>Call WF-25</code> output (unconditional, parallel with <code>Stop Intent?</code> branch). For <code>stop_intent</code>, the relay fires regardless of branch evaluation. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9</strong> — Vague prose only. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-41'><h2>WF-41</h2><div class='finding'><ul>
+<li><strong>D9</strong> — Inline summary line (&#x27;Inputs: { phoneNumber, adminMessage } from WF-10&#x27;), no types/required/validity. Otherwise clean. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-42'><h2>WF-42</h2><div class='finding'><ul>
+<li><strong>D4</strong> — WF-51 called via <code>Notify Admin in Slack</code> node but <code>.pseudo</code> &#x27;Calls Sub-Workflows&#x27; lists only WF-50 — undeclared sub-workflow call. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D5</strong> — <code>.pseudo</code> Step 9 specifies posting to <code>channelId</code> from input (admin&#x27;s command channel); live posts to <code>user.slack_channel_id</code> (consult channel). Side-effect destination differs. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D7</strong> — Output contract Slack destination ambiguous and mismatched. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D8</strong> — <code>channelId</code>/<code>channelName</code> declared but neither consumed from <code>$json</code> — <code>channelId</code> replaced by DB value. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9</strong> — Inline summary. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-43'><h2>WF-43</h2><div class='finding'><ul>
+<li><strong>D8</strong> — Declared <code>messageText</code> consumed as <code>messageContent</code> by <code>Prepare Gemini Response Prompt</code> (<code>$input.first().json.messageContent</code>). Field-name alias unresolved. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D5</strong> — WF-50 call sites internally inconsistent: <code>Prompt for Feedback</code> uses field key <code>messageContent</code>; <code>.pseudo</code> Step 13 documents <code>message</code>. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9</strong> — Flat comma-separated Inputs sentence. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-44'><h2>WF-44</h2><div class='finding'><ul>
+<li><strong>D8 (×2)</strong> — <code>Save Feedback to DB</code> uses <code>$(&#x27;When Executed by Another Workflow&#x27;).first().json.messageContent</code> (not <code>messageText</code>) and <code>.user.id</code> (not flat <code>userId</code>). Declared input names do not match consumed expressions. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D5</strong> — DB write uses <code>messageContent</code> not <code>messageText</code> as declared in Step 7. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D4</strong> — WF-45 call reads from trigger (<code>$(&#x27;When Executed by Another Workflow&#x27;).item.json.…</code>) while WF-47 call reads from <code>$json.…</code> (prior node output) — asymmetric, undocumented. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D1</strong> — <code>Prepare Ack Message</code> pulls <code>phoneNumber</code> from trigger directly, not from <code>$json</code> flowing out of DB write — silent data-flow divergence from Step 8 implication. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9</strong> — Vague inline list. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-45'><h2>WF-45</h2><div class='finding'><ul>
+<li><strong>D1</strong> — Live <code>Prepare WF-50 Payload</code> message body materially different: &#x27;Welcome back ${name}! Your previous consultation is complete. To rebook…&#x27; vs <code>.pseudo</code> Step 4 &#x27;Welcome back, &lt;user.name&gt;! 🙏\n\nYour birth details are already on file…&#x27;. Different greeting tone, different copy. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D5</strong> — <code>Set status=payment_pending</code> UPDATE uses <code>$(&#x27;When Executed by Another Workflow&#x27;).item.json.phoneNumber</code> directly, bypassing the SELECT result from Step 2. Latent inconsistency risk. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D8</strong> — Declared optional inputs <code>name</code> and <code>userId</code> not consumed anywhere; <code>userId</code> absent entirely from <code>.md</code>. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D7</strong> — No explicit output contract defined for sub-workflow return shape. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9</strong> — Vague Inputs sentence. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-46'><h2>WF-46</h2><div class='finding'><ul>
+<li><strong>D9</strong> — Live trigger uses <code>inputSource=passthrough</code> with empty schema — no equivalent declaration of the <code>.pseudo</code>&#x27;s typed Inputs contract (phoneNumber required, reason required, channelId optional). <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D8</strong> — <code>channelId</code> and <code>reason</code> not validated at trigger boundary (passthrough, no schema). <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D4</strong> — <code>Call WF-51 Notify Admin</code> uses <code>mappingMode=passthrough</code> with <code>convertFieldsToString=true</code>; <code>.pseudo</code> implies explicit payload hand-off. Minor representational gap on coercion semantics. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D6</strong> — Shared zero-row error-path gap (not pseudo-vs-md divergence). <strong>Severity: ⚠️ minor.</strong></li>
+</ul></div></section>
+<section id='WF-47'><h2>WF-47</h2><div class='finding'><ul>
+<li><strong>D5</strong> — <code>Update User Status to opted_out</code> Postgres node lacks <code>alwaysOutputData=true</code> (only <code>queryBatching=independently</code> is set). <code>.pseudo</code> Step 2 explicitly requires it for the pre-onboarding STOP edge case — without it, zero-row UPDATE emits no items and downstream nodes reading from the trigger fail. <strong>Severity: 🔴 drift.</strong> Real reliability bug for pre-onboarding STOP.</li>
+</ul></div></section>
+<section id='WF-50'><h2>WF-50</h2><div class='finding'><ul>
+<li><strong>D9</strong> — <code>.pseudo</code> Summary&#x27;s logging-context fields (<code>userId</code>, <code>inboundMessageId</code>, <code>userMessage</code>) listed as trailing &#x27;Also:&#x27; aside with no required/optional designation. Other inputs reasonably explicit. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D6</strong> — Process Result adds null-array guard not described in pseudo (strictly safer; phrasing-only). <strong>Severity: ⚠️ minor.</strong></li>
+</ul></div></section>
+<section id='WF-51'><h2>WF-51</h2><div class='finding'><ul>
+<li><strong>D3</strong> — <code>.md</code> topology has no error-branch node for Slack API failure; <code>.pseudo</code> acknowledges this gap (TD-NEW-028) but live node set has no placeholder error path. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D2</strong> — Trigger uses passthrough; <code>.pseudo</code> implies structured destructuring at entry. <strong>Severity: ⚠️ minor.</strong></li>
+</ul></div></section>
+<section id='WF-52'><h2>WF-52</h2><div class='finding'><ul>
+<li><strong>D1</strong> — Live <code>Invite Admin to Channel</code> invites two user IDs (<code>U0B4BBML6CS</code> and <code>U0A4175DJ5D</code>); <code>.pseudo</code> Step 4 documents only one (<code>U0AGTECS1KR</code>). Neither live ID matches the spec. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D3</strong> — <code>.pseudo</code> Step 5 uses <code>$env.SLACK_TEAM_ID</code> for channelUrl; live derives <code>teamId</code> from <code>channelData.context_team_id</code> at runtime. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D9</strong> — Vague Inputs line, no types/validity. <strong>Severity: 🔴 drift.</strong></li>
+</ul></div></section>
+<section id='WF-60'><h2>WF-60</h2><div class='finding'><ul>
+<li><strong>D9</strong> — Discriminated-union variants (WhatsApp-log: <code>transport=&#x27;wa&#x27;</code> requires <code>phoneNumber</code>/<code>whatsappMessageId</code>; Slack-log: <code>transport=&#x27;slack&#x27;</code> requires <code>slackChannelId</code>/<code>slackMessageTs</code>) not declared as distinct variants. All fields presented in one undifferentiated list. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D8</strong> — <code>inboundMessageId</code> and <code>sentAt</code> consumed by <code>Extract Message Data</code> but entirely absent from <code>.pseudo</code> Inputs. Top-level vs nested status of <code>rawMessage</code>/<code>timestamp</code>/<code>contactName</code>/<code>success</code>/<code>error</code> ambiguous. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D7</strong> — <code>Skip Log (no userId)</code> node emits <code>reason=&#x27;pre_onboarding_user&#x27;</code> for inbound pre-onboarding; <code>.pseudo</code> documents <code>&#x27;no userId — …&#x27;</code>. String contract diverges. <strong>Severity: 🔴 drift.</strong></li>
+<li><strong>D6</strong> — <code>.pseudo</code> asserts <code>onError: continueRegularOutput</code> but <code>.md</code> does not surface the setting (may live at wrapper level). <strong>Severity: ⚠️ minor.</strong></li>
+</ul></div></section>
