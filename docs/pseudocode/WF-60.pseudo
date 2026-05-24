@@ -2,28 +2,52 @@ WF-60 — Message Logger
 
 ## Summary
 
-- Inputs: canonical multi-transport payload assembled by the caller's Build WF-60 Payload Code node:
-  - transport ('wa' default | 'slack')
-  - direction ('inbound' | 'outbound')
-  - messageType (defaults: 'text' on WA, 'slack_text' on Slack)
-  - content (also accepts aliases: messageContent, userMessage)
-  - userId (or user.id) — may be NULL for inbound pre-onboarding traffic, otherwise resolved via lookup
-  - consultationId (or user.current_consultation_id)
-  - whatsappMessageId (or messageId)
-  - slackMessageTs (or slack_message_ts, or metadata.slackMessageTs)
-  - phoneNumber (or phoneNumberFormatted, or metadata.phoneNumber)
-  - slackChannelId (or slack_channel_id, or metadata.slackChannelId)
-  - rawMessage, timestamp, contactName, success, error (folded into metadata)
+- Inputs: canonical multi-transport payload assembled by the caller's `Build WF-60 Payload` Code node. See structured Inputs block below for the discriminated-union variants (`transport='wa'` vs `transport='slack'`), common required fields, identity resolution, and metadata-passthrough partition.
 - Outputs: One of:
-  - `{ logged:true, logId:<inserted id> }` — row inserted into chinmay_astro.messages (9-column INSERT: user_id, consultation_id, direction, message_type, content, whatsapp_message_id, slack_message_ts, metadata::jsonb, created_at=NOW()).
+  - `{ logged:true, logId:<inserted id> }` — row inserted into `chinmay_astro.messages` (9-column INSERT: `user_id, consultation_id, direction, message_type, content, whatsapp_message_id, slack_message_ts, metadata::jsonb, created_at=NOW()`).
   - `{ logged:false, reason:'whitespace_only_filtered' }` — TD-034 guard tripped.
-  - `{ logged:false, reason:'no userId — ...' }` — userId could not be resolved for an inbound pre-onboarding message (acceptable MVP gap; audit trail begins at WF-22 INSERT).
-  - `{ logged:false, reason:'no userId for outbound' }` — outbound caller did not provide identification.
+  - `{ logged:false, reason:'pre_onboarding_user' }` — inbound message with no resolvable `userId` (pre-onboarding `pendingUsers` traffic; FK NOT NULL on `messages.user_id` means the row cannot be inserted yet — audit trail begins at WF-22 INSERT).
+  - `{ logged:false, reason:'no userId — caller did not provide user identification' }` — outbound caller did not provide identification.
 - State Transitions: none
 - Calls Sub-Workflows: none
+
+## Inputs
+
+**Discriminator + common required fields (all variants):**
+- `transport` — enum string, optional (default `'wa'`). One of `'wa'` / `'slack'`. **Discriminator** — selects which transport-variant required fields apply and the lookup-column preference (slack → `slack_channel_id`, else `phone_number`).
+- `direction` — enum string, optional (default `'inbound'`). One of `'inbound'` / `'outbound'`.
+- `messageType` — enum string, optional. Defaults: `'text'` on `transport='wa'`, `'slack_text'` on `transport='slack'`.
+- `content` — string | null, optional. Aliases (resolved in `Extract Message Data`): `messageContent`, `userMessage`. **Whitespace-only inbound text** (after `String(content).trim()`) trips the TD-034 guard → `Filter Skip?` routes to Step 7a.
+
+**Variant — `transport='wa'`:**
+- `phoneNumber` — E.164 string, required when `userId` is absent (drives the `phone_number` user-lookup branch). Aliases: `phoneNumberFormatted`, `metadata.phoneNumber`.
+- `whatsappMessageId` — string, optional. Alias: `messageId`. Populates the `whatsapp_message_id` INSERT column.
+
+**Variant — `transport='slack'`:**
+- `slackChannelId` — string, required when `userId` is absent (drives the `slack_channel_id` user-lookup branch). Aliases: `slack_channel_id`, `metadata.slackChannelId`.
+- `slackMessageTs` — string, required on outbound (`direction='outbound'`); typically present on inbound from WF-10 too. Aliases: `slack_message_ts`, `metadata.slackMessageTs`. Populates the `slack_message_ts` INSERT column.
+
+**Identity (resolved upstream OR via WF-60's Step 4a lookup):**
+- `userId` — integer | null, optional. Alias: `user.id`. NULL acceptable for inbound pre-onboarding traffic (routed to `pre_onboarding_user` skip path); required for outbound to land an INSERT.
+- `consultationId` — integer | null, optional. Alias: `user.current_consultation_id`. Populates the `consultation_id` INSERT column (NULL allowed by schema).
+
+**Metadata passthrough (folded into the `metadata` JSONB column; not consumed for the INSERT row outside of `metadata` and not used for routing decisions):**
+- `rawMessage` — any, optional. The original message payload as received from the upstream source (audit trail).
+- `timestamp` — ISO 8601 string, optional. Defaults to `new Date().toISOString()` if absent.
+- `contactName` — string, optional. WhatsApp `contacts[0].profile.name` value when present.
+- `success` — boolean, optional. Outbound send-result flag from the API response.
+- `error` — string, optional. Outbound send-error message from the API response.
+- `inboundMessageId` — integer, optional. The user-side `messages.id` that triggered this outbound (e.g. relay or reply paths). Used as audit-trail back-reference inside `metadata`.
+- `sentAt` — ISO 8601 string, optional. The outbound send timestamp recorded by the caller (distinct from `created_at` which is `NOW()` at INSERT time).
+
+**Partition rationale (per TD-DRIFT-029 (WF-50) discriminated-union template extended to logging-leaf):** WF-60 has three consumption axes — (1) the discriminator + common-required axis (`transport`/`direction`/`messageType`/`content`); (2) the transport-variant axis (per-transport identity keys used for the user lookup AND the transport-specific INSERT columns); (3) the metadata-passthrough axis (folded into `metadata` JSONB; never consumed for routing or for top-level INSERT columns). Declaring these as separate partitions makes the consumed-vs-forwarded distinction explicit and matches the canonical input contract documented in TD-002 (2026-05-19 multi-transport rebuild) + TD-003 F1 (2026-05-20 Slack-transport extension).
+
+## Notes
+
 - **Filters (inbound only, BEFORE the INSERT):**
-  - TD-034 whitespace guard: if direction='inbound' AND messageType in {'text','slack_text'} AND content trims to empty → skip insert, return `{ logged:false, reason:'whitespace_only_filtered' }`.
+  - TD-034 whitespace guard: if `direction='inbound'` AND `messageType in {'text','slack_text'}` AND `content` trims to empty → skip insert, return `{ logged:false, reason:'whitespace_only_filtered' }`.
 - **TD-030 placement note:** the bot-echo guard intentionally lives at WF-00 (WhatsApp webhook entry — WhatsApp-only check). For Slack inbound traffic the same role is played by WF-10's `Human Vs Bot Message?` IF guard at the Slack admin handler. WF-60 does NOT duplicate either; by the time payload reaches WF-60, bot-echo has already been excluded upstream.
+- **D6 minor (`onError: continueRegularOutput`) — pseudo↔live agree:** The live `Log to Messages Table` Postgres node has `onError: "continueRegularOutput"` at the top level of the node JSON (verified 2026-05-24 via direct JSON inspection — `jq '.nodes[] | select(.name == "Log to Messages Table") | .onError'` returns `"continueRegularOutput"`). The `.md` projection currently does NOT surface this top-level node setting (the generator emits only the `parameters` block). This is a `.md`-generator completeness gap, not a pseudo↔live drift. Plugin improvement candidate: `generate-workflow-md.py` should surface top-level node-error-handling settings (`onError`, `retryOnFail`, `continueOnFail`) alongside `parameters`. The pseudo's assertion stands — Step 6 reliability behaviour (a logging failure does not fail the parent chain) is the contract WF-60 callers depend on.
 
 ---
 
@@ -45,7 +69,7 @@ Step 2: Extract Message Data (Code) — normalize and compute flags:
   - _filterReason ← TD-034 whitespace check (inbound text/slack_text only).
   - _needsLookup ← !_filterReason && !userId && (phoneNumber || slackChannelId).
   - _lookupColumn / _lookupValue ← chosen based on transport AND which key is present: prefer slack_channel_id on Slack transport, otherwise phone_number; fall back to whichever key exists.
-  - metadata ← { transport, phoneNumber, slackChannelId, rawMessage, timestamp, contactName, success, error, ... }.
+  - metadata ← { transport, phoneNumber, slackChannelId, rawMessage, timestamp, contactName, success, error, inboundMessageId, sentAt }.
   Go to Step 3.
 
 Step 3: Filter Skip? (IF) — if _filterReason is set (TD-034 whitespace-only filtered), route to Step 7a (Build Filter Skip Result → return { logged:false, reason:_filterReason }). Otherwise go to Step 4.
@@ -54,9 +78,9 @@ Step 4: Needs Phone Lookup? (IF) — _needsLookup TRUE → Step 4a; FALSE (userI
 
 Step 4a: Lookup User By Phone (Postgres, parametric on _lookupColumn) — SELECT id, current_consultation_id FROM chinmay_astro.users WHERE ($1='phone_number' AND phone_number=$2) OR ($1='slack_channel_id' AND slack_channel_id=$2) LIMIT 1. Then Merge Lookup Result (Code) populates userId/consultationId on the canonical payload (NULL if no row). Go to Step 5.
 
-Step 5: Has userId? (IF) — TRUE → Step 6 (INSERT). FALSE → Step 7b (Skip Log (no userId) → return { logged:false, reason:'no userId — ...' or 'no userId for outbound'}).
+Step 5: Has userId? (IF) — TRUE → Step 6 (INSERT). FALSE → Step 7b (Skip Log (no userId) → return { logged:false, reason:'pre_onboarding_user' } for inbound OR { logged:false, reason:'no userId — caller did not provide user identification' } for outbound).
 
-Step 6: Log to Messages Table (Postgres) — INSERT INTO chinmay_astro.messages (user_id, consultation_id, direction, message_type, content, whatsapp_message_id, slack_message_ts, metadata, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, NOW()) RETURNING id. The node has `onError: continueRegularOutput` so a logging failure does not fail the parent chain. Go to Step 8.
+Step 6: Log to Messages Table (Postgres) — INSERT INTO chinmay_astro.messages (user_id, consultation_id, direction, message_type, content, whatsapp_message_id, slack_message_ts, metadata, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, NOW()) RETURNING id. The node has `onError: continueRegularOutput` (top-level node setting; see D6 note above) so a logging failure does not fail the parent chain. Go to Step 8.
 
 Step 7a: Build Filter Skip Result (Code) → emit { logged:false, reason:<filterReason> }. End.
 Step 7b: Skip Log (Code) → emit { logged:false, reason:<no-userId reason> }. End.

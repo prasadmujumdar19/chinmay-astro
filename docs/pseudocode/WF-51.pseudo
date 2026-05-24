@@ -10,6 +10,7 @@ WF-51 — Send Slack Message
   - Text-only utility. Callers needing rich Slack formatting (blocks, attachments) should extend WF-51 with optional fields rather than bypassing it.
   - Logged via WF-60 per TD-002 multi-transport rebuild (2026-05-19). The Build WF-60 Payload Code node constructs the canonical multi-transport input (transport='slack', direction='outbound', messageType='slack_text') and extracts slack_message_ts from the Slack API response. Optional userId/consultationId forwarded from the caller; absent values trigger WF-60's slack_channel_id lookup.
   - Slack-failure logging is NOT wired (no On Error → WF-60 path). Tracked as TD-NEW-028 for the planned error-handling sprint.
+  - Trigger uses `inputSource=passthrough` with no enforced schema — the canonical `{ channelId, messageText, [userId], [consultationId] }` contract is policed at caller-side `Execute Workflow` mappings and at the post-trigger `Build WF-60 Payload (Slack Outbound)` Code node. Accepted-as-is per WF-46 D8 (TD-DRIFT-028) / WF-25 D2 (TD-DRIFT-011) project-wide convention — cross-cutting schema-hardening at the trigger boundary would be its own dedicated tech sprint.
 
 ---
 

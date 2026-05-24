@@ -1,0 +1,9 @@
+last_run_at: 2026-05-23T21:52:38Z
+status: DRIFT
+pairs_checked: 27
+drift_count: 26
+minor_count: 0
+clean_count: 1
+tracker_path: docs/artefacts/drift-checks/2026-05-24/tracker.md
+report_path:  docs/artefacts/drift-checks/2026-05-24/report.html
+dispatch_mode: parallel-subagent-sonnet

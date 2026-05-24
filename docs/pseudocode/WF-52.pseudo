@@ -2,30 +2,47 @@ WF-52 — Slack Channel Manager
 
 ## Summary
 
-- Inputs: phone_number (or phoneNumber), name (or userName), userId
-- Outputs: Returns { success, channelId, channelName, channelUrl, isNew, error? }. Creates a new private Slack channel `consult-<phoneNumber>` and invites the admin user (U0AGTECS1KR — Chinmay, single-admin MVP), OR if the channel already exists, returns the existing channel with isNew=false. On any other Slack API failure, returns { success:false, error:<reason>, channelId:null, isNew:false } so the caller can branch.
+- Inputs: structured block below.
+- Outputs: Returns { success, channelId, channelName, channelUrl, isNew, error? }. Creates a new private Slack channel `consult-<phoneNumber>` and invites both admin roles (Business Admin: Chinmay `U0B4BBML6CS` — operator who runs APPROVE/REJECT/CLOSE commands; Technical Admin: Prasad `U0A4175DJ5D` — workspace primary owner, in-channel for system observability during MVP). If the channel already exists, returns the existing channel with isNew=false. On any other Slack API failure, returns { success:false, error:<reason>, channelId:null, isNew:false } so the caller can branch.
 - State Transitions: none (caller — WF-22 — persists slack_channel_id to users row)
 - Calls Sub-Workflows: none
-- **Notes:**
-  - `isNew=true` only on the freshly-created branch; `isNew=false` on name-collision recovery (used by WF-22 already-exists branch and future WF-45 rebook to skip duplicate notifications).
-  - All non-`name_taken` Slack errors return `{success:false, error, channelId:null, isNew:false}` — caller must check `success` before persisting `slack_channel_id`.
+
+## Inputs
+
+**Canonical fields (preferred at caller side):**
+- `phoneNumber` — E.164 string, required. The user's WhatsApp number; becomes the suffix of `consult-<phoneNumber>` (channel name).
+- `name` — string, optional. The user's display name (forwarded into the Code-node's local shape but not consumed by Slack channel-creation logic; reserved for downstream callers).
+- `userId` — integer, optional. The `chinmay_astro.users.id` row reference. Forwarded into the Code-node's local shape but not consumed by Slack channel ops; reserved for future logging or admin-message templating.
+
+**Legacy aliases (accepted at the trigger, resolved in `Prepare Channel Name`):**
+- `phone_number` — snake_case alias for `phoneNumber`. WF-22 currently passes this (from the Postgres `RETURNING` column). `Prepare Channel Name` resolves `phone_number || phoneNumber || ''`.
+- `userName` — camelCase alias for `name`. No current caller uses this; kept for legacy compatibility. `Prepare Channel Name` resolves `name || userName || ''`.
+
+**Latent caller-contract gap (observed during 2026-05-24 WF-52 triage; not in this sprint's scope):** WF-22's `Create User Record` Postgres `RETURNING` column is `id` but WF-52's `Prepare Channel Name` reads `input.userId` (no `id` fallback). When called from WF-22 today, `userId` is `undefined` at WF-52. Behaviour-neutral because the field is not consumed by Slack channel ops. Flag for a future TD-DRIFT-013-class caller-contract hardening sprint.
+
+## Notes
+
+- `isNew=true` only on the freshly-created branch; `isNew=false` on name-collision recovery (used by WF-22 already-exists branch and future WF-45 rebook to skip duplicate notifications).
+- All non-`name_taken` Slack errors return `{success:false, error, channelId:null, isNew:false}` — caller must check `success` before persisting `slack_channel_id`.
+- **Two-role admin invitation (decided 2026-05-24):** Step 4 invites BOTH admin roles — Business Admin (Chinmay, who operates the consultation and issues admin commands) and Technical Admin (Prasad, workspace primary owner, present for system observability during MVP). The "single-admin model" referenced in [[project_admin_actions_deprecated]] is about admin-command attribution (only the Business Admin issues APPROVE/REJECT/CLOSE), not about channel membership; both statements are correct simultaneously.
+- **channelUrl `team_id` derivation (Steps 5 and 9):** Live derives `team_id` from the Slack API response field `context_team_id` at runtime, not from `$env.SLACK_TEAM_ID`. Both produce identical URLs (workspace `team_id` is invariant) but the runtime derivation avoids any env-var dependency. Updated 2026-05-24 to match live.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — triggered by another workflow (typically WF-22) with { phone_number, name, userId } passed through.
-Step 2: Prepare channel name (code): channelName = "consult-" + phoneNumber. Carry userName, phoneNumber, userId forward. Go to Step 3.
+Step 1: Start — triggered by another workflow (typically WF-22) with { phone_number (or phoneNumber), name (or userName), userId } passed through.
+Step 2: Prepare channel name (code): channelName = "consult-" + phoneNumber (resolved via `phone_number || phoneNumber || ''`). Carry userName (via `name || userName || ''`), phoneNumber, userId forward. Go to Step 3.
 Step 3: Create private Slack channel via Slack API (conversations.create, name=channelName, is_private=true). On error use the error output branch.
   - On success → go to Step 4 (new-channel branch).
   - On error → go to Step 6 (error branch).
-Step 4: Invite admin to the new channel via Slack API (conversations.invite, channel=<new channel id>, users=['U0AGTECS1KR' /* Chinmay — single-admin MVP */]). Go to Step 5.
-Step 5: Build new-channel return (code): { success:true, channelId=<new id>, channelName=<new name>, channelUrl="https://app.slack.com/client/<team_id from $env.SLACK_TEAM_ID>/<channel_id>", isNew:true }. Go to Step 10.
+Step 4: Invite both admins to the new channel via Slack API (conversations.invite, channel=<new channel id>, users=['U0B4BBML6CS' /* Chinmay — Business Admin */, 'U0A4175DJ5D' /* Prasad — Technical Admin */]). Go to Step 5.
+Step 5: Build new-channel return (code): { success:true, channelId=<new id>, channelName=<new name>, channelUrl="https://app.slack.com/client/<team_id derived at runtime from the Slack API response field `context_team_id`>/<channel_id>", isNew:true }. Go to Step 10.
 Step 6: Check: does the error message contain 'name_taken'?
   - If YES → go to Step 7 (recover existing channel).
   - If NO → go to Step 6a (structured error return).
 Step 6a: Build error return (code): { success:false, error:<error.message>, channelId:null, channelName:channelName, channelUrl:null, isNew:false }. Go to Step 10.
 Step 7: List all private channels via Slack API (conversations.list, types=private_channel, returnAll=true). Go to Step 8.
 Step 8: Filter that list for the one whose name equals the prepared channelName. Go to Step 9.
-Step 9: Build existing-channel return (code): { success:true, channelId=<existing id>, channelName=<existing name>, channelUrl="https://app.slack.com/client/<team_id from $env.SLACK_TEAM_ID>/<channel_id>", isNew:false }. Go to Step 10.
+Step 9: Build existing-channel return (code): { success:true, channelId=<existing id>, channelName=<existing name>, channelUrl="https://app.slack.com/client/<team_id derived at runtime from the Slack API response field `context_team_id`>/<channel_id>", isNew:false }. Go to Step 10.
 Step 10: End (return object emitted to caller).
