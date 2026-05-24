@@ -1,0 +1,1074 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Test Report — smoke-pre-golive-2026-05-24</title>
+<style>
+:root {
+  --bg: #0d1117; --bg-card: #161b22; --bg-card-2: #1c2128;
+  --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --border: #30363d;
+  --critical: #ff4d4f; --major: #ff9f43; --minor: #f1c40f; --ok: #27ae60;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--bg); color: var(--fg); }
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+nav { background: #010409; border-right: 1px solid var(--border); padding: 20px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; font-size: 13px; }
+nav h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 20px 0 6px; font-weight: 600; }
+nav h2:first-child { margin-top: 0; }
+nav a { display: block; color: var(--fg); text-decoration: none; padding: 5px 8px; border-radius: 4px; margin: 1px 0; }
+nav a:hover { background: var(--bg-card); color: var(--accent); }
+nav a.depth-1 { padding-left: 18px; color: var(--muted); }
+main { padding: 28px 40px 80px; max-width: 1100px; }
+header.page { border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 28px; }
+header.page h1 { margin: 0 0 4px; font-size: 22px; }
+header.page .meta { color: var(--muted); font-size: 13px; }
+section.layer { margin: 40px 0; }
+section.layer > h1 { font-size: 24px; margin: 0 0 4px; padding-bottom: 10px; border-bottom: 2px solid var(--accent); }
+section.layer > .layer-blurb { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+h2 { margin-top: 28px; font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+h3 { margin-top: 22px; font-size: 15.5px; color: var(--accent); }
+h4 { margin-top: 16px; font-size: 14px; }
+code { background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+pre { background: var(--bg-card); padding: 14px 16px; border-radius: 6px; overflow-x: auto; border: 1px solid var(--border); }
+pre code { background: transparent; padding: 0; font-size: 13px; }
+table { border-collapse: collapse; margin: 14px 0; width: 100%; font-size: 13.5px; }
+th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--bg-card); font-weight: 600; }
+tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+ul, ol { padding-left: 22px; }
+li { margin: 4px 0; }
+/* Story cards — each h3 in story section starts a card */
+#story h3 {
+  background: var(--bg-card-2); margin-top: 20px; padding: 12px 16px; border-radius: 6px 6px 0 0;
+  border: 1px solid var(--border); border-bottom: none; color: var(--fg); font-size: 15px;
+}
+#story h3 + p, #story h3 + p + p, #story h3 + p + p + p,
+#story h3 ~ p, #story h3 ~ pre, #story h3 ~ ul, #story h3 ~ ol {
+  /* default rendering — wrap will come from JS */
+}
+.story-card { background: var(--bg-card); border: 1px solid var(--border); border-top: none; padding: 14px 18px 4px; margin-bottom: 18px; border-radius: 0 0 6px 6px; }
+.story-card p:first-child { margin-top: 0; }
+/* Appendix collapsibles */
+details.appendix-item, details.appendix-section { border: 1px solid var(--border); border-radius: 6px; margin: 12px 0; background: var(--bg-card); }
+details summary { padding: 12px 16px; cursor: pointer; font-weight: 600; user-select: none; }
+details summary:hover { background: var(--bg-card-2); }
+details[open] summary { border-bottom: 1px solid var(--border); }
+details > *:not(summary) { padding: 0 18px; }
+details summary .src { color: var(--muted); font-weight: normal; font-size: 12px; margin-left: 6px; }
+/* Severity chips (applied via JS) */
+.sev-chip { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #0d1117; margin: 0 2px; }
+.status-ok { color: var(--ok); }
+.status-warn { color: var(--major); }
+</style>
+</head><body>
+<div class="layout">
+  <nav>
+    <h2>Report layers</h2>
+    <a href="#tldr">1. TL;DR</a>
+    <a href="#story">2. The Story</a>
+    <a href="#appendix">3. Appendix</a>
+    <h2>Story scenarios</h2>
+    <div id="nav-scenarios"></div>
+    <h2>Appendix</h2>
+    <a href="#appendix-session" class="depth-1">session.md</a>
+    <a href="#appendix-followups-bug-new-02-resolution" class="depth-1">followups-bug-new-02-resolution.md</a><a href="#appendix-followups-consultations-stale-active" class="depth-1">followups-consultations-stale-active.md</a><a href="#appendix-followups-message-logging-gap" class="depth-1">followups-message-logging-gap.md</a><a href="#appendix-followups-retention-workflows" class="depth-1">followups-retention-workflows.md</a>
+  </nav>
+  <main>
+    <header class="page">
+      <h1>Test Report — smoke-pre-golive-2026-05-24</h1>
+      <div class="meta">Generated 2026-05-24T05:59:53+00:00 · Folder <code>docs/artefacts/tests/smoke-pre-golive-2026-05-24/</code></div>
+    </header>
+
+    <section class="layer" id="tldr">
+      <h1>1. TL;DR</h1>
+      <div class="layer-blurb">Verdict, bugs at a glance, scope, and tomorrow's queue. Skim this; the rest is detail.</div>
+      <p><strong>Verdict:</strong> P0 closeout queue is <strong>done</strong>. 5 of 9 P0 TCs verified PASS (3 freshly executed, 2 by reference to prior SP-03 smoke). 4 deferred TCs are unreachable via WA client (need crafted-webhook session). <strong>1 [critical] BUG-NEW-02 carried over from morning, still unresolved</strong>. <strong>2 design gaps + 1 design question</strong> raised this afternoon for sprint intake.</p>
+<h2>Bugs / gaps at a glance</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Sev</th>
+<th>Workflow</th>
+<th>What broke / what's missing</th>
+<th>Fix applied</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUG-NEW-02</td>
+<td>[critical]</td>
+<td>WF-01</td>
+<td>opted_out users locked in re-engagement loop (WF-01 <code>Opted Out?</code> IF routes nfm_reply form submissions to WF-21, bypassing WF-22)</td>
+<td>None — design discussion pre-pseudo</td>
+<td>Open — carry to BUG-NEW-02 sprint</td>
+</tr>
+<tr>
+<td>GAP-01</td>
+<td>[major]</td>
+<td>WF-60</td>
+<td>pre-<code>users</code>-row WA events (<code>hi</code> inbound + WF-21 form outbound) not logged in <code>messages</code> (audit-trail hole)</td>
+<td>None — pseudo-first design sprint needed</td>
+<td>Open — see followups-message-logging-gap.md</td>
+</tr>
+<tr>
+<td>GAP-02</td>
+<td>[minor]</td>
+<td>WF-73 / WF-74</td>
+<td>maintenance + retention workflows provisioned in registry but not built (GDPR exposure deferred to post-go-live)</td>
+<td>None — needs retention-policy decision + WF-73 scope expansion to cover GAP-01 fix</td>
+<td>Open — see followups-retention-workflows.md</td>
+</tr>
+<tr>
+<td>O-01</td>
+<td>[minor]</td>
+<td>WF-47</td>
+<td><code>consultations.status</code> left <code>active</code> after user opts out (gate works, but analytics inflate)</td>
+<td>None — design call on <code>abandoned</code> vs <code>closed</code> enum</td>
+<td>Open — see followups-consultations-stale-active.md</td>
+</tr>
+</tbody>
+</table>
+<h2>Test scope</h2>
+<table>
+<thead>
+<tr>
+<th>Phone</th>
+<th>Scenarios</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>61466927921 (user 28, wiped → 29, wiped → 30)</td>
+<td>TC-0606 (morning), TC-0604, TC-0605</td>
+<td>All 3 PASS</td>
+</tr>
+<tr>
+<td>n/a (audit only)</td>
+<td>TC-0302, TC-1012</td>
+<td>PASS by reference to SP-03 smoke (2026-05-23)</td>
+</tr>
+<tr>
+<td>n/a (deferred)</td>
+<td>TC-0315, TC-0704, TC-1006, TC-1007</td>
+<td>Unreachable from WA client — need crafted webhook session</td>
+</tr>
+</tbody>
+</table>
+<h2>State carry-forward</h2>
+<p>User 30 (61466927921) currently in <code>opted_out</code>, <code>slack_channel_id=C0B567A175W</code> (idempotently reused across all three wipe-and-re-onboard cycles this session — DR-10 holds empirically). Consultation 14 stuck in <code>active</code> per O-01. Channel C0B567A175W has the full conversation history from this session. No DB cleanup performed at end-of-session — state preserved for the next session's BUG-NEW-02 reproduction or further analysis.</p>
+<h2>Tomorrow's queue (priority order)</h2>
+<ol>
+<li><strong>BUG-NEW-02 design discussion</strong> — WF-26 ("Re-Engaged Opted-Out User Handler") is a starting point only; final design discussion required before pseudo. <strong>Blocking go-live.</strong></li>
+<li><strong>Crafted-webhook session for TC-0315 / TC-0704 / TC-1006 / TC-1007</strong> — bot-loop guard, whitespace drop, empty-body drop. Will need direct POSTs to WF-00 with synthetic JSON bodies (bypassing WA client validation). Document each payload before sending.</li>
+<li><strong>GAP-01 pseudo-first design sprint</strong> — make WF-60 callable without <code>user_id</code>; decide schema option (nullable vs ghost-row vs phone-keyed); revise affected pseudos; implement; add coverage test.</li>
+<li><strong>O-01 design call</strong> — operator picks A/B/C for <code>consultations.status</code> post-opt-out; bundle WF-42/WF-46/WF-47 audit into one design pass.</li>
+<li><strong>GAP-02 (post-go-live)</strong> — WF-73 + WF-74 build, with WF-73 scope expanded per GAP-01 fix.</li>
+</ol>
+    </section>
+
+    <section class="layer" id="story">
+      <h1>2. The Story</h1>
+      <div class="layer-blurb">Each scenario as a card with narrative + fix snippets. Tells you what happened without making you read raw logs.</div>
+      <h3>TC-0606 — STOP from <code>consultation_closed</code> (morning session)  ✅</h3>
+<p>Verified during the morning session. User 28 walked through full happy path to <code>consultation_closed</code>, then sent <code>STOP</code>. WF-20 intercepted, WF-47 unconditionally flipped status to <code>opted_out</code>, admin alert + WA confirmation delivered. SP-04 unconditional-opt-out behavior holds at the <code>consultation_closed</code> starting state.</p>
+<hr />
+<h3>TC-0604 — STOP from <code>payment_pending</code>  ✅</h3>
+<p>After the BUG-NEW-02 incident left user 28 in <code>opted_out</code>, DML-wiped that user and re-onboarded as user 29: <code>hi</code> → form-submit → STOP (skipping the Payment Completed tap). 36 executions across three waves, all success and sub-3s. WF-22 created the user row in <code>payment_pending</code>; WF-52 idempotently returned the preserved channel C0B567A175W (proving DR-10's "channels never archived" rule yields safe reuse, not orphans, on full DB wipes). WF-20 intercepted the STOP keyword before any intent classification could run, WF-47 flipped status to <code>opted_out</code>, both admin and user notifications landed. The unconditional opt-out behavior (DR-4 / SP-04) is verified at the second of three intended starting states.</p>
+<hr />
+<h3>TC-0302 — Admin <code>APPROVE PAYMENT &lt;wrong-phone&gt;</code> → admin Slack feedback  ✅ (by reference)</h3>
+<p>Already covered by SP-03's WF-10 centralized-gate smoke on 2026-05-23. Phase C2 there ran <code>APPROVE PAYMENT +614999999999</code> in <code>consult-+61466927921</code> and produced exec chain 1731→1732→1733/1734→1735 — terminating at the WF-51 Phone-Mismatch Alert without invoking WF-11 or WF-33. Verified Slack reply text matched the design. Re-running was redundant; operator chose to mark this PASS by reference rather than re-walk.</p>
+<hr />
+<h3>TC-1012 — WF-33 reads <code>slack_channel_id</code> from <code>users</code>, does NOT call WF-52  ✅ (by reference)</h3>
+<p>Also covered by SP-03 smoke, Phase E1 (Attempt 3, execs 1790–1801). The 12-execution APPROVE PAYMENT happy-path chain ran WF-10 → WF-11 → WF-33 → WF-50 → WF-60 → WF-51 → ... with <strong>no WF-52 in the chain</strong> — WF-33 used the existing <code>users.slack_channel_id</code> directly. DR-2 + DR-10 both honored. PASS by reference.</p>
+<hr />
+<h3>TC-0605 — STOP from <code>consultation_active</code>  ✅</h3>
+<p>The most complete state-machine walk of the session: full 5-step path (<code>hi</code> → form-submit → tap Payment Completed → admin APPROVE PAYMENT 61466927921 → STOP) on freshly-wiped user 30. 61 executions across five waves, all success and sub-second. Walked the user from no-record through <code>pending_users</code> → <code>payment_pending</code> → <code>payment_submitted</code> → <code>consultation_active</code> → <code>opted_out</code> cleanly. WF-52 idempotently reused C0B567A175W for the third time this session (28 → 29 → 30 all got the same channel), giving strong empirical confidence in DR-10's reuse semantics. Most importantly: STOP from <code>consultation_active</code> triggered the same unconditional WF-47 opt-out as TC-0604 did from <code>payment_pending</code> — confirming SP-04's invariant holds across both relevant pre-close states. One minor observation surfaced during the tick: <code>consultations.id=14.status</code> remained <code>active</code> after the opt-out (logged as O-01 for design discussion — see followups-consultations-stale-active.md).</p>
+<hr />
+<h3>GAP-01 — Pre-<code>users</code>-row WA events not logged in <code>messages</code>  ⚠️ design gap, no code change this session</h3>
+<p>Consistent across both TC-0604 (user 29) and TC-0605 (user 30): the inbound <code>hi</code> and the outbound WF-21 form message produced no <code>messages</code> rows. The trail only starts at WF-22's payment confirmation because WF-60 currently keys log inserts on <code>users.id</code>, which doesn't exist until WF-22 runs. The operator established a principle this session — audit-trail integrity is independent of user-row creation timing — which makes this a real design gap, not just a "works as coded" quirk. A pseudo-first design sprint will define whether <code>messages.user_id</code> becomes nullable, whether WF-60 does a phone → user_id lookup with fallback, and whether retroactive backfill is required when the user eventually submits the form. The Slack side already implements the equivalent pattern correctly (admin's <code>APPROVE PAYMENT</code> Slack message IS logged as <code>messages.id=116</code>), giving the WA-side fix a working sibling to reference. Detailed intake in followups-message-logging-gap.md.</p>
+<hr />
+<h3>GAP-02 — GDPR / retention maintenance workflows not yet built  ⚠️ post-go-live deferral confirmed</h3>
+<p>The operator asked whether the project has provision for GDPR-driven cleanup. Registry check confirms yes: WF-73 (Stale Form Cleanup, daily) and WF-74 (Data Retention Cleanup, monthly) are both provisioned in <code>docs/workflow-registry.md</code> under the WF-7x post-go-live range, but neither exists in live n8n (verified via API). Once GAP-01 lands, WF-73's scope must broaden to also purge orphan <code>messages</code> rows for stale <code>pending_users</code> (current FK only cascades from <code>users</code> deletion). WF-74 needs a concrete retention-window number before it can be built. Detailed intake in followups-retention-workflows.md.</p>
+    </section>
+
+    <section class="layer" id="appendix">
+      <h1>3. Appendix</h1>
+      <div class="layer-blurb">Full raw artefacts. Click to expand. The session log is verbatim — use it to grep, re-trace, or audit.</div>
+      <details class="appendix-item" id="appendix-session">
+        <summary>Session log <span class="src">(session.md — raw chronological)</span></summary>
+        <h1>Smoke — Pre-Go-Live P0 Closeout — 2026-05-24</h1>
+<h2>Header</h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Test type</td>
+<td>smoke</td>
+</tr>
+<tr>
+<td>Slug</td>
+<td>pre-golive</td>
+</tr>
+<tr>
+<td>Date (UTC)</td>
+<td>2026-05-24</td>
+</tr>
+<tr>
+<td>Started</td>
+<td>2026-05-24T01:00:04Z</td>
+</tr>
+<tr>
+<td>Operator</td>
+<td>prasadmujumdar</td>
+</tr>
+<tr>
+<td>Test phone</td>
+<td>61466927921 (user id=28)</td>
+</tr>
+<tr>
+<td>Design references</td>
+<td><code>docs/reference/FunctionalTestCases_Tracker.md</code> + per-TC inline narration</td>
+</tr>
+<tr>
+<td>Watch — n8n</td>
+<td>All active workflows</td>
+</tr>
+<tr>
+<td>Watch — Postgres</td>
+<td>chinmay_astro.{users, pending_users, consultations, messages, payments}</td>
+</tr>
+<tr>
+<td>Watch — Slack</td>
+<td>C0A5B0ZE81E (chinmay-admin-commands), C0B567A175W (consult-61466927921)</td>
+</tr>
+<tr>
+<td>Latency threshold</td>
+<td>5000 ms</td>
+</tr>
+</tbody>
+</table>
+<h2>Session rules (operator-set)</h2>
+<ul>
+<li><strong>No code changes.</strong> No workflow JSON edits (live or local), no <code>.pseudo</code> edits, no <code>.md</code> edits anywhere outside this session folder.</li>
+<li><strong>DB:</strong> DML allowed (UPDATE / INSERT / DELETE on <code>chinmay_astro.*</code> for test-state setup or clean-slate wipes). <strong>DDL not allowed</strong> (no CREATE / ALTER / DROP).</li>
+<li><strong>Bugs:</strong> logged here under <code>### Issues found</code> with <code>[critical]</code> / <code>[major]</code> / <code>[minor]</code> severity. No auto-fixes, no PRs, no remediation in this session.</li>
+</ul>
+<h2>Scope — 9 P0 retests</h2>
+<p>All have code/structure changes landed in prior sprints; this session provides the missing end-to-end functional verification.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>TC</th>
+<th>Sprint origin</th>
+<th>What to verify</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>TC-0302</td>
+<td>TD-021 (inline-20260522 SP-03)</td>
+<td>Admin <code>APPROVE PAYMENT &lt;wrong-phone&gt;</code> → admin Slack feedback (no silent drop)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>TC-0315</td>
+<td>TD-030 (SP-03 cascade)</td>
+<td>Bot's own Slack message into consult channel ignored by WF-10</td>
+</tr>
+<tr>
+<td>3</td>
+<td>TC-0605</td>
+<td>SP-04 / TD-B (inline-20260522)</td>
+<td>consultation_active user sends <code>STOP</code> → unconditional opt-out</td>
+</tr>
+<tr>
+<td>4</td>
+<td>TC-0704</td>
+<td>TD-030 (SP-03)</td>
+<td>WA message from bot's own number → dropped at WF-00 webhook</td>
+</tr>
+<tr>
+<td>5</td>
+<td>TC-1006</td>
+<td>TD-033</td>
+<td>WF-50 invoked with empty/null body → drop, no WA send</td>
+</tr>
+<tr>
+<td>6</td>
+<td>TC-1007</td>
+<td>TD-034 (TD-002 rebuild)</td>
+<td>Whitespace-only inbound → WF-60 drop, no row in messages</td>
+</tr>
+<tr>
+<td>7</td>
+<td>TC-1012</td>
+<td>DR-2 conformance</td>
+<td>WF-33 reads <code>slack_channel_id</code> from <code>users</code> row, does NOT call WF-52</td>
+</tr>
+<tr>
+<td>8</td>
+<td>TC-1010 (WA-side)</td>
+<td>TD-002</td>
+<td>Each WA inbound + outbound produces a <code>messages</code> row with correct direction</td>
+</tr>
+<tr>
+<td>9</td>
+<td>TC-0604 + TC-0606</td>
+<td>SP-04 re-verify</td>
+<td>STOP from payment_pending + consultation_closed under unconditional opt-out</td>
+</tr>
+</tbody>
+</table>
+<h2>Baselines (captured 2026-05-24T01:00:04Z)</h2>
+<p><strong>n8n executions cursor:</strong> <code>1879</code></p>
+<p><strong>Postgres row counts + watermarks:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Rows</th>
+<th>Max timestamp</th>
+<th>Max id</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>users</td>
+<td>1</td>
+<td>2026-05-23T06:48:23.281Z</td>
+<td>28</td>
+</tr>
+<tr>
+<td>pending_users</td>
+<td>2</td>
+<td>2026-05-17T12:05:57.759Z</td>
+<td>—</td>
+</tr>
+<tr>
+<td>consultations</td>
+<td>5</td>
+<td>2026-05-23T05:58:09.836Z</td>
+<td>13</td>
+</tr>
+<tr>
+<td>messages</td>
+<td>91</td>
+<td>2026-05-23T06:48:23.854Z</td>
+<td>98</td>
+</tr>
+<tr>
+<td>payments</td>
+<td>8</td>
+<td>2026-05-23T06:23:34.897Z</td>
+<td>17</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Slack cursors:</strong> captured at first tick per channel.</p>
+<h2>Test user state at baseline</h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>28</td>
+</tr>
+<tr>
+<td>phone_number</td>
+<td>61466927921</td>
+</tr>
+<tr>
+<td>status</td>
+<td><strong>consultation_closed</strong></td>
+</tr>
+<tr>
+<td>slack_channel_id</td>
+<td>C0B567A175W</td>
+</tr>
+<tr>
+<td>awaiting_feedback</td>
+<td>false</td>
+</tr>
+<tr>
+<td>name</td>
+<td>Abcs</td>
+</tr>
+<tr>
+<td>updated_at</td>
+<td>2026-05-23T06:48:23.281Z</td>
+</tr>
+</tbody>
+</table>
+<h2>Suggested test sequence</h2>
+<p>State transitions imply an order. Operator may deviate; this is a default that walks the user through every state we need:</p>
+<ol>
+<li><strong>TC-0606</strong> — STOP from consultation_closed (current state — no setup needed)</li>
+<li>After STOP → <code>opted_out</code>. Operator messages from WA → re-engages as new user (welcome + form). Either clean-slate wipe first OR test on fresh phone.</li>
+<li><strong>TC-1007</strong> — whitespace-only inbound (state-agnostic, any time)</li>
+<li><strong>TC-0704</strong> — WA bot echo (state-agnostic; requires triggering a message from our WA bot number, likely via WF-50 send-to-self or simulator)</li>
+<li>User submits form → <code>payment_pending</code>. <strong>TC-0604</strong> — STOP from payment_pending.</li>
+<li>Re-engage → form → payment_pending → tap "Payment Completed" → <code>payment_submitted</code></li>
+<li><strong>TC-0302</strong> — Admin sends <code>APPROVE PAYMENT 99999999999</code> (wrong phone) → expect admin Slack feedback. User stays payment_submitted.</li>
+<li><strong>TC-1012</strong> — Admin sends correct <code>APPROVE PAYMENT 61466927921</code>; verify WF-33 read <code>slack_channel_id</code> from DB (no WF-52 call). User → <code>consultation_active</code>.</li>
+<li><strong>TC-0315</strong> — Bot relays an outbound message into consult channel; verify WF-10 ignores its own bot ts.</li>
+<li><strong>TC-0605</strong> — User sends <code>STOP</code> from consultation_active → expect unconditional opt-out.</li>
+<li><strong>TC-1006</strong> — Force WF-50 invocation with empty body (admin test? or trigger a downstream path that calls WF-50 with empty payload).</li>
+<li><strong>TC-1010 (WA-side)</strong> — verify <code>messages</code> table has rows for every WA inbound + outbound from steps above (passive observation across the run).</li>
+</ol>
+<hr />
+<h2>Deferred from this session</h2>
+<p>Three TCs pulled out at operator's instruction (2026-05-24T01:08Z) — they require crafted webhook payloads rather than WA-client testing, better suited to a dedicated bot-simulation session:
+- <strong>TC-0315</strong> — Slack bot-loop prevention in relay
+- <strong>TC-0704</strong> — WA bot echo prevention
+- <strong>TC-1006</strong> — WF-50 empty/null body guard</p>
+<p>Revised in-scope TCs for this session (6): TC-0606, TC-1007, TC-0604, TC-0302, TC-1012, TC-0605 + passive TC-1010.</p>
+<h2>Log</h2>
+<h3>Action — TC-0606 — STOP from consultation_closed (SP-04 re-verify)</h3>
+<p><strong>Time queued:</strong> awaiting operator
+<strong>User state at start:</strong> id=28, phone=61466927921, status=<code>consultation_closed</code>, channel=C0B567A175W, awaiting_feedback=false
+<strong>Trigger:</strong> user sends <code>STOP</code> from WA test phone</p>
+<p><strong>Expected behavior (per SP-04 / TD-B unconditional opt-out + WF-20 DR-5 keyword intercept):</strong>
+1. WF-00 receives webhook, dedup passes, routes to WF-01.
+2. WF-01 routes to WF-20 (keyword handler) because <code>STOP</code> is in the exact-match keyword list (DR-5 — intercept BEFORE intent classifier).
+3. WF-20 → WF-47 (Unsubscribe Handler).
+4. WF-47 updates <code>users.status = 'opted_out'</code> (unconditional under SP-04, regardless of starting state).
+5. No open consultation to close (status was already <code>consultation_closed</code>), so the <code>Close Open Consultation</code> step is a no-op / not invoked.
+6. User receives WA opt-out confirmation via WF-50.
+7. One row in <code>messages</code> for inbound STOP + one row for outbound confirmation.
+8. No admin Slack ping required for STOP (opt-out is user-initiated, not blocked).</p>
+<p><strong>Cross-checks at tick time:</strong>
+- new executions: WF-00, WF-01, WF-20, WF-47, WF-50, WF-60 (×2)
+- DB: users.status <code>consultation_closed</code> → <code>opted_out</code>; users.updated_at moves
+- DB: messages count +2
+- Slack admin channel: no new posts expected</p>
+<h3>Tick — 2026-05-24T01:18:00Z</h3>
+<p><strong>Trigger:</strong> operator sent <code>STOP</code> from 61466927921 WA; observed responses on both WA and Slack
+<strong>Cursor moved:</strong> exec 1879 → 1893 (14 new executions)</p>
+<p><strong>New executions (14, all success):</strong>
+- 1880 WF-00 Webhook Receiver (3.7s) — inbound STOP webhook
+- 1881 WF-60 Message Logger — inbound STOP logged
+- 1882 WF-01 Message Router → 1883 WF-02 User State Router → 1884 WF-20 Keyword Handler (DR-5 STOP intercept) → 1885 WF-47 Unsubscribe Handler
+- 1886 WF-51 Send Slack Message — admin notification to consult channel
+- 1887 WF-60 — outbound Slack notification logged
+- 1888 WF-50 Send WhatsApp — opt-out confirmation to user
+- 1889 WF-10 Slack Admin Handler — picked up the bot's own Slack post (TD-030 guard should ignore it)
+- 1890 WF-60 — outbound WA confirmation logged
+- 1891–1893 WF-00 ×3 — Meta status callbacks for the outbound WA message (sent/delivered/read)</p>
+<p><strong>Latency:</strong> All under 5s threshold. End-to-end (1880 → 1888 outbound send) = 1.77s. Status callbacks tail at +6s but they're async housekeeping, not blocking.</p>
+<p><strong>DB deltas:</strong>
+- <code>users</code> id=28: status <code>consultation_closed</code> → <code>opted_out</code>; updated_at 2026-05-24T01:14:48.767Z ✅
+- <code>messages</code> +3 rows (ids 99/100/101):
+  - 99 inbound text "STOP" — whatsapp_message_id populated, slack_message_ts null
+  - 100 outbound slack_text "⚠️ User has opted out via STOP (phone: 61466927921). This consultation will not progress further. (Channel preserved per DR-10 in case of REBOOK.)" — slack_message_ts 1779585289.086709
+  - 101 outbound text "You have been unsubscribed from Chinmay Astro. No further messages..." — whatsapp_message_id populated
+- <code>consultations</code> for user_id=28: id=13 still <code>status=active</code>, ended_at=null ⚠️ — see Issue below
+- <code>payments</code>, <code>pending_users</code>: no deltas (expected)</p>
+<p><strong>Slack — consult channel C0B567A175W:</strong> 1 new bot post — opt-out notification at ts 1779585289.086709 ("⚠️ User has opted out via STOP (phone: 61466927921). This consultation will not progress further. (Channel preserved per DR-10 in case of REBOOK.)").</p>
+<p><strong>Slack — admin channel C0A5B0ZE81E:</strong> no new posts (as expected — STOP is user-initiated, opt-out admin notification goes to per-user consult channel where Chinmay was conversing, not to chinmay-admin-commands).</p>
+<p><strong>Cross-check vs expected:</strong>
+- ✅ WF-00 → WF-01 → WF-02 → WF-20 → WF-47 chain fired in order — DR-5 keyword intercept route confirmed
+- ✅ users.status went unconditional opted_out (SP-04 / TD-B unconditional behavior — confirmed; starting state didn't matter)
+- ✅ WA opt-out confirmation delivered (msg id 101)
+- ✅ messages table has both inbound + outbound WA rows + outbound Slack notification (TC-1010 WA-side passive evidence — both directions logged with correct transport tags)
+- ⚠️ Expected "no Slack ping" but Slack notification was posted to the user's consult channel (not admin channel). On reflection this is correct design — admin needs to know the consult is dead. Expectation re-stated for future ticks: STOP from any state posts a notice to the consult channel (where Chinmay watches), NOT to chinmay-admin-commands.
+- ⚠️ consultations.id=13 (user_id=28) still <code>status=active</code> after opt-out — see Issue below</p>
+<h3>Issues found</h3>
+<h4>[observation] Confirms TD-DRIFT-007 (already tracked, fix pending)</h4>
+<p><strong>Observed:</strong> After <code>STOP</code>, <code>users.status</code> is <code>opted_out</code> but <code>consultations.id=13</code> (user_id=28) remains <code>status='active'</code> with <code>ended_at=null</code>. WF-47 ran successfully (exec 1885) but the consultation row was not closed.</p>
+<p><strong>Resolution:</strong> Operator confirmed this is <strong>TD-DRIFT-007</strong> in sprint <code>pseudo-md-drift-fixes-2026-05-24/tasks.md</code> L32. Root cause, decision, fix, and verification steps already specified there — live connection rewiring of WF-47 to close-before-opt-out, plus pseudo update. Not a new defect; not in this session's scope to fix.</p>
+<p><strong>Outcome:</strong> ✅ TC-0606 PASS. The orphan is a pre-existing artifact and the remediation is queued. No new entry needed.</p>
+<h3>Action — Re-engagement walk-through → TC-0604 (STOP from payment_pending)</h3>
+<p><strong>User state at start:</strong> id=28, phone=61466927921, status=<code>opted_out</code>, slack_channel_id=C0B567A175W
+<strong>Operator plan:</strong> (a) send any WA message → expect WF-21 re-engagement (welcome + form); (b) submit form → expect <code>payment_pending</code>; (c) send <code>STOP</code> → TC-0604 retest.</p>
+<p><strong>Expected behavior — step (a) re-engagement (DR-9: opted_out user messaging again is treated as new user):</strong>
+- WF-00 → WF-01 → WF-02 routes opted_out → WF-21 (Welcome + Form Sender), NOT to keyword/intent paths.
+- No DB write at this step (Design Rule #1: no DB write before form submission). NOTE: WF-21 may write to <code>pending_users</code> (CLAUDE.md project-design-rule_pending_users carve-out — that is intentional, do NOT flag).
+- User receives WhatsApp Flow form CTA.
+- Slack channel C0B567A175W preserved (DR-10 — not archived).</p>
+<p><strong>Expected behavior — step (b) form submission:</strong>
+- WF-22 fires on Flow nfm_reply: first DB write to <code>chinmay_astro.users</code> (UPDATE, not insert — row already exists from id=28).
+- users.status transitions: <code>opted_out</code> → <code>payment_pending</code>.
+- WF-22 calls WF-52 to ensure consult channel exists. Channel C0B567A175W already exists → idempotent path (TC-1011 implicit). users.slack_channel_id stays C0B567A175W.
+- WA payment instructions message sent via WF-50.</p>
+<p><strong>Expected behavior — step (c) STOP from payment_pending (TC-0604):</strong>
+- Same WF-00 → WF-01 → WF-02 → WF-20 → WF-47 chain as TC-0606.
+- users.status <code>payment_pending</code> → <code>opted_out</code> (unconditional SP-04).
+- No active consultation to close (user never reached consultation_active in this cycle); WF-47 close step no-op.
+- WA opt-out confirmation + Slack opt-out notice to consult channel.</p>
+<p><strong>Cross-checks at tick time (post step c):</strong>
+- exec chain includes WF-21, WF-22, WF-52 (idempotent), WF-50 ×N for re-engagement; later WF-47 for STOP
+- DB: users.status traverses opted_out → payment_pending → opted_out
+- DB: messages logs every WA inbound + outbound across all three steps
+- DB: no new row in consultations (payment_pending never starts a consultation)</p>
+<h3>Tick — 2026-05-24T01:34:00Z</h3>
+<p><strong>Trigger:</strong> operator sent <code>Hi</code> (got form back), filled and submitted form (got form back AGAIN — said "I think something's broken")
+<strong>Cursor moved:</strong> exec 1893 → 1911 (18 new executions, two events of 9 each + status callbacks)</p>
+<p><strong>Event 1 — "Hi" at 01:28:25:</strong>
+- exec chain: WF-00 (1894) → WF-60 (1895) → WF-01 (1896) → WF-21 (1897) → WF-50 (1898) → WF-60 (1899) + 3× WF-00 status callbacks (1900–1902)
+- DB: messages id=102 inbound text "Hi"; id=103 outbound interactive (welcome message + form CTA)
+- <strong>Behavior:</strong> WF-21 correctly resent the welcome+form — matches DR-9 "opted_out user messaging again = treated as new user". ✅ This step is correct.</p>
+<p><strong>Event 2 — Form submission at 01:28:59 (the broken one):</strong>
+- exec chain: WF-00 (1903) → WF-60 (1904) → WF-01 (1905) → <strong>WF-21 (1906)</strong> → WF-50 (1907) → WF-60 (1908) + 3× WF-00 status callbacks (1909–1911)
+- <strong>WF-22 (<code>dr8QM0m92Ml8MvIh</code> Form Response Handler) NEVER ran.</strong> WF-02 (<code>PubCsNTOspF3xqXZ</code> User State Router) ALSO never ran.
+- DB: messages id=104 inbound interactive (empty content — the nfm_reply payload); id=105 outbound interactive (welcome message + form CTA — sent AGAIN).
+- users.status unchanged: still <code>opted_out</code> (no transition to payment_pending).</p>
+<p><strong>Raw payload confirmation (from WF-00 exec 1903 webhook data):</strong></p>
+<pre><code class="language-json">{
+  &quot;type&quot;: &quot;interactive&quot;,
+  &quot;interactive&quot;: {
+    &quot;type&quot;: &quot;nfm_reply&quot;,
+    &quot;nfm_reply&quot;: {
+      &quot;response_json&quot;: &quot;{\&quot;full_name\&quot;:\&quot;Abcd\&quot;,\&quot;time_of_birth\&quot;:\&quot;12:30\&quot;,\&quot;date_of_birth\&quot;:\&quot;2000-05-24\&quot;,\&quot;consent\&quot;:[\&quot;agree\&quot;],\&quot;flow_token\&quot;:\&quot;1779586105660\&quot;,\&quot;place_of_birth\&quot;:\&quot;Mumbai\&quot;}&quot;,
+      &quot;body&quot;: &quot;Sent&quot;,
+      &quot;name&quot;: &quot;flow&quot;
+    }
+  }
+}
+</code></pre>
+<p>So the form payload arrived intact at WF-00. The parse output at "Parse WhatsApp Message" gives <code>messageType='interactive'</code> and <code>messageContent=''</code> (parse doesn't surface <code>nfm_reply</code> as a distinct messageType; downstream is expected to check <code>rawMessage.interactive.type</code>).</p>
+<h3>Issues found</h3>
+<h4>[critical] BUG-NEW-02 — opted_out user cannot re-engage via form (permanent re-engagement loop)</h4>
+<p><strong>Symptom:</strong> opted_out user sends ANY message (text or form submission) → always routed to WF-21 → form re-sent. User can never transition out of <code>opted_out</code> via the form path.</p>
+<p><strong>Root cause — verified by execution trace:</strong>
+WF-01 (<code>hYGNM97sXvdo1WmI</code> Message Router) connection graph executes filters in this order:</p>
+<pre><code>trigger → Layer 1 Country → Layer 2 Non-Text → Layer 3 Blacklisted →
+  Opted Out? → (YES) Route Opted-Out to WF-21    ← STOPS HERE for opted_out users
+              (NO)  Load Pending User → Load User → ... → Anomaly Route? → Call WF-02 Rule Router
+</code></pre>
+<p>WF-01's <code>Opted Out?</code> IF check fires BEFORE message-type or nfm_reply differentiation. It indiscriminately routes every inbound message from an opted_out user to WF-21 (welcome+form sender). The Flow nfm_reply payload — which should go to WF-22 (via WF-02 <code>Detect Route</code>'s nfm_reply → DETAILS_FORM rule, then <code>Route Switch</code> output #2) — is intercepted at the WF-01 layer and never reaches WF-02 at all.</p>
+<p>Verified by inspecting <code>runData</code> for exec 1905 (WF-01): the only nodes that ran were <code>Layer 1 → Country Rejected? → Layer 2 → Message Accepted? → Layer 3 → Blacklisted? → Opted Out? → Route Opted-Out to WF-21</code>. No path to <code>Call WF-02 Rule Router</code>.</p>
+<p><strong>Verified WF-02's downstream WOULD have worked:</strong> WF-02's <code>Detect Route</code> Code node has the very first rule <code>if (messageType === 'interactive' &amp;&amp; interactiveType === 'nfm_reply') { route = 'DETAILS_FORM' }</code>, which routes to WF-22 via <code>Route Switch</code> output #2. That branch is intact in the JSON. The bug is purely WF-01's premature opted_out catch-all.</p>
+<p><strong>Design-rule conflict:</strong>
+CLAUDE.md state machine line: <code>opted_out →(user messages again)→ [treat as new user, route to WF-21]</code>
+This implies: opted_out → message → get welcome+form → submit form → transition to payment_pending. WF-21 sending the form has no value unless the resulting form submission is allowed to reach WF-22. Current implementation defeats the spirit of "treat as new user" because form submissions get caught in the same opted_out gate.</p>
+<p><strong>Why not pre-existing TD-DRIFT-001?</strong> TD-DRIFT-001 in <code>pseudo-md-drift-fixes-2026-05-24/tasks.md</code> L66 is a header-only stub describing "WF-00 nfm_reply parse path — fix live". The body is empty (not yet designed). This bug's root cause is one workflow further down — in WF-01's <code>Opted Out?</code> ordering, not WF-00 parsing. Whoever flesh-out TD-DRIFT-001 should be aware that the real defect surfaces in WF-01, not WF-00.</p>
+<p><strong>Impact for go-live:</strong> any user who has ever opted out and later wants to come back is locked into a re-engagement loop. STOP is a regulatory feature; users WILL use it and some will return. This is a P0 blocker.</p>
+<p><strong>Impact for this session:</strong> blocks TC-0604, TC-0302, TC-0605, TC-1012 (every TC requires the user to be in <code>payment_pending</code> or beyond — none can be reached from the current <code>opted_out</code> state). Only TC-1007 (whitespace inbound, state-agnostic at WF-60 filter) and TC-1010 passive (already collecting evidence) remain testable from the current user state.</p>
+<p><strong>Workarounds for continuing this session (not fixes — no fix this session):</strong>
+1. <strong>DML clean-slate wipe</strong> (DML allowed) — DELETE users.id=28 and pending_users for 61466927921. Then send any WA message → WF-01 sees <code>Load User</code> returns null, <code>Opted Out?</code> IF evaluates NO (user record absent), continues down the proper path. Form submission would then reach WF-02 → WF-22. <strong>Allowed per session rules.</strong>
+2. <strong>Switch test phone</strong> to a brand-new number — same effect without touching DB. Requires operator to have another WA-capable phone.</p>
+<p><strong>Status:</strong> TC-0606 ✅ done (already validated under prior steps). TC-0604 ⏸ blocked by BUG-NEW-02 unless we reset the user.</p>
+<h3>Action — TC-1007 — Whitespace-only inbound message (TD-034 guard verification)</h3>
+<p><strong>User state:</strong> id=28, status=<code>opted_out</code> (unchanged; current state doesn't matter for this test — TD-034 lives in WF-60 and runs early)
+<strong>Trigger:</strong> operator sends a whitespace-only WA message (e.g. " " or "   ") from 61466927921</p>
+<p><strong>Expected behavior (per TD-034 placement in WF-60):</strong>
+- WF-00 webhook receives the message; calls WF-60 (logger) and WF-01 (router) in parallel.
+- WF-60: detects whitespace-only content via the TD-034 filter, computes <code>_filterReason='whitespace_only'</code> (or similar), the <code>Filter Skip?</code> IF routes to the skip-result path → <strong>no INSERT into <code>chinmay_astro.messages</code></strong>.
+- WF-01: still processes the message through its filter chain. Because user is opted_out, WF-01 will route to WF-21 — same BUG-NEW-02 loop will fire (welcome+form re-sent). Note this is expected given current user state, NOT a regression of TC-1007.</p>
+<p><strong>Cross-checks at tick time:</strong>
+- new exec WF-60 (1 instance) — <code>Filter Skip?</code> IF takes the skip branch
+- <code>messages</code> count: +0 for inbound (TD-034 drop). +N for outbound depending on whether WF-21 fires (likely +1 outbound welcome again, +1 status callback noise).
+- Outcome: ✅ TC-1007 passes if and only if no inbound row appears in <code>messages</code> for this whitespace event.</p>
+<h3>Tick — 2026-05-24T01:50:00Z — TC-1007 NOT TESTABLE FROM WA CLIENT</h3>
+<p><strong>Trigger:</strong> operator tried to send whitespace-only; WhatsApp UI disabled the Send button. WA app validates message non-emptiness client-side before allowing send.</p>
+<p><strong>Implication for TD-034:</strong> the whitespace guard in WF-60 cannot be exercised through the normal WA user path because Meta's client blocks it upstream. TD-034 remains valuable as <strong>defense-in-depth</strong> against:
+- API-direct senders bypassing the WA UI
+- Malformed webhook payloads (rare but seen historically with Meta delivery edge cases)
+- Future channels that might not pre-validate (e.g. a web-form-to-WhatsApp gateway)</p>
+<p>It is NOT reachable through end-to-end smoke testing. To exercise it functionally you'd need to either:
+- POST a crafted webhook to WF-00's endpoint directly (curl with a JSON body containing <code>text.body: " "</code> or empty/whitespace text)
+- Or assert via unit-style inspection that the WF-60 <code>_filterReason</code> and <code>Filter Skip?</code> branch logic handles whitespace correctly (code-review level, not behavior level)</p>
+<p><strong>Decision:</strong> Defer TC-1007 to the same bot-simulation session that TC-0315 / TC-0704 / TC-1006 were deferred to (all three also require crafted webhook payloads). Document in followups + report.</p>
+<p><strong>Outcome:</strong> ⏸ TC-1007 DEFERRED to bot-simulation follow-up session. TD-034 code presence verified earlier (prior sprint smoke); functional-test deferred.</p>
+<hr />
+<h2>Resume — 2026-05-24T04:52:38Z</h2>
+<p><strong>Trigger:</strong> new <code>monitor-test-run</code> invocation against handoff <code>docs/artefacts/handoffs/handoff-smoke-pre-golive-bug-new-02.md</code>. Folder-resume per operator decision (skill-default fresh folder declined; continuity with TC-0606 / BUG-NEW-02 evidence preserved).</p>
+<p><strong>Reset path applied:</strong> DML wipe per CLAUDE.md clean-slate SQL.
+- <code>DELETE FROM chinmay_astro.admin_actions WHERE user_id=28</code> → 3 rows
+- <code>DELETE FROM chinmay_astro.users WHERE phone_number='61466927921'</code> → 1 row (cascades to consultations/messages/payments)
+- <code>DELETE FROM chinmay_astro.pending_users WHERE phone_number='61466927921'</code> → 1 row
+- Post-verify: all 3 targets return 0 rows ✅
+- Slack channel C0B567A175W preserved per handoff. Will become orphan once new form submission creates a new channel via WF-22→WF-52 — cleanup deferred.</p>
+<p><strong>Cursors re-captured:</strong>
+- exec-cursor=1911 (unchanged since prior session end — no new executions in the gap)
+- time-cursor=2026-05-24T04:52:38Z</p>
+<p><strong>Remaining queue (handoff order):</strong> TC-0604 → TC-0302 → TC-1012 → TC-0605.</p>
+<p><strong>Carry-forward unchanged:</strong> TC-1007 deferred (WA UI blocks whitespace); TC-0315 / TC-0704 / TC-1006 deferred (need crafted webhook). BUG-NEW-02 [critical] still open — WF-26 design discussion is pre-pseudo per operator note in <code>followups-bug-new-02-resolution.md</code>.</p>
+<h3>Action — 2026-05-24T04:55:00Z — TC-0604 (STOP from payment_pending)</h3>
+<p><strong>Operator narration:</strong>
+1. Send <code>hi</code> from 61466927921 (wiped user, no record). Expect: WF-21 welcome + WhatsApp Flow form back; row in <code>pending_users</code> only (no <code>users</code> row yet per DR-1).
+2. Fill + submit Flow form. Expect: WF-22 inserts <code>users</code> row in <code>payment_pending</code>, calls WF-52 to create new consult channel, stores <code>slack_channel_id</code>; admin notified in Slack.
+3. From <code>payment_pending</code>, send <code>STOP</code> instead of tapping <code>Payment Completed</code>. Expect: WF-20 keyword intercept → unconditional opt-out → <code>users.status = opted_out</code>, opt-out confirmation WA reply, admin notified.</p>
+<p><strong>Will tick on operator's "check" after step 3.</strong></p>
+<h3>Tick — 2026-05-24T05:01:00Z — TC-0604</h3>
+<p><strong>Trigger:</strong> operator said "check" after sending <code>hi</code> → submitting form → sending <code>STOP</code>.</p>
+<p><strong>New executions:</strong> 36 (1912–1947), all success, max duration 2.95s (no <code>[slow]</code> flags). Three waves:</p>
+<p><em>Wave 1 — <code>hi</code> inbound (04:57:35–40):</em> WF-00 → WF-60 → WF-01 → WF-02 → WF-20 (keyword pre-check, fall-through) → WF-21 (new-user welcome + form) → WF-50 (form sent) → WF-60 log. Then 3× WF-00 delivery callbacks.</p>
+<p><em>Wave 2 — form submission (04:58:04–16):</em> WF-00 → WF-60 → WF-01 → WF-02 → WF-22 (form handler) → <strong>WF-52 (channel manager)</strong> → WF-50 (payment confirmation to user) → WF-60 log. Then 3× WF-00 delivery callbacks.</p>
+<p><em>Wave 3 — <code>STOP</code> inbound (04:58:32–36):</em> WF-00 → WF-60 → WF-01 → WF-02 → <strong>WF-20 (keyword intercept)</strong> → <strong>WF-47 (Unsubscribe Handler)</strong> → <strong>WF-51 (admin Slack alert)</strong> → WF-60 → <strong>WF-50 (opt-out WA confirmation)</strong> → WF-10 (bot-echo entry, exited clean, no chained action — side evidence for TC-0315) → WF-60. Then 3× WF-00 delivery callbacks.</p>
+<p><strong>DB deltas:</strong>
+- <code>pending_users</code>: 1 new row at 04:57:36 (phone=61466927921, contact_name="Prasad Mujumdar") — written by WF-21 path before any user row. ✅ DR-1 honored.
+- <code>users</code>: 1 new row id=29 at 04:58:07-ish, status flipped to <code>opted_out</code> at 04:58:32.596Z. <strong>slack_channel_id=C0B567A175W</strong> — WF-52 reused the preserved channel by name rather than creating a new one (idempotent — orphan concern resolved).
+- <code>messages</code> (user_id=29): 4 rows — outbound payment-confirmation (id=106), inbound <code>STOP</code> (107), outbound Slack opt-out alert (108), outbound WA opt-out confirmation (109). Trail correct.</p>
+<p><strong>Slack:</strong>
+- <code>consult-61466927921</code> (C0B567A175W): 1 new bot message at 04:58:32Z — ":warning: User has opted out via STOP (phone: 61466927921)… (Channel preserved per DR-10 in case of REBOOK.)". ✅
+- <code>chinmay-admin-commands</code>: not separately checked this tick — opt-out alert went to the user's consult channel per DR-13.</p>
+<p><strong>Cross-check vs expected:</strong>
+- ✅ Step 1: <code>hi</code> → WF-21 form returned; only <code>pending_users</code> row written, no <code>users</code> row at that point.
+- ✅ Step 2: form submit → WF-22 created user 29 (<code>payment_pending</code>), WF-52 returned channel id, payment-confirmation WA sent.
+- ✅ Step 3: <code>STOP</code> from <code>payment_pending</code> → WF-20 intercept → WF-47 unconditional opt-out → status=<code>opted_out</code> (DR-4 unconditional behavior), admin Slack alert + WA confirmation both delivered.</p>
+<p><strong>Outcome:</strong> ✅ <strong>TC-0604 PASS</strong> — STOP from <code>payment_pending</code> triggers unconditional opt-out, matches design.</p>
+<p><strong>Observations (not bugs, but flagging):</strong>
+- The WF-21 outbound form message did NOT produce a <code>messages</code> row (the trail starts at id=106 for the WF-22 payment confirmation). At WF-21 send-time there was no <code>users.id</code> to attach. Pre-existing WF-60 behavior (logger keyed on user_id), not a regression — but worth noting if the FunctionalTestCases tracker expects every outbound to be logged.
+- WF-52 idempotency on channel name is now empirically confirmed: same <code>consult-{phone}</code> slug returned the preserved channel C0B567A175W rather than creating a new orphan. Good for DR-10 + rebook re-use.</p>
+<p><strong>Cursors updated at end of tick:</strong> exec-cursor=1947, time-cursor=2026-05-24T05:01:00Z.</p>
+<h3>Issues found — 2026-05-24T05:15:00Z — design-level gaps surfaced by TC-0604</h3>
+<p><strong>GAP-01 [major] — Inbound + WF-21 outbound not logged in <code>messages</code> (audit-trail gap)</strong></p>
+<p>During TC-0604, the inbound <code>hi</code> (Wave 1) and the outbound WF-21 form message produced <strong>no</strong> rows in <code>chinmay_astro.messages</code>. Logging only resumed at id=106 (WF-22 payment confirmation, Wave 2) because <code>messages.user_id</code> is the only key WF-60 attaches by, and the <code>users</code> row didn't exist until WF-22 ran. Verified via <code>SELECT * FROM messages WHERE created_at BETWEEN '2026-05-24T04:57:00Z' AND '2026-05-24T04:58:30Z'</code> → 1 row only.</p>
+<p><strong>Operator principle (logged this session):</strong> audit-trail integrity requires that every inbound + outbound WhatsApp event be logged regardless of whether the <code>users</code> row exists yet. User-row creation timing (delayed to form submission, per DR-1) and message-logging coverage are independent concerns.</p>
+<p><strong>Implication for sprint backlog (no code change this session):</strong>
+- <code>messages.user_id</code> must become nullable OR WF-60 must look up phone → user_id with NULL fallback for pre-form events.
+- Affected workflow pseudo specs likely include WF-60 (logger entry-point), WF-21 (welcome+form path), WF-23/WF-30/WF-31 (intent filters that emit outbound clarifiers), and the inbound-side WF-00→WF-01→WF-02 chain that currently bypasses logging when no user_id is resolvable.
+- Pseudo-first per <code>[[feedback_pseudocode_first_refactor]]</code>: revise WF-60.pseudo + caller pseudos before any JSON edits.</p>
+<p><strong>GAP-02 [minor] — GDPR / data-retention maintenance workflows not yet built (provision exists in registry)</strong></p>
+<p><code>docs/workflow-registry.md</code> provisions both maintenance jobs but neither is implemented:
+- <strong>WF-73 Stale Form Cleanup</strong> — daily, deletes records for users who never submitted form after 7 days (covers the pending-only orphan case). 🔵 Build Fresh / ⚪ P4 / Post-Go-Live.
+- <strong>WF-74 Data Retention Cleanup</strong> — monthly, anonymise/delete records beyond retention period. 🔵 Build Fresh / ⚪ P4 / Post-Go-Live.</p>
+<p>Verified via n8n API query — no live workflow names contain <code>maint|clean|purge|retent|gdpr|stale|delete|expir|prun</code>.</p>
+<p><strong>Scope expansion required when GAP-01 is fixed:</strong>
+- If WF-60 starts writing rows for pre-<code>users</code> events (NULL <code>user_id</code> or phone-keyed), then <strong>WF-73 must broaden</strong> to also purge orphan <code>messages</code> rows whose phone has no live <code>users</code> or <code>pending_users</code> mapping. Current FK <code>messages.user_id ON DELETE CASCADE</code> only cascades from <code>users</code> deletion — pending_users deletion doesn't touch <code>messages</code>.
+- WF-74's retention window is undefined in the registry — needs a concrete number (likely tied to <code>consultation_closed + N days</code> for Indian DPDPA / GDPR equivalence) before it can be built.</p>
+<p>Both GAPs to carry into the followups file at end-of-session for sprint planning intake.</p>
+<h3>Skipped — TC-0302 and TC-1012 (covered by prior smoke; recorded as PASS by reference)</h3>
+<p>Per operator decision after audit (avoid redundant re-test); evidence cited below.</p>
+<p><strong>TC-0302 — Admin <code>APPROVE PAYMENT &lt;wrong-phone&gt;</code> → admin Slack feedback (no silent drop). ✅ PASS by reference.</strong>
+Covered in SP-03 smoke <code>docs/artefacts/tests/smoke-wf10-centralized-gate-2026-05-23/session.md</code> Phase C2:
+- Operator typed <code>APPROVE PAYMENT +614999999999</code> in <code>consult-+61466927921</code>
+- Executions 1731 (WF-10 classify) → 1732 (WF-51 alert) → 1733/1734 (logger) → 1735 (WF-10 echo) — no WF-11, no WF-33, terminated at WF-51 alert ✅
+- Verified Slack reply: ":warning: APPROVE PAYMENT 614999999999 ignored — this channel belongs to 61466927921. Please re-check the phone you typed. No action taken."
+- Phone-Absent (C1, exec 1727) and Wrong-State (C3, exec 1737) variants also passed in same smoke.</p>
+<p><strong>TC-1012 — WF-33 reads <code>slack_channel_id</code> from <code>users</code> row, does NOT call WF-52. ✅ PASS by reference.</strong>
+Covered in SP-03 smoke Phase E1 (Attempt 3, execs 1790–1801 — APPROVE PAYMENT happy path):
+- 12-execution chain: WF-10 → WF-11 → WF-33 → WF-50 → WF-60 → WF-51 → WF-60 → WF-00 (×3 callbacks) → WF-10 echo
+- <strong>WF-52 (IO5BZLUxuVmjzk5I) absent from the chain</strong> — WF-33 used the existing <code>users.slack_channel_id</code> directly
+- DB end-state: <code>users.status='consultation_active'</code>, payment row verified, consultation row created — all using the pre-existing channel
+- DR-2 (channel created at form-submit, not at payment-completed) and DR-10 (channel preserved + reused) both honored</p>
+<h3>Action — 2026-05-24T05:18:00Z — TC-0605 (STOP from consultation_active)</h3>
+<p><strong>Pre-action setup:</strong> wipe user 29 (clean-slate SQL), then walk the full happy path to consultation_active before sending STOP.</p>
+<p><strong>Operator narration (planned):</strong>
+1. Send <code>hi</code> from 61466927921 (wiped). Expect: WF-21 form back, only <code>pending_users</code> row.
+2. Fill + submit Flow form. Expect: WF-22 → <code>users.status='payment_pending'</code>, WF-52 returns C0B567A175W (idempotent reuse expected), payment-confirmation WA sent.
+3. Tap "Payment Completed" button on the WA payment-info message. Expect: WF-31 (Payment Submitted Handler) flips <code>users.status='payment_submitted'</code>, admin Slack alert with APPROVE/REJECT prompt.
+4. Operator types <code>APPROVE PAYMENT 61466927921</code> in the consult channel. Expect: WF-10 gate PASS → WF-11 → WF-33 → <code>users.status='consultation_active'</code>, payment row verified, consultation row created, admin Slack confirmation.
+5. From <code>consultation_active</code>, send <code>STOP</code> instead of any consultation text. Expect: WF-20 keyword intercept → WF-47 unconditional opt-out → <code>users.status='opted_out'</code>, admin Slack alert + WA opt-out confirmation. (Same unconditional behavior as TC-0604, but starting from <code>consultation_active</code> instead of <code>payment_pending</code> — verifies DR-4 applies across both states under SP-04.)</p>
+<p><strong>Will tick on operator's "check" after step 5.</strong></p>
+<h3>Tick — 2026-05-24T05:50:00Z — TC-0605</h3>
+<p><strong>Trigger:</strong> operator completed all 5 steps (hi → form → Payment Completed → admin APPROVE PAYMENT 61466927921 → STOP) and said "check".</p>
+<p><strong>New executions:</strong> 61 (1948–2008), all <code>success</code>, all sub-second. Five waves correspond 1:1 to the planned steps — no extra invocations, no failures, no slow flags.</p>
+<table>
+<thead>
+<tr>
+<th>Wave</th>
+<th>Time</th>
+<th>Trigger</th>
+<th>Chain</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>05:44:39</td>
+<td>inbound <code>hi</code></td>
+<td>WF-00 → WF-60 → WF-01 → WF-02 → WF-20 (pass-through) → <strong>WF-21</strong> → WF-50 (form sent) → WF-60</td>
+<td>form delivered</td>
+</tr>
+<tr>
+<td>2</td>
+<td>05:45:06</td>
+<td>form submit</td>
+<td>WF-00 → WF-60 → WF-01 → WF-02 → <strong>WF-22</strong> → <strong>WF-52</strong> → WF-50 (payment info) → WF-60</td>
+<td>user 30 in <code>payment_pending</code>, channel reused C0B567A175W</td>
+</tr>
+<tr>
+<td>3</td>
+<td>05:45:17</td>
+<td>"Payment Completed" tap</td>
+<td>WF-00 → WF-60 → WF-01 → WF-02 → <strong>WF-32</strong> → WF-50 (ack) → WF-60 → <strong>WF-51</strong> (admin "New Payment Submission" w/ APPROVE prompt) → WF-60</td>
+<td><code>payment_submitted</code> + admin alerted</td>
+</tr>
+<tr>
+<td>4</td>
+<td>05:45:46</td>
+<td>admin <code>APPROVE PAYMENT 61466927921</code></td>
+<td><strong>WF-10</strong> → <strong>WF-11</strong> → <strong>WF-33</strong> → WF-50 (template <code>consultation_activated</code>) → WF-60 → WF-51 ("Payment approved... consultation active") → WF-60</td>
+<td><code>consultation_active</code> + payment 18 <code>verified</code> + consultation 14 <code>active</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>05:47:46</td>
+<td>inbound <code>STOP</code> from <code>consultation_active</code></td>
+<td>WF-00 → WF-60 → WF-01 → WF-02 → <strong>WF-20</strong> (keyword intercept) → <strong>WF-47</strong> (unsubscribe) → WF-51 (admin opt-out alert) → WF-60 → WF-50 (opt-out WA confirmation) → WF-60</td>
+<td><code>opted_out</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>DB end-state:</strong>
+- <code>users</code> id=30, phone=61466927921, status=<code>opted_out</code>, slack_channel_id=<code>C0B567A175W</code> (idempotent reuse — third confirmation this session), updated_at=05:47:47.345Z
+- <code>payments</code> id=18, status=<code>verified</code>, ₹500
+- <code>consultations</code> id=14, status=<code>active</code>, started_at=05:45:47Z ← <strong>note: still <code>active</code></strong> after opt-out (see Observation O-01 below)
+- <code>messages</code> user_id=30 — 10 rows (110–119): WF-22 ack outbound, "Payment Completed" inbound interactive, WF-32 ack outbound text, WF-51 admin "New Payment Submission" outbound slack_text, WF-50 <code>consultation_activated</code> template outbound, WF-51 "Payment approved" outbound slack_text, admin <code>APPROVE PAYMENT</code> inbound slack_text, <code>STOP</code> inbound text, WF-51 opt-out outbound slack_text, WF-50 opt-out confirmation outbound text</p>
+<p><strong>Slack (C0B567A175W) — last 4 messages match chain exactly:</strong>
+- 05:45:20 — bot ":bell: New Payment Submission... Phone +61466927921... Payment ID: 18... APPROVE PAYMENT 61466927921"
+- 05:45:45 — operator (U0A4175DJ5D) typed <code>APPROVE PAYMENT 61466927921</code>
+- 05:45:48 — bot ":white_check_mark: Payment approved for Ande (61466927921). User notified via WhatsApp; consultation is now active."
+- 05:47:47 — bot ":warning: User has opted out via STOP (phone: 61466927921). This consultation will not progress further. (Channel preserved per DR-10 in case of REBOOK.)"</p>
+<p><strong>Cross-check vs expected:</strong>
+- ✅ Step 1: form delivered, pending_users-only (deferred verify — covered by Wave 1 having WF-21 in the chain and no WF-22)
+- ✅ Step 2: WF-22 created user 30, WF-52 returned existing channel id, payment confirmation WA sent
+- ✅ Step 3: WF-32 flipped status to <code>payment_submitted</code>, admin Slack alert posted with APPROVE prompt
+- ✅ Step 4: WF-10 gate PASS → WF-11 → WF-33 → status=<code>consultation_active</code>, payment.verified, consultation row created, admin Slack confirmation
+- ✅ Step 5: WF-20 keyword intercept → WF-47 unconditional opt-out from <code>consultation_active</code> (DR-4 holds across both <code>payment_pending</code> and <code>consultation_active</code> starting states)</p>
+<p><strong>Outcome:</strong> ✅ <strong>TC-0605 PASS</strong> — STOP from <code>consultation_active</code> triggers unconditional opt-out, matches design.</p>
+<p><strong>Observations (not bugs, flagging):</strong></p>
+<p><strong>O-01 [minor] — consultation row left in <code>active</code> status after user opt-out.</strong> After WF-47's unsubscribe sequence, <code>consultations.id=14.status</code> remained <code>active</code>. Only <code>users.status</code> flipped to <code>opted_out</code>. WF-47 does not touch the consultations row.
+- Functional impact: low — the gate for any further user-side action is <code>users.status</code>, which correctly blocks. But operational/analytics queries that count "active consultations" will inflate by 1 per opted-out-mid-consultation user.
+- Design question: should WF-47 also set <code>consultations.status='abandoned'</code> (or similar) when there is an open consultation row? Or is the convention to leave it active and infer state from <code>users.status</code> join? Worth deciding before backlog grooming.</p>
+<p><strong>O-02 [info] — GAP-01 confirmed scope.</strong> TC-0605's <code>messages</code> trail starts at id=110 (WF-22 ack) — same pattern as TC-0604. Inbound <code>hi</code> from Wave 1 and outbound WF-21 form are still missing. So GAP-01 is consistently a "pre-users-row" event-logging hole, not a transient bug.</p>
+<p><strong>O-03 [info] — WF-52 idempotency on channel name now confirmed across 3 fresh users (28, 29, 30).</strong> All three reused <code>C0B567A175W</code> rather than creating new orphans. Strong empirical support for DR-10.</p>
+<p><strong>O-04 [info] — admin Slack inbound <code>APPROVE PAYMENT 61466927921</code> logged in <code>messages</code> as id=116 (direction=inbound, message_type=slack_text).</strong> WF-10's centralized gate is contributing audit-trail rows for admin-side commands too. Good supporting context for the upcoming message-logging design sprint (the Slack side is already complete; only the WA pre-users-row side has the gap).</p>
+<p><strong>Cursors updated at end of tick:</strong> exec-cursor=2008, time-cursor=2026-05-24T05:50:00Z.</p>
+      </details>
+      <div id="appendix-followups-bug-new-02-resolution"><details class="appendix-item"><summary>Followup — Bug New 02 Resolution <span class="src">(followups-bug-new-02-resolution.md)</span></summary><h1>Follow-ups — BUG-NEW-02 resolution thinking</h1>
+<p>Captured during the session for triage in a future build-sprint. <strong>No code/pseudo/.md edits made.</strong></p>
+<h2>Operator's design direction (2026-05-24)</h2>
+<blockquote>
+<p>WF-21 is for genuinely new users (or post-cleanup wiped users who LOOK new). For an opted_out user whose DB records still exist, sending welcome+form is wrong — they've already onboarded with name/DOB/birth-place. Re-issuing the form makes them re-enter data (UX regression + data-correctness risk).</p>
+<p>Re-engaged opted_out users should: have their status lifted out of opted_out, then have their message routed through the intent filter to be handled like any other returning user — answer general enquiries, prompt REBOOK if they intend to book, process REBOOK/HELP keywords directly. Primary goal: move them out of opted_out and let normal routing take over.</p>
+</blockquote>
+<h2>Reviewer (Claude) — analysis</h2>
+<h3>Why this matters</h3>
+<ul>
+<li><code>users.status = opted_out</code> exists to honor regulatory opt-out (STOP). The state's UX commitment is "no further messages unless they reach out." Once they reach out, the regulatory contract is satisfied — they've opted back in by initiating contact.</li>
+<li>Continuing to treat them as "never-onboarded" wastes their data (DOB/name/place stored from prior submission) and creates the loop observed in this session.</li>
+</ul>
+<h3>Architectural placement — three options</h3>
+<p><strong>Option A — fix inline in WF-01's <code>Opted Out?</code> YES branch</strong>
+- Smallest change. Add UPDATE users SET status='consultation_closed' + welcome-back message-build + WF-50 call, then terminate (don't continue to WF-02).
+- Cons: WF-01 is filtering layer; adding business-logic mutations there pollutes single responsibility. Drift-check rule violations likely.</p>
+<p><strong>Option B — new workflow (e.g. WF-26 "Re-Engaged Opted-Out User Handler")</strong> ← recommended
+- WF-01's <code>Opted Out?</code> YES branch calls WF-26 (instead of WF-21).
+- WF-26 responsibilities: (1) UPDATE users.status = consultation_closed (or whatever the safe re-entry default is); (2) send "welcome back" WA message via WF-50 with hints (REBOOK, HELP, or just ask); (3) optionally forward the incoming message to WF-25 → route by intent so the very first re-engagement message is answered, not just acknowledged.
+- Cons: more work to build; one more entry in WF-XX inventory.</p>
+<p><strong>Option C — handle inside WF-21 with an <code>if status === opted_out</code> branch</strong>
+- Operator's "easier solution" candidate. Reuses WF-21.
+- Cons: WF-21 becomes two different workflows in one ("Welcome new user + send form" vs "Lift opted_out + welcome back"). Naming would be misleading; future readers would assume WF-21 only handles purely new users. Higher drift risk.</p>
+<h3>Reviewer recommendation</h3>
+<p><strong>Option B.</strong> Cleaner separation, easier to drift-check, doesn't bend WF-01's "filter layer" role or overload WF-21's purpose. Cost is one more workflow, which is small for the readability gain.</p>
+<blockquote>
+<p><strong>Operator note (2026-05-24):</strong> the WF-26 design above is a <em>starting point for discussion</em>, NOT a finalised spec. Before any pseudo gets written, the operator wants a dedicated design session to walk through: re-entry status semantics, whether to forward the first message, welcome-back wording, what to do if user opted out from <code>payment_submitted</code>, and any other edge cases not yet enumerated. Treat everything above (re-entry status, message-forwarding, wording, etc.) as open. Do NOT assume the recommendation as stated is complete or sufficient.</p>
+</blockquote>
+<p>If shipping speed matters more than architectural cleanness for pre-go-live, Option A is acceptable as a stopgap with a tech-debt note to refactor into WF-26 post-go-live.</p>
+<h3>Open design questions before implementation</h3>
+<ol>
+<li><strong>Re-entry status — what value?</strong></li>
+<li><code>consultation_closed</code> is the natural fit (already a known dormant-but-onboarded state, routes through WF-43 → intent classifier on free-form text).</li>
+<li>But for users who opted out from <code>payment_pending</code> (never reached consultation), lifting to <code>consultation_closed</code> is semantically odd (they never had a consult).</li>
+<li>Alternatives: a new transient state like <code>re_engaged</code>, or store-and-restore prior status (more complex).</li>
+<li>
+<p><strong>Lowest-friction</strong>: always <code>consultation_closed</code>. The semantic oddness is acceptable; downstream behavior is identical (free-text gets intent-classified, REBOOK keyword sends them through the payment flow).</p>
+</li>
+<li>
+<p><strong>Welcome-back message wording</strong></p>
+</li>
+<li>
+<p>Short, helpful, no jargon: e.g. <em>"Welcome back to Chinmay Astro. Reply REBOOK to start a new consultation, HELP for options, or just send your question and I'll help."</em></p>
+</li>
+<li>
+<p><strong>Forward-the-first-message or just acknowledge?</strong></p>
+</li>
+<li>Forwarding: user's first message gets answered immediately (intent-classified → routed). Best UX.</li>
+<li>Acknowledging-only: simpler but the user has to send a second message before anything happens. Worse UX.</li>
+<li>
+<p>Recommend forwarding (extra step in WF-26 to call WF-25 → branch by intent → route to appropriate downstream WF). Adds complexity worth paying for.</p>
+</li>
+<li>
+<p><strong>WF-01 ordering — what about other filters?</strong></p>
+</li>
+<li>Country and Blacklisted should still run BEFORE re-engagement (don't re-engage a blacklisted user).</li>
+<li>
+<p>Non-Text Filter currently runs before <code>Opted Out?</code>. For a re-engaging opted_out user sending a non-text message (image/audio), do we deflect (silent reject) or lift them out anyway? Probably deflect (same as we do for new users). So order should stay: Country → Non-Text → Blacklisted → Opted Out?.</p>
+</li>
+<li>
+<p><strong>Drift sprint integration</strong></p>
+</li>
+<li>TD-DRIFT-001 in <code>pseudo-md-drift-fixes-2026-05-24/tasks.md</code> L66 is currently a header-only stub for "WF-00 nfm_reply parse path — fix live". The real defect is in WF-01, not WF-00. When the drift-sprint owner fleshes out TD-DRIFT-001, retarget it to WF-01's <code>Opted Out?</code> ordering + WF-26 (or chosen option) — and consider whether the original "WF-00 nfm_reply" framing was a misdiagnosis worth deleting outright.</li>
+</ol>
+<h2>Post-MVP tracker addition (also from operator)</h2>
+<blockquote>
+<p>"We currently do not have any mechanism for users to correct or update the BIRTH details they shared originally during onboarding. We need to provision a keyword to do so and create workflow to handle this."</p>
+</blockquote>
+<p>Captured here for handoff into the post-MVP backlog. Suggested keyword: <code>UPDATE</code> or <code>UPDATE DETAILS</code>. New workflow WF-2x or WF-7x range. Behavior: send the same WhatsApp Flow form pre-filled with current values, accept new submission, UPDATE users row. Triggerable from any state except <code>blocked</code> / <code>opted_out</code> (gated through the same re-engagement handler we design above if from opted_out).</p></details></div><div id="appendix-followups-consultations-stale-active"><details class="appendix-item"><summary>Followup — Consultations Stale Active <span class="src">(followups-consultations-stale-active.md)</span></summary><h1>Follow-up — O-01: <code>consultations</code> row remains <code>active</code> after user opt-out</h1>
+<p><strong>Severity:</strong> minor (functional impact low; analytics/operational impact medium)
+<strong>Surfaced by:</strong> TC-0605 tick in this session (2026-05-24)
+<strong>Status:</strong> captured for sprint intake — design decision required before fix</p>
+<h2>Finding</h2>
+<p>After TC-0605 walked user 30 to <code>consultation_active</code> and then opt-out via STOP:</p>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Field</th>
+<th>Pre-STOP</th>
+<th>Post-STOP</th>
+<th>WF responsible</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>users</code></td>
+<td><code>status</code></td>
+<td><code>consultation_active</code></td>
+<td><code>opted_out</code></td>
+<td>WF-47</td>
+</tr>
+<tr>
+<td><code>consultations</code> (id=14)</td>
+<td><code>status</code></td>
+<td><code>active</code></td>
+<td><strong><code>active</code></strong> (unchanged)</td>
+<td>none — WF-47 doesn't touch consultations</td>
+</tr>
+</tbody>
+</table>
+<p>Verified:</p>
+<pre><code class="language-sql">SELECT id, status FROM chinmay_astro.consultations WHERE user_id=30;
+-- {id: 14, status: 'active'}
+</code></pre>
+<h2>Impact</h2>
+<p><strong>Low — user-side gate is <code>users.status</code></strong>, which correctly blocks further interaction. STOP path works.</p>
+<p><strong>Medium — operational/analytics queries</strong>:
+- "How many active consultations does Chinmay have?" — <code>SELECT COUNT(*) FROM consultations WHERE status='active'</code> will inflate by 1 per opted-out-mid-consultation user
+- Any future reporting / dashboard that queries <code>consultations.status</code> directly (without joining <code>users.status</code>) will mis-report</p>
+<h2>Design question</h2>
+<p>Should WF-47 (Unsubscribe Handler) also flip <code>consultations.status</code> when it finds an open consultation row for the opting-out user? Three options:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. Leave consultations <code>active</code>, document the "always join <code>users.status</code>" convention</td>
+<td>Simplest — no WF-47 change</td>
+<td>Requires every future analytics query to know the convention; easy to forget</td>
+</tr>
+<tr>
+<td>B. WF-47 flips open consultations to <code>abandoned</code> (new status enum value)</td>
+<td>Clean data model; analytics work without join</td>
+<td>New enum value; need to decide if <code>abandoned</code> differs from <code>closed</code> for reporting</td>
+</tr>
+<tr>
+<td>C. WF-47 flips open consultations to <code>closed</code> (reuse existing enum)</td>
+<td>No new enum; backward-compatible</td>
+<td>Loses the distinction between "Chinmay closed it normally" and "user opted out mid-flow"</td>
+</tr>
+</tbody>
+</table>
+<p>Author lean: <strong>option B</strong> — explicit <code>abandoned</code> distinct from <code>closed</code> makes the audit trail honest and gives reporting a clean signal. But this is a product/operator call.</p>
+<h2>Related state-machine considerations</h2>
+<p>Similar question applies to <strong>admin BLOCK</strong> when the user is <code>consultation_active</code> — does WF-46 (User Blocker) also flip the consultations row? Worth auditing the same code-path in a single design pass:</p>
+<ul>
+<li>WF-47 (STOP / unsubscribe)</li>
+<li>WF-46 (admin BLOCK)</li>
+<li>WF-42 (admin CLOSE — this one DOES flip consultations.status='closed' per the build sprint, so it's the canonical pattern)</li>
+</ul>
+<p>If the WF-42 pattern is canonical, WF-47 and WF-46 should mirror it with appropriate status values (<code>abandoned</code>, <code>blocked_mid_consult</code>, etc.).</p>
+<h2>Sprint intake</h2>
+<ul>
+<li>Single design pass covering all three workflows (WF-42 / WF-46 / WF-47)</li>
+<li>Pseudo-first per <code>[[feedback_pseudocode_first_refactor]]</code> — revise the three <code>.pseudo</code> files together</li>
+<li>Hard-dependency: operator decision on option A/B/C above</li>
+<li>Soft-dependency: if option B (new enum value), need to check whether postgres column is enum-typed (would require ALTER TYPE) or free text (just an INSERT-level convention)</li>
+</ul>
+<h2>Related</h2>
+<ul>
+<li>WF-42.pseudo — existing canonical "active → closed" flip pattern</li>
+<li><code>[[project_design_rule_pending_users]]</code> — DR-related context for state-machine integrity</li>
+</ul></details></div><div id="appendix-followups-message-logging-gap"><details class="appendix-item"><summary>Followup — Message Logging Gap <span class="src">(followups-message-logging-gap.md)</span></summary><h1>Follow-up — GAP-01: WA message-logging audit-trail gap (pre-users-row events)</h1>
+<p><strong>Severity:</strong> major
+<strong>Surfaced by:</strong> TC-0604 + TC-0605 ticks in this session (2026-05-24)
+<strong>Status:</strong> captured for sprint intake — no code/pseudo edits this session</p>
+<h2>Finding</h2>
+<p>During both TC-0604 (user 29) and TC-0605 (user 30), inbound <code>hi</code> and outbound WF-21 form messages produced <strong>no</strong> rows in <code>chinmay_astro.messages</code>. The trail consistently starts at the first WF-22 invocation (id=106 for user 29; id=110 for user 30). Verified twice:</p>
+<pre><code class="language-sql">SELECT * FROM chinmay_astro.messages
+WHERE created_at BETWEEN '2026-05-24T04:57:00Z' AND '2026-05-24T04:58:30Z';
+-- 1 row (only the WF-22 outbound). Inbound `hi` + WF-21 outbound missing.
+</code></pre>
+<p>Root cause: WF-60 currently keys log inserts on <code>users.id</code>. At the moment <code>hi</code> arrives and at the moment WF-21 sends the form, no <code>users</code> row exists yet (DR-1 defers row creation to WF-22 / form-submit). WF-60 has no FK to attach and drops the event.</p>
+<h2>Operator principle (set during this session)</h2>
+<p>Audit-trail integrity requires that every inbound + outbound WhatsApp event be logged regardless of whether a <code>users</code> row exists yet. User-row creation timing (delayed to form submission per DR-1) and message-logging coverage are <strong>independent concerns</strong> and must not be conflated.</p>
+<h2>Side observation supporting the fix</h2>
+<p>On the Slack admin-side, the inbound <code>APPROVE PAYMENT 61466927921</code> was correctly logged in <code>messages</code> (id=116, <code>direction=inbound</code>, <code>message_type=slack_text</code>) — WF-10's centralized gate already does what GAP-01 needs WF-60 to do on the WA side. So the fix has a working sibling pattern in the same codebase.</p>
+<h2>Sprint intake — design decisions required (pseudo-first per <code>[[feedback_pseudocode_first_refactor]]</code>)</h2>
+<ol>
+<li><strong>Schema decision:</strong> make <code>messages.user_id</code> nullable? Or keep NOT NULL and resolve user_id at log time via a phone → users lookup with a fallback (e.g. create a "ghost" users row with status=<code>pre_form</code>)? Each has tradeoffs:</li>
+<li>Nullable: simplest schema change, but breaks every existing query that joins <code>messages</code> → <code>users</code> without a null-safe predicate. Affects WF-72 / WF-73 / WF-74 plans and any analytics query.</li>
+<li>Ghost-row: preserves NOT NULL invariant, but introduces a new ephemeral state and changes DR-1's semantic ("first DB write = WF-22 form callback" becomes false).</li>
+<li>Phone-keyed messages with NULL user_id allowed only pre-form: hybrid; most defensible from data-modeling standpoint, requires a backfill convention for when the user later submits the form.</li>
+<li><strong>WF-60 entry-point pseudo revision:</strong> make WF-60 callable without a <code>user_id</code>. Define the phone-lookup fallback and the null-handling contract.</li>
+<li><strong>Caller pseudo audit:</strong> WF-00 → WF-01 → WF-02 chain currently bypasses WF-60 when no user_id is resolvable. Also WF-21 (welcome+form) and WF-23/WF-30/WF-31 (intent filters emitting clarifiers — though the latter three only fire post-users-row, so likely fine). Revise WF-60.pseudo + WF-21.pseudo + the inbound chain pseudo.</li>
+<li><strong>Backfill question:</strong> when a user does eventually submit the form, do we retroactively backfill <code>user_id</code> on the pre-existing rows? Probably yes — the audit trail should be coherent for the operator looking back.</li>
+<li><strong>GDPR coupling:</strong> see <code>[[followups-retention-workflows]]</code> — WF-73 cleanup scope must broaden to purge orphan <code>messages</code> rows for stale pending_users.</li>
+</ol>
+<h2>Acceptance criteria for the fix</h2>
+<ul>
+<li>Send <code>hi</code> from a wiped phone → exactly 1 inbound row in <code>messages</code> within the same execution wave (joined to the eventual user_id once form is submitted, or recorded with NULL user_id + phone otherwise)</li>
+<li>Form-submit → eventual users.id resolves; trail joinable end-to-end</li>
+<li><code>messages_orphan</code> sentinel query continues to return 0:
+  <code>sql
+  SELECT COUNT(*) FROM chinmay_astro.messages WHERE user_id NOT IN (SELECT id FROM chinmay_astro.users);</code>
+  (must hold after both happy-path and DML wipe)</li>
+</ul>
+<h2>Related</h2>
+<ul>
+<li><code>[[followups-retention-workflows]]</code> — WF-73/WF-74 scope grows once this is fixed</li>
+<li><code>[[feedback_pseudocode_first_refactor]]</code> — workflow pseudo revised before JSON edits</li>
+<li><code>[[project_design_rule_pending_users]]</code> — DR-1 stays unchanged; this fix doesn't violate it</li>
+</ul></details></div><div id="appendix-followups-retention-workflows"><details class="appendix-item"><summary>Followup — Retention Workflows <span class="src">(followups-retention-workflows.md)</span></summary><h1>Follow-up — GAP-02: GDPR / data-retention maintenance workflows not yet built</h1>
+<p><strong>Severity:</strong> minor (deferred to post-go-live per registry classification)
+<strong>Surfaced by:</strong> operator-initiated check during this session (2026-05-24)
+<strong>Status:</strong> captured for sprint intake — no code/pseudo edits this session</p>
+<h2>Finding</h2>
+<p>Two maintenance workflows are provisioned in <code>docs/workflow-registry.md</code> under the WF-7x range but <strong>neither exists in live n8n</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>WF</th>
+<th>Cadence (per registry)</th>
+<th>Scope (per registry)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>WF-73 Stale Form Cleanup</strong></td>
+<td>Daily</td>
+<td>Delete records for users who never submitted form after 7 days (the pending-only orphan case)</td>
+</tr>
+<tr>
+<td><strong>WF-74 Data Retention Cleanup</strong></td>
+<td>Monthly</td>
+<td>Anonymise / delete records beyond retention period (the broader GDPR sweep)</td>
+</tr>
+</tbody>
+</table>
+<p>Both classified 🔵 Build Fresh / ⚪ P4 / Post-Go-Live. Verified absence in live n8n via:</p>
+<pre><code class="language-bash">curl -sf -H &quot;X-N8N-API-KEY: $N8N_API_KEY&quot; &quot;http://localhost:5678/api/v1/workflows?limit=200&quot; \
+  | jq -r '.data[] | select(.name | test(&quot;maint|clean|purge|retent|gdpr|stale|delete|expir|prun&quot;; &quot;i&quot;)) | .name'
+# (no matches)
+</code></pre>
+<h2>Scope expansion required once <code>[[followups-message-logging-gap]]</code> is fixed</h2>
+<p>If WF-60 starts writing rows for pre-<code>users</code> events (NULL user_id or phone-keyed):</p>
+<p><strong>WF-73 must broaden</strong> to also purge orphan <code>messages</code> rows whose phone has no live <code>users</code> or <code>pending_users</code> mapping. The current FK <code>messages.user_id ON DELETE CASCADE</code> only cascades from <code>users</code> deletion — <code>pending_users</code> deletion doesn't touch <code>messages</code>.</p>
+<p>Concrete cleanup contract (proposed):</p>
+<pre><code class="language-sql">-- WF-73 daily — purge orphan messages older than retention window
+DELETE FROM chinmay_astro.messages
+WHERE user_id IS NULL
+  AND phone_number NOT IN (
+    SELECT phone_number FROM chinmay_astro.users
+    UNION ALL
+    SELECT phone_number FROM chinmay_astro.pending_users
+  )
+  AND created_at &lt; NOW() - INTERVAL '7 days';
+</code></pre>
+<p>(Requires <code>messages.phone_number</code> column to exist — open design question; see logging-gap followup.)</p>
+<h2>WF-74 design decisions still required before build</h2>
+<ol>
+<li><strong>Retention window</strong> — undefined in registry. Likely tied to <code>consultation_closed + N days</code> for Indian DPDPA / GDPR equivalence. Needs a concrete number (90? 180? 365?) before WF-74 can be pseudo'd.</li>
+<li><strong>Anonymise vs delete</strong> — registry says "anonymise/delete", but the choice has different audit-trail implications. Likely: anonymise the user row (replace name/DOB with hashed/blank placeholders) but retain the row for consultation-history queryability; hard-delete the related messages.</li>
+<li><strong>Idempotency contract</strong> — monthly run must be safe to re-execute mid-month without double-anonymising.</li>
+<li><strong>Opt-out vs delete distinction</strong> — <code>opted_out</code> users should also fall under retention sweep on a separate timeline from <code>consultation_closed</code>. Worth clarifying in the same design pass.</li>
+</ol>
+<h2>Sprint intake</h2>
+<ul>
+<li>Pseudo for both WF-73 and WF-74 needs to be written from scratch (no existing <code>.pseudo</code> files for these IDs).</li>
+<li>Build order: WF-73 first (simpler scope, addresses immediate orphan concern from GAP-01 fix); WF-74 second (requires retention-policy decision from operator/legal).</li>
+<li>Hard dependency on <code>[[followups-message-logging-gap]]</code> resolution for WF-73's expanded scope. If logging fix lands first, WF-73 scope is bigger; if WF-73 lands first with current scope, it'll need a follow-up sprint to broaden.</li>
+</ul>
+<h2>Related</h2>
+<ul>
+<li><code>[[followups-message-logging-gap]]</code> — direct coupling on FK / cascade behavior</li>
+<li><code>docs/workflow-registry.md</code> — WF-7x range definitions</li>
+<li>CLAUDE.md — "WF-7x | Background jobs — post go-live only"</li>
+</ul></details></div>
+    </section>
+
+  </main>
+</div>
+<script>
+// 1) Severity chip styling for [critical] / [major] / [minor]
+const sevColors = { critical: "#ff4d4f", major: "#ff9f43", minor: "#f1c40f", slow: "#e67e22" };
+function chipifySeverity(root) {
+  root.querySelectorAll("td, p, li, h3, h4").forEach(el => {
+    const html = el.innerHTML;
+    const newHtml = html.replace(/`?\[(critical|major|minor|slow)\]`?/gi, (s, k) => {
+      const key = k.toLowerCase();
+      return `<span class="sev-chip" style="background:${sevColors[key]}">${k}</span>`;
+    });
+    if (newHtml !== html) el.innerHTML = newHtml;
+  });
+}
+chipifySeverity(document);
+
+// 2) Wrap story h3 + following content into card containers
+(function wrapStoryCards() {
+  const story = document.getElementById("story");
+  if (!story) return;
+  const h3s = Array.from(story.querySelectorAll("h3"));
+  h3s.forEach(h3 => {
+    const card = document.createElement("div");
+    card.className = "story-card";
+    let next = h3.nextSibling;
+    while (next && !(next.nodeType === 1 && (next.tagName === "H3" || next.tagName === "HR" || next.tagName === "H2"))) {
+      const cur = next;
+      next = next.nextSibling;
+      card.appendChild(cur);
+    }
+    h3.after(card);
+  });
+  // remove <hr> separators since cards already provide separation
+  story.querySelectorAll("hr").forEach(hr => hr.remove());
+})();
+
+// 3) Build scenario nav from h3s in story section
+(function buildScenarioNav() {
+  const nav = document.getElementById("nav-scenarios");
+  if (!nav) return;
+  document.querySelectorAll("#story h3").forEach((h3, i) => {
+    const id = "scenario-" + (h3.textContent.match(/TC-\d+/)?.[0] || ("sc" + i)).toLowerCase();
+    h3.id = id;
+    const a = document.createElement("a");
+    a.href = "#" + id;
+    a.className = "depth-1";
+    a.textContent = h3.textContent.replace(/\s*[✅❌→].*/g, "").trim();
+    nav.appendChild(a);
+  });
+})();
+
+// 4) Color ✅ / ❌ in story headings
+document.querySelectorAll("#story h3").forEach(h3 => {
+  h3.innerHTML = h3.innerHTML
+    .replace(/✅/g, '<span class="status-ok">✅</span>')
+    .replace(/❌/g, '<span class="status-warn">❌</span>');
+});
+</script>
+</body></html>
