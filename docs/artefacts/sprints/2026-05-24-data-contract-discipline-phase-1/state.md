@@ -5,8 +5,8 @@ input_hash: 40a8377aaf9a1c5d489af560e9074097b39784ebfec988264658d714e9598d66
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/2026-05-24-data-contract-discipline-phase-1/working.md
 planned_at: 2026-05-24T14:15:37Z
-last_updated: 2026-05-24T15:20:19Z
-last_update_reason: "build-sprint pre-mutation verification — CAUGHT WF-00 vs WF-47 ID swap (sub-7 had listed WF-00 n8n_id as 2U7mxHMyqA41ROKX which is actually WF-47 Unsubscribe Handler; true WF-00 Webhook Receiver = JQu1MkK5vgtUCeNO per live n8n + workflow-registry.md). Without the fix, Wave 1 sub-7 would have modified WF-47 (Unsubscribe) instead of WF-00 (Webhook Receiver), breaking WF-47 and missing the actual WF-00 Build WF-60 Payload rename per design.md §2.6. Also fixed lingering WF-44/WF-46 transcription errors in tasks.md §3.4 that the prior reviewer pass had corrected in state.md but not in the source spec, and resolved the WF-34 'discovered live' placeholder in tasks.md TD-DCP-062 Files line (= se82n3MUQ9xE5aEr). Re-hashed tasks.md → 40a8377a..., updated WF_IDS array in snapshot-for-sprint.sh accordingly. Prior reason: Reviewer pass — resolved testing.md ↔ state.md contradiction, fixed subagent count off-by-one, resolved WF-44/WF-34 unresolved IDs, CAUGHT WF-46 ID collision (would have caused sub-13/sub-14 concurrent-write to WF-34 in Wave 2), split sub-6, added between_waves_step + cross_wave_window_risk + rollback_semantics + done_when."
+last_updated: 2026-05-24T16:55:48Z
+last_update_reason: "Wave 1 (Batch 2) landed and verified. 7 subagents dispatched in parallel (Sonnet); all returned structured edit plans; main thread applied via mcp__n8n__n8n_update_partial_workflow with re-fetch verification per WF. Live mutations: WF-52 + WF-60 + WF-50 + WF-51 + WF-00 + WF-01 + WF-10. In addition to declared scope, 3 systemic contract violations were caught and fixed (Build WF-60 Payload nodes in WF-00 inbound + WF-50 outbound + WF-50 drop all missing transport:'wa' per §2.6) and WF-01's Silent Reject (Message Type) was patched to canonical §2.3 shape (was emitting deprecated `message` key + missing messageType — would have hard-failed sub-3's new WF-50 entry guard). 3 adjacent findings logged to followups.md (WF-60 slackMessageTs scoping ambiguity, WF-10 Load User Status SELECT expansion, WF-51 regex tightening — accepted). Workflows re-exported (27 files), .md projections regenerated. Prior reason: build-sprint pre-mutation verification — CAUGHT WF-00 vs WF-47 ID swap."
 planning_complete: true
 
 slug_note: |
@@ -363,7 +363,8 @@ items:
   - id: TD-DCP-050
     description: "WF-01 envelope emission"
     priority: P1
-    status: pending
+    status: done
+    completed_at: 2026-05-24T16:55:48Z
     batch: 2
     execution_mode: subagent_parallel
     execution_plan:
@@ -431,7 +432,8 @@ items:
   - id: TD-DCP-060
     description: "WF-10 envelope emission"
     priority: P1
-    status: pending
+    status: done
+    completed_at: 2026-05-24T16:55:48Z
     batch: 2
     execution_mode: subagent_parallel
     execution_plan:

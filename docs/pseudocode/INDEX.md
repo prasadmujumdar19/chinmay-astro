@@ -4,7 +4,7 @@ Each workflow has two artifacts:
 - **`WF-XX.md`** — AS-IS technical view: nodes, parameters, connections (stripped from n8n JSON, no UI noise).
 - **`WF-XX.pseudo`** — Human-readable LLD algorithm: step-by-step flow with branches, DB ops, sub-workflow calls.
 
-Source-of-truth status (active/disabled) is in `docs/workflow-registry.md`. Generated 2026-05-23 from a live n8n export (post canonical-executeworkflow-shape-sweep sprint).
+Source-of-truth status (active/disabled) is in `docs/workflow-registry.md`. Generated 2026-05-25 from a live n8n export (post canonical-executeworkflow-shape-sweep sprint).
 
 | ID | Workflow | Domain |
 |----|----------|--------|
