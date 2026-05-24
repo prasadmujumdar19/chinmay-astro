@@ -33,13 +33,13 @@ Step 5: Check: did the lookup return an existing row (duplicate)?
 Step 6: Insert new row into Chinmay-Astro-Messages with messageId (records this message as seen).
 Step 7: Delete all rows in Chinmay-Astro-Messages where createdAt <= today - 3 days (housekeeping; sticky note labels "7 days" but actual filter is 3 days).
 Step 8: Pass parsed message payload forward (Gather Message Info — passthrough of parsed fields).
-Step 8a: Call WF-60 (Message Logger) with the canonical WF-60 input shape:
-  { direction:'inbound', userId:null, consultationId:null, messageType, phoneNumber,
+Step 8a: Call WF-60 (Message Logger) with the canonical WF-60 input shape (data-contract-discipline Phase 1 — design.md §2.6 `transport='wa'` `direction='inbound'` variant):
+  { transport:'wa', direction:'inbound', userId:null, consultationId:null, messageType, phoneNumber,
     whatsappMessageId: messageId,
     content: (messageType=='interactive' ? (interactiveLabel ?? messageContent) : messageContent),
     metadata: { phoneNumber, contactName, timestamp, rawMessage,
                 ...(messageType=='interactive' && interactiveLabel ? { interactiveButtonId: messageContent } : {}) }
-  }. WF-60 handles all inbound audit; failures here MUST NOT block routing — wrap in onError='continueRegularOutput'.
+  }. The `transport` discriminator is the canonical Phase-1 marker — WF-60's entry guard requires it. WF-60 handles all inbound audit; failures here MUST NOT block routing — wrap in onError='continueRegularOutput'.
 Step 9: Call WF-01 (Message Router) with the parsed message payload.
 Step 10: Return HTTP 200 with {status: "processed"} to Meta.
 Step 11: Return HTTP 200 with {status: "skipped"} to Meta.

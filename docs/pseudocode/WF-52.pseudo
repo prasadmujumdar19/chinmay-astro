@@ -9,16 +9,12 @@ WF-52 — Slack Channel Manager
 
 ## Inputs
 
-**Canonical fields (preferred at caller side):**
+**Canonical contract (data-contract-discipline Phase 1 — design.md §2.5):**
 - `phoneNumber` — E.164 string, required. The user's WhatsApp number; becomes the suffix of `consult-<phoneNumber>` (channel name).
-- `name` — string, optional. The user's display name (forwarded into the Code-node's local shape but not consumed by Slack channel-creation logic; reserved for downstream callers).
-- `userId` — integer, optional. The `chinmay_astro.users.id` row reference. Forwarded into the Code-node's local shape but not consumed by Slack channel ops; reserved for future logging or admin-message templating.
+- `name` — string, required. The user's display name (forwarded for downstream caller use).
+- `userId` — integer, required. The `chinmay_astro.users.id` row reference (forwarded for future logging / admin-message templating).
 
-**Legacy aliases (accepted at the trigger, resolved in `Prepare Channel Name`):**
-- `phone_number` — snake_case alias for `phoneNumber`. WF-22 currently passes this (from the Postgres `RETURNING` column). `Prepare Channel Name` resolves `phone_number || phoneNumber || ''`.
-- `userName` — camelCase alias for `name`. No current caller uses this; kept for legacy compatibility. `Prepare Channel Name` resolves `name || userName || ''`.
-
-**Latent caller-contract gap (observed during 2026-05-24 WF-52 triage; not in this sprint's scope):** WF-22's `Create User Record` Postgres `RETURNING` column is `id` but WF-52's `Prepare Channel Name` reads `input.userId` (no `id` fallback). When called from WF-22 today, `userId` is `undefined` at WF-52. Behaviour-neutral because the field is not consumed by Slack channel ops. Flag for a future TD-DRIFT-013-class caller-contract hardening sprint.
+**Legacy aliases removed:** `phone_number` and `userName` are no longer accepted. WF-52's entry guard rejects callers using these keys. WF-22 (the sole caller — verified by grep of WF-52's workflow ID across all callers) is aligned to canonical names as part of Phase 1 caller-alignment.
 
 ## Notes
 
@@ -31,18 +27,18 @@ WF-52 — Slack Channel Manager
 
 ## Algorithm
 
-Step 1: Start — triggered by another workflow (typically WF-22) with { phone_number (or phoneNumber), name (or userName), userId } passed through.
-Step 2: Prepare channel name (code): channelName = "consult-" + phoneNumber (resolved via `phone_number || phoneNumber || ''`). Carry userName (via `name || userName || ''`), phoneNumber, userId forward. Go to Step 3.
-Step 3: Create private Slack channel via Slack API (conversations.create, name=channelName, is_private=true). On error use the error output branch.
-  - On success → go to Step 4 (new-channel branch).
-  - On error → go to Step 6 (error branch).
-Step 4: Invite both admins to the new channel via Slack API (conversations.invite, channel=<new channel id>, users=['U0B4BBML6CS' /* Chinmay — Business Admin */, 'U0A4175DJ5D' /* Prasad — Technical Admin */]). Go to Step 5.
-Step 5: Build new-channel return (code): { success:true, channelId=<new id>, channelName=<new name>, channelUrl="https://app.slack.com/client/<team_id derived at runtime from the Slack API response field `context_team_id`>/<channel_id>", isNew:true }. Go to Step 10.
-Step 6: Check: does the error message contain 'name_taken'?
-  - If YES → go to Step 7 (recover existing channel).
-  - If NO → go to Step 6a (structured error return).
-Step 6a: Build error return (code): { success:false, error:<error.message>, channelId:null, channelName:channelName, channelUrl:null, isNew:false }. Go to Step 10.
-Step 7: List all private channels via Slack API (conversations.list, types=private_channel, returnAll=true). Go to Step 8.
-Step 8: Filter that list for the one whose name equals the prepared channelName. Go to Step 9.
-Step 9: Build existing-channel return (code): { success:true, channelId=<existing id>, channelName=<existing name>, channelUrl="https://app.slack.com/client/<team_id derived at runtime from the Slack API response field `context_team_id`>/<channel_id>", isNew:false }. Go to Step 10.
-Step 10: End (return object emitted to caller).
+Step 1: Start — triggered by another workflow (typically WF-22) with { phoneNumber, name, userId } passed through.
+Step 2: Validate Inputs (entry guard) — assert all three canonical fields are present and well-typed: `phoneNumber` is a non-empty string, `name` is a non-empty string, `userId` is an integer. If any field is missing or wrong-typed, fail loudly with a contract-violation error naming the offending field. Go to Step 3.
+Step 3: Prepare channel name: channelName = "consult-" + phoneNumber. Carry name, phoneNumber, userId forward. Go to Step 4.
+Step 4: Create private Slack channel via Slack API (conversations.create, name=channelName, is_private=true). On error use the error output branch.
+  - On success → go to Step 5 (new-channel branch).
+  - On error → go to Step 7 (error branch).
+Step 5: Invite both admins to the new channel via Slack API (conversations.invite, channel=<new channel id>, users=['U0B4BBML6CS' /* Chinmay — Business Admin */, 'U0A4175DJ5D' /* Prasad — Technical Admin */]). Go to Step 6.
+Step 6: Build new-channel return: { success:true, channelId=<new id>, channelName=<new name>, channelUrl="https://app.slack.com/client/<team_id derived at runtime from the Slack API response field `context_team_id`>/<channel_id>", isNew:true }. Go to Step 11.
+Step 7: Check: does the error message contain 'name_taken'?
+  - If YES → go to Step 8 (recover existing channel).
+  - If NO → go to Step 10 (structured error return).
+Step 8: List all private channels via Slack API (conversations.list, types=private_channel, returnAll=true). Go to Step 9.
+Step 9: Filter that list for the one whose name equals the prepared channelName, then build existing-channel return: { success:true, channelId=<existing id>, channelName=<existing name>, channelUrl="https://app.slack.com/client/<team_id derived at runtime from the Slack API response field `context_team_id`>/<channel_id>", isNew:false }. Go to Step 11.
+Step 10: Build error return: { success:false, error:<error.message>, channelId:null, channelName:channelName, channelUrl:null, isNew:false }. Go to Step 11.
+Step 11: End (return object emitted to caller).

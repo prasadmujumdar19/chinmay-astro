@@ -3,7 +3,8 @@ WF-01 — Message Router
 ## Summary
 
 - Inputs: Parsed WhatsApp message payload from WF-00 (phoneNumber, phoneNumberFormatted, messageType, messageContent, rawMessage, contactName, etc.)
-- Outputs: Either a silent reject, a deflection WA message, a forced route to WF-21 (for opted-out users), an admin Slack anomaly alert (for unrecorded-phone interactive taps or STOP/REBOOK keywords), or a call to WF-02 with enriched user+message context
+- Outputs: Either a silent reject, a deflection WA message, a forced route to WF-21 (for opted-out users) carrying the §2.1 envelope, an admin Slack anomaly alert (for unrecorded-phone interactive taps or STOP/REBOOK keywords), or a call to WF-02 with the §2.1 core envelope.
+- **Envelope emission (data-contract-discipline Phase 1 — design.md §2.1):** Every output branch that calls a downstream workflow (WF-02 on the main path, WF-21 on the opted-out re-engagement path) emits the canonical core envelope — `{ phoneNumber, messageType, messageContent, user:{id, phone_number, name, status, slack_channel_id, current_consultation_id}, pendingUser }`. Per the layered principle (slim core + leaf SELECTs for extras), every leaf can read these fields without re-SELECTing the user row.
 - State Transitions: none (read-only — does not mutate user state)
 - Calls Sub-Workflows: WF-02, WF-21 (for opted_out re-engagement), WF-50 (non-text deflection), WF-51 (admin anomaly alert)
 - **User-load gate (SP-11):** After Steps 10–12 load `user` and `pendingUser` and prepare the combined payload, WF-01 explicitly gates on the user-existence triple `(user, pendingUser, messageType)` before calling WF-02. Two anomaly classes are intercepted at the source rather than downstream: (a) `interactive` button taps from an unrecorded phone (bot/spam interaction or DB row deleted after we sent a button); (b) STOP/REBOOK keywords from an unrecorded phone (pre-onboarding STOP edge — eliminates the WF-47 null-user case at the source). Both route to a WF-51 admin alert into `chinmay-admin-commands` (C0A5B0ZE81E) and DO NOT call WF-02. Legitimate cases — user exists, pendingUser exists, or plain-text from a new phone — continue to WF-02 unchanged.
@@ -33,7 +34,7 @@ Step 8: Check: securityCheck == 'REJECTED' (blacklist)?
   - If YES → go to Step 19 (silent reject blacklist, end).
   - If NO → go to Step 9.
 Step 9: Check: securityCheck == 'OPTED_OUT'?
-  - If YES → call WF-21 with {phoneNumber, messageText, wasOptedOut: true} so user is treated as new user (re-engagement). WF-21 uses `wasOptedOut` to prepend a "Welcome back" acknowledgement. End.
+  - If YES → build the §2.1 core envelope via the `Build WF-01 Envelope (Opted-Out)` Code node (re-SELECT or carry forward the full user row as needed to fill `user.{id, phone_number, name, status, slack_channel_id, current_consultation_id}`; `pendingUser` is null on this branch). Then call WF-21 with the envelope plus `wasOptedOut: true` and `messageText` so the user is treated as a re-engagement; WF-21 uses `wasOptedOut` to prepend a "Welcome back" acknowledgement. End.
   - If NO → go to Step 10.
 Step 10: SELECT phone_number, contact_name, created_at FROM chinmay_astro.pending_users WHERE phone_number = $phoneNumber (look for in-flight onboarding).
 Step 11: SELECT id, phone_number, name, date_of_birth, time_of_birth, place_of_birth, status, current_consultation_id, total_consultations, context, created_at, updated_at, last_message_at, awaiting_feedback, slack_channel_id, stage, blocked_at, blocked_by, blocked_reason, feedback FROM chinmay_astro.users WHERE phone_number = $phoneNumber (full user record — projects every column read by downstream nodes / sub-workflows).
@@ -48,10 +49,11 @@ Step 12a: User-Load Gate (Set node, `includeOtherFields=true` so phoneNumber/use
   - `user` is null AND `pendingUser` is null AND messageType='text' AND messageContentUpper does NOT match exact `STOP` or `REBOOK` → routing='to_wf02' (legitimate new-user text; WF-02 will route NEW_USER → WF-21; HELP from new user is also fine — WF-21 acks).
   - `user` is null AND `pendingUser` is null AND messageType='interactive' → routing='anomaly_interactive'.
   - `user` is null AND `pendingUser` is null AND messageContentUpper exactly matches `STOP` or `REBOOK` → routing='anomaly_keyword'.
-Step 12b: Check: routing == 'to_wf02'?
+Step 12b: Build WF-01 Envelope (Code node, per design.md §2.1) — emit the canonical core envelope `{ phoneNumber, messageType, messageContent, user:{id, phone_number, name, status, slack_channel_id, current_consultation_id} | null, pendingUser:{id, contact_name} | null }`. Carry forward `messageContentUpper`, `routing`, `messageId`, `timestamp`, `rawMessage` so downstream branches retain routing context. Go to Step 12c.
+Step 12c: Check: routing == 'to_wf02'?
   - If YES → go to Step 13 (existing WF-02 call).
-  - If NO  → go to Step 12c (anomaly branch).
-Step 12c: Build Admin Anomaly Alert (Set node, default `includeOtherFields=false` — emits only the new contract for WF-51) — emit {
+  - If NO  → go to Step 12d (anomaly branch).
+Step 12d: Build Admin Anomaly Alert (Set node, default `includeOtherFields=false` — emits only the new contract for WF-51) — emit {
     channelId: 'C0A5B0ZE81E',
     messageText: routing == 'anomaly_interactive'
       ? "⚠️ Unexpected button tap from a phone we don’t recognise: +<phoneNumber>. They tapped a button we previously sent, but they’re not registered for a consultation. Likely spam or their record was removed. Content: `<messageContent>`."
