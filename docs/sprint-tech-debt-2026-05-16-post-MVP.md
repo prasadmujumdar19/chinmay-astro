@@ -192,6 +192,35 @@ Then recreate the n8n container: `docker stop n8n && docker rm n8n && docker-com
 
 ---
 
+### TD-NEW-032 · WF-20 HELP response is generic, not status-aware (TD-027 incomplete)
+
+**Source:** P1 smoke session `docs/artefacts/tests/smoke-pre-golive-p1-2026-05-24/session.md` BUG-P1-01 (2026-05-24). Accepted as pre-MVP non-blocker by operator — fix deferred post-go-live.
+
+**Finding:** WF-20 (`LgIDj1v4ZbCPlX25`) `Send HELP Response` returns the same generic fallback text regardless of `userStatus`. Verified live by sending HELP from 4 distinct user states in one walk — all 4 outbound replies (messages.id 122, 127, 132, 137) are character-for-character identical:
+
+```
+Here's what you can do:
+
+📋 *REBOOK* — Book a new consultation
+🚫 *STOP* — Unsubscribe from all messages
+
+For anything else, just type your question during an active consultation.
+```
+
+TD-027 (`docs/artefacts/sprints/tech-debts/handoffs/batch7.md` L23) claimed WF-20 HELP messageBody was updated to a status-aware ternary, but the ternary appears to fall through to the default branch every time. Likely root cause is a field-name mismatch in the ternary expression (same class of bug as BUG-F: ternary reads e.g. `$json.userStatus` while WF-02 emits `$json.status` or `$json.user.status`). Needs node-level inspection of WF-20 `Send HELP Response` (or upstream `Prepare HELP Text` Code node) expressions vs WF-02 output contract.
+
+**Why deferred:** Users do get a response (keyword interception itself works — TD-A field-name fix verified in the same walk). The generic text is functionally usable. Journey-map J-18 alignment (per-state HELP wording) is a polish item, not a go-live blocker.
+
+**Fix (post-MVP):**
+1. Inspect WF-20 `Send HELP Response` expression for the ternary (likely on `messageBody`).
+2. Confirm the field name read matches what WF-02 emits in `workflowInputs` for the HELP path.
+3. Either correct the field-name reference OR rewrite the per-state texts inline as a `Switch`/`Code` node keyed on `userStatus`.
+4. Re-verify by repeating the P1 walk (one HELP per state) — confirm each reply differs and matches J-18 wording.
+
+**Acceptance signal:** 4 different texts for the 4 user states (`payment_pending` / `payment_submitted` / `consultation_active` / `consultation_closed`).
+
+---
+
 ## 🔵 Needs-Decision
 
 ### STATUS-TD-06 · WF-73 Data Cleanup workflow does not exist
@@ -265,6 +294,7 @@ Then recreate the n8n container: `docker stop n8n && docker rm n8n && docker-com
 | FU-7-DEFERRED | Project-wide DB-lookup hygiene audit (IF empty-result guards) | 🟡 P2 | n8n session |
 | TD-NEW-019 | n8n execution history never pruned | 🟡 P2 | VPS session |
 | STATUS-TD-05 | Encryption svc — no healthcheck or restart policy | 🟡 P2 | VPS session |
+| TD-NEW-032 | WF-20 HELP response generic, not status-aware (TD-027 incomplete) | 🟡 P2 | n8n session |
 | STATUS-TD-06 | WF-73 Data Cleanup — does not exist | 🔵 Needs-Decision | n8n session |
 | TD-NEW-021 | archive/backups/ 68 snapshots — needs tarring | 🟢 P3 | Git/local |
 | TD-NEW-022 | workflows/*.json single-line minified | 🟢 P3 | Git/local |
