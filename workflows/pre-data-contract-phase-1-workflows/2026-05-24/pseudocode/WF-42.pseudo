@@ -1,0 +1,30 @@
+WF-42 — Consultation Closer
+
+## Summary
+
+- Inputs: phoneNumber, channelId, channelName (Slack channel where admin typed CLOSE)
+- Outputs: consultations row closed, users row updated, WhatsApp feedback/rebook prompt sent (2 buttons), Slack confirmation in consult channel
+- State Transitions: consultation_active → consultation_closed
+- Calls Sub-Workflows: WF-50 (Send WhatsApp)
+- **Design rule (DR-10):** Slack channel is NOT archived — same channel is reused on rebook (WF-45 reads existing slack_channel_id from DB). Channel archival/deletion is a separate post-MVP maintenance workflow.
+- **Trust-mode input (SP-03):** Input is pre-validated by WF-10's centralized gate — user exists, is in `consultation_active` state, and phone-in-command matches channel-derived phone. WF-42 does NOT re-validate; the historical `User Found?` + `User in Correct State?` IFs and their feedback branches are removed because they are guaranteed unreachable. `Load User by Phone` is retained only to fetch the user record needed for the downstream UPDATE + interactive WhatsApp payload.
+
+---
+
+## Algorithm
+
+Step 1: Start — triggered by WF-11 (admin CLOSE handler) with phoneNumber, channelId, channelName.
+Step 2: SELECT id, name, phone_number, status, slack_channel_id FROM chinmay_astro.users WHERE phone_number = <phoneNumber> LIMIT 1. Pre-validated upstream — row is guaranteed to exist and be in `consultation_active` state.
+Step 3: (removed — old `User Found?` IF; pre-validated by WF-10.)
+Step 4: (removed — old `User in Correct State?` IF; pre-validated by WF-10.)
+Step 5: UPDATE chinmay_astro.consultations SET status='closed', ended_at=NOW(), closed_by='admin' WHERE user_id = <user.id> AND status='active' RETURNING *.
+Step 6: UPDATE chinmay_astro.users SET status='consultation_closed', current_consultation_id=NULL, total_consultations = total_consultations + 1, updated_at=NOW() WHERE id = <user.id> RETURNING *.
+Step 7: Build interactive WhatsApp payload (two buttons):
+  - body.text = "✨ Your consultation with Chinmay is complete, <user.name>! We hope it was insightful.\n\nWould you like to share your experience or book another session?"
+  - buttons: [ {id: btn_feedback, title: "Leave Feedback"}, {id: btn_rebook, title: "Book Again"} ]
+Step 8: Call WF-50 with phoneNumber, messageType=interactive, interactivePayload=<payload above>.
+Step 9: Post to Slack channel (channelId from input — admin's channel): "✅ *Consultation Closed*\n\n*User:* <user.name>\n*Phone:* +<user.phone_number>\n\nFeedback request sent to user."
+Step 10: End.
+
+Step 11: (removed — old user-not-found path; pre-validated by WF-10.)
+Step 12: (removed — old wrong-state guard; pre-validated by WF-10.)

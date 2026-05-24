@@ -1,0 +1,44 @@
+WF-02 — User State Router
+
+## Summary
+
+- Inputs: Combined user + message payload from WF-01 (user record or null, pendingUser or null, messageType, rawMessage.interactive.type, messageContent, etc.)
+- Outputs: Dispatch to one state-specific sub-workflow; intermediate hand-off through WF-20 for keyword interception on text messages
+- State Transitions: none (delegates to handlers; this workflow only routes)
+- Calls Sub-Workflows: WF-20 (Keyword Handler), WF-21, WF-22, WF-23, WF-30, WF-31, WF-32, WF-40, WF-43, WF-51 (admin alert on UNHANDLED route only)
+
+---
+
+## Algorithm
+
+Step 1: Start — triggered by WF-01 with combined payload.
+Step 2: Detect Route based on userStatus, messageType, rawMessage.interactive.type, and pendingUser:
+  - If messageType='interactive' AND interactive.type='nfm_reply' → route='DETAILS_FORM'.
+  - Else if messageType='interactive' AND interactive.type='button_reply' AND user IS NOT NULL AND user.status='consultation_closed' → route='POST_CONSULT_TEXT'.
+  - Else if messageType='interactive' AND interactive.type='button_reply' AND user IS NOT NULL AND user.status='payment_pending' → route='PAYMENT_CONFIRM' (e.g. "Payment Completed" button — only valid for payment_pending users; other button_reply types fall through to UNHANDLED).
+  - Else if user is null AND pendingUser is null → route='NEW_USER'.
+  - Else if user is null AND pendingUser exists → route='PRE_FORM_TEXT'.
+  - Else if user IS NOT NULL AND user.status='payment_pending' → route='PAYMENT_PENDING_TEXT'.
+  - Else if user IS NOT NULL AND user.status='payment_submitted' → route='PAYMENT_SUBMITTED_TEXT'.
+  - Else if user IS NOT NULL AND user.status='consultation_active' → route='RELAY'.
+  - Else if user IS NOT NULL AND user.status='consultation_closed' → route='POST_CONSULT_TEXT'.
+  - Else → route='UNHANDLED' (caught at Step 7 — posts admin Slack alert via WF-51 with payload summary for visibility).
+Step 3: Check: messageType == 'text'?
+  - If YES → go to Step 4 (run keyword interception first).
+  - If NO → go to Step 7 (skip keyword check, go straight to Route Switch).
+Step 4: Call WF-20 (Keyword Handler) to check for hard-coded keywords (STOP / HELP / REBOOK etc).
+Step 5: Check: WF-20 returned action == 'passthrough'?
+  - If YES (no keyword matched) → go to Step 6 (restore the original route data) → Step 7.
+  - If NO (WF-20 already handled the message) → End.
+Step 6: Restore Route Data — reload the payload built in Step 2 (with route field intact).
+Step 7: Route Switch on route value:
+  - 'NEW_USER' → call WF-21 (Welcome + Form). End.
+  - 'PRE_FORM_TEXT' → call WF-23 (Pre-Form Intent Filter). End.
+  - 'DETAILS_FORM' → call WF-22 (Details Form Processor). End.
+  - 'PAYMENT_CONFIRM' → call WF-32 (Payment Confirmation Receiver). End.
+  - 'PAYMENT_PENDING_TEXT' → call WF-30 (Payment Pending Intent Filter). End.
+  - 'PAYMENT_SUBMITTED_TEXT' → call WF-31 (Payment Submitted Handler). End.
+  - 'RELAY' → call WF-40 (User → Admin Relay). End.
+  - 'POST_CONSULT_TEXT' → call WF-43 (Post-Consultation Handler). End.
+  - 'UNHANDLED' → call WF-51 with channelId='chinmay-admin-commands' (C0A5B0ZE81E) and messageText='⚠️ UNHANDLED inbound — phone=<phoneNumber>, messageType=<messageType>, interactiveType=<rawMessage.interactive.type or "n/a">, userStatus=<user.status or "null">, pendingUser=<true|false>, messageContent (truncated to 120 chars)=<content>'. Admin gets visibility; no further action taken. End.
+Step 8: End.

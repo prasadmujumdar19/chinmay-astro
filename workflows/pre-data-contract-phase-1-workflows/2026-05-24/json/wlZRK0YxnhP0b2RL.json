@@ -1,0 +1,343 @@
+{
+  "updatedAt": "2026-05-20T01:03:55.160Z",
+  "createdAt": "2026-04-11T22:59:05.040Z",
+  "id": "wlZRK0YxnhP0b2RL",
+  "name": "WF-51 Send Slack Message",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "node-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        340
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "node-slack",
+      "name": "Post to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        460,
+        340
+      ],
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $json.channelId }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.messageText }}",
+        "otherOptions": {}
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "WSds5JWe5b6N7myY",
+          "name": "Slack - Chinmay Astro"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build canonical WF-60 input payload for Slack-outbound logging.\n// Chained after Post to Slack — uses the Slack API response ts for slack_message_ts.\n// WF-51 caller may optionally pass userId/consultationId; WF-60 falls back to slack_channel_id lookup.\nconst triggerInput = $('Execute Workflow Trigger').first().json;\nconst slackResp = $input.first().json;\n\nconst channelId = triggerInput.channelId || slackResp.channel || null;\nconst slackMessageTs = slackResp.ts || (slackResp.message && slackResp.message.ts) || null;\nconst messageText = triggerInput.messageText || (slackResp.message && slackResp.message.text) || null;\n\nreturn [{\n  json: {\n    transport: 'slack',\n    direction: 'outbound',\n    messageType: 'slack_text',\n    content: messageText,\n    slackChannelId: channelId,\n    slackMessageTs: slackMessageTs,\n    userId: triggerInput.userId || null,\n    consultationId: triggerInput.consultationId || null,\n    whatsappMessageId: null,\n    phoneNumber: null,\n    metadata: {\n      transport: 'slack',\n      slackChannelId: channelId,\n      slackMessageTs: slackMessageTs,\n      slackApiOk: slackResp.ok != null ? slackResp.ok : null,\n      timestamp: new Date().toISOString()\n    }\n  }\n}];\n"
+      },
+      "id": "f128364f-73ea-4921-9ae2-978f8a661906",
+      "name": "Build WF-60 Payload (Slack Outbound)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "call_workflow",
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "6H75p935FpBVBQtV",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/6H75p935FpBVBQtV"
+        },
+        "workflowInputs": {
+          "mappingMode": "passthrough",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "id": "8c700abe-7bb1-4aa4-99f8-7aea4f0d3a38",
+      "name": "Call WF-60 Message Logger",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1040,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Post to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Slack": {
+      "main": [
+        [
+          {
+            "node": "Build WF-60 Payload (Slack Outbound)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build WF-60 Payload (Slack Outbound)": {
+      "main": [
+        [
+          {
+            "node": "Call WF-60 Message Logger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "32867e8c-de66-48a1-b94e-695e605888f8",
+  "activeVersionId": "32867e8c-de66-48a1-b94e-695e605888f8",
+  "versionCounter": 22,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-04-11T22:59:05.040Z",
+      "createdAt": "2026-04-11T22:59:05.040Z",
+      "role": "workflow:owner",
+      "workflowId": "wlZRK0YxnhP0b2RL",
+      "projectId": "SpcBYo3r6YMWLf30",
+      "project": {
+        "updatedAt": "2025-12-26T03:43:50.268Z",
+        "createdAt": "2025-12-25T04:02:13.984Z",
+        "id": "SpcBYo3r6YMWLf30",
+        "name": "Chinmay Mujumdar <chinya1989mujumdar@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+        "projectRelations": [
+          {
+            "updatedAt": "2025-12-25T04:02:13.984Z",
+            "createdAt": "2025-12-25T04:02:13.984Z",
+            "userId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+            "projectId": "SpcBYo3r6YMWLf30",
+            "user": {
+              "updatedAt": "2026-05-24T00:16:36.348Z",
+              "createdAt": "2025-12-25T04:02:12.721Z",
+              "id": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7",
+              "email": "chinya1989mujumdar@gmail.com",
+              "firstName": "Chinmay",
+              "lastName": "Mujumdar",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-12-26T03:46:19.986Z",
+                "personalization_survey_n8n_version": "2.1.4",
+                "companyIndustryExtended": [
+                  "other"
+                ],
+                "otherCompanyIndustryExtended": "Astrology",
+                "companySize": "<20",
+                "companyType": "other",
+                "role": "business-owner",
+                "reportedSource": "friend"
+              },
+              "settings": {
+                "userActivated": true,
+                "firstSuccessfulWorkflowId": "wMh0oBRtJbvhLgOf",
+                "userActivatedAt": 1772092088194,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1776950036941
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": true,
+              "lastActiveAt": "2026-05-24",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-05-20T01:03:55.164Z",
+    "createdAt": "2026-05-20T01:03:55.164Z",
+    "versionId": "32867e8c-de66-48a1-b94e-695e605888f8",
+    "workflowId": "wlZRK0YxnhP0b2RL",
+    "nodes": [
+      {
+        "id": "node-trigger",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          240,
+          340
+        ],
+        "parameters": {
+          "inputSource": "passthrough"
+        }
+      },
+      {
+        "id": "node-slack",
+        "name": "Post to Slack",
+        "type": "n8n-nodes-base.slack",
+        "typeVersion": 2.3,
+        "position": [
+          460,
+          340
+        ],
+        "parameters": {
+          "select": "channel",
+          "channelId": {
+            "__rl": true,
+            "value": "={{ $json.channelId }}",
+            "mode": "id"
+          },
+          "text": "={{ $json.messageText }}",
+          "otherOptions": {}
+        },
+        "credentials": {
+          "slackApi": {
+            "id": "WSds5JWe5b6N7myY",
+            "name": "Slack - Chinmay Astro"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "// Build canonical WF-60 input payload for Slack-outbound logging.\n// Chained after Post to Slack — uses the Slack API response ts for slack_message_ts.\n// WF-51 caller may optionally pass userId/consultationId; WF-60 falls back to slack_channel_id lookup.\nconst triggerInput = $('Execute Workflow Trigger').first().json;\nconst slackResp = $input.first().json;\n\nconst channelId = triggerInput.channelId || slackResp.channel || null;\nconst slackMessageTs = slackResp.ts || (slackResp.message && slackResp.message.ts) || null;\nconst messageText = triggerInput.messageText || (slackResp.message && slackResp.message.text) || null;\n\nreturn [{\n  json: {\n    transport: 'slack',\n    direction: 'outbound',\n    messageType: 'slack_text',\n    content: messageText,\n    slackChannelId: channelId,\n    slackMessageTs: slackMessageTs,\n    userId: triggerInput.userId || null,\n    consultationId: triggerInput.consultationId || null,\n    whatsappMessageId: null,\n    phoneNumber: null,\n    metadata: {\n      transport: 'slack',\n      slackChannelId: channelId,\n      slackMessageTs: slackMessageTs,\n      slackApiOk: slackResp.ok != null ? slackResp.ok : null,\n      timestamp: new Date().toISOString()\n    }\n  }\n}];\n"
+        },
+        "id": "f128364f-73ea-4921-9ae2-978f8a661906",
+        "name": "Build WF-60 Payload (Slack Outbound)",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          820,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "call_workflow",
+          "source": "database",
+          "workflowId": {
+            "__rl": true,
+            "value": "6H75p935FpBVBQtV",
+            "mode": "list",
+            "cachedResultUrl": "/workflow/6H75p935FpBVBQtV"
+          },
+          "workflowInputs": {
+            "mappingMode": "passthrough",
+            "value": {},
+            "matchingColumns": [],
+            "schema": [],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": true
+          },
+          "mode": "once",
+          "options": {}
+        },
+        "id": "8c700abe-7bb1-4aa4-99f8-7aea4f0d3a38",
+        "name": "Call WF-60 Message Logger",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.2,
+        "position": [
+          1040,
+          0
+        ],
+        "onError": "continueRegularOutput"
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Post to Slack",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Post to Slack": {
+        "main": [
+          [
+            {
+              "node": "Build WF-60 Payload (Slack Outbound)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build WF-60 Payload (Slack Outbound)": {
+        "main": [
+          [
+            {
+              "node": "Call WF-60 Message Logger",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Chinmay Mujumdar",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-20T01:03:55.230Z",
+        "id": 378,
+        "workflowId": "wlZRK0YxnhP0b2RL",
+        "versionId": "32867e8c-de66-48a1-b94e-695e605888f8",
+        "event": "activated",
+        "userId": "4d76f06c-f1a5-4057-bf8d-e7b1c8ed9fa7"
+      }
+    ]
+  }
+}

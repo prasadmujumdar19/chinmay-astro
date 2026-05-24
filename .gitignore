@@ -1,3 +1,7 @@
 .DS_Store
 *.env
 *.env.local
+.methodology/handoff-*.md
+.methodology/sprint-*-state.md
+.methodology/sprint-*-working.md
+chinmay-website/

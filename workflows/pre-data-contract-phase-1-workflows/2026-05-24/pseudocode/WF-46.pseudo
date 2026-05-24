@@ -1,0 +1,23 @@
+WF-46 — User Blocker
+
+## Summary
+
+- Inputs: From caller (WF-11 BLOCK admin command OR WF-25 malicious_abusive/inappropriate intent): {phoneNumber, reason, channelId}. channelId is the caller's source channel; falls back to user.slack_channel_id when absent (e.g., WF-25 path).
+- Outputs: users row updated to blocked; admin Slack confirmation posted via WF-51 to caller's channelId (or user's consult channel as fallback).
+- State Transitions: any → `blocked`
+- Calls Sub-Workflows: WF-51 (Send Slack Message)
+- **Single-owner principle:** WF-46 is the sole emitter of the post-block Slack confirmation. Callers (WF-11, WF-25) MUST NOT post their own block confirmation — duplicate removed from WF-11 on 2026-05-23 (BUG-05 sibling fix). Mirrors the same pattern applied to CLOSE (WF-42 owns), APPROVE (WF-33 owns), REJECT (WF-34 owns).
+- **Notes:**
+  - **No channel archive** — DR-10 design rule (consultation channels intentionally preserved for REBOOK reuse). Channel-archive nodes removed 2026-05-17 (FU-1); pseudo updated to match 2026-05-23.
+  - **DB schema vs trigger input drift:** `Update User to Blocked Status` hardcodes `blocked_reason='Blocked by admin'` in the DB column; the caller's `reason` is used only in the admin Slack message (Step 4 payload), not persisted. Followup to honor caller-provided reason in the column (TD candidate).
+  - **No `admin_actions` INSERT** — admin_actions table is deprecated per [[project_admin_actions_deprecated]]; single-admin model means messages + state machine cover the audit need.
+
+---
+
+## Algorithm
+
+Step 1: Start — triggered by another workflow with {phoneNumber, reason, channelId} passed through.
+Step 2: Load user record: SELECT * FROM chinmay_astro.users WHERE phone_number = <phoneNumber> LIMIT 1. Go to Step 3.
+Step 3: Update user to blocked: UPDATE chinmay_astro.users SET status='blocked', blocked_at=NOW(), blocked_by='admin', blocked_reason='Blocked by admin', updated_at=NOW() WHERE id=<loaded user id> RETURNING *. (See drift note above — `blocked_reason` is hardcoded; caller's `reason` is used only in the Slack confirmation.) Go to Step 4.
+Step 4: Prepare WF-51 payload — channelId = caller's channelId (or user.slack_channel_id as fallback for WF-25 path); messageText = "🚫 User blocked: <name> (<phone>). Reason: <reason or 'Not provided'>. Status set to 'blocked'.". Go to Step 5.
+Step 5: Call WF-51 (Send Slack Message) with the prepared payload. End.

@@ -1,0 +1,65 @@
+WF-50 — Send WhatsApp
+
+## Summary
+
+- Inputs: phoneNumber, messageType ('text'|'interactive'|'template'), consultationId (optional), and one of:
+    - text: messageContent
+    - interactive flow: interactivePayload = { type:'flow', flowId, flowCta, header:{text}, body:{text} }
+    - interactive button: interactivePayload = { type:'button', body:{text}, action:{buttons:[{id,title},...]} }
+    - template: templateName + templateParams
+  Also: userId, inboundMessageId, userMessage (for logging).
+- Outputs: WhatsApp message delivered via Meta Graph API; message logged via WF-60 (direction='outbound'); return { success, messageId, error, phoneNumber, sentAt } to caller. On null/empty body drop: also logs to WF-60 with success=false, error='empty_body_dropped', and returns the same structured error to the caller.
+- State Transitions: none
+- Calls Sub-Workflows: WF-60 (Message Logger)
+- **Notes:**
+  - Null/empty body guard (TD-033) applies to all three messageType paths: text body, interactive payload, and templateName.
+  - The guard always logs the drop attempt (success=false, error='empty_body_dropped') and returns a structured error to the caller — no silent drops.
+  - Content extraction for WF-60 logging (TD-F, 2026-05-21): the messageContent field passed to WF-60 must be human-readable for all three messageType paths so `messages.content` is non-NULL and useful in audit. The per-type extraction described in Step 11 below is canonical; both the success path (`Build WF-60 Payload (Outbound)`) and the drop path (`Build WF-60 Drop Payload`) must implement it. Metadata is enriched with `buttons` (interactive) or `templateParams` (template) so the original send payload remains inspectable.
+
+---
+
+## Algorithm
+
+Step 1: Start — triggered by another workflow with message-send parameters passed through.
+Step 2: Normalize payload (Prepare Payload code): pick phoneNumber from phoneNumber or phoneNumberFormatted; default messageType='text'; accept messageContent OR message OR messageBody for the body. Carry consultationId, interactivePayload, templateName, templateParams, userId, inboundMessageId, userMessage forward.
+Step 3: Guard: detect missing/empty body per messageType:
+  - text → messageContent is null/empty/whitespace-only.
+  - interactive → interactivePayload is null/undefined, OR (interactivePayload.type is neither 'flow' nor 'button'), OR for flow: flowId is empty, OR for button: action.buttons is empty/missing.
+  - template → templateName is null/empty.
+  If ANY of the above is true: set success=false, error='empty_body_dropped'. Go to Step 3a (log drop) → Step 12 (return structured error).
+  Else → go to Step 4.
+Step 3a: Call WF-60 (Message Logger) with { userId, consultationId, phoneNumber, messageType, messageContent: '[empty_body_dropped]', messageId: null, direction='outbound', success: false, error: 'empty_body_dropped' }. Go to Step 12.
+Step 4: Route on messageType:
+  - 'text' → go to Step 5
+  - 'interactive' → go to Step 6
+  - 'template' → go to Step 8
+Step 5: Send text via WhatsApp node (operation=send, phoneNumberId=1104226366097236, recipient=phoneNumber, body=messageContent, timeout=10s). Go to Step 10.
+Step 6: Build interactive payload (Prepare Interactive Message code):
+  - If interactivePayload.type=='flow': build { messaging_product:'whatsapp', to, type:'interactive', interactive:{ type:'flow', header.text, body.text, footer:'Tap below to continue', action:{ name:'flow', parameters:{ flow_message_version:'3', flow_token=<Date.now()>, flow_id=interactivePayload.flowId, flow_cta=interactivePayload.flowCta, flow_action:'navigate' } } } }.
+  - If interactivePayload.type=='button': build { messaging_product:'whatsapp', to, type:'interactive', interactive:{ type:'button', body.text, action.buttons=interactivePayload.action.buttons } }.
+  Go to Step 7.
+Step 7: POST https://graph.facebook.com/v22.0/1104226366097236/messages with the interactive payload (auth = WhatsApp credential, timeout 10s). Go to Step 10.
+Step 8: Build template payload (Prepare Template Message code): build components from templateParams (type:'body' with text parameters) and assemble { messaging_product:'whatsapp', to, type:'template', template:{ name=templateName, language.code='en', components } }. Go to Step 9.
+Step 9: POST https://graph.facebook.com/v22.0/1104226366097236/messages with the template payload (timeout 10s). Go to Step 10.
+Step 10: Process API response (Process Result code): if response.messages[0] present → success=true, messageId=response.messages[0].id; else if response.error → success=false, error=response.error.message; else fallback success=true, messageId='unknown'. Carry phoneNumber, messageType, messageContent, userId, inboundMessageId, userMessage, sentAt=now. Go to Step 11.
+Step 11: Call WF-60 (Message Logger) with the canonical WF-60 input shape:
+   { direction:'outbound', userId, consultationId, messageType, phoneNumber,
+     whatsappMessageId: messageId,
+     content:  (messageType=='text'        ? messageContent
+              : messageType=='interactive' ? (interactivePayload.body?.text || JSON.stringify(interactivePayload))
+              : messageType=='template'    ? 'template:' + (templateName ?? '')
+              : messageContent),
+     metadata: {
+       success, error, sentAt, inboundMessageId,
+       ...(messageType=='interactive' && interactivePayload?.action?.buttons
+            ? { buttons: interactivePayload.action.buttons.map(b => ({id:b.id, title:b.title})) }
+            : {}),
+       ...(messageType=='template' && templateParams
+            ? { templateParams }
+            : {})
+     }
+   }. Go to Step 12.
+   (Drop path Step 3a applies the same per-type content rule, with `metadata.drop=true` and `metadata.dropReason='empty_body_dropped'`.)
+Step 12: Build return object (Return Status code): { success, messageId, error, phoneNumber, sentAt }. Go to Step 13.
+Step 13: Return that object to the calling workflow.
+Step 14: End.

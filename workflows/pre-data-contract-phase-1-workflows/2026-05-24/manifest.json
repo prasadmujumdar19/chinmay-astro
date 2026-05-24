@@ -1,0 +1,223 @@
+{
+  "sprint": "data-contract-phase-1",
+  "snapshot_taken_at": "2026-05-24T15:21:30Z",
+  "n8n_base_url": "http://localhost:5678",
+  "workflows": [
+    {
+      "wf_id": "JQu1MkK5vgtUCeNO",
+      "wf_name": "WF-00 Webhook Receiver",
+      "wf_short": "WF-00",
+      "json_sha256": "e6f9e8a09e493c7a1500045898932f6c30d8189b4a4ae68e465c31f800e9a87b",
+      "json_n8n_updatedAt": "2026-05-21T12:22:14.626Z",
+      "pseudo_path": "pseudocode/WF-00.pseudo",
+      "md_path": "md/WF-00.md"
+    },
+    {
+      "wf_id": "hYGNM97sXvdo1WmI",
+      "wf_name": "WF-01 Message Router",
+      "wf_short": "WF-01",
+      "json_sha256": "0c85e7dcead3f51d7be21886c1c770d35c36d04731603ac7455c6d64abedf22c",
+      "json_n8n_updatedAt": "2026-05-23T00:34:46.044Z",
+      "pseudo_path": "pseudocode/WF-01.pseudo",
+      "md_path": "md/WF-01.md"
+    },
+    {
+      "wf_id": "PubCsNTOspF3xqXZ",
+      "wf_name": "WF-02 User State Router",
+      "wf_short": "WF-02",
+      "json_sha256": "dcfad1d4159ce16304c4f94e3052339298fc74e79c1a25c13119c2509aff9797",
+      "json_n8n_updatedAt": "2026-05-23T00:31:46.825Z",
+      "pseudo_path": "pseudocode/WF-02.pseudo",
+      "md_path": "md/WF-02.md"
+    },
+    {
+      "wf_id": "wMh0oBRtJbvhLgOf",
+      "wf_name": "WF-10 Slack Admin Handler",
+      "wf_short": "WF-10",
+      "json_sha256": "6e8523fe8c9008fcb9822cedc18dbe64a3eb5019317c7d04698a61ee9c43e656",
+      "json_n8n_updatedAt": "2026-05-23T04:03:23.056Z",
+      "pseudo_path": "pseudocode/WF-10.pseudo",
+      "md_path": "md/WF-10.md"
+    },
+    {
+      "wf_id": "GoTYo0GS2y8qjjkw",
+      "wf_name": "WF-11 Command Parser",
+      "wf_short": "WF-11",
+      "json_sha256": "873f4f4657e79830839bd30c722ef22d5613c2ae915140f7293769f5bda96bcd",
+      "json_n8n_updatedAt": "2026-05-23T06:44:30.390Z",
+      "pseudo_path": "pseudocode/WF-11.pseudo",
+      "md_path": "md/WF-11.md"
+    },
+    {
+      "wf_id": "LgIDj1v4ZbCPlX25",
+      "wf_name": "WF-20 Keyword Handler",
+      "wf_short": "WF-20",
+      "json_sha256": "419db2947182e07c0f3db8d82a58a8558006c8e62fcca64019ff60a289a3ee23",
+      "json_n8n_updatedAt": "2026-05-21T07:08:02.348Z",
+      "pseudo_path": "pseudocode/WF-20.pseudo",
+      "md_path": "md/WF-20.md"
+    },
+    {
+      "wf_id": "zM8WbxSdt9nXRoLZ",
+      "wf_name": "WF-21 New User Welcome + Form",
+      "wf_short": "WF-21",
+      "json_sha256": "66959d5436cdb0d42e90180ab7d298071d600495fdcc746f131931bca86c14bd",
+      "json_n8n_updatedAt": "2026-05-22T21:50:33.365Z",
+      "pseudo_path": "pseudocode/WF-21.pseudo",
+      "md_path": "md/WF-21.md"
+    },
+    {
+      "wf_id": "dr8QM0m92Ml8MvIh",
+      "wf_name": "WF-22 Form Response Handler",
+      "wf_short": "WF-22",
+      "json_sha256": "70acace976aa56f06fcf31f6afdff3222ccb6dd193e9836064c0b751edcdf229",
+      "json_n8n_updatedAt": "2026-05-22T21:50:40.394Z",
+      "pseudo_path": "pseudocode/WF-22.pseudo",
+      "md_path": "md/WF-22.md"
+    },
+    {
+      "wf_id": "VpCER0Vqq3NYJGpI",
+      "wf_name": "WF-23 Pre-Form Intent Filter",
+      "wf_short": "WF-23",
+      "json_sha256": "7d06928d8a92954c1333429ac75d5b0adbea5be8514d3aed6284a8cfa9070739",
+      "json_n8n_updatedAt": "2026-05-23T09:15:21.585Z",
+      "pseudo_path": "pseudocode/WF-23.pseudo",
+      "md_path": "md/WF-23.md"
+    },
+    {
+      "wf_id": "gGJBY5fJha0Let8I",
+      "wf_name": "WF-30 Payment Pending Intent Filter",
+      "wf_short": "WF-30",
+      "json_sha256": "339e64f4df61bbb9f177b843c23f6ce2540aecbf80af039aefb1e890ecf1330b",
+      "json_n8n_updatedAt": "2026-05-23T09:16:34.688Z",
+      "pseudo_path": "pseudocode/WF-30.pseudo",
+      "md_path": "md/WF-30.md"
+    },
+    {
+      "wf_id": "HB8nXudAtk9iXz7C",
+      "wf_name": "WF-31 Payment Submitted Handler",
+      "wf_short": "WF-31",
+      "json_sha256": "ec17b9c3682f7ee349ec11e8e4f5ff22eda16bd3795d575022e85685f5fac70a",
+      "json_n8n_updatedAt": "2026-05-23T09:17:24.268Z",
+      "pseudo_path": "pseudocode/WF-31.pseudo",
+      "md_path": "md/WF-31.md"
+    },
+    {
+      "wf_id": "emUOLWVZiNVxcOe3",
+      "wf_name": "WF-32 Payment Confirmation Receiver",
+      "wf_short": "WF-32",
+      "json_sha256": "5c568a002b4db657a1f1dc085a98fd9018bdae4d383bb9f6e1d548b3da9a5ca6",
+      "json_n8n_updatedAt": "2026-05-22T21:50:46.672Z",
+      "pseudo_path": "pseudocode/WF-32.pseudo",
+      "md_path": "md/WF-32.md"
+    },
+    {
+      "wf_id": "NcHZedq9ycnAQ9SW",
+      "wf_name": "WF-33 Payment Approval Processor",
+      "wf_short": "WF-33",
+      "json_sha256": "11ece58a98ef0a9b4cd196e1e594eb54f5c19db74998975b91c48eb14bed8021",
+      "json_n8n_updatedAt": "2026-05-23T07:13:30.222Z",
+      "pseudo_path": "pseudocode/WF-33.pseudo",
+      "md_path": "md/WF-33.md"
+    },
+    {
+      "wf_id": "se82n3MUQ9xE5aEr",
+      "wf_name": "WF-34 Payment Rejection Processor",
+      "wf_short": "WF-34",
+      "json_sha256": "5d81f820a859d2cc3e24a681d87373064564f9411313d89d2460c96721b17822",
+      "json_n8n_updatedAt": "2026-05-23T07:16:17.200Z",
+      "pseudo_path": "pseudocode/WF-34.pseudo",
+      "md_path": "md/WF-34.md"
+    },
+    {
+      "wf_id": "du32QBZbSQOjfESe",
+      "wf_name": "WF-40 User -> Admin Relay",
+      "wf_short": "WF-40",
+      "json_sha256": "b71f1a4668736c3e4fa8060c7ced089bbdb38089feb538769d2ee48a9c5a927e",
+      "json_n8n_updatedAt": "2026-05-21T11:48:01.890Z",
+      "pseudo_path": "pseudocode/WF-40.pseudo",
+      "md_path": "md/WF-40.md"
+    },
+    {
+      "wf_id": "6PzJRZsF7k2d9hV7",
+      "wf_name": "WF-41 Admin -> User Relay",
+      "wf_short": "WF-41",
+      "json_sha256": "104a40c42ed68ff338967e50a75e97741ae3d9765f7bb99234c82ec69a130136",
+      "json_n8n_updatedAt": "2026-05-22T11:03:31.734Z",
+      "pseudo_path": "pseudocode/WF-41.pseudo",
+      "md_path": "md/WF-41.md"
+    },
+    {
+      "wf_id": "fx70vqyJtRdF2DgR",
+      "wf_name": "WF-42 Consultation Closer",
+      "wf_short": "WF-42",
+      "json_sha256": "71fa3b795e7330098be1b6d85348eefa28a26198fd1616861876d6d25e037d6f",
+      "json_n8n_updatedAt": "2026-05-23T07:17:58.317Z",
+      "pseudo_path": "pseudocode/WF-42.pseudo",
+      "md_path": "md/WF-42.md"
+    },
+    {
+      "wf_id": "3va0M06kijgyLejf",
+      "wf_name": "WF-43 Post-Consultation Handler",
+      "wf_short": "WF-43",
+      "json_sha256": "415f36d1a64cb9a8f2856eb5468fe1562bfdd16b7f0ff871054ab14d4e18c484",
+      "json_n8n_updatedAt": "2026-05-18T12:15:14.403Z",
+      "pseudo_path": "pseudocode/WF-43.pseudo",
+      "md_path": "md/WF-43.md"
+    },
+    {
+      "wf_id": "Du2CJ3OTohRFZYoA",
+      "wf_name": "WF-44 Feedback Recorder",
+      "wf_short": "WF-44",
+      "json_sha256": "c66d1fc9dfdac9dec10f6965003b0b457df4894d0e40e853a7ff4134e9d05fa6",
+      "json_n8n_updatedAt": "2026-05-22T21:50:58.290Z",
+      "pseudo_path": "pseudocode/WF-44.pseudo",
+      "md_path": "md/WF-44.md"
+    },
+    {
+      "wf_id": "UV62An60fzflU0uD",
+      "wf_name": "WF-46 User Blocker",
+      "wf_short": "WF-46",
+      "json_sha256": "918f2b7aac17da56239e46e57539c62e2de3e21d2e7be0e12e7e44c8d5dee517",
+      "json_n8n_updatedAt": "2026-05-23T05:42:53.155Z",
+      "pseudo_path": "pseudocode/WF-46.pseudo",
+      "md_path": "md/WF-46.md"
+    },
+    {
+      "wf_id": "BUVun38WEKb12zg9",
+      "wf_name": "WF-50 Send WhatsApp",
+      "wf_short": "WF-50",
+      "json_sha256": "95abda3776034f74151c00bd025dd284c8875d4135c8e7420e419d511a73379e",
+      "json_n8n_updatedAt": "2026-05-21T12:20:57.842Z",
+      "pseudo_path": "pseudocode/WF-50.pseudo",
+      "md_path": "md/WF-50.md"
+    },
+    {
+      "wf_id": "wlZRK0YxnhP0b2RL",
+      "wf_name": "WF-51 Send Slack Message",
+      "wf_short": "WF-51",
+      "json_sha256": "7333f4b58242c5f36d56595b5272498fe8499825833626a36607cf68eaf0b156",
+      "json_n8n_updatedAt": "2026-05-20T01:03:55.160Z",
+      "pseudo_path": "pseudocode/WF-51.pseudo",
+      "md_path": "md/WF-51.md"
+    },
+    {
+      "wf_id": "IO5BZLUxuVmjzk5I",
+      "wf_name": "WF-52 Slack Channel Manager",
+      "wf_short": "WF-52",
+      "json_sha256": "d6a6f4fcb6662325987582f023d35b6351804a658d06d51840e6b044b2672f7e",
+      "json_n8n_updatedAt": "2026-05-17T14:20:54.437Z",
+      "pseudo_path": "pseudocode/WF-52.pseudo",
+      "md_path": "md/WF-52.md"
+    },
+    {
+      "wf_id": "6H75p935FpBVBQtV",
+      "wf_name": "WF-60 Message Logger",
+      "wf_short": "WF-60",
+      "json_sha256": "eec03b42fd7125aa9a7ba6c7d0f61c0915e958a2201595ec8b13819c4eef97e1",
+      "json_n8n_updatedAt": "2026-05-20T09:07:08.190Z",
+      "pseudo_path": "pseudocode/WF-60.pseudo",
+      "md_path": "md/WF-60.md"
+    }
+  ]
+}

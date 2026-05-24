@@ -1,0 +1,36 @@
+WF-40 — User -> Admin Relay
+
+## Summary
+
+- Inputs: phoneNumber, messageContent (user's WhatsApp message text during an active consultation).
+- Outputs: Slack message posted to the user's consult channel for benign intents; short-circuits to WF-25's garbage/abuse handlers otherwise; additionally sends a WF-50 clarifier to the user when WF-25 returns `stop_intent`.
+- State Transitions: none directly. WF-25 → WF-46 transitions user to `blocked` for `malicious_abusive` / `inappropriate` intents.
+- Calls Sub-Workflows: WF-25 (Intent Classifier, MANDATORY at head per Design Rule #6), WF-50 (Send WhatsApp — stop_intent clarifier only), WF-51 (Send Slack Message).
+- **Notes:**
+  - Design Rule #6: every state accepting free-form text must run WF-25 first. WF-40 receives user text during `consultation_active` — therefore MUST classify.
+  - WF-25 contract: for `garbage`, `malicious_abusive`, `inappropriate` intents WF-25 sends the user warning + admin Slack notify + (for abuse) auto-blocks via WF-46, and does NOT return to caller. For all other intents (`wants_consultation`, `general_enquiry`, `rebook_intent`, `feedback_intent`, `stop_intent`) it returns the input payload extended with `intentResult`.
+  - `stop_intent` policy (2026-05-21 — TD-E): a user mentioning "STOP" or "unsubscribe" mid-consultation is NOT auto-opted-out — false-positive risk (e.g. quoting an earlier message). Instead WF-40 relays the message verbatim to admin AND sends an automated clarifier to the user explaining how to opt out cleanly (send STOP keyword). If the user then sends STOP, the WF-20 keyword path handles opt-out canonically. Subsequent admin messages to an opted-out user are blocked by WF-10's `consultation_active` status guard (Step 16), so post-opt-out admin replies do not leak to WhatsApp.
+  - Inbound logging handled upstream by WF-00 → WF-60. WF-40 does NOT call WF-60.
+
+---
+
+## Algorithm
+
+Step 1: Start — triggered by WF-02 routing consultation_active user text. Inputs: phoneNumber, messageContent.
+Step 2: SELECT id, name, phone_number, slack_channel_id, status FROM chinmay_astro.users WHERE phone_number = <phoneNumber> LIMIT 1.
+Step 3: Call WF-25 (Intent Classifier) with {phoneNumber, userId=user.id, messageContent, userStatus=user.status}.
+  - If WF-25 classifies as `garbage` / `malicious_abusive` / `inappropriate`, WF-25 handles user warning, admin notify, and (for abuse) auto-blocking internally. Control does NOT return to WF-40 and the chain halts.
+  - Otherwise WF-25 returns input + `intentResult` (one of `wants_consultation`, `general_enquiry`, `rebook_intent`, `feedback_intent`, `stop_intent`).
+Step 4: Branch on `intentResult == 'stop_intent'`?
+  - YES → fork into two parallel branches: (a) Step 5 (clarifier to user); (b) Step 6 (relay to admin).
+  - NO  → skip Step 5, go directly to Step 6.
+Step 5: Build WF-50 stop-clarifier payload and send:
+  - phoneNumber = <phoneNumber>
+  - messageType = "text"
+  - messageContent = "This is an automated message from Chinmay Astro — we noticed your message mentioned STOP or unsubscribing. If this was unrelated, please ignore. If you do want to opt out of this service, simply send STOP at any time."
+  - Call WF-50.
+Step 6: Format Slack relay payload:
+  - channelId = user.slack_channel_id
+  - messageText = "📲 *<user.name>:* <messageContent>"
+Step 7: Call WF-51 with {channelId, messageText} — posts the user's words into the consult Slack channel.
+Step 8: End.

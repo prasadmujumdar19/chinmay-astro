@@ -1,0 +1,48 @@
+WF-00 — Webhook Receiver
+
+## Summary
+
+- Inputs: Inbound WhatsApp webhook POST (Meta payload) at path /whatsapp-astro-webhook
+- Outputs: HTTP 200 response to Meta ({status: "processed"} or {status: "skipped"}); message ID recorded in Chinmay-Astro-Messages data table for dedup
+- State Transitions: none
+- Calls Sub-Workflows: WF-60 (inbound logging, direction='inbound'), WF-01 (Message Router)
+- **Ambiguities / Notes:**
+  - Sticky note in the workflow says "Message Cleanup >7 Days" but the actual dedup filter is `$today.minus(3,'days')`. Treat the 3-day window as truth.
+  - The Meta webhook verification GET (`hub.challenge` echo) is not present in this workflow's connections — verify it lives elsewhere or is handled at the CF/n8n layer.
+  - Bot-echo guard (live verified 2026-05-17): comparison is `message.from === value.metadata.display_phone_number.replace(/\D/g, '')` — strips non-digit characters from the WABA display phone and compares to the inbound sender. Meta does deliver outbound message echoes via the `messages` array in some scenarios; this guard is intentional (TD-030).
+  - Whitespace-only guard (TD-034) applies to text messages only.
+  - Interactive label extraction (TD-F, 2026-05-21): for `interactive` button_reply / list_reply, the parser captures BOTH the routable id (into `messageContent`, preserving WF-01 routing semantics) AND the display title (into `interactiveLabel`). `Build WF-60 Payload (Inbound)` writes `interactiveLabel || messageContent` into `messages.content` so the persisted audit row is human-readable; the id remains available downstream for routing.
+
+---
+
+## Algorithm
+
+Step 1: Start — receive HTTP POST on /whatsapp-astro-webhook from Meta WhatsApp Cloud API.
+Step 2: Parse the webhook payload (extract body.entry[0].changes[0].value).
+  - If payload has no entry, changes, or messages → mark skip=true, go to Step 3.
+  - botPhone = value.metadata.display_phone_number with non-digit characters stripped (`replace(/\D/g, '')`). If message.from === botPhone (bot echo) → mark skip=true, go to Step 3. (TD-030)
+  - If type='text' and content is empty/whitespace → mark skip=true, go to Step 3. (TD-034)
+  - Otherwise extract: messageId, timestamp, phoneNumber, contactName, messageType, messageContent (text body, or for interactive: button_reply.id / list_reply.id / nfm_reply.response_json (cleartext form payload — Flow is in send-only mode, no encryption-svc needed)), interactiveLabel (for interactive button_reply.title / list_reply.title; null for nfm_reply and non-interactive types), metadata (phone_number_id, display_phone_number). Set skip=false.
+Step 3: Check: skip == true?
+  - If YES → go to Step 11 (return skipped).
+  - If NO → go to Step 4.
+Step 4: Lookup messageId in Chinmay-Astro-Messages data table (dedup check).
+Step 5: Check: did the lookup return an existing row (duplicate)?
+  - If YES (id is not empty) → go to Step 11 (return skipped — already processed).
+  - If NO → go to Step 6.
+Step 6: Insert new row into Chinmay-Astro-Messages with messageId (records this message as seen).
+Step 7: Delete all rows in Chinmay-Astro-Messages where createdAt <= today - 3 days (housekeeping; sticky note labels "7 days" but actual filter is 3 days).
+Step 8: Pass parsed message payload forward (Gather Message Info — passthrough of parsed fields).
+Step 8a: Call WF-60 (Message Logger) with the canonical WF-60 input shape:
+  { direction:'inbound', userId:null, consultationId:null, messageType, phoneNumber,
+    whatsappMessageId: messageId,
+    content: (messageType=='interactive' ? (interactiveLabel ?? messageContent) : messageContent),
+    metadata: { phoneNumber, contactName, timestamp, rawMessage,
+                ...(messageType=='interactive' && interactiveLabel ? { interactiveButtonId: messageContent } : {}) }
+  }. WF-60 handles all inbound audit; failures here MUST NOT block routing — wrap in onError='continueRegularOutput'.
+Step 9: Call WF-01 (Message Router) with the parsed message payload.
+Step 10: Return HTTP 200 with {status: "processed"} to Meta.
+Step 11: Return HTTP 200 with {status: "skipped"} to Meta.
+Step 12: End.
+
+Note: Meta GET verification (hub.challenge) is handled by a separate webhook or n8n-side test config — not present as a branch in this workflow's connections.

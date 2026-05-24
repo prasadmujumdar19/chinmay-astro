@@ -1,0 +1,23 @@
+WF-51 — Send Slack Message
+
+## Summary
+
+- Inputs: channelId (Slack channel ID), messageText (plain text only — no blocks / attachments supported in this utility). Optional: userId, consultationId (forwarded to WF-60 if caller provides; otherwise WF-60 falls back to slack_channel_id lookup).
+- Outputs: Message posted to the given Slack channel; Slack API response (channel, ts, ok) flows downstream. Successful outbound posts are logged to chinmay_astro.messages via WF-60 (success path only — no logging on Slack API failure).
+- State Transitions: none
+- Calls Sub-Workflows: WF-60 (Message Logger)
+- **Notes:**
+  - Text-only utility. Callers needing rich Slack formatting (blocks, attachments) should extend WF-51 with optional fields rather than bypassing it.
+  - Logged via WF-60 per TD-002 multi-transport rebuild (2026-05-19). The Build WF-60 Payload Code node constructs the canonical multi-transport input (transport='slack', direction='outbound', messageType='slack_text') and extracts slack_message_ts from the Slack API response. Optional userId/consultationId forwarded from the caller; absent values trigger WF-60's slack_channel_id lookup.
+  - Slack-failure logging is NOT wired (no On Error → WF-60 path). Tracked as TD-NEW-028 for the planned error-handling sprint.
+  - Trigger uses `inputSource=passthrough` with no enforced schema — the canonical `{ channelId, messageText, [userId], [consultationId] }` contract is policed at caller-side `Execute Workflow` mappings and at the post-trigger `Build WF-60 Payload (Slack Outbound)` Code node. Accepted-as-is per WF-46 D8 (TD-DRIFT-028) / WF-25 D2 (TD-DRIFT-011) project-wide convention — cross-cutting schema-hardening at the trigger boundary would be its own dedicated tech sprint.
+
+---
+
+## Algorithm
+
+Step 1: Start — triggered by another workflow with { channelId, messageText, [userId], [consultationId] } passed through.
+Step 2: Post to Slack via Slack API (chat.postMessage) using the Slack credential — channel=<channelId>, text=<messageText>. Slack response carries { ok, channel, ts, message:{ ts, text } }. Go to Step 3.
+Step 3: Build WF-60 canonical payload (Code node) — read the trigger input for channelId/messageText/userId/consultationId and the Slack response for ts; emit { transport:'slack', direction:'outbound', messageType:'slack_text', content:messageText, slackChannelId, slackMessageTs, userId, consultationId, metadata:{ transport, slackChannelId, slackMessageTs, slackApiOk, timestamp } }. Go to Step 4.
+Step 4: Call WF-60 (Message Logger) in passthrough mode with the prepared payload. WF-60 inserts into chinmay_astro.messages or returns { logged:false, reason } if its filters/guards prevent insert. Go to Step 5.
+Step 5: End (Slack response returned to caller; WF-60 result not propagated upstream).
