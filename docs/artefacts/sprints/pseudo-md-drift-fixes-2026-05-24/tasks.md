@@ -31,6 +31,12 @@ WF-21 is currently clean but will be re-checked after WF-00/01/02/20 decisions l
 
 ### TD-DRIFT-007 · WF-47 ordering — atomicity reorder + pseudo revision
 
+> **ADOPTED 2026-05-25T03:42:21Z** — Re-homed to
+> `docs/artefacts/sprints/data-contract-sprint-bug-fix/tasks.md` as
+> **TD-DCP-113** (P1). Original spec retained below for reference; do
+> NOT execute from this file — execute from the data-contract-sprint-bug-fix
+> sprint to avoid double-application.
+
 **Root cause:** Live runs `UPDATE users SET status='opted_out'` BEFORE `Close Open Consultation`. If the `Close` step fails after the user UPDATE succeeds, the user is left in `opted_out` with an orphaned `consultations` row in `status='active'` — exactly the table-drift failure mode TD-DRIFT-006 exposed (WF-20 dropping `userStatus` produced the same orphan-row outcome via a different mechanism). Even after TD-DRIFT-006 lands, the current ordering still carries this atomicity risk because the lifecycle write (UPDATE users) precedes the dependent cleanup (Close consultation). Additionally `WF-47.pseudo`'s Inputs block is informal prose (`Inputs: phoneNumber, userId, userStatus`), failing D9 structured-block criteria.
 
 **Decision (already approved in pre-load):** Reorder live so the consultation close happens before the user opt-out write, and bypass the pre-onboarding row-existence question (WF-01's `Anomaly Route?` already intercepts pre-onboarding STOP via the `anomaly_keyword` route and never reaches WF-47).

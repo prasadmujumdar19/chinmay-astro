@@ -680,6 +680,110 @@ bug-fix subtask referencing the failed expectation.
 
 ---
 
+### TD-DCP-113 · WF-47 atomicity — opt-out UPDATE fires before consultation close (pre-existing TD-DRIFT-007)
+
+**Rationale:** Live WF-47 wires `When Executed by Another Workflow` →
+`Update User Status to opted_out` → `Was Consultation Active?` →
+(YES) `Close Open Consultation`. The lifecycle write (`users.status =
+'opted_out'`) precedes the dependent cleanup (`consultations` close).
+If the close step fails after the user UPDATE succeeds, the user is
+left in `opted_out` with an orphaned `consultations.status='active'`
+row — same orphan-row failure mode TD-DRIFT-006 exposed via a
+different mechanism. WF-47 last `updatedAt` is
+`2026-05-22T21:51:11Z` (predates TD-DRIFT-007 logging); the data-contract
+Phase 1 sprint did NOT touch WF-47, so the bug carries forward.
+Confirmed observed in smoke-pre-golive-2026-05-24
+(`session.md` L160-163). Adopted into this sprint from
+`pseudo-md-drift-fixes-2026-05-24/tasks.md:32` per
+2026-05-25 carried-forward decision.
+
+**Fix:**
+1. **Live (WF-47, n8n id `2U7mxHMyqA41ROKX`):** rewire connections
+   so the IF check sits at the head and the opt-out UPDATE sits at
+   the tail. Target topology:
+   - `When Executed by Another Workflow` → `Was Consultation Active?`
+     (IF `userStatus==='consultation_active'`)
+     - YES (main#0) → `Close Open Consultation` →
+       `Update User Status to opted_out`
+     - NO  (main#1) → `Update User Status to opted_out`
+   - `Update User Status to opted_out` → `Has Slack Channel?`
+     (reads `slack_channel_id` from the UPDATE RETURNING row —
+     unchanged)
+   - `Has Slack Channel?` → (main#0) → `Prepare WF-51 Payload` →
+     `Notify Admin Opt-out via WF-51` → `Prepare WF-50 Payload` →
+     `Send Opt-out Confirmation via WF-50`
+   - `Has Slack Channel?` → (main#1) → `Prepare WF-50 Payload`
+     (skip Slack admin notice when no channel)
+   - Both IF branches converge on the single existing
+     `Update User Status to opted_out` node — no duplicate write
+     node needed.
+   - Node parameters unchanged; connection rewiring only.
+2. **Pseudo (`docs/pseudocode/WF-47.pseudo`):** rewrite Step 2 / Step 3
+   ordering to match new live; add a structured **Inputs** block (D9):
+   - `phoneNumber` — E.164 string, required.
+   - `userId` — integer, required (FK to `chinmay_astro.users.id`).
+   - `userStatus` — enum string, required; one of the user-state-machine
+     values per CLAUDE.md
+     (`payment_pending`, `payment_submitted`, `consultation_active`,
+     `consultation_closed`, `opted_out`, `blocked`); used by the head
+     IF to decide whether to close an active consultation.
+   - Remove the existing Step 2 inline note that justified the old
+     "UPDATE-first then read userStatus from trigger" ordering — it
+     no longer applies. Replace with a brief note that the IF reads
+     `userStatus` directly from the trigger (pre-UPDATE value) by
+     design (the UPDATE node has not run yet at IF-evaluation time).
+
+**Files:**
+- Live nodes in WF-47 (n8n id `2U7mxHMyqA41ROKX`):
+  `Was Consultation Active?`, `Close Open Consultation`,
+  `Update User Status to opted_out`, `Has Slack Channel?`,
+  `When Executed by Another Workflow` — connection rewiring only.
+- `docs/pseudocode/WF-47.pseudo` — Inputs block + Step 2/3 rewrite.
+- `.md`: regenerated post-fix by `generate-workflow-md.py`.
+
+**Change type:** Structural (connection rewiring across 4 nodes; no
+node parameter changes). Use `mcp__n8n__n8n_update_partial_workflow`
+with `removeConnection` / `addConnection` ops, OR jq-on-disk if MCP
+nested-array path issues surface (per
+[[feedback_n8n_mcp_nested_array_update]]). Always verify with full
+re-fetch.
+
+**Impact:** Closes TD-DRIFT-007 atomicity window. STOP from any state
+(including `consultation_active`) cleanly closes the consultation row
+before opt-out — if the close fails, the user stays in their prior
+state and the failure is surfaced via the standard n8n error path.
+Closes the systemic orphan-row class along with TD-DCP-104 /
+TD-DRIFT-006.
+
+**Verify:**
+1. Back up workflow JSON (`scripts/backup-workflow.sh WF-47`).
+2. Apply rewiring; re-fetch WF-47 via curl; grep the connections
+   section to confirm `When Executed by Another Workflow` →
+   `Was Consultation Active?` and `Close Open Consultation` →
+   `Update User Status to opted_out` are present, and that the old
+   `Update User Status to opted_out` → `Was Consultation Active?`
+   edge is GONE.
+3. Functional test: put a test user in `consultation_active`
+   (insert a `consultations.status='active'` row), send STOP via
+   WhatsApp, verify both:
+   - `chinmay_astro.users.status='opted_out'`
+   - `chinmay_astro.consultations.status='closed'` (was the active
+     row)
+4. Negative test (atomicity): temporarily make `Close Open
+   Consultation` fail (e.g. point at a non-existent user_id via the
+   trigger payload) and verify the user UPDATE does NOT run — user
+   remains in prior state.
+5. Regenerate `WF-47.md` via `generate-workflow-md.py`; diff
+   against pre-fix copy to confirm new topology surfaces in the
+   AS-IS projection.
+
+**Dependencies:** Independent of TD-DCP-104 / TD-DRIFT-006 (different
+failure mechanisms — TD-DCP-104 fixes WF-20 `userStatus` propagation;
+this one fixes WF-47 internal ordering). Both should land before
+go-live for full orphan-row coverage.
+
+---
+
 ## P2 — Nit-tier (contract hygiene; no current consumer impacted)
 
 ### TD-DCP-108 · Cross-doc sync — CLAUDE.md state machine + workflow-registry.md + user_journey_map.html for WF-26 rollout
@@ -925,6 +1029,33 @@ through the producing workflow's node graph (SELECT → mapping → envelope
 build) and emit a finding if any link in the chain is missing. Run as part
 of every contract-discipline sprint's close-out.
 
+### TD-DCP-PLG-003 · Review subagents must diff against immediate pre-sprint snapshot, not historical state
+
+**Plugin:** `n8n-whatsapp-methodology`
+**Skill:** `functional-code-review` and `technical-workflow-review` —
+whichever owns the per-WF subagent dispatch brief that frames "what this
+sprint changed".
+
+**Rationale:** Two of five cross-cuttings in the data-contract Phase 1
+review (CC-01, CC-05) flagged regressions for work that **pre-existed the
+sprint**. CC-01 attributed onError/retryOnFail properties (added by
+Sprint F-09 / TD-003 / TD-NEW-016, surfaced for the first time by a `.md`
+generator upgrade between 2026-05-22 and 2026-05-24) to the data-contract
+sprint. CC-05 attributed WF-33/WF-34 trust-mode dead-branch removals
+(landed by SP-03 on 2026-05-23 — `inline-20260522-102910/state.md`
+lines 73-75) to the data-contract sprint. In both cases the subagent
+inferred sprint-origin from the new pseudo/`.md` shape without diffing
+against the pre-sprint snapshot.
+
+**Fix:** Update the subagent dispatch brief to require that, for every
+flagged structural change or node-property regression, the subagent first
+diffs the live workflow against the pre-sprint snapshot under
+`workflows/<pre-sprint-tag>/json/<WF-ID>.json` and reports the diff
+explicitly in the finding. If a flagged property/node pre-exists in the
+snapshot, the finding must either be dismissed or re-classified as a
+pre-existing issue with origin trace (registry grep), not attributed to
+the current sprint.
+
 ---
 
 ## Reviewed — No Action (audit trail)
@@ -938,3 +1069,13 @@ Review §4 Cross-cutting #1 flagged 5 Major findings on `onError:continueRegular
 Origin trace from registry: Sprint F-09 (WF-00/10 webhook onError), TD-003 F2/F3 (WF-10/51 logger onError), TD-NEW-016 (WF-43/50 retryOnFail). WF-22 Create User Record onError is the only one without explicit registry annotation but is still pre-existing. Failure-history scan on WF-22 (the review's most-emphasised concern) shows no Create User Record errors in last 50 executions.
 
 Detailed write-up with origin trace, failure-history scan, and 4-class options for the future tech-error sprint to consider has been appended to `docs/artefacts/sprints/pseudo-md-drift-fixes-2026-05-24/deferred-to-tech-sprint.md`. Error-handling policy decisions belong to that dedicated sprint per `[[feedback_pseudo_tech_separation]]`.
+
+### CC-05 · WF-33 / WF-34 trust-mode dead-branch removals (1 cross-cutting → dismissed)
+
+**Reviewed:** 2026-05-25T03:42:21Z. **Verdict:** Non-issue — no action in this sprint.
+
+Review §4 Cross-cutting #5 flagged that WF-33 removed a "wrong-state IF guard" + Prepare/Call WF-51 pair, and WF-34 removed 6 dead-branch nodes (User Found? + User in Correct State? + 2× error-path Prepare WF-51 + 2× error-path Call WF-51), and recommended a retro-doc note to sub-13.md/sub-14.md because the dead-branch removals were "undocumented as a sprint side-effect". Snapshot-diff against `workflows/pre-data-contract-phase-1-workflows/2026-05-24/md/` confirmed WF-33 was already 11 nodes (only `Load User by Phone` extra vs current 10) and WF-34 was already 8 nodes (identical to current) immediately before the data-contract sprint started. The data-contract sprint removed only the `Load User by Phone` SELECT from WF-33 and simplified WF-34's SELECT to a payment_id-only fetch — both exactly as sub-13/sub-14 planned. The dead-branch removals were NOT part of this sprint.
+
+Origin trace: `docs/artefacts/sprints/inline-20260522-102910/state.md` lines 73-75 — SP-03 (Admin-action precondition audit) on 2026-05-23. WF-33 14→11 (removed `User in Correct State?` + Prepare/Call WF-51 Wrong State); WF-34 14→8 (removed `User Found?` + `User in Correct State?` + 4 prepare/call pairs); WF-42 14→8 (same shape). Backups: `archive/backups/{NcHZedq9ycnAQ9SW,se82n3MUQ9xE5aEr,fx70vqyJtRdF2DgR}-2026-05-23-17-*.json`. The new pseudo's `**Trust-mode input (SP-03):**` notes and WF-34 pseudo line 113 (`historical User Found? + User in Correct State? IFs ... are removed`) are accurate descriptions of the live state, attributed to SP-03 by name — not new claims by this sprint.
+
+Same root cause as CC-01: subagent inferred sprint-origin from new pseudo wording without diffing against the pre-sprint snapshot. Systemic fix tracked under `TD-DCP-PLG-003`.
