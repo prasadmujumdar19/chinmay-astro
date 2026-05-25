@@ -125,7 +125,8 @@ WF-01 already does `SELECT … FROM users WHERE phone_number = …` reading ~20 
 
 **WF-01 envelope consumers** — every direct or indirect callee is audited in Section 3.4:
 - WF-02 (router; defense-in-depth guard added)
-- WF-21 (called directly by WF-01 on the opted-out → re-engage path, AND via WF-02 on the new-user path)
+- WF-21 (called via WF-02 on the new-user path; WF-21's `wasOptedOut` legacy branch is dead code post-TD-DCP-107)
+- WF-26 (called directly by WF-01 on the opted-out → re-engage path; added 2026-05-25 by TD-DCP-106; consumes the envelope's `wasOptedOut:true` variant — `user.status='opted_out'`, `pendingUser:null`)
 - 9 state-specific leaves routed by WF-02: WF-20, WF-22, WF-23, WF-30, WF-31, WF-32, WF-40, WF-43, plus WF-21 listed above
 
 ### 2.2 WF-10 core envelopes

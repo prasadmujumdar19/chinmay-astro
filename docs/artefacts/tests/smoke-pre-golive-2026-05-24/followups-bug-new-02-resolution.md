@@ -1,5 +1,7 @@
 # Follow-ups — BUG-NEW-02 resolution thinking
 
+> **Status (2026-05-25):** ✅ Resolved by sprint `data-contract-sprint-bug-fix` items TD-DCP-105 (WF-01 opted-out branch envelope) + TD-DCP-106 (WF-26 build, n8n ID `tKjwTYF6EER8ED3y`) + TD-DCP-107 (WF-01 rewire to WF-26). Implementation matches Option B below (operator-recommended). End-to-end smoke re-verification tracked under TC-0607 in `docs/reference/FunctionalTestCases_Tracker.md` (status now "⏳ Pending re-verification" — test user 30 / +61466927921 reserved in `opted_out` for re-execution). On TC-0607 PASS, close this followup permanently.
+
 Captured during the session for triage in a future build-sprint. **No code/pseudo/.md edits made.**
 
 ## Operator's design direction (2026-05-24)

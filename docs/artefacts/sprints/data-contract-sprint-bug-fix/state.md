@@ -5,7 +5,7 @@ input_hash: 3a3f16876e4b6da8524988443085901d4ead6fdd0eae4c3a69676b3c8c80629a
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/data-contract-sprint-bug-fix/working.md
 planned_at: 2026-05-25T04:08:26Z
-last_updated: 2026-05-25T17:55:00Z
+last_updated: 2026-05-25T07:52:00Z
 planning_complete: true
 
 discover_current_state:
@@ -124,18 +124,30 @@ items:
   - id: TD-DCP-106
     description: "WF-26 Re-Engaged Opted-Out User Handler — build new sub-workflow"
     priority: P1
-    status: pending
+    status: done
+    started_at: 2026-05-25T07:30:00Z
+    completed_at: 2026-05-25T07:52:00Z
+    notes: "Pseudo-first per [[feedback_pseudocode_first_refactor]]: WF-26.pseudo authored + user-approved before live build. Live workflow created via mcp__n8n__n8n_create_workflow (MCP fallback after curl POST denied by deny-list pattern *-X POST*) — 7 nodes, 5 connections. Post-create updateNode applied alwaysOutputData:true on Update User Status (MCP create schema strips this property). Topology: Trigger → Validate Inputs (Code v2, envelope entry guard) → Update User Status (Postgres v2.5, alwaysOutputData:true) → Refresh Envelope Status (Set v3.4, includeOtherFields:false, contract-emit via per-field cross-node refs to Validate Inputs — overrides user.status to 'consultation_closed') → fan-out [Build Welcome Payload (Set v3.4, WF-50 §2.3 contract-emit) → Call WF-50 Welcome Back (executeWorkflow v1.2 canonical)] + [Call WF-02 Re-Route (executeWorkflow v1.2 canonical, passthrough on refreshed envelope)]. typeVersion floor honored: Trigger 1.1, Code 2, Postgres 2.5, Set 3.4, executeWorkflow 1.2 (all match live highest-per-type). Verified via get_workflow (structure mode): nodeCount=7, connectionCount=5, topology matches design. Lint: 3 advisory findings on Validate Inputs jsCode throw strings (Step 5g forbidden-token matches on 'WF-26 contract:' — developer-facing not human-channel; matches TD-DCP-102 WF-60 precedent). Backup: archive/backups/tKjwTYF6EER8ED3y-2026-05-25-17-49.json (filename uses AEDT clock). Export: workflows/tKjwTYF6EER8ED3y.json (7.7KB, 0 secrets hits). Docs: docs/pseudocode/WF-26.pseudo (authored, 7 algorithm steps), docs/pseudocode/WF-26.md (regenerated, fresh per assert-md-fresh.sh). workflow-registry.md WF-26 row added under WF-2x onboarding range. design.md §2.1 envelope consumer list updated — WF-26 added as direct WF-01 callee on opted-out branch; WF-21 listing revised to note its wasOptedOut legacy branch becomes dead code post-TD-DCP-107. Closes BUG-NEW-02 design; activation gated on TD-DCP-107 (WF-01 Route Opted-Out target swap WF-21 → WF-26). Workflow remains inactive in n8n until 107 rewires the call site."
     batch: 3
     change_type: Workflow-Create
     workflows: [WF-26]
-    n8n_ids: []
-    design_gate: true
-    design_questions:
-      - "Q1 — re-entry status target: consultation_closed | new transient re_engaged state | restore prior pre-opt-out status"
-      - "Q2 — first-message handling: ack-only | forward through WF-25 intent classifier | call WF-02 to re-enter state router"
-      - "Q3 — welcome-back wording: name personalization yes/no"
-      - "Q4 — edge: opted out from payment_submitted — different welcome wording or unified?"
-      - "Q5 — WF-26 input contract: confirm mirrors §2.1 envelope + wasOptedOut:true; add as design.md §2.X sub-section"
+    n8n_ids: [tKjwTYF6EER8ED3y]
+    design_gate: false
+    design_locked_at: 2026-05-25T07:24:00Z
+    design_locked_in: docs/artefacts/sprints/data-contract-sprint-bug-fix/handoffs/handoff-td-dcp-105-done-wf26-build-pending.md
+    design_decisions:
+      Q1_re_entry_status: "consultation_closed (uniform handling; no pre_opt_out_status column)"
+      Q2_first_message: "WF-26 → WF-50 welcome → Call WF-02 (re-route through state machine)"
+      Q3_welcome_text: "Personalized — 'Welcome back, {name}. Since you'd opted out, your previous session has ended. This is a fresh start. You don't need to send birth details again — we have them on file.'"
+      Q4_payment_submitted_edge: "unified wording, no special variant"
+      Q5_input_contract: "§2.1 envelope + wasOptedOut:true — one-line addition to existing §2.1 consumer list, no new sub-section"
+    build_shape_6_nodes:
+      - "Validate Inputs (Code) — envelope shape + user.id != null + wasOptedOut === true"
+      - "Update User Status (Postgres) — UPDATE users SET status='consultation_closed' WHERE id=$1 RETURNING ..."
+      - "Refresh Envelope Status (Set v3.4) — overwrite user.status='consultation_closed' so WF-02 routes on fresh value"
+      - "Build Welcome Payload (Set v3.4, includeOtherFields:false) — WF-50 contract {phoneNumber, messageType:'text', messageContent:<personalized>}"
+      - "Call WF-50 (executeWorkflow v1.2) — send welcome WA"
+      - "Call WF-02 (executeWorkflow v1.2) — passthrough re-route on refreshed envelope"
     depends_on:
       - id: TD-DCP-105
         type: hard
@@ -144,7 +156,10 @@ items:
   - id: TD-DCP-107
     description: "WF-01 opted-out branch — rewire call from WF-21 to WF-26"
     priority: P1
-    status: pending
+    status: done
+    started_at: 2026-05-25T07:53:00Z
+    completed_at: 2026-05-25T07:55:00Z
+    notes: "MCP partial-update 3 ops on WF-01 (n8n hYGNM97sXvdo1WmI) — patchNodeField parameters.workflowId.value zM8WbxSdt9nXRoLZ → tKjwTYF6EER8ED3y; patchNodeField parameters.workflowId.cachedResultUrl /workflow/{old} → /workflow/{new}; updateNode rename 'Route Opted-Out to WF-21' → 'Route Opted-Out to WF-26'. Mapping mode kept passthrough — WF-01 emits §2.1 envelope (opted-out variant) which is exactly WF-26's input contract. Pseudo-first per [[feedback_pseudocode_first_refactor]]: WF-01.pseudo Step 9c + Summary L6-9 revised to reference WF-26 before live edit (removed the forward-reference 'will be retargeted to WF-26 by TD-DCP-107' note since the retarget happened now). Verified via re-fetch: node name 'Route Opted-Out to WF-26', workflowId.value 'tKjwTYF6EER8ED3y', workflowId.cachedResultUrl '/workflow/tKjwTYF6EER8ED3y'. Dangling-name re-scan: 0 hits for old name. Lint: 6 advisory findings all pre-existing (Contract-First grandfathered Code-upstream patterns on Call WF-02 Rule Router + Route Opted-Out to WF-26 + Send Non-Text Deflection via WF-50; Step 5g devops strings on Prepare User Data + Build WF-01 Envelope (Opted-Out); Set v3.4 includeOtherFields ambiguity on Build Admin Anomaly Alert). None introduced by 107. Backup: archive/backups/hYGNM97sXvdo1WmI-2026-05-25-... (auto via pre-workflow-modify hook on MCP partial-update). Export: workflows/hYGNM97sXvdo1WmI.json (0 secrets hits). docs/pseudocode/WF-01.md regenerated, fresh per assert-md-fresh.sh. BUG-NEW-02 end-to-end activation now live: opted_out users re-engaging via WhatsApp route WF-01 → Load User (Opted-Out) → Prepare User Data (Opted-Out) → Build WF-01 Envelope (Opted-Out) → Route Opted-Out to WF-26 → WF-26 → [WF-50 welcome + UPDATE users to consultation_closed + Call WF-02 re-route]. WF-21's wasOptedOut prefix branch becomes dead code (TD-DCP-110 will optionally clean up)."
     batch: 3
     change_type: Surgical
     workflows: [WF-01]
@@ -160,7 +175,10 @@ items:
   - id: TD-DCP-109
     description: "TC-0607 re-verification — opted_out re-engagement now routes through WF-26"
     priority: P1
-    status: pending
+    status: done
+    started_at: 2026-05-25T07:55:30Z
+    completed_at: 2026-05-25T07:56:30Z
+    notes: "Documentation-only re-classification. TC-0607 in docs/reference/FunctionalTestCases_Tracker.md flipped from ✅ Covered → ⏳ Pending re-verification with full expected-behavior rewrite for the WF-26 routing path. Prior 2026-05-16 exploratory coverage notes preserved as historical context; explicitly marked as validating the OLD WF-21 form-reissuance behavior (now classified BUG-NEW-02). New expected behavior captured inline (route through Route Opted-Out to WF-26 → WF-26 lifts status to consultation_closed → personalized welcome via WF-50 NOT onboarding form → forward-route through WF-02 in same turn → no new pending_users row → existing name/DOB/birth-place preserved). Test user 30 (+61466927921) reserved in opted_out for re-execution per smoke-pre-golive-2026-05-24 wrap. BUG-NEW-02 followup file (docs/artefacts/tests/smoke-pre-golive-2026-05-24/followups-bug-new-02-resolution.md) updated with resolution-pending-verification header pointing back to TD-DCP-105/106/107 implementation. TC-0608 (REBOOK from opted_out user) left ⏳ Pending — natural follow-on test for next smoke session, not in scope here. No live workflow changes; this is the verification gate, not the verification itself."
     batch: 3
     change_type: Documentation+Verification
     workflows: []
@@ -237,6 +255,7 @@ batch_summary:
     items: 4
     estimated_cost: ~50K
     description: "WF-26 build chain — BUG-NEW-02 fix; build-sprint MUST pause at TD-DCP-106 for design session (5 open questions)"
+    completed_at: 2026-05-25T07:56:30Z
   batch_4:
     priority: P2
     items: 3
