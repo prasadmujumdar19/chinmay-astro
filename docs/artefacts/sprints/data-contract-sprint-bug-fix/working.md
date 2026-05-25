@@ -10,6 +10,8 @@ Each item triaged interactively against live n8n (tunnel-open) before entry.
 
 ### TD-DCP-101 · WF-01 `slackChannelId` not mapped in Prepare User Data
 
+> **Status:** ✅ Done — 2026-05-25 | WF-01 hYGNM97sXvdo1WmI | MCP patchNodeField | backup hYGNM97sXvdo1WmI-2026-05-25-14-17.json
+
 **Rationale:** `WF-01.pseudo` Step 12 declares `slackChannelId` in the
 camelCase mapping list, and `Build WF-01 Envelope` (added this sprint)
 reads `d.user.slackChannelId` per §2.1. But the upstream `Prepare User
@@ -52,6 +54,8 @@ WF-31/32/33/34/40/41/42/43/44/46 consult-channel posting.
 ---
 
 ### TD-DCP-111 · WF-10 `Load User Status` SELECT missing `slack_channel_id` and `current_consultation_id`
+
+> **Status:** ✅ Done — 2026-05-25 | WF-10 wMh0oBRtJbvhLgOf | MCP patchNodeField + WF-10.pseudo Steps 17/23a | backup wMh0oBRtJbvhLgOf-2026-05-25-14-25.json
 
 **Rationale:** Direct analog of TD-DCP-101 on the WF-10 side (Cross-cutting
 #2 in the review). `design.md §2.2` Command Envelope declares

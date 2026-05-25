@@ -5,7 +5,7 @@ input_hash: 3a3f16876e4b6da8524988443085901d4ead6fdd0eae4c3a69676b3c8c80629a
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/data-contract-sprint-bug-fix/working.md
 planned_at: 2026-05-25T04:08:26Z
-last_updated: 2026-05-25T04:08:26Z
+last_updated: 2026-05-25T04:26:50Z
 planning_complete: true
 
 discover_current_state:
@@ -24,7 +24,10 @@ items:
   - id: TD-DCP-101
     description: "WF-01 slackChannelId not mapped in Prepare User Data"
     priority: P0
-    status: pending
+    status: done
+    started_at: 2026-05-25T04:16:27Z
+    completed_at: 2026-05-25T04:23:13Z
+    notes: "patchNodeField via MCP — slackChannelId mapping added in Prepare User Data jsCode between currentConsultationId and totalConsultations. Lint clean (5 advisory pre-existing). Backup: archive/backups/hYGNM97sXvdo1WmI-2026-05-25-14-17.json"
     batch: 1
     change_type: Surgical
     workflows: [WF-01]
@@ -34,7 +37,10 @@ items:
   - id: TD-DCP-111
     description: "WF-10 Load User Status SELECT missing slack_channel_id and current_consultation_id"
     priority: P0
-    status: pending
+    status: done
+    started_at: 2026-05-25T04:25:00Z
+    completed_at: 2026-05-25T04:26:50Z
+    notes: "patchNodeField via MCP — Load User Status SELECT expanded with slack_channel_id and current_consultation_id. WF-10.pseudo Steps 17 + 23a updated (Phase-2 SELECT-expansion note removed). Lint clean (16 advisory pre-existing). Backup: archive/backups/wMh0oBRtJbvhLgOf-2026-05-25-14-25.json"
     batch: 1
     change_type: Surgical
     workflows: [WF-10]
@@ -201,6 +207,8 @@ batch_summary:
     items: 2
     estimated_cost: ~12K
     description: "Live-blocking SELECT/mapping fixes — unblocks smoke testing"
+    completed_at: 2026-05-25T04:26:50Z
+    commit_status: committed_2026-05-25
   batch_2:
     priority: P1
     items: 4

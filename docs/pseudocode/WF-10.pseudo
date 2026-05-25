@@ -96,7 +96,7 @@ Step 16: Switch on kind:
   - user_targeted_cmd → go to Step 17 (validation gate).
   - relay_text → go to Step 17 (validation gate; relay_text uses a reduced check set).
 
-Step 17: Load User Status (Postgres, alwaysOutputData=true): SELECT id, status, name, phone_number FROM chinmay_astro.users WHERE slack_channel_id = $channelId LIMIT 1.
+Step 17: Load User Status (Postgres, alwaysOutputData=true): SELECT id, status, name, phone_number, slack_channel_id, current_consultation_id FROM chinmay_astro.users WHERE slack_channel_id = $channelId LIMIT 1.
 
 Step 18: User Row Exists? (IF node) — check `$('Load User Status').item.json.id` is not null/undefined.
   - If NO  → go to Step 26 (orphan-channel alert).
@@ -128,7 +128,7 @@ Step 23: Build WF-41 Payload (Set node) — emit {
     phoneNumber: $('Load User Status').item.json.phone_number,
     adminMessage: $('Classify User Channel Message').item.json.messageText
   }.
-Step 23a: Build WF-10 Relay Envelope (Code node, per design.md §2.2) — read the resolved user row from Step 17's `Load User Status` and emit the canonical Relay Envelope: `{ phoneNumber, messageText: <adminMessage from Step 23>, user:{id, name, phone_number, status, slack_channel_id, current_consultation_id}, adminUserId, channelId, channelName }`. Note: §2.2 lists `user.current_consultation_id` as required for the Relay Envelope; the live `Load User Status` SELECT currently fetches only `id, status, name, phone_number` — adjacent finding logged to followups.md (Phase-2 SELECT expansion). Until then, `current_consultation_id` is emitted as null and WF-41 must tolerate it.
+Step 23a: Build WF-10 Relay Envelope (Code node, per design.md §2.2) — read the resolved user row from Step 17's `Load User Status` and emit the canonical Relay Envelope: `{ phoneNumber, messageText: <adminMessage from Step 23>, user:{id, name, phone_number, status, slack_channel_id, current_consultation_id}, adminUserId, channelId, channelName }`.
 Step 24: Call WF-41 (Admin → User Relay). End.
 
 ---
