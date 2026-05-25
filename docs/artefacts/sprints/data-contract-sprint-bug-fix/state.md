@@ -5,7 +5,7 @@ input_hash: 3a3f16876e4b6da8524988443085901d4ead6fdd0eae4c3a69676b3c8c80629a
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/data-contract-sprint-bug-fix/working.md
 planned_at: 2026-05-25T04:08:26Z
-last_updated: 2026-05-25T05:09:42Z
+last_updated: 2026-05-25T17:55:00Z
 planning_complete: true
 
 discover_current_state:
@@ -108,7 +108,10 @@ items:
   - id: TD-DCP-105
     description: "WF-01 opted-out branch — load full user row + emit §2.1 envelope (forward-positioning for WF-26)"
     priority: P1
-    status: pending
+    status: done
+    started_at: 2026-05-25T17:10:00Z
+    completed_at: 2026-05-25T17:55:00Z
+    notes: "MCP partial-update bundle of 8 ops (addNode×2, updateNode×2, removeConnection, addConnection×3). TRUE-branch chain now: Opted Out? → Load User (Opted-Out) [Postgres 2.5 clone of Load User, alwaysOutputData:true] → Prepare User Data (Opted-Out) [Code v2, reads from Load User (Opted-Out), hardcodes pendingUser:null] → Build WF-01 Envelope (Opted-Out) [jsCode rewritten to mirror Build WF-01 Envelope main branch — §2.1 envelope with populated user.{}, wasOptedOut:true, isNewUser:false] → Route Opted-Out to WF-21 (unchanged target; TD-DCP-107 retargets to WF-26). Positions cleaned to horizontal y=1180 row mirroring FALSE branch at y=240. WF-01.pseudo Step 9 split into 9 + 9a/9b/9c. Verified via re-fetch: 26 nodes (+2), connections correct, FALSE branch untouched. Lint: 6 advisory findings, ALL pre-existing (grandfathered Contract-First + advisory jsCode tokens), none introduced by this change. typeVersion floor: no new versions. Backup: archive/backups/hYGNM97sXvdo1WmI-2026-05-25-17-10.json"
     batch: 3
     change_type: Structural
     workflows: [WF-01]
@@ -227,6 +230,8 @@ batch_summary:
     estimated_cost: ~30K
     description: "Independent P1 fixes (WF-60/WF-20/WF-33/WF-47 atomicity)"
     completed_at: 2026-05-25T05:09:42Z
+    commit_status: committed_2026-05-25
+    commit_sha: dba1bff8
   batch_3:
     priority: P1
     items: 4
