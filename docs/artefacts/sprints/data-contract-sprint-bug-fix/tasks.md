@@ -924,3 +924,17 @@ field declared in `design.md §2.X` envelope tables, trace the field
 through the producing workflow's node graph (SELECT → mapping → envelope
 build) and emit a finding if any link in the chain is missing. Run as part
 of every contract-discipline sprint's close-out.
+
+---
+
+## Reviewed — No Action (audit trail)
+
+### CC-01 · Generator-surfaced error-handling properties (5 Majors → dismissed)
+
+**Reviewed:** 2026-05-25T02:59:36Z. **Verdict:** Non-issue — no action in this sprint.
+
+Review §4 Cross-cutting #1 flagged 5 Major findings on `onError:continueRegularOutput` / `retryOnFail:true / maxTries:3` properties (WF-10 Webhook, WF-22 Create User Record, WF-43 Gemini, WF-50 3 send nodes, WF-51 Call WF-60) as potential sprint-introduced regressions. Snapshot-diff against `workflows/pre-data-contract-phase-1-workflows/2026-05-24/json/` (snapshots dated 2026-05-18 → 2026-05-23, all pre-sprint) confirmed all 8 node-property instances pre-existed identically. Plus WF-00 webhook (Minor). The `.md` generator upgrade between 2026-05-22 and 2026-05-24 began emitting these properties for the first time; the data-contract sprint did NOT touch them.
+
+Origin trace from registry: Sprint F-09 (WF-00/10 webhook onError), TD-003 F2/F3 (WF-10/51 logger onError), TD-NEW-016 (WF-43/50 retryOnFail). WF-22 Create User Record onError is the only one without explicit registry annotation but is still pre-existing. Failure-history scan on WF-22 (the review's most-emphasised concern) shows no Create User Record errors in last 50 executions.
+
+Detailed write-up with origin trace, failure-history scan, and 4-class options for the future tech-error sprint to consider has been appended to `docs/artefacts/sprints/pseudo-md-drift-fixes-2026-05-24/deferred-to-tech-sprint.md`. Error-handling policy decisions belong to that dedicated sprint per `[[feedback_pseudo_tech_separation]]`.
