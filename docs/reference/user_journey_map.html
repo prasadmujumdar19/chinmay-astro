@@ -1107,12 +1107,12 @@
       </div>
     </div>
 
-    <!-- J21 Opted-out user re-engages -->
+    <!-- J21 Opted-out user re-engages — implemented 2026-05-25 via WF-26 (sprint data-contract-sprint-bug-fix, BUG-NEW-02) -->
     <div class="journey-card cat-edge">
       <div class="card-header">
         <span class="journey-id">J-21</span>
         <span class="card-title">Opted-out user messages again</span>
-        <span class="card-badge">POST-MVP</span>
+        <span class="card-badge">MVP</span>
       </div>
       <div class="card-body">
         <div class="trigger-row">
@@ -1120,24 +1120,24 @@
           <span class="trigger-text">User who previously sent STOP (status=opted_out) sends any message</span>
         </div>
         <ul class="steps">
-          <li>Detected at WF-01 — opted_out users are NOT silently dropped (unlike blocked)</li>
-          <li>Post-MVP: clear opted_out status, treat as returning user → re-trigger J-01 welcome flow</li>
-          <li>MVP: for simplicity, treat opted_out same as brand-new (no record check) — re-trigger J-01 welcome + form. Birth details already in DB may be reused if phone matches.</li>
-          <li>No state change at WF-01 — routing decision deferred to dedicated workflow</li>
+          <li>Detected at WF-01 — opted_out users are NOT silently dropped (unlike blocked). Layer 3 emits OPTED_OUT; <code>Route Opted-Out to WF-26</code> branch fires.</li>
+          <li>WF-01 opted-out branch loads the full user row and emits a populated §2.1 envelope (user.{}, wasOptedOut=true, isNewUser=false) — pre-existing onboarding data on file (name, DOB, birth place, slack_channel_id) is preserved.</li>
+          <li>WF-26 (Re-Engaged Opted-Out User Handler) lifts <code>users.status</code> from <code>opted_out</code> to <code>consultation_closed</code>, refreshes the envelope's user.status, sends a personalized welcome-back WhatsApp via WF-50 ("Welcome back, {name}. Since you'd opted out, your previous session has ended. This is a fresh start. You don't need to send birth details again — we have them on file."), then re-routes the inbound message through WF-02 in the same turn so the user's first re-engagement message is answered immediately.</li>
+          <li>No new <code>pending_users</code> row, no re-onboarding form, no Slack channel re-creation (existing consult channel reused per DR-10).</li>
         </ul>
         <div class="state-transition">
           <span class="state-from">opted_out</span>
           <span class="arrow"> → </span>
-          <span class="state-to">new (re-onboarding starts)</span>
+          <span class="state-to">consultation_closed</span>
         </div>
         <div class="note-box" style="margin-top:8px; font-size:0.85em;">
-          📝 <strong>MVP scope:</strong> Route opted_out back to J-01 welcome. Post-MVP: add dedicated re-engagement flow that detects prior DB record and skips re-entry of birth details.
+          ✅ <strong>Implemented 2026-05-25</strong> (sprint <code>data-contract-sprint-bug-fix</code>, BUG-NEW-02) — closed via TD-DCP-105 (WF-01 opted-out envelope), TD-DCP-106 (WF-26 build), TD-DCP-107 (WF-01 rewire WF-21→WF-26). TC-0607 re-verification pending on next smoke session (test user 30 / +61466927921 reserved in opted_out).
         </div>
       </div>
       <div class="card-footer">
         <span class="tag" style="background:#1a1000;color:#c08030;border-color:#6a4010;">opted_out</span>
         <span class="tag" style="background:#1a1000;color:#c08030;border-color:#6a4010;">re-engagement</span>
-        <span class="tag" style="background:#251408;color:#c08a40;border-color:#7a5010;">post-mvp</span>
+        <span class="tag" style="background:#0a1f0a;color:#50a060;border-color:#206020;">WF-26</span>
       </div>
     </div>
 

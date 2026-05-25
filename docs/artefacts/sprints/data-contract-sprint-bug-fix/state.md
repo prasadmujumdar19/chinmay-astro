@@ -5,7 +5,7 @@ input_hash: 3a3f16876e4b6da8524988443085901d4ead6fdd0eae4c3a69676b3c8c80629a
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/data-contract-sprint-bug-fix/working.md
 planned_at: 2026-05-25T04:08:26Z
-last_updated: 2026-05-25T07:52:00Z
+last_updated: 2026-05-25T08:58:00Z
 planning_complete: true
 
 discover_current_state:
@@ -198,7 +198,10 @@ items:
   - id: TD-DCP-108
     description: "Cross-doc sync — CLAUDE.md state machine + workflow-registry.md + user_journey_map.html for WF-26 rollout"
     priority: P2
-    status: pending
+    status: done
+    started_at: 2026-05-25T08:15:00Z
+    completed_at: 2026-05-25T08:22:00Z
+    notes: "Three doc edits, no n8n changes. (1) CLAUDE.md state machine block (line 349) — `opted_out →(user messages again)→ [treat as new user, route to WF-21]` rewritten to `opted_out →(user messages again)→ WF-26 → consultation_closed [WF-26 lifts status + sends personalized welcome via WF-50 + re-routes through WF-02 same turn]`. (2) workflow-registry.md — version bump 2.12 → 2.13, Last Updated → 25 May 2026 sprint `data-contract-sprint-bug-fix`; new top-of-file changelog block dated 2026-05-25 covering BUG-NEW-02 closure + data-contract hygiene + WF-21/WF-52 hygiene + plugin follow-ups (TD-DCP-PLG-001/002/003); WF-01 row description annotated (`originally routed to WF-21 for re-engagement; 2026-05-25 TD-DCP-107 retargeted this branch to WF-26`); WF-01 Status Updates row at line 293 similarly annotated. (3) user_journey_map.html J-21 card (lines 1110-1142) — replaced MVP-vs-Post-MVP framing with single implemented-flow description; state-transition pill `opted_out → new (re-onboarding starts)` → `opted_out → consultation_closed`; card badge POST-MVP → MVP; added WF-26 footer tag; appended ✅ Implemented 2026-05-25 (sprint data-contract-sprint-bug-fix) note with TD-DCP-105/106/107 traceability + TC-0607 pending re-verification reminder. Note: the J-21 ID is also used by a separate `Non-text messages` card at line 1194 (pre-existing ID collision, unrelated, not in scope). Note: line 248 strikethrough'd historical Done-list row preserved as audit trail without annotation. Verify: `grep WF-21 CLAUDE.md` = 2 legitimate hits (pending_users writer line 144, Design Rule #1 line 324 — both about WF-21's actual responsibility, no re-engagement context); `grep WF-21 docs/workflow-registry.md | grep -i opt` = all remaining hits are either changelog narrative explaining the WF-21→WF-26 retarget or annotated historical references; WF-26 confirmed present 7x in registry + 5x in journey-map."
     batch: 4
     change_type: Documentation
     workflows: []
@@ -214,7 +217,10 @@ items:
   - id: TD-DCP-110
     description: "WF-21 — add Validate Inputs entry guard (consistency hygiene post-WF-26 rewire)"
     priority: P2
-    status: pending
+    status: obsolete
+    started_at: 2026-05-25T08:30:00Z
+    obsolete_at: 2026-05-25T08:55:00Z
+    obsolete_reason: "Over-scoped per design.md §3.3 audit (sprint `2026-05-24-data-contract-discipline-phase-1`). Phase 1 design.md mandates Validate Inputs entry guards on EXACTLY 6 workflows: 4 utility guards (WF-50/§2.3, WF-51/§2.4, WF-52/§2.5, WF-60/§2.6) + 2 router-downstream guards (WF-02/§2.7, WF-11/§2.8). The tasks.md author generalized §3.3 to 'every sub-workflow on a direct-call envelope edge' but the design itself enumerates only routing boundaries (WF-01→WF-02, WF-10→WF-11). WF-21 was originally flagged because WF-01 called it on the opted-out branch — that justification evaporated when Batch 3's TD-DCP-107 retargeted WF-01's call from WF-21 to WF-26. Post-Batch-3, WF-21's only caller is WF-02 (already a guarded envelope-consumer); design treats WF-02 as the enforcement boundary, not its downstreams. Adding a guard to WF-21 would put it above design scope, creating maintainer confusion ('why does WF-21 have a guard but its WF-02-downstream siblings WF-22/23/30/31/32/43 do not?'). WF-26 (Batch 3) is correctly above-scope by deliberate choice — it became WF-01's direct downstream after TD-DCP-107, parallel to WF-02's role per §2.7, so it inherits the same scope-justification. Revert path: MCP removeNode 'Validate Inputs' + addConnection trigger→Insert restored 4-node 3-connection original topology; WF-21.pseudo restored from GitHub HEAD via shallow clone (parity verified — only n8n metadata timestamps differ between live and HEAD); WF-21.md regenerated FRESH (delta=+0s); no archive of removed node since it was session-local. Note: original WF-21.pseudo (from GitHub HEAD) Step 1 still says 'triggered by WF-02 (new user) or WF-01 (opted_out re-engagement)' which is stale post-TD-DCP-107 — logged to followups.md as separate doc-hygiene item."
     batch: 4
     change_type: Surgical+Documentation
     workflows: [WF-21]
@@ -227,7 +233,10 @@ items:
   - id: TD-DCP-103
     description: "WF-52 Prepare Channel Name emits userName: key + dead-code legacy fallbacks"
     priority: P2
-    status: pending
+    status: done
+    started_at: 2026-05-25T08:42:00Z
+    completed_at: 2026-05-25T08:45:00Z
+    notes: "Single MCP patchNodeField with two patches on Prepare Channel Name jsCode (WF-52 n8n IO5BZLUxuVmjzk5I): (1) `const phoneNumber = input.phone_number || input.phoneNumber || '';` → `const phoneNumber = input.phoneNumber;` (legacy snake_case fallback removed; canonical §2.5 contract enforced by upstream Validate Inputs guard makes fallback dead code); (2) return-object key `userName: input.name || input.userName || '',` → `name: input.name,` (rename internal dataflow key to canonical; not consumed by any downstream node in WF-52 — verified by inspecting all 10 other nodes; WF-52 return-shape to caller is `{success, channelId, channelName, channelUrl, isNew}` so this is pure internal hygiene). Zero runtime behaviour change. Pseudo: no change (Step 3 already neutral on internal key names per tasks.md). Post-patch verification: re-fetched jsCode shows both edits applied cleanly; `grep -c 'userName\\|phone_number'` on the new jsCode = 0 hits. Lint: 0 findings (clean — `1 workflow(s) passed all checks`). WF-52.md regenerated FRESH per assert-md-fresh.sh delta=+0s. Secret scan: 0 hits. Backup: archive/backups/IO5BZLUxuVmjzk5I-2026-05-25-18-16.json. Closes the data-contract hygiene gap that triggered Phase 1 review's Blocker classification on this node."
     batch: 4
     change_type: Surgical
     workflows: [WF-52]
@@ -261,6 +270,7 @@ batch_summary:
     items: 3
     estimated_cost: ~13K
     description: "Cross-doc sync + WF-21 entry guard + WF-52 hygiene"
+    completed_at: 2026-05-25T08:45:00Z
 
 parser_warnings: []
 

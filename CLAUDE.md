@@ -346,7 +346,8 @@ All workflows follow the WF-XX naming convention. The `workflow-registry.md` is 
 any state →(admin BLOCK)→ blocked
 payment_submitted →(admin REJECT)→ payment_pending
 any state →(user sends STOP)→ opted_out
-opted_out →(user messages again)→ [treat as new user, route to WF-21]
+opted_out →(user messages again)→ WF-26 → consultation_closed
+           [WF-26 lifts status + sends personalized welcome via WF-50 + re-routes through WF-02 same turn]
 ```
 
 ## Key Credential IDs (n8n)

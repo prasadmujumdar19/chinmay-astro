@@ -3,6 +3,11 @@
 **Status:** Ready for `plan-sprint`.
 **Created:** 2026-05-24T12:34:10Z
 **Revised:** 2026-05-24T14:00:00Z — review pass: scope expanded to 6 entry guards, every WF-01/WF-10 envelope consumer audited, drift-sprint precedence corrected, citation errors fixed, mechanics already covered by `plan-sprint` / `build-sprint` removed.
+
+### Amendments
+
+- **2026-05-25T08:55:00Z** — Sprint `data-contract-sprint-bug-fix` post-Phase-1 follow-on. **§3.3 scope amended: WF-26 added as a router-downstream entry guard.** BUG-NEW-02 (closed by TD-DCP-105/106/107) created a new direct WF-01 downstream — `WF-26 Re-Engaged Opted-Out User Handler` — which receives the §2.1 envelope on the opted-out re-engagement branch. WF-26 is parallel to WF-02 under §3.3 logic (router emits envelope; downstream guards it). WF-26's `Validate Inputs` Code node was built into TD-DCP-106 from inception (pseudo-first, see `docs/pseudocode/WF-26.pseudo`). **Scope is therefore now 7 entry guards: WF-02, WF-11, WF-26, plus WF-50/51/52/60.** Separately, TD-DCP-110 (proposed WF-21 entry guard) was reviewed and marked **obsolete** mid-sprint: WF-21 is NOT in §3.3 scope. Its original justification was WF-01's opted-out branch caller, which TD-DCP-107 retargeted to WF-26. Post-retarget WF-21 is a WF-02 downstream — design treats WF-02 (already guarded under §2.7) as the enforcement boundary for that branch, not its leaves. Adding a guard to WF-21 would create maintainer confusion ("why does WF-21 have one but WF-22/23/30/31/32/43 do not?"). The session built and then reverted the WF-21 guard via GitHub-HEAD restore. See `docs/artefacts/sprints/data-contract-sprint-bug-fix/state.md` item TD-DCP-110 `obsolete_reason` for full rationale.
+
 **Companion files in this folder:**
 - [`tasks.md`](./tasks.md) — `plan-sprint` input (H3 task items with priorities and dependencies)
 - [`snapshot-restore-design.md`](./snapshot-restore-design.md) — sprint-level rollback scripts
@@ -17,7 +22,7 @@
 
 - **Utility entry guards (4):** WF-50, WF-51, WF-52, WF-60 — add `Validate Inputs` entry-guard Code node as first node + tighten pseudo Inputs blocks.
 - **Envelope-emitting routers (2):** WF-01, WF-10 — restructure to emit documented core envelopes (Section 2).
-- **Envelope-consumer entry guards (2):** WF-02 (validates WF-01 envelope, defense-in-depth for the 9 leaves it routes to), WF-11 (validates WF-10 envelope, defense-in-depth for the user-command leaves). **Total = 6 entry guards across Phase 1.**
+- **Envelope-consumer entry guards (3 post-Amendment 2026-05-25):** WF-02 (validates WF-01 envelope on the main path, defense-in-depth for the 9 leaves it routes to), WF-11 (validates WF-10 envelope, defense-in-depth for the user-command leaves), and WF-26 (validates WF-01 envelope on the opted-out re-engagement branch — added post-Phase-1 by sprint `data-contract-sprint-bug-fix`; see top-of-doc Amendments). **Total = 7 entry guards (4 utility + 3 envelope-consumer) post-Amendment.**
 - **Envelope-consumer audit (every consumer of WF-01 / WF-10):** every leaf that receives the WF-01 or WF-10 envelope is audited for redundant `Load User` SELECTs and field-name canon (`phoneNumber` vs `user.phone_number`); the redundant SELECTs are removed and pseudo `Inputs:` blocks rewritten to declare the new envelope.
 - **Caller payload alignment:** all callers of the 4 utilities — minimal Set-node / payload-prep edits to comply with the new entry-guard contracts.
 
@@ -251,9 +256,11 @@ The actual caller list per utility is rediscovered live by `discover-current-sta
 - **WF-01:** restructure to emit the Section 2.1 core envelope on every output branch (to WF-02, to WF-21 directly). The existing 20-column users SELECT is preserved; the envelope construction lives in a `Build WF-01 Envelope` Code node before the outputs branch.
 - **WF-10:** restructure to emit the Section 2.2 envelope on WF-11 and WF-41 output branches. The existing user-load SELECT is preserved; the envelope construction lives in `Build WF-10 Command Envelope` and `Build WF-10 Relay Envelope` Code nodes.
 
-### 3.3 Defense-in-depth entry guards (WF-02, WF-11)
+### 3.3 Defense-in-depth entry guards (WF-02, WF-11, WF-26 post-Amendment 2026-05-25)
 
 Add a single `Validate Inputs` Code node at the entry of each, validating the envelope its router emits. Same hard-fail pattern as the 4 utility guards (Section 2.3 snippet).
+
+**Scope note (added 2026-05-25 by sprint `data-contract-sprint-bug-fix`):** The "each" here enumerates exactly the workflows that directly consume a router envelope from a router workflow (WF-01 or WF-10). Post-Amendment that set is WF-02 (WF-01 main path), WF-26 (WF-01 opted-out path, added by BUG-NEW-02 fix), and WF-11 (WF-10 command path). Leaves downstream of those routers (WF-21/22/23/30/31/32/40/43/44/45 etc.) are NOT in §3.3 scope — their envelopes are enforced at the router-downstream boundary above them. Do not interpret "every direct-call edge" or "every sub-workflow that receives §2.1" as in-scope without checking this enumeration; that broader reading was over-scoped against the actual design (see the TD-DCP-110 obsoletion rationale in the sprint's `state.md`).
 
 ### 3.4 Envelope-consumer audit (every leaf, both routers)
 
