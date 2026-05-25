@@ -8,7 +8,6 @@ WF-20 — Keyword Handler
 - Calls Sub-Workflows: WF-47 (Unsubscribe), WF-45 (Rebook), WF-50 (Send WhatsApp)
 - **Ambiguities / Notes:**
   - The keyword Switch has a 4th `extra` fallback output that must be wired to a terminal Set / Code node returning `{action: 'passthrough', ...}`. In n8n, the `Set Passthrough` node MUST connect to the workflow's terminal output (otherwise WF-02 receives no payload back and the dispatch silently dies).
-  - TD-DRIFT-006 (Normalize Keyword drops userStatus; WF-47 STOP-from-consultation_active leaves orphan consultations row) is a deferred bug, NOT fixed in Phase 1.
 
 ---
 
@@ -19,7 +18,7 @@ Step 1: Start — workflow triggered by WF-02 with the WF-01 canonical envelope.
   - `userId` (from envelope user.id; may be null for new/pendingUser)
   - `userStatus` (from envelope user.status; may be null for new/pendingUser — used to drive HELP contextual response)
   - `messageContent` (from envelope messageContent — canonical field name)
-Step 2: Normalize the input — set keyword = uppercase(trim(messageContent)). Carry forward phoneNumber, userId, messageContent as messageText.
+Step 2: Normalize the input — set keyword = uppercase(trim(messageContent)). Carry forward phoneNumber, userId, messageContent as messageText, and userStatus (from envelope user.status — required by the STOP path's WF-47 call to drive the `Was Consultation Active?` IF, and by the HELP path's contextual branching).
 Step 3: Check: keyword value?
   - If keyword == "HELP" → go to Step 4
   - If keyword == "STOP" → go to Step 5

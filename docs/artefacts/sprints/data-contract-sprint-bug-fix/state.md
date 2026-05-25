@@ -5,7 +5,7 @@ input_hash: 3a3f16876e4b6da8524988443085901d4ead6fdd0eae4c3a69676b3c8c80629a
 source_file_update: false
 working_copy_path: docs/artefacts/sprints/data-contract-sprint-bug-fix/working.md
 planned_at: 2026-05-25T04:08:26Z
-last_updated: 2026-05-25T04:26:50Z
+last_updated: 2026-05-25T05:09:42Z
 planning_complete: true
 
 discover_current_state:
@@ -51,7 +51,10 @@ items:
   - id: TD-DCP-102
     description: "WF-60 slackMessageTs enforcement scope — align to design.md plain reading"
     priority: P1
-    status: pending
+    status: done
+    started_at: 2026-05-25T04:55:00Z
+    completed_at: 2026-05-25T04:58:47Z
+    notes: "Caller-compliance audit PASSED — WF-10 Build WF-60 Payload (Slack Inbound) emits slackMessageTs: input.timestamp || null; WF-51 Build WF-60 Payload (Slack Outbound) emits slackMessageTs: slackResp.ts || ... || null. Both pass real event.ts / chat.postMessage ts in happy path. Pseudo Step 2 + Inputs slack-variant line + design.md §2.6 revised to make slackMessageTs always-required for transport='slack'. Live patch via MCP patchNodeField — top-level slackMessageTs guard inserted between messageType validation and userId branch; nested slackMessageTs check removed (now redundant). Lint clean (9 advisory Step 5g token findings on internal throw new Error strings — developer-facing, not human-channel; not blocking). WF-60.md regenerated. Backup: archive/backups/6H75p935FpBVBQtV-2026-05-25-14-57.json"
     batch: 2
     change_type: Surgical+Documentation
     workflows: [WF-60]
@@ -62,7 +65,10 @@ items:
   - id: TD-DCP-104
     description: "WF-20 Normalize Keyword drops userStatus — WF-47 STOP path orphans consultation row (TD-DRIFT-006)"
     priority: P1
-    status: pending
+    status: done
+    started_at: 2026-05-25T05:00:00Z
+    completed_at: 2026-05-25T05:02:13Z
+    notes: "Added 5th Set assignment `userStatus = ={{ $json.user.status }}` to Normalize Keyword via MCP updateNode (wholesale parameters object — verified post-PUT: 5 assignments present, userStatus at index 4). WF-20.pseudo Step 2 carry-forward updated; TD-DRIFT-006 deferred-bug ambiguity note removed. WF-20.md regenerated. Lint: 8 advisory findings — all pre-existing Contract-First + Set v3.4 advisory items, not from this change. Closes pre-existing TD-DRIFT-006 (WF-47 STOP path orphan-consultation bug). Backup: archive/backups/LgIDj1v4ZbCPlX25-2026-05-25-15-00.json"
     batch: 2
     change_type: Surgical+Documentation
     workflows: [WF-20]
@@ -72,7 +78,10 @@ items:
   - id: TD-DCP-112
     description: "WF-33 Extract Command Data writes channelId to payments.verified_by (TD-DRIFT-017)"
     priority: P1
-    status: pending
+    status: done
+    started_at: 2026-05-25T05:03:00Z
+    completed_at: 2026-05-25T05:04:14Z
+    notes: "One-token jsCode swap via MCP patchNodeField: `adminUserId: input.channelId,` → `adminUserId: input.adminUserId,`. WF-33.pseudo line 29 TD-DRIFT-017 deferred-bug note removed. WF-33.md regenerated. Lint: 2 advisory (Contract-First grandfathered) not from this change. Closes pre-existing TD-DRIFT-017. Backfill of historical rows skipped (pre-live test data). Backup: archive/backups/NcHZedq9ycnAQ9SW-2026-05-25-15-03.json"
     batch: 2
     change_type: Surgical
     workflows: [WF-33]
@@ -82,7 +91,10 @@ items:
   - id: TD-DCP-113
     description: "WF-47 atomicity — opt-out UPDATE fires before consultation close (TD-DRIFT-007)"
     priority: P1
-    status: pending
+    status: done
+    started_at: 2026-05-25T05:07:00Z
+    completed_at: 2026-05-25T05:09:42Z
+    notes: "Pseudo Inputs block added (phoneNumber/userId/userStatus); Step 2/3 reordered — IF now sits at head of graph, UPDATE users moves to Step 3. Live: 8 MCP connection ops (4 remove, 4 add) — all applied cleanly; one cosmetic warning on sourceIndex=1 for the FALSE branch (prefer branch='false' syntax, but the op landed correctly). Post-PUT topology verified: When Executed → Was Consultation Active? → (TRUE: Close Open Consultation → Update User Status; FALSE: Update User Status) → Has Slack Channel? → unchanged downstream. No node parameter changes; no node renames. WF-47.md regenerated. Lint: 2 advisory (Contract-First grandfathered Code-upstream) not from this change. Closes pre-existing TD-DRIFT-007 atomicity bug — Step 2 close-consultation now precedes Step 3 user UPDATE, so close failure prevents premature opt-out. Backup: archive/backups/2U7mxHMyqA41ROKX-2026-05-25-15-07.json"
     batch: 2
     change_type: Structural
     workflows: [WF-47]
@@ -214,6 +226,7 @@ batch_summary:
     items: 4
     estimated_cost: ~30K
     description: "Independent P1 fixes (WF-60/WF-20/WF-33/WF-47 atomicity)"
+    completed_at: 2026-05-25T05:09:42Z
   batch_3:
     priority: P1
     items: 4

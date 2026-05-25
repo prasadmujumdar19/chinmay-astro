@@ -27,7 +27,7 @@ WF-60 — Message Logger
 
 **Variant — `transport='slack'`:**
 - `slackChannelId` — string, **required when `userId` is absent** (drives the `slack_channel_id` user-lookup branch). Aliases: `slack_channel_id`, `metadata.slackChannelId`.
-- `slackMessageTs` — string, **required on outbound** (`direction='outbound'`); typically present on inbound from WF-10 too. Aliases: `slack_message_ts`, `metadata.slackMessageTs`. Populates the `slack_message_ts` INSERT column.
+- `slackMessageTs` — string, **always required when `transport='slack'`** (inbound from WF-10 carries `event.ts`; outbound from WF-51 carries the `chat.postMessage` response `ts`). Aliases: `slack_message_ts`, `metadata.slackMessageTs`. Populates the `slack_message_ts` INSERT column.
 
 **Identity (resolved upstream OR via WF-60's Step 4a lookup):**
 - `userId` — integer | null, optional. Alias: `user.id`. NULL acceptable for inbound pre-onboarding traffic (routed to `pre_onboarding_user` skip path); required for outbound to land an INSERT.
@@ -63,7 +63,7 @@ Step 2: Validate Inputs (entry guard) — assert the canonical multi-transport c
   - `messageType` missing or not a string.
   - `transport == 'wa'` AND `userId` absent AND `phoneNumber` (or alias) absent.
   - `transport == 'slack'` AND `userId` absent AND `slackChannelId` (or alias) absent.
-  - `transport == 'slack'` AND `direction == 'outbound'` AND `slackMessageTs` (or alias) absent.
+  - `transport == 'slack'` AND `slackMessageTs` (or alias) absent.
   Go to Step 3.
 
 Step 3: Extract Message Data (Code) — normalize and compute flags:

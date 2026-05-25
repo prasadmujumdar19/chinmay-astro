@@ -25,5 +25,3 @@ Step 7: Build user activation message: phoneNumber = user.phone_number (from §2
 Step 8: Call WF-50 with the template payload (WhatsApp template message to user).
 Step 9: Call WF-51 with channelId=user.slack_channel_id (from §2.2 envelope), messageText="✅ Consultation Activated — User: <name>, Phone: +<phone_number>, DOB: <date_of_birth>, TOB: <time_of_birth>, Place: <place_of_birth>. User has been notified. They can now send their questions. To close consultation when done, type: CLOSE CHAT CONSULT <phone_number>".
 Step 10: End.
-
-**Note:** TD-DRIFT-017 (verified_by column receiving channelId instead of adminUserId) is out of Phase 1 scope per design.md §1.5 — do not fix here.

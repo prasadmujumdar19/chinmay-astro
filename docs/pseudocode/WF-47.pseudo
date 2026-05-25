@@ -12,32 +12,42 @@ WF-47 — Unsubscribe Handler (STOP keyword)
 
 ---
 
+## Inputs
+
+### Canonical (required)
+- `phoneNumber` — E.164 string, required. Drives the `UPDATE users WHERE phone_number=<phoneNumber>` lookup at Step 3.
+- `userId` — integer, required (FK to `chinmay_astro.users.id`). Drives the `UPDATE consultations WHERE user_id=<userId>` close at Step 2.
+- `userStatus` — enum string, required; one of `payment_pending` / `payment_submitted` / `consultation_active` / `consultation_closed` / `opted_out` / `blocked`. Read at Step 2 (head of graph) by the IF guard to decide whether to close an open consultations row before the user UPDATE fires. Atomicity: a failure in the Step 2 close prevents the Step 3 user UPDATE, keeping the user in their prior state for retry.
+
+---
+
 ## Algorithm
 
 Step 1: Start — workflow triggered by WF-20 with `{ phoneNumber, userId, userStatus }`.
 
-Step 2: Update user record — opt the user out unconditionally and clear any active consultation pointer:
-  - `UPDATE chinmay_astro.users
-       SET status='opted_out',
-           current_consultation_id=NULL,
-           updated_at=NOW()
-     WHERE phone_number=<phoneNumber>
-     RETURNING slack_channel_id;`
-  - Postgres node: `alwaysOutputData=true` (SP-02 May 2026). Pre-onboarding STOP (user exists in `pending_users` only, no row in `users`) returns 0 rows → empty `{}` propagates downstream. The existing IF graph handles this gracefully: "Was Consultation Active?" reads `userStatus` from the trigger (null) → FALSE → skips Close Open Consultation; "Has Slack Channel?" reads `.slack_channel_id` from this node (undefined) → notEmpty=FALSE → skips Slack notice; "Prepare WF-50 Payload (Opt-out Confirmation)" reads `phoneNumber` from the trigger → user still receives the WhatsApp opt-out confirmation. No IF guard or admin alert needed in WF-47 itself; the upstream WF-01 user-load gate (SP-11) is the architecturally correct place to catch unrecorded-phone anomalies.
-  - Carry `slack_channel_id` forward to Step 4.
-
-Step 3: Check: userStatus equals 'consultation_active'?
-  - If YES → close the open consultations row (mirrors the pattern WF-42 uses for admin-initiated close):
+Step 2: Check: userStatus equals 'consultation_active'?
+  - The IF reads `userStatus` from the trigger (pre-UPDATE value) by design — the user UPDATE at Step 3 has not run yet at IF-evaluation time, so the IF must use the trigger envelope as the source of truth for the pre-opt-out state.
+  - If YES → close the open consultations row (mirrors WF-42's admin-initiated close pattern):
       `UPDATE chinmay_astro.consultations
          SET status='closed',
              ended_at=NOW(),
              closed_by='user_opted_out'
        WHERE user_id=<userId>
          AND status='active';`
-    Then go to Step 4.
-  - If NO → go to Step 4 (no consultations row to close).
+    Then go to Step 3.
+  - If NO → go to Step 3 (no consultations row to close).
 
-Step 4: Check: slack_channel_id (from Step 2 RETURNING) IS NOT NULL?
+Step 3: Update user record — opt the user out unconditionally and clear any active consultation pointer:
+  - `UPDATE chinmay_astro.users
+       SET status='opted_out',
+           current_consultation_id=NULL,
+           updated_at=NOW()
+     WHERE phone_number=<phoneNumber>
+     RETURNING slack_channel_id;`
+  - Postgres node: `alwaysOutputData=true` (SP-02 May 2026). Pre-onboarding STOP (user exists in `pending_users` only, no row in `users`) returns 0 rows → empty `{}` propagates downstream. Atomicity: the IF at Step 2 ran with `userStatus` from the trigger — for a pre-onboarding user the trigger `userStatus` is null/absent, so Step 2 took the FALSE branch and `Close Open Consultation` was skipped; Step 3's empty result then propagates to "Has Slack Channel?" (notEmpty=FALSE → skips Slack notice) and Step 5's WhatsApp confirmation still goes out via `phoneNumber` from the trigger. Architecturally-correct anomaly catch remains at the upstream WF-01 user-load gate (SP-11), not in WF-47.
+  - Carry `slack_channel_id` forward to Step 4.
+
+Step 4: Check: slack_channel_id (from Step 3 RETURNING) IS NOT NULL?
   - If YES → call WF-51 with:
       channelId = <slack_channel_id>
       messageText = "⚠️ User has opted out via STOP. This consultation will not progress further. (Channel preserved per DR-10 in case of REBOOK.)"

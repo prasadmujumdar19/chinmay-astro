@@ -208,8 +208,11 @@ return [{ json: i }];
 **Required (always):** `transport` (`wa` | `slack`), `direction` (`inbound` | `outbound`), `messageType` (string), `content` (string or null — null acceptable for non-text types where content is in metadata).
 
 **Required by transport:**
-- `transport == 'wa'`: `phoneNumber` (for user lookup if `userId` absent).
-- `transport == 'slack'`: `slackChannelId` (for user lookup if `userId` absent), `slackMessageTs`.
+- `transport == 'wa'`:
+  - `phoneNumber` — required when `userId` absent (user lookup key)
+- `transport == 'slack'`:
+  - `slackChannelId` — required when `userId` absent (user lookup key)
+  - `slackMessageTs` — always required
 
 **Optional:** `userId` (resolved internally if absent), `consultationId`, `whatsappMessageId`, `metadata`.
 

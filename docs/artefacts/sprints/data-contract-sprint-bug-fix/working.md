@@ -115,6 +115,8 @@ Relay Envelope to `current_consultation_id` documented contract.
 
 ### TD-DCP-102 · WF-60 `slackMessageTs` enforcement scope — align to design.md plain reading
 
+> **Status:** ✅ Done — 2026-05-25 | WF-60 (`6H75p935FpBVBQtV`) — top-level slackMessageTs guard inserted; pseudo + design.md §2.6 revised; WF-60.md regenerated. Caller-compliance audit passed for WF-10/WF-51.
+
 **Rationale:** Three-way disagreement between design.md, pseudo, and live.
 `design.md §2.6 line 212` plain reading: `slackMessageTs` is required
 whenever `transport == 'slack'` (the parenthetical only scopes
@@ -194,6 +196,8 @@ sprint plan.
 
 ### TD-DCP-104 · WF-20 `Normalize Keyword` drops `userStatus` — WF-47 STOP path orphans consultation row (pre-existing TD-DRIFT-006)
 
+> **Status:** ✅ Done — 2026-05-25 | WF-20 (`LgIDj1v4ZbCPlX25`) — `userStatus = ={{ $json.user.status }}` added as 5th Set assignment; pseudo Step 2 + Ambiguities cleaned; WF-20.md regenerated. Closes pre-existing TD-DRIFT-006.
+
 **Rationale:** `WF-20.pseudo` Step 1 declares `userStatus` (from envelope
 `user.status`) as a required input used to drive both the HELP contextual
 branches and the STOP → WF-47 carry-forward. The live `Normalize Keyword`
@@ -260,6 +264,8 @@ already covered.
 ---
 
 ### TD-DCP-112 · WF-33 `Extract Command Data` writes `channelId` to `payments.verified_by` (pre-existing TD-DRIFT-017)
+
+> **Status:** ✅ Done — 2026-05-25 | WF-33 (`NcHZedq9ycnAQ9SW`) — `adminUserId: input.channelId` → `adminUserId: input.adminUserId`; pseudo deferred-note removed; WF-33.md regenerated. Closes pre-existing TD-DRIFT-017.
 
 **Rationale:** TD-DRIFT-017, explicitly routed to this sprint per
 `design.md §1.5` table row and `WF-33.pseudo:29` deferred note.
@@ -685,6 +691,8 @@ bug-fix subtask referencing the failed expectation.
 ---
 
 ### TD-DCP-113 · WF-47 atomicity — opt-out UPDATE fires before consultation close (pre-existing TD-DRIFT-007)
+
+> **Status:** ✅ Done — 2026-05-25 | WF-47 (`2U7mxHMyqA41ROKX`) — 8 connection ops rewired graph: When Executed → IF (Was Consultation Active?) → (TRUE: Close → UPDATE users; FALSE: UPDATE users) → Has Slack Channel? → unchanged downstream. Pseudo Inputs block added; Step 2/3 reordered. WF-47.md regenerated. Closes pre-existing TD-DRIFT-007.
 
 **Rationale:** Live WF-47 wires `When Executed by Another Workflow` →
 `Update User Status to opted_out` → `Was Consultation Active?` →
