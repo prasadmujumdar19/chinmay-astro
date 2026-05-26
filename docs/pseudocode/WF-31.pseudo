@@ -35,7 +35,9 @@ Step 6: Build WF-50 stop-intent clarifier payload per §2.3 canonical contract:
   - messageContent = "This is an automated message from Chinmay Astro — we noticed your message mentioned STOP or unsubscribing. If this was unrelated, please ignore. If you do want to opt out of this service, simply send STOP at any time."
 Step 7: Call WF-50 (Stop Clarifier) with the prepared payload. Go to Step 10.
 
-(Branch B — relay user message into Slack consult channel)
-Step 8: Read `user.slack_channel_id` from the WF-01 envelope (no DB SELECT — redundant Load User for Relay node removed). Build relay payload: { channelId=user.slack_channel_id, messageText="💬 *Message from <user.name or phoneNumber> (payment under review):*\n><messageContent>" }.
-Step 9: Call WF-51 (Send Slack) with { channelId, messageText } per §2.4 canonical contract.
-Step 10: End.
+(Branch B — relay user message into Slack consult channel, with aging tag)
+Step 8: SELECT created_at FROM chinmay_astro.payments WHERE user_id = user.id ORDER BY id DESC LIMIT 1. (Latest payments row captures the moment the user tapped Payment Completed — inserted by WF-32 Step 5.) If no row found, treat elapsed as `?`.
+Step 9: Compute elapsed-since-paid as a human string: `< 60 min` → `{n} min ago`; `< 24 h` → `{n} h ago`; else `{n} d ago`.
+Step 10: Read `user.slack_channel_id` from the WF-01 envelope (no DB SELECT — redundant Load User for Relay node removed). Build relay payload: { channelId=user.slack_channel_id, messageText="⏱ Paid {elapsed} · 💬 *Message from <user.name or phoneNumber> (payment under review):*\n><messageContent>" }.
+Step 11: Call WF-51 (Send Slack) with { channelId, messageText } per §2.4 canonical contract.
+Step 12: End.

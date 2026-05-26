@@ -30,9 +30,9 @@ Step 6: Route on intentResult:
   - "malicious_abusive" → go to Step 9
   - "inappropriate" → go to Step 9
   - "stop_intent" → go to Step 13
-Step 7: Build a garbage warning: phoneNumber=<phone>, message="⚠️ Your message could not be understood. Please send a clear question about our astrology consultation service."
+Step 7: Build a garbage warning payload (per design.md §2.3): phoneNumber=<phone>, messageType='text', messageContent="⚠️ Your message could not be understood. Please send a clear question about our astrology consultation service."
 Step 8: Call WF-50 to send the garbage warning to the user, then call WF-51 to notify the admin Slack channel about the garbage message. End (no return to caller — caller flow halts on garbage).
-Step 9: Build a block warning: phoneNumber=<phone>, message="🚫 Your message has been flagged as inappropriate or abusive. Your access to this service has been restricted."
+Step 9: Build a block warning payload (per design.md §2.3): phoneNumber=<phone>, messageType='text', messageContent="🚫 Your message has been flagged as inappropriate or abusive. Your access to this service has been restricted."
 Step 10: Call WF-50 to send the block warning to the user.
 Step 11: Call WF-46 (Auto-Block) which moves the user to status=blocked and records the admin_action. End.
 Step 12: (reserved — unused branch from Gemini-error path joins here.)

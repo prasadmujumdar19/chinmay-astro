@@ -66,5 +66,5 @@ Step 13: Call WF-02 (User State Router) with the combined payload.
 Step 14: End.
 
 Step 17: Silent reject (country) — return {silentReject: true, reason: 'country_not_allowed'}. End.
-Step 18: Call WF-50 with phoneNumber and message "Please send text messages only. Images and audio are not supported." End.
+Step 18: Call WF-50 (per design.md §2.3) with phoneNumber, messageType='text', messageContent="This service supports text messages only. If you'd like to share a document, image, voice note or any other file, please email it to chinmay_astro@gmail.com along with your phone number and name. We'll get back to you as soon as possible." End.
 Step 19: Silent reject (blacklist) — return {silentReject: true, reason: 'blacklisted'}. End.

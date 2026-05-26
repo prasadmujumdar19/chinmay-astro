@@ -35,5 +35,5 @@ Step 7: WF-52 failure handler — call WF-51 with channelId='chinmay-admin-comma
 Step 8: UPDATE chinmay_astro.users SET slack_channel_id = <channelId from WF-52>, updated_at = NOW() WHERE id = <user id from Step 3 RETURNING> RETURNING id, slack_channel_id.
 Step 9: Prepare payment instructions message:
   - phoneNumber = user's phone, messageType = "interactive".
-  - interactivePayload: type="button", body="Thank you <name>! Your details have been received. Payment Information: Amount ₹500. Please send ₹500 via GPay / PhonePe / any UPI app to +91-9653240263 (Chinmay Mujumdar). Once done, tap the button below:", buttons=[{id:"payment_completed", title:"Payment Completed ✓"}].
+  - interactivePayload: type="button", body="Thank you <name>! Your details have been received. Payment Information: Amount ₹500. Please send ₹500 via GPay / PhonePe / any UPI app to +91-9653240263 (Chinmay Mujumdar). Once done, tap the button below:\n\nIn the meantime, you can ask any general questions here, or email chinmay_astro@gmail.com if you need anything we can't help with right now.", buttons=[{id:"payment_completed", title:"Payment Completed ✓"}].
 Step 10: Call WF-50 with the prepared phoneNumber, messageType, and interactivePayload. End.

@@ -30,3 +30,15 @@ Findings surfaced by the sprint's regression checks but outside the sprint's str
   - Proposed fix: add a "runtime issue probe" to the plugin (either a script that calls n8n's UI-level issue endpoint, or a node-by-node call to `mcp__n8n__validate_node` with `profile: strict` aggregated into a workflow-level check). Capture as a plugin improvement (Step 5 of [Batch 7 prereq: `flush-plugin-improvements`]).
   - Priority hint: P1 (plugin) — affects every future workflow change; in scope of the existing Batch 7 plugin-flush task per state.md.
   - Decision: _bundle into Batch 7 plugin-improvement flush_.
+
+## [2026-05-26] — Post-Batch-4 (P1 surgical edits)
+
+- **Configurable support email — post-MVP** (classification: **adjacent — configurability polish**)
+  - Cause-and-effect: GAP-1 (WF-01 Silent Reject) and GAP-3B (WF-22/32/42 P.S. suffix) hardcoded `chinmay_astro@gmail.com` into 4 user-facing message strings. To make the application truly generic (re-deployable for other astrologers / consultants in future), the email should be a workflow/config variable resolved at message-build time.
+  - Proposed fix: introduce a project-wide "support_email" config (n8n credential, environment variable, or a small `chinmay_astro.config` Postgres table) that all 4 message-build nodes read from. Replaces hardcoded `chinmay_astro@gmail.com` literals.
+  - Priority hint: P3 (post-MVP) — explicitly deferred by user at Batch 4 build-time. Affected nodes:
+    - WF-01 `Silent Reject (Message Type)` Code node (jsCode)
+    - WF-22 `Prepare Payment Instructions` Code node (jsCode template literal)
+    - WF-32 `Prepare User Confirmation` Code node (jsCode template literal)
+    - WF-42 `Prepare Feedback Message` Code node (jsCode string concatenation)
+  - Decision: _accepted-as-is for MVP; revisit post go-live when packaging for second deployment._

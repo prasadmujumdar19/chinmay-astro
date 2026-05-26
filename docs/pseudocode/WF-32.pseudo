@@ -21,7 +21,7 @@ Step 4: Call WF-50 with phoneNumber, messageType, messageContent. Go to Step 11.
 (First-time tap)
 Step 5: INSERT INTO chinmay_astro.payments (user_id, amount, currency, status, payment_method) VALUES (user.id, 500, 'INR', 'pending_verification', 'gpay') RETURNING *. Capture payment.id.
 Step 6: UPDATE chinmay_astro.users SET status='payment_submitted', updated_at=NOW(), last_message_at=NOW() WHERE id=user.id RETURNING *. Capture updated user row.
-Step 7: Build user confirmation: phoneNumber = updated user.phone_number; messageType=text; messageContent = "Thank you <name>! Your payment confirmation has been received. We'll verify your payment and activate your consultation within 24 hours. You'll receive a confirmation message once approved."
+Step 7: Build user confirmation: phoneNumber = updated user.phone_number; messageType=text; messageContent = "Thank you <name>! Your payment confirmation has been received. We'll verify your payment and activate your consultation within 24 hours. You'll receive a confirmation message once approved.\n\nIn the meantime, you can ask any general questions here, or email chinmay_astro@gmail.com if you need anything we can't help with right now."
 Step 8: Call WF-50 with phoneNumber, messageType, messageContent.
 Step 9: Build admin notification using envelope fields — channelId = user.slack_channel_id (from §2.1 envelope); messageText = "🔔 New Payment Submission\nUser: <user.name>\nPhone: +<user.phone_number>\nAmount: ₹500\nPayment ID: <payment.id>\nPlease verify payment and run: APPROVE PAYMENT <user.phone_number>".
 Step 10: Call WF-51 (Send Slack) with the admin notification payload.

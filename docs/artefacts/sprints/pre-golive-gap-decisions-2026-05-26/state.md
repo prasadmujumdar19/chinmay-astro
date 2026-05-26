@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/reviews/2026-05-25-pre-golive-gap-review/pre-golive-gap-decisions-2026-05-26.md
 **Input hash:** d29b8e6ff081e1d2e5c328c6f6e582322fb97f73b4332bf7c56251cf9aa18ba0
 **Planned at:** 2026-05-26T01:06:46Z
-**Last updated:** 2026-05-26T02:51:56Z
+**Last updated:** 2026-05-26T07:30:00Z
 **Planning complete:** true
 
 **Discover-current-state:** Targeted sample ran 2026-05-26T01:14:00Z (tunnel reopened mid-planning). `mcp__n8n__n8n_validate_workflow` on WF-01 (`hYGNM97sXvdo1WmI`) returned 11 errors — exact match to Decisions research dump: 4 Class A "Invalid mappingMode: passthrough" on `Call WF-02 Rule Router`, `Route Opted-Out to WF-26`, `Send Non-Text Deflection via WF-50`, `Call WF-51 (Admin Anomaly Alert)`; plus 7 Class B "Return value must be an array of objects" on `Layer 1: Country Filter`, `Silent Reject (Country)`, `Silent Reject (Blacklist)`, `Prepare User Data`, `Layer 2: Non-Text Message Filter`, `Layer 3 : Blacklisted Users Filter`, `Build WF-01 Envelope`. Regression is active and unresolved — no items obsolete. Other 23 affected workflows are NOT re-validated at planning time (cheap to verify per-workflow inside the Batch 2/3 execution loop as the recipe is applied; WF-01 alone is sufficient to confirm the systemic finding). Other build items (GAP-1/2/3B/3C/7-STAGE1) are fresh feature additions with no plausible "already done" state to detect.
@@ -19,9 +19,11 @@
 | GAP-10-WF01-SMOKE | ✅ done | 1 | P0 | WF-01 | GAP-10-WF01 (hard) |
 | GAP-10-FANOUT-P1 | ✅ done | 2 | P0 | WF-02, WF-10, WF-11, WF-00, WF-21, WF-22, WF-26, WF-32, WF-33, WF-50, WF-51, WF-60 | GAP-10-WF01-SMOKE (hard) |
 | GAP-10-FANOUT-P2 | ✅ done | 3 | P0 | WF-23, WF-25, WF-30, WF-31, WF-34, WF-42, WF-46, WF-40, WF-43, WF-45, WF-47, WF-41 (+1 ext) | GAP-10-FANOUT-P1 (hard) |
-| GAP-1 | ⬜ pending | 4 | P1 | WF-01 | GAP-10-WF01 (hard) |
-| GAP-3B | ⬜ pending | 4 | P1 | WF-22, WF-32, WF-42 | GAP-10-FANOUT-P2 (hard) |
-| GAP-7-STAGE1 | ⬜ pending | 4 | P1 | WF-31 | GAP-10-FANOUT-P2 (hard) |
+| GAP-1 | ✅ done | 4 | P1 | WF-01 | GAP-10-WF01 (hard) |
+| GAP-3B | ✅ done | 4 | P1 | WF-22, WF-32, WF-42 | GAP-10-FANOUT-P2 (hard) |
+| GAP-7-STAGE1 | ✅ done | 4 | P1 | WF-31 | GAP-10-FANOUT-P2 (hard) |
+| GAP-DCP-WF25 | ✅ done | 4 | P1 | WF-25 | GAP-10-FANOUT-P2 (hard) |
+| GAP-DCP-WF45 | ✅ done | 4 | P1 | WF-45 (pseudo only) | GAP-10-FANOUT-P2 (hard) |
 | GAP-2 | ⬜ pending | 5 | P1 | WF-42, WF-43 | GAP-10-FANOUT-P2 (hard), GAP-3B (soft) |
 | GAP-3C | ⬜ pending | 6 | P1 | WF-23, WF-30, WF-31 | GAP-10-FANOUT-P2 (hard), GAP-7-STAGE1 (soft) |
 | GAP-10-IMAGE-PIN | ⬜ pending | 7 | P1 | — | GAP-10-WF01 (hard), GAP-10-WF01-SMOKE (hard), GAP-10-FANOUT-P1 (hard), GAP-10-FANOUT-P2 (hard), GAP-1 (hard), GAP-3B (hard), GAP-7-STAGE1 (hard), GAP-2 (hard), GAP-3C (hard) |
@@ -43,8 +45,15 @@
 
 ## Batch 4 — P1 (text/code-only edits, parallel-safe)
 
-- **Items:** 3
-- **Description:** Three single-text/code-node edits that are independent of each other and touch only Gap-10-fixed workflows: GAP-1 (WF-01 silent-reject text → email redirect), GAP-3B (3 text strings: WF-22/32/42 email callout), GAP-7-STAGE1 (WF-31 Build-Slack-Payload Code node — add `paid X ago` prefix). Can be executed in any order within the batch.
+- **Items:** 5
+- **Description:** Five single-text/code-node edits that are independent of each other and touch only Gap-10-fixed workflows: GAP-1 (WF-01 silent-reject text → email redirect), GAP-3B (3 text strings: WF-22/32/42 email callout), GAP-7-STAGE1 (WF-31 Build-Slack-Payload Code node — add `paid X ago` prefix), GAP-DCP-WF25 (WF-25 garbage+block warning canonical payload — added 2026-05-26T07:30Z after user-requested data-contract caller audit confirmed it as the sole outstanding caller-contract gap project-wide), GAP-DCP-WF45 (WF-45.pseudo Step 5 / Outputs — add §2.3 cite; pseudo-only documentation polish, live code already compliant). Can be executed in any order within the batch.
+- **Decisions locked (2026-05-26T07:30Z, user-confirmed via AskUserQuestion):**
+  - **Support email:** `chinmay_astro@gmail.com` (underscore, verbatim). Post-MVP follow-up: make this a config var (logged to followups.md).
+  - **GAP-1 wording:** approved as drafted **with one edit** — change "We'll get back to you on WhatsApp." → "We'll get back to you as soon as possible."
+  - **GAP-3B wording:** approved verbatim: *"In the meantime, you can ask any general questions here, or email chinmay_astro@gmail.com if you need anything we can't help with right now."*
+  - **GAP-7-STAGE1 elapsed source:** `payments.created_at` (latest row for the user). User caveat: verify WF-32 DOES insert into payments when user taps Payment Completed; audit before WF-31 build.
+  - **GAP-DCP-WF25 inclusion:** confirmed bundle into Batch 4 (audit found only outstanding caller-contract gap; pseudo Step 7+9 also need uplift).
+- **Execution plan (Step 2a):** All 4 items are Mode B (inline-inherit) — small Surgical edits, no Skill re-invocation per item; main thread applies the build-workflow discipline mentally. GAP-7-STAGE1's preflight is the WF-32 payments-INSERT audit (read-only Postgres + WF-32 export inspection). GAP-DCP-WF25 includes both live-code edit and `.pseudo` uplift (Steps 7 and 9).
 
 ## Batch 5 — P1 (interactive button — 3rd post-consult option)
 
@@ -198,7 +207,9 @@ Exports: all 12 workflows saved to `workflows/*.json`; secrets scan clean.
 
 ## GAP-1 — WF-01 Silent Reject text → email redirect
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-26T03:34:00Z
+**Completed:** 2026-05-26T03:36:30Z
 **Priority:** P1 | **Batch:** 4
 **Change type:** Surgical (1 text string in 1 Code node)
 **Workflows:** WF-01
@@ -206,9 +217,9 @@ Exports: all 12 workflows saved to `workflows/*.json`; secrets scan clean.
 
 Update `Silent Reject (Message Type)` Code node user-facing text in WF-01 to direct non-text senders to email instead of the current deflection-only message. Single Code node text edit. No structural change.
 
-**Proposed text** (confirm at build time): *"This service supports text messages only. If you'd like to share a document, image, voice note or any other file, please email it to chinmay_astro@gmail.com along with your phone number and name. We'll get back to you on WhatsApp."*
+**Locked text (2026-05-26T07:30Z):** *"This service supports text messages only. If you'd like to share a document, image, voice note or any other file, please email it to chinmay_astro@gmail.com along with your phone number and name. We'll get back to you as soon as possible."*
 
-**Open Q at build:** confirm support email — user wrote `chinmay_astro@gmail.com` (with underscore). Verify canonical address before committing. If different, use the canonical form.
+**Decision made:** support email `chinmay_astro@gmail.com` (underscore) — user-confirmed verbatim. Post-MVP follow-up: configurable email var (see `followups.md`). User-requested wording edit: replaced "We'll get back to you on WhatsApp." with "We'll get back to you as soon as possible." (channel-agnostic — they may respond via email or WhatsApp).
 
 Pseudo update: `WF-01.pseudo` Silent Reject step text.
 
@@ -216,7 +227,9 @@ Post-MVP follow-up (NOT this sprint) — captured in Decisions §Gap 1: emoji re
 
 ## GAP-3B — Email-channel callout in WF-22/32/42 messages
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-26T03:41:00Z
+**Completed:** 2026-05-26T03:45:00Z
 **Priority:** P1 | **Batch:** 4
 **Change type:** Surgical (3 text strings across 3 workflows)
 **Workflows:** WF-22, WF-32, WF-42
@@ -227,7 +240,9 @@ Add a P.S.-style email-channel mention at three transition messages:
 - **WF-32** payment-submitted ack (post Payment Completed tap)
 - **WF-42** close-consultation message (right before the post-consult buttons — same message that GAP-2 modifies to add the 3rd "Done, thanks" button; this is the same-workflow soft-dep noted above)
 
-**Proposed text suffix** (refine at build): *"In the meantime, you can ask any general questions here, or email chinmay_astro@gmail.com if you need anything we can't help with right now."*
+**Locked text suffix (2026-05-26T07:30Z):** *"In the meantime, you can ask any general questions here, or email chinmay_astro@gmail.com if you need anything we can't help with right now."*
+
+**Decision made:** wording approved verbatim. Same email convention as GAP-1.
 
 **Explicitly out of scope:** WF-21 (the very first welcome+form). Per Decisions: keep first message focused on consent+form, not email channel.
 
@@ -237,22 +252,70 @@ All four general-enquiry suffixes from GAP-3C should also reference the email ch
 
 ## GAP-7-STAGE1 — WF-31 aging tag for paid-elapsed in Slack relay
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-26T03:46:00Z
+**Completed:** 2026-05-26T03:50:00Z
 **Priority:** P1 | **Batch:** 4
+
+**Implementation note:** Required 1 new node `Load Latest Payment` (Postgres v2.6, executeQuery, alwaysOutputData:true, credential ID `Zomqv5wsowQAhdGl`) inserted between trigger and `Prepare Admin Relay` on the Branch-B parallel relay path. Query: `=SELECT created_at FROM chinmay_astro.payments WHERE user_id = {{ $('When Executed by Another Workflow').item.json.user.id }} ORDER BY id DESC LIMIT 1` (with required `=` prefix per CLAUDE.md Expression Gotchas). Code node `Prepare Admin Relay` augmented with 9-line elapsed-since-paid block using `$('Load Latest Payment').first()?.json.created_at`. Result format: `⏱ Paid {N min|N h|N d} ago · 💬 *Message from <name> (payment under review):*\\n><msg>`. Branch A (intent classification) untouched. The state-plan's "no new node" estimate was incorrect — adding the Postgres node is unavoidable since the §2.1 envelope doesn't carry `payments.created_at`.
 **Change type:** Surgical (Code node update in 1 workflow)
 **Workflows:** WF-31
 **Depends on:** GAP-10-FANOUT-P2 (hard)
 
 Augment WF-31's existing `Build-Slack-Payload` Code node to:
-1. SELECT `payments.created_at` (or `users.updated_at` — confirm correct source at build) for the user.
+1. SELECT `payments.created_at` for the user (latest row).
 2. Compute elapsed-since-paid as a human string (`47 min ago`, `3 h ago`).
 3. Prepend to the relay message: *"⏱ Paid {elapsed} ago · User said: '<msg>'"*
+
+**Decision made (2026-05-26T07:30Z):** source = `payments.created_at` (canonical "time user reported payment"). **Pre-build audit required:** verify WF-32 inserts a payments row when user taps Payment Completed. If insert is missing, surface as needs-decision before building GAP-7-STAGE1.
 
 ~5 lines added to a single Code node. No new DB activity (read uses existing connection). No cron. No new node.
 
 Pseudo update: `WF-31.pseudo` Build-Slack-Payload step.
 
 **Stage 2 (NOT this sprint):** Payment Approval Reminder cron — explicitly deferred post-MVP per Decisions; bundled into the post-MVP maintenance-workflows queue alongside WF-71 Payment Reminder, WF-72 Inactive Scanner, etc.
+
+## GAP-DCP-WF25 — WF-25 garbage+block warning canonical contract
+
+**Status:** ✅ done
+**Started:** 2026-05-26T03:37:00Z
+**Completed:** 2026-05-26T03:39:30Z
+**Priority:** P1 | **Batch:** 4
+**Change type:** Surgical (2 Code-node payload-shape edits + pseudo Steps 7/9 uplift)
+**Workflows:** WF-25
+**Depends on:** GAP-10-FANOUT-P2 (hard)
+
+WF-25's `Prepare Garbage Warning` and `Prepare Block Warning` Code nodes return the legacy WF-50 shape `{phoneNumber, message}` instead of the canonical §2.3 contract `{phoneNumber, messageType:'text', messageContent}`. WF-50's entry guard rejects with `WF-50 contract: messageType must be text|interactive|template, got: undefined`. Confirmed live exec 2261 (2026-05-26T02:49:49Z) — user's garbage test message reached WF-25 → WF-50 entry guard rejected.
+
+**Audit context:** Surfaced by the user-requested data-contract caller audit (2026-05-26T07:00Z) that scanned all 55 utility call sites (WF-50/51/52/60) across 29 workflow exports against `docs/artefacts/specs/2026-05-24-data-contract-discipline-phase-1/design.md` §2.3-2.5. **Only these two callers were non-compliant.** All other 53 call sites pass. Audit artefacts: `/tmp/claude-scratch/<session>/audit-utility-callers.py` + `audit-results.json` + `grep-verify.py`.
+
+**Live-code recipe:**
+- `Prepare Garbage Warning`: change return to `[{ json: { phoneNumber: d.phoneNumber, messageType: 'text', messageContent: "⚠️ Your message could not be understood. Please send a clear question about our astrology consultation service." } }]`
+- `Prepare Block Warning`: change return to `[{ json: { phoneNumber: d.phoneNumber, messageType: 'text', messageContent: "🚫 Your message has been flagged as inappropriate or abusive. Your access to this service has been restricted." } }]`
+
+**Pseudo recipe (`docs/pseudocode/WF-25.pseudo`):**
+- Step 7: replace `phoneNumber=<phone>, message="..."` with `phoneNumber=<phone>, messageType='text', messageContent="..." (per design.md §2.3)`
+- Step 9: same replacement on the block warning payload.
+
+**Approach:** apply pseudo first (per [[feedback_pseudocode_first_refactor]]), then live code, then validate WF-25 + verify by sending one garbage test.
+
+## GAP-DCP-WF45 — Add §2.3 cite to WF-45.pseudo
+
+**Status:** ✅ done
+**Started:** 2026-05-26T03:40:00Z
+**Completed:** 2026-05-26T03:40:30Z
+**Priority:** P1 | **Batch:** 4
+**Change type:** Documentation (pseudo Outputs / Step 5 reference uplift; no code change)
+**Workflows:** WF-45 (pseudo only)
+**Depends on:** GAP-10-FANOUT-P2 (hard)
+
+WF-45.pseudo Step 5 calls WF-50 with canonical fields (`phoneNumber`, `messageType=interactive`, `interactivePayload`) but does NOT cite design.md §2.3 in Outputs or Step 5. Live code is already compliant — this is documentation-discipline polish to bring the pseudo in line with the rest of the utility-caller pseudo corpus (every other caller cites §2.x).
+
+**Pseudo recipe (`docs/pseudocode/WF-45.pseudo`):**
+- Outputs section: append "per design.md §2.3 (WF-50 input contract)".
+- Step 5: change to "Call WF-50 (per design.md §2.3) with phoneNumber, messageType=interactive, interactivePayload=<payload above>."
+
+No live-code change. No backup needed. No re-export.
 
 ## GAP-2 — "Done, thanks" 3rd post-consult button
 

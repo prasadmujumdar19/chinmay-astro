@@ -3,7 +3,7 @@ WF-45 — Rebook Handler
 ## Summary
 
 - Inputs: phoneNumber (and optionally name/userId from caller)
-- Outputs: user status set back to payment_pending; WhatsApp interactive payment prompt sent
+- Outputs: user status set back to payment_pending; WhatsApp interactive payment prompt sent (WF-50 call per design.md §2.3)
 - State Transitions: consultation_closed (or other) → payment_pending
 - Calls Sub-Workflows: WF-50 (Send WhatsApp)
 - Design rule: Does NOT call WF-52. Reuses the existing consult Slack channel (slack_channel_id stays on the users row).
@@ -18,5 +18,5 @@ Step 3: UPDATE chinmay_astro.users SET status = 'payment_pending', stage = NULL,
 Step 4: Build interactive WhatsApp payload:
   - body.text = "Welcome back, <user.name>! 🙏\n\nYour birth details are already on file, so we can get started right away.\n\n*Payment Information:*\nAmount: ₹500\n\nPlease send ₹500 via GPay / PhonePe / any UPI app to: +91-9653240263 (Chinmay Mujumdar). Once done, tap the button below:"
   - buttons: [ { id: "payment_completed", title: "Payment Completed" } ]
-Step 5: Call WF-50 with phoneNumber, messageType=interactive, interactivePayload=<payload above>.
+Step 5: Call WF-50 (per design.md §2.3) with phoneNumber, messageType='interactive', interactivePayload=<payload above>.
 Step 6: End.
