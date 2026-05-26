@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/reviews/2026-05-25-pre-golive-gap-review/pre-golive-gap-decisions-2026-05-26.md
 **Input hash:** d29b8e6ff081e1d2e5c328c6f6e582322fb97f73b4332bf7c56251cf9aa18ba0
 **Planned at:** 2026-05-26T01:06:46Z
-**Last updated:** 2026-05-26T07:30:00Z
+**Last updated:** 2026-05-26T04:44:44Z
 **Planning complete:** true
 
 **Discover-current-state:** Targeted sample ran 2026-05-26T01:14:00Z (tunnel reopened mid-planning). `mcp__n8n__n8n_validate_workflow` on WF-01 (`hYGNM97sXvdo1WmI`) returned 11 errors — exact match to Decisions research dump: 4 Class A "Invalid mappingMode: passthrough" on `Call WF-02 Rule Router`, `Route Opted-Out to WF-26`, `Send Non-Text Deflection via WF-50`, `Call WF-51 (Admin Anomaly Alert)`; plus 7 Class B "Return value must be an array of objects" on `Layer 1: Country Filter`, `Silent Reject (Country)`, `Silent Reject (Blacklist)`, `Prepare User Data`, `Layer 2: Non-Text Message Filter`, `Layer 3 : Blacklisted Users Filter`, `Build WF-01 Envelope`. Regression is active and unresolved — no items obsolete. Other 23 affected workflows are NOT re-validated at planning time (cheap to verify per-workflow inside the Batch 2/3 execution loop as the recipe is applied; WF-01 alone is sufficient to confirm the systemic finding). Other build items (GAP-1/2/3B/3C/7-STAGE1) are fresh feature additions with no plausible "already done" state to detect.
@@ -24,7 +24,7 @@
 | GAP-7-STAGE1 | ✅ done | 4 | P1 | WF-31 | GAP-10-FANOUT-P2 (hard) |
 | GAP-DCP-WF25 | ✅ done | 4 | P1 | WF-25 | GAP-10-FANOUT-P2 (hard) |
 | GAP-DCP-WF45 | ✅ done | 4 | P1 | WF-45 (pseudo only) | GAP-10-FANOUT-P2 (hard) |
-| GAP-2 | ⬜ pending | 5 | P1 | WF-42, WF-43 | GAP-10-FANOUT-P2 (hard), GAP-3B (soft) |
+| GAP-2 | ✅ done | 5 | P1 | WF-42, WF-43 | GAP-10-FANOUT-P2 (hard), GAP-3B (soft) |
 | GAP-3C | ⬜ pending | 6 | P1 | WF-23, WF-30, WF-31 | GAP-10-FANOUT-P2 (hard), GAP-7-STAGE1 (soft) |
 | GAP-10-IMAGE-PIN | ⬜ pending | 7 | P1 | — | GAP-10-WF01 (hard), GAP-10-WF01-SMOKE (hard), GAP-10-FANOUT-P1 (hard), GAP-10-FANOUT-P2 (hard), GAP-1 (hard), GAP-3B (hard), GAP-7-STAGE1 (hard), GAP-2 (hard), GAP-3C (hard) |
 
@@ -319,11 +319,25 @@ No live-code change. No backup needed. No re-export.
 
 ## GAP-2 — "Done, thanks" 3rd post-consult button
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-26T04:30:18Z
+**Completed:** 2026-05-26T04:44:44Z
 **Priority:** P1 | **Batch:** 5
 **Change type:** Structural (~4-5 new nodes across 2 workflows)
 **Workflows:** WF-42, WF-43
 **Depends on:** GAP-10-FANOUT-P2 (hard), GAP-3B (soft — same-workflow sibling on WF-42)
+
+**Decisions locked (2026-05-26T04:30Z, user-confirmed via AskUserQuestion):**
+- **Button:** `btn_done` / "Done, thanks" (12 chars, under WhatsApp's ~20-char cap). Locked at plan time.
+- **WA thank-you (sent via WF-50 on btn_done):** *"Thank you for choosing Chinmay Astro. We hope to see you again — just send REBOOK whenever you're ready.\n\nYou can also email chinmay_astro@gmail.com anytime if you need anything we can't help with here, or reply STOP if you'd prefer to unsubscribe."* — combines state.md suggested farewell + email convention (per GAP-3B Batch 4 lock) + STOP affordance.
+- **Slack notification (sent via WF-51 to user.slack_channel_id):** *"✅ User tapped \"Done, thanks\" — conversation closed. Channel stays open for any future rebook."* — state.md option 1 minimal + option 3's channel-stays-open suffix per user direction.
+- **State change:** none. `consultation_closed` stays. WF-43 routes btn_done in the same branch shape as btn_rebook/btn_feedback — interactive button reply check + no DB write.
+
+**Execution outcome:** Two PUTs landed cleanly via curl-jq-on-disk + Python (Step 5e pattern).
+- **WF-42** (`fx70vqyJtRdF2DgR`): `Prepare Feedback Message` jsCode buttons array gained `{id: btn_done, title: "Done, thanks"}`. 7 nodes unchanged. MCP validate: `valid: true, errorCount: 0` (9 pre-existing advisory warnings). Backup `archive/backups/fx70vqyJtRdF2DgR-2026-05-26-14-38.json`. Re-exported.
+- **WF-43** (`3va0M06kijgyLejf`): additive Structural — 5 new nodes inserted between `Is Button Reply?` TRUE and existing `Is Rebook Button?`. New: `Is Done Button?` (IF v2), `Build Thank-You Payload` (Set v3.4, contract-emit per §2.3), `Send Thank-You via WF-50` (exec v1.2), `Build Btn-Done Slack Payload` (Set v3.4, contract-emit per §2.4), `Send Btn-Done Slack via WF-51` (exec v1.2). Parallel fork from `Is Done Button?` TRUE → both Set→exec branches fire side-by-side (per Step 5f.1 — independent fire-and-forget). `Is Done Button?` FALSE → existing `Is Rebook Button?` chain (untouched). 16 → 21 nodes. New exec mappingMode matches live Gap-10 fan-out convention (`defineBelow + value: {}`). MCP validate: `valid: true, errorCount: 0` (21 advisory warnings — typeVersion floor, code error handling). Backup `archive/backups/3va0M06kijgyLejf-2026-05-26-14-38.json`. Re-exported.
+- **Pseudo updates:** `WF-42.pseudo` Step 4 buttons line, `WF-43.pseudo` Outputs / Sub-Workflows / Step 3 (cascaded-IF) / new Steps 5 + 6 / renumbered through Step 16.
+- **Process-defect note:** initial Step 1 identification used the wrong n8n UUID for WF-43 (`se82n3MUQ9xE5aEr` — that's actually WF-34). Caught when fetched node names didn't match the just-edited WF-43.pseudo. Correct ID (`3va0M06kijgyLejf`) cited in state.md line 184 and workflow-registry.md was always available. Memory `feedback_workflow_id_lookup_discipline` saved post-build to prevent recurrence.
 
 Add `btn_done` to WF-42 close-payload (label: "Done, thanks" — 12 chars, safely under WhatsApp's ~20-char button cap; not the literal "I'm done, thank you" at 19 chars). Add WF-43 routing branch for `button_reply` = `btn_done`:
 - → WF-50 thank-you message

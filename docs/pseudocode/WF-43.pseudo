@@ -2,10 +2,10 @@ WF-43 — Post-Consultation Handler
 
 ## Summary
 
-- Inputs (canonical WF-01 envelope per data-contract-discipline Phase 1 §2.1): `phoneNumber` (E.164 string, top-level), `messageType` (enum: 'text' | 'interactive'), `messageContent` (string), `rawMessage` (object — for interactive payloads), `user.id` (integer), `user.status` (enum: 'consultation_closed'), `user.current_consultation_id` (integer or null).
-- Outputs: Routes to WF-44 (feedback), WF-45 (rebook), WF-47 (unsubscribe), or sends a Gemini-generated WhatsApp reply
+- Inputs (canonical WF-01 envelope per data-contract-discipline Phase 1 §2.1): `phoneNumber` (E.164 string, top-level), `messageType` (enum: 'text' | 'interactive'), `messageContent` (string), `rawMessage` (object — for interactive payloads), `user.id` (integer), `user.status` (enum: 'consultation_closed'), `user.current_consultation_id` (integer or null), `user.slack_channel_id` (string — required for btn_done Slack notification).
+- Outputs: Routes to WF-44 (feedback), WF-45 (rebook), WF-47 (unsubscribe); sends a thank-you (btn_done) via WF-50 + Slack notification via WF-51; or sends a Gemini-generated WhatsApp reply (per design.md §2.3 for WF-50 input contract and §2.4 for WF-51 input contract).
 - State Transitions: none directly (downstream WFs may transition)
-- Calls Sub-Workflows: WF-25 (Intent Classifier), WF-44 (Feedback Recorder), WF-45 (Rebook), WF-47 (Unsubscribe), WF-50 (Send WhatsApp)
+- Calls Sub-Workflows: WF-25 (Intent Classifier), WF-44 (Feedback Recorder), WF-45 (Rebook), WF-47 (Unsubscribe), WF-50 (Send WhatsApp), WF-51 (Send Slack Message — btn_done notification only)
 - **Notes:**
   - TD-DRIFT-009 (WF-25 caller passes messageText instead of messageContent) is a known bug deferred to the post-Phase-1 bug-fix sprint. The passthrough mode in Call WF-25 Intent Classifier passes the envelope's messageContent field correctly on this path.
 
@@ -16,24 +16,27 @@ WF-43 — Post-Consultation Handler
 Step 1: Start — triggered by another workflow (typically WF-01/WF-02 for a user in `consultation_closed`). Receives WF-01 canonical envelope.
 Step 2: Check: Is messageType == "interactive" (a button reply)?
   - If YES → go to Step 3
-  - If NO  → go to Step 6
-Step 3: Check: Is rawMessage.interactive.button_reply.id == "btn_rebook"?
-  - If YES → go to Step 4
-  - If NO  → go to Step 5
-Step 4: Call WF-45 (Rebook) with phoneNumber, userId. End.
-Step 5: Prompt for feedback — build canonical WF-50 payload: { phoneNumber, messageType: 'text', messageContent: "✍️ Thanks for choosing to share your feedback! Please type your thoughts about the consultation and send them — we appreciate every word!" }; call WF-50. End.
-Step 6: Call WF-25 (Intent Classifier) with phoneNumber, userId (user.id), messageContent, userStatus (user.status) → returns intentResult.
-Step 7: Check: intentResult == "stop_intent"?
-  - If YES → call WF-47 (Unsubscribe) with phoneNumber, userId, userStatus. End.
   - If NO  → go to Step 8
-Step 8: Check: intentResult == "rebook_intent"?
-  - If YES → call WF-45 (Rebook) with phoneNumber, userId. End.
-  - If NO  → go to Step 9
-Step 9: Check: intentResult == "feedback_intent"?
-  - If YES → call WF-44 (Feedback Recorder) with phoneNumber, userId, messageContent. End.
+Step 3: Check button_reply.id in order (cascade of IF gates):
+  - IF rawMessage.interactive.button_reply.id == "btn_done"  → go to Step 5
+  - ELSE IF rawMessage.interactive.button_reply.id == "btn_rebook" → go to Step 4
+  - ELSE (btn_feedback or any other id) → go to Step 7
+Step 4: Call WF-45 (Rebook) with phoneNumber, userId. End.
+Step 5: Build canonical WF-50 payload (per design.md §2.3): { phoneNumber, messageType: 'text', messageContent: "Thank you for choosing Chinmay Astro. We hope to see you again — just send REBOOK whenever you're ready.\n\nYou can also email chinmay_astro@gmail.com anytime if you need anything we can't help with here, or reply STOP if you'd prefer to unsubscribe." }; call WF-50.
+Step 6: Build Slack notification payload (per design.md §2.4) — channelId = user.slack_channel_id; messageText = "✅ User tapped \"Done, thanks\" — conversation closed. Channel stays open for any future rebook."; call WF-51. No state change (user.status remains consultation_closed). End.
+Step 7: Prompt for feedback — build canonical WF-50 payload (per design.md §2.3): { phoneNumber, messageType: 'text', messageContent: "✍️ Thanks for choosing to share your feedback! Please type your thoughts about the consultation and send them — we appreciate every word!" }; call WF-50. End.
+Step 8: Call WF-25 (Intent Classifier) with phoneNumber, userId (user.id), messageContent, userStatus (user.status) → returns intentResult.
+Step 9: Check: intentResult == "stop_intent"?
+  - If YES → call WF-47 (Unsubscribe) with phoneNumber, userId, userStatus. End.
   - If NO  → go to Step 10
-Step 10: Build Gemini prompt: "You are a helpful assistant for Chinmay's Vedic astrology consultation service on WhatsApp. Answer this question briefly and warmly in 2-3 sentences. If they seem interested in booking, mention they can start fresh by messaging us.\nUser: <messageContent>"
-Step 11: POST to Gemini (gemini-2.0-flash-lite) with temperature=0.7, maxOutputTokens=200, timeout=10s.
-Step 12: Extract reply text from candidates[0].content.parts[0].text; fallback = "Thank you for your message! For questions about our Vedic astrology consultation, feel free to ask."
-Step 13: Call WF-50 with { phoneNumber, messageType: 'text', messageContent: <reply> }.
-Step 14: End.
+Step 10: Check: intentResult == "rebook_intent"?
+  - If YES → call WF-45 (Rebook) with phoneNumber, userId. End.
+  - If NO  → go to Step 11
+Step 11: Check: intentResult == "feedback_intent"?
+  - If YES → call WF-44 (Feedback Recorder) with phoneNumber, userId, messageContent. End.
+  - If NO  → go to Step 12
+Step 12: Build Gemini prompt: "You are a helpful assistant for Chinmay's Vedic astrology consultation service on WhatsApp. Answer this question briefly and warmly in 2-3 sentences. If they seem interested in booking, mention they can start fresh by messaging us.\nUser: <messageContent>"
+Step 13: POST to Gemini (gemini-2.0-flash-lite) with temperature=0.7, maxOutputTokens=200, timeout=10s.
+Step 14: Extract reply text from candidates[0].content.parts[0].text; fallback = "Thank you for your message! For questions about our Vedic astrology consultation, feel free to ask."
+Step 15: Call WF-50 (per design.md §2.3) with { phoneNumber, messageType: 'text', messageContent: <reply> }.
+Step 16: End.
