@@ -42,3 +42,23 @@ Findings surfaced by the sprint's regression checks but outside the sprint's str
     - WF-32 `Prepare User Confirmation` Code node (jsCode template literal)
     - WF-42 `Prepare Feedback Message` Code node (jsCode string concatenation)
   - Decision: _accepted-as-is for MVP; revisit post go-live when packaging for second deployment._
+
+## [2026-05-26] — Post-Batch-6 (P1 Gemini answer distribute)
+
+- **Docker `n8n-prod` image digest pin — deferred to post-MVP** (classification: **adjacent — infrastructure hygiene; was Batch 7 GAP-10-IMAGE-PIN, removed from sprint per user direction 2026-05-26**)
+  - Cause-and-effect: `/mnt/chinmay-astro-data/docker-compose.yml` on the VPS pulls `docker.n8n.io/n8nio/n8n:latest` for `n8n-prod`. A `docker pull` during a routine restart can silently move the running version to a newer n8n release whose typeVersion behavior, validator output, or runtime semantics may differ from the version smoke-tested green by this sprint. Risk surface = any unintended upgrade between go-live and the first post-MVP infrastructure window.
+  - **Decision (2026-05-26):** Sprint item GAP-10-IMAGE-PIN marked `obsolete` (status updated in `state.md`); pin work moved here as post-MVP follow-up to avoid mixing infrastructure mutation into the go-live-critical-path sprint. Plugin-improvement insights from this sprint (Gemini model deprecation guardrail, sibling-parity audit pattern) still captured via `flush-plugin-improvements` so the next infrastructure sprint inherits them.
+  - Proposed fix (when picked up post-MVP):
+    1. SSH to VPS (`ssh root@45.79.125.184`).
+    2. Capture current digest: `docker inspect --format='{{.Image}}' n8n-prod` (or `docker images --digests docker.n8n.io/n8nio/n8n`).
+    3. Edit `/mnt/chinmay-astro-data/docker-compose.yml` — replace `image: docker.n8n.io/n8nio/n8n:latest` with `image: docker.n8n.io/n8nio/n8n@sha256:<digest>`.
+    4. Recreate (`docker-compose up -d n8n` — note CLAUDE.md warning re: docker-compose v1 buggy on newer Docker; may need stop/rm manually first).
+    5. Verify: n8n version unchanged, UI loads, one smoke execution succeeds.
+  - Priority hint: P2 post-MVP — risk is real but probability of a breaking upstream change in the post-MVP stabilization window is low; benefit landed independently of go-live.
+  - Decision: _accepted-as-is for MVP; execute in a dedicated infrastructure sprint after go-live + one stabilization week._
+
+- **Gemini answer style determinism — long-tail observation post-go-live** (classification: **adjacent — quality, post-MVP**)
+  - Cause-and-effect: GAP-3C bakes state-specific intent cues (form-stage / payment-pending / payment-submitted / consultation-closed) + email callout into the Gemini prompt as a paraphrase instruction. Temperature lowered to 0.3 to push toward stability, but Gemini still may (a) omit the email callout, (b) drop the stage cue, or (c) over-formalize the conversational tone. The state.md decision explicitly accepts this non-determinism trade-off because verbatim-append produces robotic-sounding messages.
+  - Proposed fix path: monitor real user-facing outputs post-go-live; if drop-rate on the email callout is material, add a one-line append-fallback in `Extract Gemini Reply` (e.g. if `reply.toLowerCase().includes("chinmay_astro@gmail.com") === false` then append " You can also email chinmay_astro@gmail.com if you need anything else."). Bandaid only — preserves the conversational tone in 95%+ of replies while guaranteeing the email callout in the long tail.
+  - Priority hint: P3 post-MVP — depends on observed traffic patterns. Don't pre-optimize.
+  - Decision: _accepted-as-is for MVP; revisit if user reports missing-email-callout incidents._

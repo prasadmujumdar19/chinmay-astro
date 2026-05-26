@@ -26,7 +26,7 @@
 | GAP-DCP-WF45 | ✅ done | 4 | P1 | WF-45 (pseudo only) | GAP-10-FANOUT-P2 (hard) |
 | GAP-2 | ✅ done | 5 | P1 | WF-42, WF-43 | GAP-10-FANOUT-P2 (hard), GAP-3B (soft) |
 | GAP-3C | ✅ done | 6 | P1 | WF-23, WF-30, WF-31, WF-43 | GAP-10-FANOUT-P2 (hard), GAP-7-STAGE1 (soft) |
-| GAP-10-IMAGE-PIN | ⬜ pending | 7 | P1 | — | GAP-10-WF01 (hard), GAP-10-WF01-SMOKE (hard), GAP-10-FANOUT-P1 (hard), GAP-10-FANOUT-P2 (hard), GAP-1 (hard), GAP-3B (hard), GAP-7-STAGE1 (hard), GAP-2 (hard), GAP-3C (hard) |
+| GAP-10-IMAGE-PIN | 🟣 obsolete | 7 | P1 | — | GAP-10-WF01 (hard), GAP-10-WF01-SMOKE (hard), GAP-10-FANOUT-P1 (hard), GAP-10-FANOUT-P2 (hard), GAP-1 (hard), GAP-3B (hard), GAP-7-STAGE1 (hard), GAP-2 (hard), GAP-3C (hard) |
 
 ## Batch 1 — P0 (WF-01 validator unblock + smoke gate)
 
@@ -405,7 +405,9 @@ Pseudo updates: `WF-23.pseudo`, `WF-30.pseudo`, `WF-31.pseudo` — each gains a 
 
 ## GAP-10-IMAGE-PIN — Pin n8n-prod from :latest to specific image digest
 
-**Status:** ⬜ pending
+**Status:** 🟣 obsolete
+**Obsolete at:** 2026-05-26T05:45:00Z
+**Obsolete reason:** Deferred to post-MVP per user direction 2026-05-26 ("Move docker related work to post MVP notes"). Infrastructure mutation (SSH/Docker recreate on VPS) deemed out-of-scope for the pre-go-live decisions sprint to avoid mixing infrastructure churn with critical-path code changes. Full process steps + rationale preserved in `followups.md` under "Post-Batch-6" header for the future post-MVP infrastructure sprint. Plugin-improvement insights from this sprint (Gemini model deprecation guardrail, sibling-parity audit pattern, runtime-stricter-than-MCP-validator) still captured via `flush-plugin-improvements` so the next infrastructure sprint inherits them.
 **Priority:** P1 | **Batch:** 7
 **Change type:** Infrastructure (docker-compose edit + container recreate on VPS)
 **Workflows:** —

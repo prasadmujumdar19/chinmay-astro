@@ -1,5 +1,18 @@
 # Chinmay Astro — Workflow Registry
-**Version:** 2.13 | **Last Updated:** 25 May 2026 (sprint `data-contract-sprint-bug-fix` — WF-26 re-engagement handler closes BUG-NEW-02)
+**Version:** 2.14 | **Last Updated:** 26 May 2026 (sprint `pre-golive-gap-decisions-2026-05-26` complete — Gap-10 systemic fan-out + 5 P1 gaps closed)
+
+### 2026-05-26 — Sprint pre-golive-gap-decisions (Gap-10 fan-out + pre-go-live P1 gaps; 11 done, 1 obsolete)
+
+- **Gap-10 fan-out — systemic `mappingMode: passthrough` → `defineBelow + value: {}` recipe correction.** WF-01 unblocked first (4 Class A nodes + 9 Class B Code-node returns), smoke-tested green; then mechanical fan-out via jq+PUT across 23 P1/P2/P3 workflows (Batches 2+3). Mid-Batch-3 smoke caught `value: null` runtime TypeError → recipe corrected to `value: {}` (empty object) project-wide. Resolves the `WorkflowHasIssuesError` class that surfaced post-data-contract-Phase-1 PUTs on n8n 2.1.4. Plugin 1.32.0 released mid-sprint to document the corrected recipe + add `exec_passthrough_literal` and `code_node_terminal_return_shape` lint hard-rejects.
+- **GAP-1 — WF-01 Silent Reject text → email redirect.** "We'll get back to you as soon as possible." + email callout to `chinmay_astro@gmail.com`.
+- **GAP-3B — Email-channel callout in WF-22/32/42 messages.** Locked wording: "In the meantime, you can ask any general questions here, or email chinmay_astro@gmail.com if you need anything we can't help with right now."
+- **GAP-7-STAGE1 — WF-31 paid-elapsed aging tag in Slack relay.** `Build Slack Payload` Code node now prefixes `⏱ Paid {n} min/h/d ago` from `payments.created_at` (latest row).
+- **GAP-DCP-WF25 — WF-25 garbage+block warning canonical contract.** Closes the sole outstanding caller-contract gap project-wide.
+- **GAP-DCP-WF45 — `.pseudo` §2.3 cite addition.** Pseudo-only polish; live code already compliant.
+- **GAP-2 — "Done, thanks" 3rd post-consult button.** WF-42 `Prepare Feedback Message` buttons array gains `{id: btn_done, title: "Done, thanks"}`; WF-43 gains additive `Is Done Button?` IF + thank-you WhatsApp via WF-50 + "user tapped Done" Slack notification via WF-51. 16 → 21 nodes on WF-43. No state change.
+- **GAP-3C — Distribute Gemini answer pattern to WF-23/30/31 + WF-43 paraphrase rewrite.** Each of WF-23/30/31 gained `Is General Enquiry?` IF (v2) → 4-node Gemini chain (Prepare Prompt jsCode → Gemini HTTP [gemini-2.5-flash-lite, temp=0.3, retryOnFail=true, maxTries=3, googlePalmApi cred] → Extract Reply → Send via WF-50 [defineBelow + value:{}]). WF-43's existing Gemini prompt rewritten to weave state-specific cue + email callout in paraphrase form; model URL bumped 2.0 → 2.5; temperature 0.7 → 0.3. **Gemini 2.0-flash-lite deprecated by Google; project standard locked at 2.5-flash-lite** (new memory `project_gemini_model.md`; CLAUDE.md Key Credential IDs table updated; WF-25 already on 2.5).
+- **GAP-10-IMAGE-PIN — marked obsolete (deferred to post-MVP).** Docker `n8n-prod` `:latest` → digest pin moved to `followups.md` post-MVP per user direction; infrastructure-mutation scope kept out of go-live-critical-path sprint.
+- **Plugin v1.32.1 + v1.33.0 — two new `build-workflow` sub-steps.** 1.32.1 adds Step 5f.6 (sibling-parity audit when replicating an existing node pattern — catches node-level hardening attributes like `retryOnFail`/`maxTries` that live ON the node and slip past parameter-only rollers; failure-case study from this sprint's GAP-3C Gemini-copy). 1.33.0 adds Step 6b (runtime-issue probe via `mcp__n8n__validate_node` strict-profile per-node — closes the gap between workflow-level MCP validation and n8n's runtime `getNodeParametersIssues`; failure-case study from this sprint's WF-01 Postgres operation-default).
 
 ### 2026-05-25 — Sprint data-contract-sprint-bug-fix (WF-26 re-engagement handler + data-contract hygiene)
 
@@ -218,6 +231,7 @@ payment_submitted →(admin REJECT)→ payment_pending [retry]
 **Deferred to next sessions:**
 - F-08 — admin command smoke test (APPROVE/REJECT/CLOSE/BLOCK) — user-driven interactive
 - F-10/F-11/F-12 — post-MVP (UI cosmetic, n8n upgrade, WF-60 message-logging fix)
+- GAP-10-IMAGE-PIN — post-MVP (Docker `n8n-prod` `:latest` → digest pin on VPS; full process steps in `docs/artefacts/sprints/pre-golive-gap-decisions-2026-05-26/followups.md` under "Post-Batch-6"). Sprint 2026-05-26 deferred this so the go-live-critical sprint stayed code-only; pick up in a dedicated infrastructure sprint after go-live + one stabilization week.
 
 ---
 
