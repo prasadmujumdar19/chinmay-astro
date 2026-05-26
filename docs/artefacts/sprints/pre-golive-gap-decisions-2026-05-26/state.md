@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/reviews/2026-05-25-pre-golive-gap-review/pre-golive-gap-decisions-2026-05-26.md
 **Input hash:** d29b8e6ff081e1d2e5c328c6f6e582322fb97f73b4332bf7c56251cf9aa18ba0
 **Planned at:** 2026-05-26T01:06:46Z
-**Last updated:** 2026-05-26T02:32:58Z
+**Last updated:** 2026-05-26T02:51:56Z
 **Planning complete:** true
 
 **Discover-current-state:** Targeted sample ran 2026-05-26T01:14:00Z (tunnel reopened mid-planning). `mcp__n8n__n8n_validate_workflow` on WF-01 (`hYGNM97sXvdo1WmI`) returned 11 errors — exact match to Decisions research dump: 4 Class A "Invalid mappingMode: passthrough" on `Call WF-02 Rule Router`, `Route Opted-Out to WF-26`, `Send Non-Text Deflection via WF-50`, `Call WF-51 (Admin Anomaly Alert)`; plus 7 Class B "Return value must be an array of objects" on `Layer 1: Country Filter`, `Silent Reject (Country)`, `Silent Reject (Blacklist)`, `Prepare User Data`, `Layer 2: Non-Text Message Filter`, `Layer 3 : Blacklisted Users Filter`, `Build WF-01 Envelope`. Regression is active and unresolved — no items obsolete. Other 23 affected workflows are NOT re-validated at planning time (cheap to verify per-workflow inside the Batch 2/3 execution loop as the recipe is applied; WF-01 alone is sufficient to confirm the systemic finding). Other build items (GAP-1/2/3B/3C/7-STAGE1) are fresh feature additions with no plausible "already done" state to detect.
@@ -18,7 +18,7 @@
 | GAP-10-WF01 | ✅ done | 1 | P0 | WF-01 | — |
 | GAP-10-WF01-SMOKE | ✅ done | 1 | P0 | WF-01 | GAP-10-WF01 (hard) |
 | GAP-10-FANOUT-P1 | ✅ done | 2 | P0 | WF-02, WF-10, WF-11, WF-00, WF-21, WF-22, WF-26, WF-32, WF-33, WF-50, WF-51, WF-60 | GAP-10-WF01-SMOKE (hard) |
-| GAP-10-FANOUT-P2 | ⬜ pending | 3 | P0 | WF-23, WF-25, WF-30, WF-31, WF-34, WF-42, WF-46 + 4 unidentified | GAP-10-FANOUT-P1 (hard) |
+| GAP-10-FANOUT-P2 | ✅ done | 3 | P0 | WF-23, WF-25, WF-30, WF-31, WF-34, WF-42, WF-46, WF-40, WF-43, WF-45, WF-47, WF-41 (+1 ext) | GAP-10-FANOUT-P1 (hard) |
 | GAP-1 | ⬜ pending | 4 | P1 | WF-01 | GAP-10-WF01 (hard) |
 | GAP-3B | ⬜ pending | 4 | P1 | WF-22, WF-32, WF-42 | GAP-10-FANOUT-P2 (hard) |
 | GAP-7-STAGE1 | ⬜ pending | 4 | P1 | WF-31 | GAP-10-FANOUT-P2 (hard) |
@@ -152,7 +152,9 @@ Exports: all 12 workflows saved to `workflows/*.json`; secrets scan clean (zero 
 
 ## GAP-10-FANOUT-P2 — Apply validator fix to 11 P2/P3 + unidentified workflows
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-26T02:32:58Z
+**Completed:** 2026-05-26T02:41:21Z
 **Priority:** P0 | **Batch:** 3
 **Change type:** Batch Surgical (mechanical per-workflow loop, 11 workflows)
 **Workflows:** WF-23, WF-25, WF-30, WF-31, WF-34, WF-42, WF-46 + 4 unidentified (`2U7mxHMyqA41ROKX`, `MUG7rPgSHc7UtAE9`, `du32QBZbSQOjfESe`, `3va0M06kijgyLejf`)
@@ -165,6 +167,34 @@ Pass 2 of 2. Same per-workflow loop as Pass 1.
 - If unmatched (true orphan / legacy / sub-workflow not yet catalogued) → fetch + inspect → either map it to a WF-XX or add it to workflow-registry with disposition (active/orphan/deprecated). Per `[[feedback_systemic_before_individual]]`, surface the systemic finding to the user before deciding per-ID.
 
 If any unidentified ID turns out to be a deprecated orphan and is `active: true` in n8n, propose deactivation as a follow-up (do NOT bundle into this sprint).
+
+**Pre-batch resolution of 4 unidentified IDs** (via `mcp__n8n__n8n_list_workflows`):
+- `2U7mxHMyqA41ROKX` = WF-47 Unsubscribe Handler (active)
+- `MUG7rPgSHc7UtAE9` = WF-45 Rebook Handler (active)
+- `du32QBZbSQOjfESe` = WF-40 User → Admin Relay (active)
+- `3va0M06kijgyLejf` = WF-43 Post-Consultation Handler (active)
+
+All 4 are identifiable active workflows — none are orphans. No deactivation follow-ups needed.
+
+**Systemic-scope audit (per [[feedback_systemic_before_individual]]):** Project-wide scan of all 28 active workflows for `mappingMode: "passthrough"` literal turned up **WF-41 Admin → User Relay (6PzJRZsF7k2d9hV7)** with 1 Class A defect — NOT in the planned 11. Critical path (Slack admin → WhatsApp user relay). User-approved **+1 extension** to include WF-41 in this batch. 3 other untouched workflows (WF-20, WF-44, WF-52) had zero Class A or Class B defects (already validator-clean) — no action needed.
+
+**Execution outcome:** 12 workflows (11 planned + WF-41 ext) processed through the same `fix-workflow.sh` per-workflow loop as Batch 2.
+
+Totals across 12 workflows:
+- Class A flips: **26 executeWorkflow nodes** (WF-23: 1, WF-25: 4, WF-30: 1, WF-31: 4, WF-34: 2, WF-42: 2, WF-46: 1, WF-40: 1, WF-43: 6, WF-45: 1, WF-47: 2, WF-41: 1)
+- Class B Code-return wraps: **1 Code node** (WF-34: `Prepare Rejection Message`)
+- 12 backups stored under `archive/backups/` with `2026-05-26-12-39` timestamps
+- All 12 PUTs returned HTTP 200
+
+Post-PUT `mcp__n8n__n8n_validate_workflow` (validateConnections+Expressions disabled): **12/12 valid: true, errorCount: 0**. Zero strict findings.
+
+Exports: all 12 workflows saved to `workflows/*.json`; secrets scan clean.
+
+**P0 sprint phase complete.** Across Batches 1+2+3: 1 + 12 + 12 = **25 workflows touched**, all validator-clean (excluding the 1 adjacent pre-existing WF-51 Slack-operation finding). 3 remaining active workflows (WF-20, WF-44, WF-52) confirmed clean pre-batch (no Gap 10 defect).
+
+**Mid-Batch-3 recipe correction (2026-05-26T02:43Z–02:51Z):** First post-P0 runtime smoke test (exec 2241) caught a runtime `TypeError: Cannot convert undefined or null to object at Function.keys (validateResourceMapperValue)` — n8n's runtime resource-mapper validator calls `Object.keys(value)` on the executeWorkflow node's workflowInputs.value, which throws when value is `null`. The MCP validator did NOT catch this; only manifests at runtime. Original Decisions recipe (`value: null`) was correctable to `value: {}` (empty object) — matches the working state of WF-01's executeWorkflow nodes (which had been hand-patched from null→{} during Batch 1 smoke debug, hence WF-01 worked while Batch 2/3 workflows broke). Single jq+PUT pass patched 65 nodes across 23 workflows (`value: null` → `value: {}`); `fix-workflow.sh` recipe updated. Re-smoke (exec 2252+2253 = real astrology question → end-to-end WhatsApp reply delivered) confirmed the fix. Adjacent finding logged in `followups.md`; bundled into Batch 7 plugin-improvement flush.
+
+**Post-P0 smoke verification:** Real-user message (exec 2252/2253) flowed cleanly through WF-00 → WF-01 → WF-02 → routing → WF-25 → WF-50 → WhatsApp send. Test garbage message (exec 2254/2256) was correctly classified by WF-25 and tripped WF-50's data-contract entry guard on `messageType: undefined` — confirming the contract framework is doing its job. The garbage-route payload construction in WF-25's `Prepare Garbage Warning` (and likely `Prepare Block Warning` sibling) needs to set `messageType: "text"`; logged as adjacent finding (data flow) in `followups.md`.
 
 ## GAP-1 — WF-01 Silent Reject text → email redirect
 

@@ -45,10 +45,14 @@ while IFS= read -r name; do
 done <<< "$CODE_NODES"
 echo "  Class B changed: $CLASSB_CHANGED"
 
-# 4. Apply Class A: passthrough → defineBelow + value:null on all matched nodes
+# 4. Apply Class A: passthrough → defineBelow + value:{} on all matched nodes
+#    NOTE: value MUST be {} (empty object), not null. n8n's runtime
+#    `validateResourceMapperValue` calls `Object.keys(value)` which throws
+#    TypeError on null. The MCP validator does NOT catch this; only manifests
+#    at executeWorkflow node runtime. Validated 2026-05-26 (exec 2241).
 jq '
   (.nodes[] | select(.type=="n8n-nodes-base.executeWorkflow" and .parameters.workflowInputs.mappingMode == "passthrough") | .parameters.workflowInputs) |=
-    (.mappingMode = "defineBelow" | .value = null)
+    (.mappingMode = "defineBelow" | .value = {})
 ' "$POST" > "$POST.tmp" && mv "$POST.tmp" "$POST"
 
 # 5. Build PUT body
