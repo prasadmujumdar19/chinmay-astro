@@ -1,0 +1,132 @@
+{
+  "version": "7.2",
+  "screens": [
+    {
+      "id": "DETAILS_SCREEN",
+      "title": "Consultation Details",
+      "terminal": true,
+      "success": true,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Chinmay Astro Consultation"
+          },
+          {
+            "type": "TextBody",
+            "text": "Please provide your birth details for accurate astrological analysis. All fields are mandatory."
+          },
+          {
+            "type": "TextInput",
+            "name": "full_name",
+            "label": "Full Name",
+            "input-type": "text",
+            "required": true,
+            "helper-text": "First [Middle] Last (e.g., John Doe or Mary-Jane O'Brien)",
+            "pattern": "^[A-Za-z][A-Za-z'-]*( [A-Za-z][A-Za-z'-]*){1,4}$",
+            "error-message": "Enter your name with 2 to 5 parts separated by spaces (e.g., John Doe or John A Doe). Hyphens and apostrophes allowed.",
+            "max-chars": 100
+          },
+          {
+            "type": "DatePicker",
+            "name": "date_of_birth",
+            "label": "Date of Birth",
+            "required": true,
+            "helper-text": "Select your birth date"
+          },
+          {
+            "type": "TextInput",
+            "name": "time_of_birth",
+            "label": "Time of Birth",
+            "input-type": "text",
+            "required": true,
+            "helper-text": "Format: HH:MM (e.g., 14:30)",
+            "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+            "error-message": "Enter time as HH:MM in 24-hour format (e.g., 14:30)"
+          },
+          {
+            "type": "TextInput",
+            "name": "place_of_birth",
+            "label": "Place of Birth",
+            "input-type": "text",
+            "required": true,
+            "helper-text": "City, State, Country (e.g., Mumbai, Maharashtra, India)",
+            "pattern": "^[A-Za-z][A-Za-z\\s.'-]{2,59}\\s*,\\s*[A-Za-z][A-Za-z\\s.'-]{2,59}\\s*,\\s*[A-Za-z][A-Za-z\\s.'-]{2,59}$",
+            "error-message": "Enter three parts separated by commas: City, State, Country (e.g., Mumbai, Maharashtra, India)",
+            "max-chars": 200
+          },
+          {
+            "type": "TextInput",
+            "name": "email_address",
+            "label": "Email Address",
+            "input-type": "text",
+            "required": true,
+            "helper-text": "We'll send your consultation summary here",
+            "pattern": "^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+[.][A-Za-z0-9-]+([.][A-Za-z0-9-]+)*$",
+            "error-message": "Enter a valid email (e.g., name@example.com)"
+          },
+          {
+            "type": "OptIn",
+            "name": "consent",
+            "label": "I agree to the Terms & Conditions",
+            "required": true,
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "TERMS_SCREEN"
+              }
+            }
+          },
+          {
+            "type": "Footer",
+            "label": "Submit",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "full_name": "${form.full_name}",
+                "date_of_birth": "${form.date_of_birth}",
+                "time_of_birth": "${form.time_of_birth}",
+                "place_of_birth": "${form.place_of_birth}",
+                "email_address": "${form.email_address}",
+                "consent": "${form.consent}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "TERMS_SCREEN",
+      "title": "Terms & Conditions",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Terms & Conditions"
+          },
+          {
+            "type": "TextBody",
+            "text": "• Your birth details will be used only for astrological consultation\n• Consultations are conducted via WhatsApp\n• Payment required before consultation begins\n• No refunds after consultation starts\n• Consultation fee: ₹500\n\nFull terms: https://clientdomain.com/terms"
+          },
+          {
+            "type": "Footer",
+            "label": "Back to Form",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "DETAILS_SCREEN"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

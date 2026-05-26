@@ -1,0 +1,113 @@
+{
+  "version": "7.2",
+  "screens": [
+    {
+      "id": "DETAILS_SCREEN",
+      "title": "Consultation Details",
+      "terminal": true,
+      "success": true,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Chinmay Astro Consultation"
+          },
+          {
+            "type": "TextBody",
+            "text": "Please provide your birth details for accurate astrological analysis. All fields are mandatory."
+          },
+          {
+            "type": "TextInput",
+            "name": "full_name",
+            "label": "Full Name",
+            "input-type": "text",
+            "required": true,
+            "helper-text": "Enter your complete name as per official documents"
+          },
+          {
+            "type": "DatePicker",
+            "name": "date_of_birth",
+            "label": "Date of Birth",
+            "required": true,
+            "helper-text": "Select your birth date"
+          },
+          {
+            "type": "TextInput",
+            "name": "time_of_birth",
+            "label": "Time of Birth",
+            "input-type": "text",
+            "required": true,
+            "helper-text": "Format: HH:MM (e.g., 14:30)"
+          },
+          {
+            "type": "TextInput",
+            "name": "place_of_birth",
+            "label": "Place of Birth",
+            "input-type": "text",
+            "required": true,
+            "helper-text": "City, State/Province, Country"
+          },
+          {
+            "type": "OptIn",
+            "name": "consent",
+            "label": "I agree to the Terms & Conditions",
+            "required": true,
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "TERMS_SCREEN"
+              }
+            }
+          },
+          {
+            "type": "Footer",
+            "label": "Submit",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "full_name": "${form.full_name}",
+                "date_of_birth": "${form.date_of_birth}",
+                "time_of_birth": "${form.time_of_birth}",
+                "place_of_birth": "${form.place_of_birth}",
+                "consent": "${form.consent}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "TERMS_SCREEN",
+      "title": "Terms & Conditions",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Terms & Conditions"
+          },
+          {
+            "type": "TextBody",
+            "text": "• Your birth details will be used only for astrological consultation\n• Consultations are conducted via WhatsApp\n• Payment required before consultation begins\n• No refunds after consultation starts\n• Consultation fee: ₹500\n\nFull terms: https://clientdomain.com/terms"
+          },
+          {
+            "type": "Footer",
+            "label": "Back to Form",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "DETAILS_SCREEN"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
