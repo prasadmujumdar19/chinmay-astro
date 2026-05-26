@@ -25,7 +25,7 @@
 | GAP-DCP-WF25 | ✅ done | 4 | P1 | WF-25 | GAP-10-FANOUT-P2 (hard) |
 | GAP-DCP-WF45 | ✅ done | 4 | P1 | WF-45 (pseudo only) | GAP-10-FANOUT-P2 (hard) |
 | GAP-2 | ✅ done | 5 | P1 | WF-42, WF-43 | GAP-10-FANOUT-P2 (hard), GAP-3B (soft) |
-| GAP-3C | ⬜ pending | 6 | P1 | WF-23, WF-30, WF-31 | GAP-10-FANOUT-P2 (hard), GAP-7-STAGE1 (soft) |
+| GAP-3C | ✅ done | 6 | P1 | WF-23, WF-30, WF-31, WF-43 | GAP-10-FANOUT-P2 (hard), GAP-7-STAGE1 (soft) |
 | GAP-10-IMAGE-PIN | ⬜ pending | 7 | P1 | — | GAP-10-WF01 (hard), GAP-10-WF01-SMOKE (hard), GAP-10-FANOUT-P1 (hard), GAP-10-FANOUT-P2 (hard), GAP-1 (hard), GAP-3B (hard), GAP-7-STAGE1 (hard), GAP-2 (hard), GAP-3C (hard) |
 
 ## Batch 1 — P0 (WF-01 validator unblock + smoke gate)
@@ -354,11 +354,36 @@ WF-43 is NOT in the Gap-10-affected list (verified vs Decisions §Gap 10), so GA
 
 ## GAP-3C — Distribute Gemini answer pattern to WF-23/30/31
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-26T05:23:00Z
+**Completed:** 2026-05-26T05:38:14Z
 **Priority:** P1 | **Batch:** 6
-**Change type:** Structural (~6 new nodes across 3 workflows)
-**Workflows:** WF-23, WF-30, WF-31
+**Change type:** Structural (~5 new nodes per WF × 3 workflows = 15 new nodes total; WF-43 prompt rewrite + model bump for parity)
+**Workflows:** WF-23, WF-30, WF-31, WF-43
 **Depends on:** GAP-10-FANOUT-P2 (hard), GAP-7-STAGE1 (soft — same-workflow sibling on WF-31)
+
+**Decisions locked (2026-05-26T05:25Z, user-confirmed via AskUserQuestion):**
+- **Suffix injection method:** Bake state-specific intent + email callout INTO the Gemini prompt as a paraphrase instruction (Gemini weaves both naturally into the reply). Lower temperature to **0.3** (was 0.7 on WF-43) to push toward response stability. Trade-off accepted: less deterministic than appending a hardcoded suffix in `Extract Gemini Reply`, but produces conversational plain-English output rather than verbatim cue-text appended robotically.
+- **State-specific intent cues (paraphrased by Gemini, not literal append):**
+  - WF-23 (pre-form): "user has not yet completed our intake form" + email callout `chinmay_astro@gmail.com`
+  - WF-30 (payment_pending): "user has completed the intake form but has not yet paid the ₹500 consultation fee" + email callout
+  - WF-31 (payment_submitted): "user has submitted payment which is now being reviewed by Dr. Chinmay" + email callout (for anything urgent)
+  - WF-43 (consultation_closed): "user has completed their consultation with Dr. Chinmay" + "they can follow up here on WhatsApp or email chinmay_astro@gmail.com for anything else"
+- **Gemini model standard:** Bump from `gemini-2.0-flash-lite` to `gemini-2.5-flash-lite` project-wide. 2.0 deprecated by Google. Live scope: only WF-43 was still on 2.0 (WF-25 already on 2.5); WF-43 bumped + 3 new instances on WF-23/30/31 land on 2.5. CLAUDE.md "Key Credential IDs" table updated 2026-05-26 to reflect standard. Memory `project_gemini_model.md` records the rule.
+
+**Execution outcome:** Single Python transform (`/tmp/claude-scratch/<sess>/gap3c-transform.py`) generated the surgical diff for all 4 WFs in one pass:
+- **WF-23 (VpCER0Vqq3NYJGpI):** 7 → 12 nodes. Inserted `Is General Enquiry?` IF (v2) on `Is Pass-Through Intent?` TRUE branch — TRUE → new Gemini chain (Prepare Gemini Response Prompt jsCode v2 → Gemini General Response HTTP v4.2 → Extract Gemini Reply jsCode v2 → Send Gemini Reply via WF-50 executeWorkflow v1.2); FALSE → existing `Prepare Flow Form` chain (untouched). Backup `archive/backups/VpCER0Vqq3NYJGpI-2026-05-26-05-23.json`.
+- **WF-30 (gGJBY5fJha0Let8I):** 7 → 12 nodes. Same shape as WF-23; FALSE-branch → existing `Prepare Payment Reminder`. Backup `archive/backups/gGJBY5fJha0Let8I-2026-05-26-05-23.json`.
+- **WF-31 (HB8nXudAtk9iXz7C):** 10 → 15 nodes. Same shape on Branch A (intent path); FALSE-branch → existing `Prepare Under Review Message`. Branch B (Slack admin relay) untouched. Backup `archive/backups/HB8nXudAtk9iXz7C-2026-05-26-05-23.json`.
+- **WF-43 (3va0M06kijgyLejf):** 21 nodes (unchanged). Surgical edits only — `Prepare Gemini Response Prompt` jsCode rewritten to include user-stage cue + email-callout intent for paraphrase; `Gemini General Response` URL bumped 2.0 → 2.5; jsonBody temperature 0.7 → 0.3. Backup `archive/backups/3va0M06kijgyLejf-2026-05-26-05-23.json`.
+
+Two PUTs per new-WF: first applied the 5-node insert + connection rewire; second back-patched `retryOnFail: true, maxTries: 3` on the new Gemini HTTP node for parity with WF-43's TD-NEW-016 hardening (caught by sibling parity audit after first PUT). All 4 workflows post-PUT `mcp__n8n__n8n_validate_workflow`: `valid: true`, errorCount: 0. Warnings are pre-existing (typeVersion advisories, IF main[1] onError mistranslation, Code-node error-handling advisory, cachedResultName advisory) — all present project-wide and tracked in prior sprint followups; none introduced by this batch.
+
+**Post-batch sibling parity audit (post-rebuild dependency map, 72 edges):** all 4 Gemini-pair instances confirmed identical on URL (2.5-flash-lite), retry policy (retryOnFail=true, maxTries=3), jsonBody shape (111 chars, object-expression). All 4 Send-via-WF-50 callers use canonical Gap-10 `defineBelow + value: {}` shape. All 4 workflows active. No new strict findings.
+
+**Pseudocode updates (linear renumber per [[feedback_pseudo_linear_numbering]]):** WF-23.pseudo 7 → 10 steps; WF-30.pseudo 8 → 10 steps; WF-31.pseudo 12 → 14 steps (Branch A insert renumbers Branch B); WF-43.pseudo Step 12-13 patched in place (no renumber needed — same node count). Each pseudo gained a `Notes:` bullet under "General-enquiry Gemini branch (2026-05-26 — GAP-3C)" explaining the carve-out for `general_enquiry` only. 28 `.md` AS-IS projections regenerated from live JSON.
+
+**Adjacent findings:** none beyond pre-existing project-wide pattern advisories (already tracked in prior sprint followups).
 
 Copy WF-43's existing `Gemini General Response` HTTP node + `Prepare Gemini Response Prompt` jsCode pair into WF-23, WF-30, WF-31 for `general_enquiry` handling. WF-25 (classifier) stays unchanged — classify-only.
 

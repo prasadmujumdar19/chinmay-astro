@@ -35,8 +35,8 @@ Step 10: Check: intentResult == "rebook_intent"?
 Step 11: Check: intentResult == "feedback_intent"?
   - If YES → call WF-44 (Feedback Recorder) with phoneNumber, userId, messageContent. End.
   - If NO  → go to Step 12
-Step 12: Build Gemini prompt: "You are a helpful assistant for Chinmay's Vedic astrology consultation service on WhatsApp. Answer this question briefly and warmly in 2-3 sentences. If they seem interested in booking, mention they can start fresh by messaging us.\nUser: <messageContent>"
-Step 13: POST to Gemini (gemini-2.0-flash-lite) with temperature=0.7, maxOutputTokens=200, timeout=10s.
+Step 12: Build Gemini prompt instructing a helpful, warm assistant for Chinmay's Vedic astrology consultation service on WhatsApp, with the user-stage cue "user has completed their consultation with Dr. Chinmay" and the email-callout cue "they can follow up here on WhatsApp or email chinmay_astro@gmail.com for anything else". Ask Gemini to weave both naturally into a brief 2-3 sentence reply in plain conversational English (no bullet lists, no robotic phrasing). Append the user's messageContent.
+Step 13: POST to Gemini (gemini-2.5-flash-lite per project standard — see project_gemini_model memory) with temperature=0.3 (low for response stability), maxOutputTokens=200, timeout=10s, retryOnFail=true, maxTries=3.
 Step 14: Extract reply text from candidates[0].content.parts[0].text; fallback = "Thank you for your message! For questions about our Vedic astrology consultation, feel free to ask."
 Step 15: Call WF-50 (per design.md §2.3) with { phoneNumber, messageType: 'text', messageContent: <reply> }.
 Step 16: End.

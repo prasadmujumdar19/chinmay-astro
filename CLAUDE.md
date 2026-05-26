@@ -359,7 +359,7 @@ opted_out →(user messages again)→ WF-26 → consultation_closed
 | Slack admin channel | `C0A5B0ZE81E` (chinmay-admin-commands) |
 | WhatsApp Flow ID | `1408011897720771` |
 | WhatsApp Flow CTA | `"Fill Details"` |
-| Gemini model | `gemini-2.0-flash-lite` |
+| Gemini model | `gemini-2.5-flash-lite` (2.0 deprecated; see `project_gemini_model.md`) |
 
 ## Git Repository
 
