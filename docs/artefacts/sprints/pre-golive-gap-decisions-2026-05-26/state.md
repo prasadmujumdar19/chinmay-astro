@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/reviews/2026-05-25-pre-golive-gap-review/pre-golive-gap-decisions-2026-05-26.md
 **Input hash:** d29b8e6ff081e1d2e5c328c6f6e582322fb97f73b4332bf7c56251cf9aa18ba0
 **Planned at:** 2026-05-26T01:06:46Z
-**Last updated:** 2026-05-26T02:14:39Z
+**Last updated:** 2026-05-26T02:32:58Z
 **Planning complete:** true
 
 **Discover-current-state:** Targeted sample ran 2026-05-26T01:14:00Z (tunnel reopened mid-planning). `mcp__n8n__n8n_validate_workflow` on WF-01 (`hYGNM97sXvdo1WmI`) returned 11 errors — exact match to Decisions research dump: 4 Class A "Invalid mappingMode: passthrough" on `Call WF-02 Rule Router`, `Route Opted-Out to WF-26`, `Send Non-Text Deflection via WF-50`, `Call WF-51 (Admin Anomaly Alert)`; plus 7 Class B "Return value must be an array of objects" on `Layer 1: Country Filter`, `Silent Reject (Country)`, `Silent Reject (Blacklist)`, `Prepare User Data`, `Layer 2: Non-Text Message Filter`, `Layer 3 : Blacklisted Users Filter`, `Build WF-01 Envelope`. Regression is active and unresolved — no items obsolete. Other 23 affected workflows are NOT re-validated at planning time (cheap to verify per-workflow inside the Batch 2/3 execution loop as the recipe is applied; WF-01 alone is sufficient to confirm the systemic finding). Other build items (GAP-1/2/3B/3C/7-STAGE1) are fresh feature additions with no plausible "already done" state to detect.
@@ -17,7 +17,7 @@
 |----|--------|-------|-----|-----------|------------|
 | GAP-10-WF01 | ✅ done | 1 | P0 | WF-01 | — |
 | GAP-10-WF01-SMOKE | ✅ done | 1 | P0 | WF-01 | GAP-10-WF01 (hard) |
-| GAP-10-FANOUT-P1 | ⬜ pending | 2 | P0 | WF-02, WF-10, WF-11, WF-00, WF-21, WF-22, WF-26, WF-32, WF-33, WF-50, WF-51, WF-60 | GAP-10-WF01-SMOKE (hard) |
+| GAP-10-FANOUT-P1 | ✅ done | 2 | P0 | WF-02, WF-10, WF-11, WF-00, WF-21, WF-22, WF-26, WF-32, WF-33, WF-50, WF-51, WF-60 | GAP-10-WF01-SMOKE (hard) |
 | GAP-10-FANOUT-P2 | ⬜ pending | 3 | P0 | WF-23, WF-25, WF-30, WF-31, WF-34, WF-42, WF-46 + 4 unidentified | GAP-10-FANOUT-P1 (hard) |
 | GAP-1 | ⬜ pending | 4 | P1 | WF-01 | GAP-10-WF01 (hard) |
 | GAP-3B | ⬜ pending | 4 | P1 | WF-22, WF-32, WF-42 | GAP-10-FANOUT-P2 (hard) |
@@ -115,7 +115,9 @@ Simulate one inbound WhatsApp message to test phone `+61466927921` (currently `p
 
 ## GAP-10-FANOUT-P1 — Apply validator fix to 12 critical-path workflows
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-26T02:14:39Z
+**Completed:** 2026-05-26T02:32:58Z
 **Priority:** P0 | **Batch:** 2
 **Change type:** Batch Surgical (mechanical per-workflow loop, 12 workflows)
 **Workflows:** WF-02, WF-10, WF-11, WF-00, WF-21, WF-22, WF-26, WF-32, WF-33, WF-50, WF-51, WF-60
@@ -133,6 +135,20 @@ Per-workflow loop:
 Order is execution order (`WF-02` next on critical path after WF-01, then WF-10/11 for admin commands, then WF-00 entry, then WF-21/22 onboarding, WF-26 re-engagement, WF-32/33 payment, WF-50/51 senders, WF-60 logging).
 
 If ANY workflow in Pass 1 fails to validate after the fix → STOP. Do NOT auto-revert; investigate. The recipe was proven on WF-01 so a Pass 1 failure indicates either (a) a per-workflow quirk we missed or (b) a Class B Code node where the transform was wrong.
+
+**Execution outcome:** Reusable `fix-workflow.sh` script built around `wrap-returns.py` (top-level `return { ... };` → `return [{ json: { ... } }];` with bracket-balance walker handling strings/comments/template-literals; idempotent — leaves already-wrapped returns untouched). Per-workflow loop: backup → fetch → jq Class A flip (passthrough → defineBelow+value:null) + Code-return wrap when needed → PUT → next.
+
+Totals across 12 workflows:
+- Class A flips: **40 executeWorkflow nodes** (WF-02: 10, WF-10: 10, WF-11: 4, WF-00: 2, WF-21: 1, WF-22: 3, WF-26: 2, WF-32: 3, WF-33: 2, WF-50: 2, WF-51: 1, WF-60: 0)
+- Class B Code-return wraps: **6 Code nodes** (WF-00: `Parse WhatsApp Message`; WF-50: `Return Status`, `Process Result`, `Prepare Interactive Message`, `Prepare Template Message`; WF-60: `Done`)
+- 12 backups stored under `archive/backups/` with `2026-05-26-12-2[69]` timestamps
+- All 12 PUTs returned HTTP 200
+
+Post-PUT `mcp__n8n__n8n_validate_workflow` (validateConnections+Expressions disabled):
+- **11/12 valid: true, errorCount=0**: WF-02, WF-10, WF-11, WF-00, WF-21, WF-22, WF-26, WF-32, WF-33, WF-50, WF-60
+- **WF-51 valid: false, errorCount=1**: `Post to Slack` Slack node has `operation: null` + `resource: null`. **Confirmed pre-existing latent state** — same null shape in backup pre-fix. Our Gap 10 recipe didn't touch the Slack node. Classification: **adjacent** finding per Step 4 strict-vs-adjacent rubric. Logged to `followups.md`; does NOT block batch advancement.
+
+Exports: all 12 workflows saved to `workflows/*.json`; secrets scan clean (zero hits on AIzaSy/sk-/xoxb-/AKIA patterns).
 
 ## GAP-10-FANOUT-P2 — Apply validator fix to 11 P2/P3 + unidentified workflows
 
