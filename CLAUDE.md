@@ -314,27 +314,36 @@ All workflows follow the WF-XX naming convention. The `workflow-registry.md` is 
 
 **Critical path:** WF-00 → WF-01 → WF-02 → state-specific WF → WF-50/WF-51
 
-**Shared sub-workflows (called by many others):**
-- **WF-25** (Intent Classifier): Gemini 2.0 Flash Lite, temp=0. All free-form text states must pass through this before acting. ID: `eTV1lUcYrXBg2q2T`
-- **WF-50** (Send WhatsApp): All outbound WhatsApp messages. Calls WF-60 to log. ID: `BUVun38WEKb12zg9`
-- **WF-51** (Send Slack Message): All outbound Slack posts. ID: `wlZRK0YxnhP0b2RL`
+**Shared sub-workflows.** Several workflows act as shared services called by many others (intent classifier, outbound WhatsApp sender, outbound Slack sender, message logger, channel manager). For the current names, IDs, and per-workflow status see `docs/workflow-registry.md` — do not duplicate that list here.
 
 ## Design Rules — Do Not Deviate
 
-1. **No DB write before form submission.** First DB write = WF-22 (form callback). WF-21 sends welcome + form with no DB write.
-2. **Slack channel created at form submission (WF-22), not at "Payment Completed".** WF-22 calls WF-52 immediately after the DB write and stores `slack_channel_id`. WF-32 reads the existing channel ID from DB — it does NOT call WF-52. Do not revert this.
-3. **Admin sends `APPROVE PAYMENT <phone>` in the user's consult channel.** Not in `chinmay-admin-commands`. WF-10 captures all workspace events so commands work from any channel.
-3a. **Channel scope of admin commands (DR-13, added 2026-05-17):**
-    - **User-targeted commands** (carry a `<phone>` argument: APPROVE PAYMENT, REJECT, CLOSE CHAT CONSULT, BLOCK, UNBLOCK) are accepted ONLY in the user's `consult-{phone}` channel. WF-10 rejects them when typed elsewhere with a polite reminder.
+These are business and architectural invariants. Where a rule references a workflow, the specific WF-XX number is intentionally omitted — see `docs/workflow-registry.md` for the current mapping, and `docs/pseudocode/WF-XX.{md,pseudo}` for the canonical AS-IS / design view of each workflow.
+
+1. **Pre-form writes are restricted to `pending_users`.** The first write to the `chinmay_astro.users` table happens on the form-submission callback. Any inbound message received before the form is submitted may only persist into `chinmay_astro.pending_users` (contact capture).
+
+2. **The consultation Slack channel is created at form submission (the consent boundary), not at payment confirmation.** The channel ID is persisted on the user record and reused thereafter. The payment-confirmation flow reads the existing channel from DB; it does not create one.
+
+3. **Admin payment commands are issued in the user's per-consultation channel.** The admin command listener captures workspace-wide events and routes by command type, so commands work from any channel — but the recommended (and rule-enforced for user-targeted commands) surface is the user's `consult-{phone}` channel.
+
+3a. **Channel scope of admin commands (added 2026-05-17):**
+    - **User-targeted commands** (those carrying a `<phone>` argument: APPROVE PAYMENT, REJECT, CLOSE CHAT CONSULT, BLOCK, UNBLOCK) are accepted ONLY in the user's `consult-{phone}` channel. The listener rejects them elsewhere with a polite reminder.
     - **Admin-wide commands** (no phone argument: LIST, STATS, HELP) work in ANY channel.
-    - WF-11 keyword parser accepts aliases: `APPROVE` ≡ `APPROVE PAYMENT`; `REJECT` ≡ `REJECT PAYMENT`; `CLOSE` ≡ `CLOSE CONSULT` ≡ `CLOSE CONSULTATION` ≡ `CLOSE CHAT CONSULT`.
-4. **`opted_out` ≠ `blocked`.** STOP keyword → `opted_out` (user-initiated, re-engages automatically). Admin BLOCK → `blocked` (admin/system action, requires UNBLOCK). WF-01 routes them differently.
-5. **WF-20 intercepts keywords (STOP/HELP/REBOOK) before the intent classifier runs.** Exact match, no LLM.
-6. **Every state accepting free-form text must run WF-25 first.** No state should blindly process user text without intent classification.
-7. **First message = combined response.** Policy URL + WhatsApp Flow form in ONE message (no YES/NO consent step). Submitting the form = implicit consent.
-8. **Payment is manual UPI.** No Razorpay (Phase 2). UPI: +91-9653240263 (Chinmay Mujumdar), ₹500.
-9. **CloudFlared runs as systemd on the host, not in Docker.** Running it in Docker causes `localhost` inside the container to not resolve to the host — breaking n8n connectivity.
-10. **Consultation channels are intentionally never archived.** The same channel is reused when a user rebooks (WF-45 reads `slack_channel_id` from DB). Do not add archival to the close flow (WF-42). Do not call WF-52 from WF-45.
+    - The keyword parser accepts standard aliases: `APPROVE` ≡ `APPROVE PAYMENT`; `REJECT` ≡ `REJECT PAYMENT`; `CLOSE` ≡ `CLOSE CONSULT` ≡ `CLOSE CONSULTATION` ≡ `CLOSE CHAT CONSULT`.
+
+4. **`opted_out` ≠ `blocked`.** STOP keyword → `opted_out` (user-initiated; user re-engages automatically by sending any message). Admin BLOCK → `blocked` (admin/system action; requires explicit admin UNBLOCK). The router treats these as distinct states with different re-entry semantics.
+
+5. **STOP, HELP, REBOOK are exact-match keyword intercepts that run before the intent classifier.** No LLM is invoked for these keywords.
+
+6. **Every state that accepts free-form user text must run the intent classifier first.** No state may branch on the raw text without classifier output.
+
+7. **First-message response is combined: policy URL + WhatsApp Flow form in ONE message.** There is no YES/NO consent step. Submitting the form is implicit consent.
+
+8. **Payment is manual UPI in Phase 1; Razorpay is deferred to Phase 2.** The active UPI handle, amount, and beneficiary are configured in the payment workflow — do not duplicate them in code or docs outside that workflow.
+
+9. **`cloudflared` runs as a host systemd service, not inside Docker.** Running it in Docker breaks `localhost` resolution from other containers to the host, which breaks n8n's outbound connectivity to the VPS's other services.
+
+10. **Consultation Slack channels are never archived; they are reused across rebookings.** The close-consultation flow must not archive. The rebook flow must read the existing channel from DB rather than creating a new one.
 
 ## User State Machine
 
@@ -346,9 +355,10 @@ All workflows follow the WF-XX naming convention. The `workflow-registry.md` is 
 any state →(admin BLOCK)→ blocked
 payment_submitted →(admin REJECT)→ payment_pending
 any state →(user sends STOP)→ opted_out
-opted_out →(user messages again)→ WF-26 → consultation_closed
-           [WF-26 lifts status + sends personalized welcome via WF-50 + re-routes through WF-02 same turn]
+opted_out →(user messages again)→ status lifted + personalized welcome sent + re-routed through the inbound entry flow, all in the same turn → consultation_closed
 ```
+
+For the workflow-level implementation of each transition, see `docs/workflow-registry.md` and the per-workflow `docs/pseudocode/WF-XX.{md,pseudo}` files.
 
 ## Key Credential IDs (n8n)
 
