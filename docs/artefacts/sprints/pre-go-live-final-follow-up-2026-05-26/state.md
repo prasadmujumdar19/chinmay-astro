@@ -1,9 +1,11 @@
 # Sprint: pre-go-live-final-follow-up-2026-05-26
 
 **Input source:** docs/artefacts/sprints/pre-go-live-final-follow-up-2026-05-26/tasks.md
-**Input hash:** 1e57353d91e9ba176f6b424ff0ffaa0a06666cde404669d15e5ee65c944ee66e
+**Input hash:** bbe96d3983495229756fb114f40450993c7810b826983cfec4f54110d52d29ac
+**Original input hash:** 1e57353d91e9ba176f6b424ff0ffaa0a06666cde404669d15e5ee65c944ee66e (sprint-plan time)
+**Hash-change reason:** mid-sprint scope addition 2026-05-27T00:54:52Z — appended TD-PGF-12/13/14 (Batch 2.5 P0 hot-fixes) to tasks.md "Mid-sprint scope additions" section. State.md updated in lockstep. Intentional re-baseline, not source drift.
 **Planned at:** 2026-05-26T20:58:38Z
-**Last updated:** 2026-05-26T23:46:56Z
+**Last updated:** 2026-05-27T00:54:52Z
 **Planning complete:** true
 
 **Discover-current-state:** skipped — source tasks.md embeds inline live-verification timestamps for every item (TD-PGF-02 re-verified 2026-05-26T10:25Z; TD-PGF-04 obsolete-on-verify 2026-05-26T11:20Z; TD-PGF-05 5-dim audit 2026-05-26T11:35Z; TD-PGF-08 corpus-wide SELECT audit 2026-05-26T11:55Z). Re-running would duplicate work captured <24 hrs ago.
@@ -26,7 +28,10 @@
 | TD-PGF-08 | ⬜ pending | 5 | P3 | WF-45 | — |
 | TD-PGF-09 | ⬜ pending | 3 | P1 | WF-25, WF-23, WF-30, WF-31, WF-43, WF-44 | TD-PGF-05 (soft) |
 | TD-PGF-10 | ⚪ obsolete | — | — | — | — |
-| TD-PGF-11 | ⬜ pending | 6 | EXIT | — | TD-PGF-01A (hard), TD-PGF-01B (hard), TD-PGF-02 (hard), TD-PGF-03 (hard), TD-PGF-05 (hard), TD-PGF-07 (hard), TD-PGF-08 (hard), TD-PGF-09 (hard) |
+| TD-PGF-12 | ⬜ pending | 2.5 | P0 | — (audit only) | TD-PGF-01B (soft) |
+| TD-PGF-13 | ⬜ pending | 2.5 | P0 | WF-01, +TBD per TD-PGF-12 | TD-PGF-12 (hard) |
+| TD-PGF-14 | ⬜ pending | 2.5 | P0 | WF-21 | — |
+| TD-PGF-11 | ⬜ pending | 6 | EXIT | — | TD-PGF-01A (hard), TD-PGF-01B (hard), TD-PGF-02 (hard), TD-PGF-03 (hard), TD-PGF-05 (hard), TD-PGF-07 (hard), TD-PGF-08 (hard), TD-PGF-09 (hard), TD-PGF-12 (hard), TD-PGF-13 (hard), TD-PGF-14 (hard) |
 
 ## Batch 1 — P0 investigation
 
@@ -189,7 +194,98 @@ Re-bracketed token estimate ~25K reflects this scope.
 - **Sprint-state flip:** after Step 5 verifies, change TD-PGF-01B status `🔵 in-progress` → `✅ done`, record `Completed`, `Actual tokens`, `Actual effort`, `Estimate delta`. Then proceed to Batch 3 (TD-PGF-05 + TD-PGF-09 by-workflow execution on WF-25/23/30/44/31/43/50/32).
 
 **Required from user before Step 4:**
-- Publish Flow v2 in Meta Flow Builder UI; obtain the new published Flow ID; share it with the next session.
+- ✅ Done 2026-05-27: User published cloned v2 Flow in Meta → new published Flow ID = `2260297164474475` (the original `1408011897720771` v1 Flow ID was NOT updated; v1 Flow still serves the original baseline content; v2 content lives at the new ID).
+
+### Step 5 verify — blocked on TD-PGF-13 + TD-PGF-14 (added 2026-05-27T00:54:52Z)
+
+End-to-end verify attempted 2026-05-27T00:28Z surfaced a P0 onboarding blocker independent of TD-PGF-01B's own code changes:
+
+**Symptom:** form submission from test phone `61466927921` reached WF-00 successfully (execution 2388) but errored in WF-01 (execution 2390) at `Call WF-02 Rule Router` with `WF-02 contract: messageContent required (string or empty string), got: null`. No row reached `chinmay_astro.users`.
+
+**Root cause:** commit `a21eb60` (2026-05-25 02:57, data-contract-discipline Wave 1) introduced `Build WF-01 Envelope` Code node that does:
+```javascript
+const messageContent   = d.messageContent   || null;  // line 9
+const messageContentUpper = d.messageContentUpper || null;  // line 10
+```
+JavaScript `||` treats `""` as falsy → emits `null` where upstream sent `""` (WF-00's correct emission for nfm_reply, since form data lives in `rawMessage.interactive.nfm_reply.response_json`). WF-02's entry guard rejects `null` but would have accepted `""`.
+
+**Why undetected in CI/regression:** last successful form submission was 2026-05-24T08:01 (WF-22 #2193) — landed BEFORE commit `a21eb60`. Nobody submitted a form between 05-24 08:01 and 05-27 00:28, so this regression went uncaught for ~46 hrs.
+
+**Side observations validated during this verify attempt:**
+- Form fields (full_name, place_of_birth) accepted invalid inputs ("Jssj" — 1 token; "Skek" — 1 word). Form payload had no `email_address` field. This is because the published v2 Flow (ID `2260297164474475`) is bound to a different Flow ID than WF-21 references (`1408011897720771`). WF-21 served the original v1 baseline content (no validation, no email) for this test. Resolution = TD-PGF-14 (WF-21 Flow ID swap).
+- Meta WhatsApp Flow "publish" creates a NEW Flow ID for the cloned Flow — does NOT update the original Flow ID. Methodology assumption corrected; document in followups.md.
+
+**Step 5 final-verify resumes after TD-PGF-13 + TD-PGF-14 land.** Either incorporate into TD-PGF-11 final smoke gate, or run a focused re-verify of this exact happy path. Recommend folding into TD-PGF-11 (avoid duplicate ceremony).
+
+## TD-PGF-12 — `||` vs `??` regression-pattern audit across all active workflows
+
+**Status:** ⬜ pending
+**Priority:** P0 | **Batch:** 2.5
+**Change type:** Documentation (audit only — no JSON mutation)
+**Workflows:** — (audit covers all active workflows)
+**Depends on:** TD-PGF-01B (soft — must understand the failure before deciding remediation scope)
+**Size:** XS
+**Estimated tokens:** ~15K
+**Estimated effort:** ~30–45 min
+
+Audit every active workflow's Code nodes (and Set v3.4 contract-emit assignments) for the `||` fallback pattern applied to fields where `""` is a semantically valid value. The chinmay-astro Build WF-01 Envelope regression (commit `a21eb60`, data-contract Wave 1) used `const X = d.X || null` which silently converts empty strings to null on transport boundaries. Any other workflow that adopted the same pattern during the data-contract sprints is at risk of the same silent regression.
+
+Audit method:
+1. Fetch all active workflows to `/tmp/claude-scratch/` (script per CLAUDE.md "Bulk n8n Operations").
+2. For each Code node `jsCode`, grep for `||\s*null` patterns whose left-hand side is a `messageContent`, `messageContentUpper`, `body`, `text`, `messageText`, `content`, or any field plausibly receiving `""`.
+3. For each Set v3.4 node, inspect assignments where the value-expression uses `{{ ... || ... }}` pattern.
+4. Classify each hit: (a) safe (field never `""` in practice — e.g., `phoneNumber` is always non-empty), (b) bug (field plausibly `""` — must convert to `??`), (c) unsure (needs runtime data).
+5. Output: a list of (workflow, node, line, classification, fix-or-skip) → drives TD-PGF-13 scope.
+
+Deliverable = expanded list of workflows requiring the `||` → `??` fix in TD-PGF-13.
+
+## TD-PGF-13 — Apply `||` → `??` fix to WF-01 + any other workflows surfaced by TD-PGF-12
+
+**Status:** ⬜ pending
+**Priority:** P0 | **Batch:** 2.5
+**Change type:** Surgical (per workflow) OR Batch Surgical (if many)
+**Workflows:** WF-01 (`hYGNM97sXvdo1WmI`) — confirmed; additional workflows TBD per TD-PGF-12 audit
+**n8n IDs:** WF-01 = `hYGNM97sXvdo1WmI`; others TBD
+**Depends on:** TD-PGF-12 (hard)
+**Size:** XS–S (depends on count)
+**Estimated tokens:** ~15–30K
+**Estimated effort:** ~30–90 min
+
+Minimum scope (confirmed bug):
+- WF-01 `Build WF-01 Envelope` jsCode: lines emitting `messageContent` + `messageContentUpper` → change `||` to `??`.
+- WF-01 `Build WF-01 Envelope (Opted-Out)` jsCode: same fix per a21eb60 commit modifying both variants.
+
+Expanded scope = whatever TD-PGF-12 audit surfaces.
+
+Verify: re-test the failing scenario — send WhatsApp message → fill form → confirm WF-22 INSERT lands → row has all fields including `email_address` populated.
+
+## TD-PGF-14 — WF-21 Flow ID update (1408011897720771 → 2260297164474475)
+
+**Status:** ⬜ pending
+**Priority:** P0 | **Batch:** 2.5
+**Change type:** Surgical (single field on a single node)
+**Workflows:** WF-21
+**n8n IDs:** WF-21 = `zM8WbxSdt9nXRoLZ`
+**Depends on:** —
+**Size:** XXS
+**Estimated tokens:** ~5K
+**Estimated effort:** ~15 min
+
+In WF-21 (`New User Welcome + Form`), the WhatsApp Flow CTA interactive message references Flow ID `1408011897720771` (the original v1 Flow). User published the cloned v2 Flow (with validation + email_address field) as a NEW Flow with ID `2260297164474475`. WF-21 needs to swap the referenced Flow ID to the new published Flow so onboarding triggers the v2 form with validation, not the v1 baseline.
+
+Locate the field via grep: `jq '.nodes[] | select(.parameters.bodyParameters? // .parameters.body? // .parameters.body) | ...' workflows/zM8WbxSdt9nXRoLZ.json` for `1408011897720771` reference. Likely in a Set or HTTP node constructing the interactive payload.
+
+Verify: trigger fresh onboarding (new user phone or wiped pending_users) → confirm form opens with email_address field + validation prompts on bad input.
+
+After TD-PGF-13 + TD-PGF-14 both land, TD-PGF-01B Step 5 verify is unblocked (or absorbed into TD-PGF-11 smoke gate).
+
+## Batch 2.5 — P0 unplanned hot-fixes (added 2026-05-27T00:54:52Z)
+
+- **Items:** 3 (TD-PGF-12 audit, TD-PGF-13 fix-execution, TD-PGF-14 Flow ID swap)
+- **Description:** Surfaced during TD-PGF-01B Step 5 verify attempt; blocks all onboarding form submissions. TD-PGF-12 runs FIRST (audits scope of TD-PGF-13). TD-PGF-13 + TD-PGF-14 can run in parallel after TD-PGF-12 completes. All P0 — must close before any P1 work (Batch 3) starts.
+- **Estimated size:** S total (XS + S + XXS)
+- **Estimated tokens:** ~35–50K depending on TD-PGF-12 audit findings
+- **Execution model:** TD-PGF-12 sequentially first → TD-PGF-13 (driven by 12's output) + TD-PGF-14 (independent) in parallel inline
 
 ## TD-PGF-02 — WF-00 `nfm_reply` parse path missing switch case
 

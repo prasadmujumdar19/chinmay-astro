@@ -578,3 +578,53 @@ WF-00 (TD-PGF-02), WF-10 (TD-PGF-07), WF-11 (TD-PGF-03), WF-22 (TD-PGF-01b condi
 **Pre-requisites:** All P0 + P1 + in-sprint P3 items above must be landed and individually verified before invoking the smoke.
 
 **Skill:** `n8n-whatsapp-methodology:smoke-test`. Use `monitor-test-run` for live observation.
+
+---
+
+## Mid-sprint scope additions (added 2026-05-27T00:54:52Z during TD-PGF-01B Step 5 verify)
+
+During end-to-end verify of TD-PGF-01B, a P0 onboarding blocker was discovered (independent of TD-PGF-01B's own code changes) plus the discovery that Meta Flow publish-of-clone creates a new Flow ID. Three new items added to a new **Batch 2.5** between existing Batch 2 (P0) and Batch 3 (P1). All P0 — must close before any P1 work begins. TD-PGF-11's dependency list updated to include 12/13/14.
+
+### TD-PGF-12 — `||` vs `??` regression-pattern audit across all active workflows
+
+**Priority:** P0 — Batch 2.5
+
+**Source:** data-contract-discipline Wave 1 commit `a21eb60` (2026-05-25T02:57Z) introduced `Build WF-01 Envelope` Code node using `const X = d.X || null` pattern. JavaScript `||` treats `""` as falsy → drops empty strings to `null`. Caused WF-01 → WF-02 contract violation on every nfm_reply (form) submission since the commit. Last successful form submission was 2026-05-24T08:01Z (before the commit) — bug went uncaught for ~46 hrs because no form submissions in that window.
+
+**Scope:** AUDIT ONLY — no JSON mutation. Inspect every active workflow's Code nodes (and Set v3.4 contract-emit assignments) for the `||` fallback pattern applied to fields where `""` is a semantically valid value (`messageContent`, `messageContentUpper`, `body`, `text`, `messageText`, `content`, similar). Output = expanded list of workflows requiring `||` → `??` fix in TD-PGF-13.
+
+**Estimated effort:** ~30–45 min (XS).
+
+**Pre-requisite:** must run FIRST in Batch 2.5 — defines TD-PGF-13 scope.
+
+### TD-PGF-13 — Apply `||` → `??` fix to WF-01 + any workflows surfaced by TD-PGF-12
+
+**Priority:** P0 — Batch 2.5
+
+**Minimum confirmed scope:** WF-01 (`hYGNM97sXvdo1WmI`) — `Build WF-01 Envelope` jsCode lines 9–10 (`messageContent` + `messageContentUpper`); same fix in `Build WF-01 Envelope (Opted-Out)` per commit `a21eb60`. Use `??` (nullish coalescing) which preserves `""` and only falls back on `null`/`undefined`.
+
+**Expanded scope:** whatever TD-PGF-12 audit surfaces in other workflows.
+
+**Verify:** retest form submission end-to-end — phone wipe → message bot → fill form → WF-22 INSERT lands → row has all 6 fields including `email_address` populated.
+
+**Estimated effort:** ~30–90 min (XS–S, depends on count).
+
+### TD-PGF-14 — WF-21 Flow ID update (1408011897720771 → 2260297164474475)
+
+**Priority:** P0 — Batch 2.5
+
+**Source:** Meta WhatsApp Flow "publish" of a cloned Flow creates a NEW Flow ID — does NOT update the original Flow's ID. User cloned the v1 Flow as v2, pasted v2 JSON, published — Meta assigned new ID `2260297164474475`. The original v1 Flow (`1408011897720771`) remained unchanged. WF-21 still references the original Flow ID → users opening the form see v1 baseline content (no validation, no email_address field).
+
+**Scope:** in WF-21 (n8n ID `zM8WbxSdt9nXRoLZ`), locate the WhatsApp interactive payload constructor that references Flow ID `1408011897720771`; swap to `2260297164474475`.
+
+**Verify:** trigger fresh onboarding (new user phone or wiped pending_users) → confirm form opens with email_address field + validation prompts on bad input. Folds naturally into TD-PGF-11 smoke gate.
+
+**Alternative path (not chosen, documented for reference):** republish v2 content INTO the original v1 Flow in Meta — preserves Flow ID, but requires re-publish ceremony in Meta UI. WF-21 swap (TD-PGF-14) is the simpler path.
+
+**Estimated effort:** ~15 min (XXS).
+
+### Methodology learnings (logged in followups.md)
+
+1. Meta Flow publish-of-clone creates new Flow ID (preserve original by editing-in-place instead).
+2. `||` vs `??` empty-string regression class — audit all data-contract envelope code.
+

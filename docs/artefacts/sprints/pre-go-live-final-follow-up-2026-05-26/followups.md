@@ -2,6 +2,19 @@
 
 ## [2026-05-26] — TD-PGF-01B build (Meta Flow validator surprise)
 
+- **Meta Flow "publish" of a cloned Flow creates a NEW Flow ID — does NOT update the original Flow's ID** (live-verified 2026-05-27):
+  - User cloned the original v1 Flow as "Collect Personal Details v2", pasted v2 JSON, then published. Meta assigned a NEW Flow ID `2260297164474475` to the published v2 — the original Flow ID `1408011897720771` remained on the original v1 Flow (unchanged).
+  - Onboarding workflows (WF-21) still referenced the original v1 Flow ID, so users opening the form received the original v1 baseline content (no validation, no email_address field) instead of v2.
+  - **Methodology lesson:** when working with Meta Flows, "publishing a cloned Flow" creates a new Flow ID; "publishing an edit on the original Flow" keeps the same ID. To preserve original Flow ID, paste new content INTO the original Flow then publish — do not paste into a cloned Flow. Document this as a pre-requisite check in any future WhatsApp Flow cutover plan.
+  - **Workaround applied (deferred to sprint TD-PGF-14):** update WF-21's referenced Flow ID from `1408011897720771` → `2260297164474475`. Alternative = republish v2 content into the original v1 Flow (preserves Flow ID, requires re-publish ceremony in Meta).
+
+- **`||` vs `??` in n8n Code nodes — empty-string drop regression (introduced by data-contract-discipline Wave 1, commit `a21eb60`)** (live-verified 2026-05-27):
+  - WF-01 `Build WF-01 Envelope` jsCode uses `const messageContent = d.messageContent || null;` (similar for `messageContentUpper`). JavaScript `||` treats `""` as falsy and emits `null` instead of preserving the empty string.
+  - For nfm_reply (WhatsApp Flow form submission) messages, WF-00 correctly emits `messageContent: ""` (form data lives in `rawMessage.interactive.nfm_reply.response_json`, not in a text body). WF-01's envelope then drops it to `null`. WF-02's entry guard rejects `null` (correctly — contract says "string or empty string") but would accept `""`.
+  - Last successful form submission: 2026-05-24T08:01 (WF-22 #2193, BEFORE the data-contract commit). Bug went uncaught for ~46 hrs because no form submissions occurred in that window.
+  - **Methodology lesson (project-agnostic):** when authoring data-contract envelope/passthrough Code nodes, use `??` (nullish coalescing) instead of `||` for any field where `""` is a semantically valid value (e.g., message bodies, content fields, optional text). Same lesson applies to Set v3.4 assignment expressions where the source field might be `""`.
+  - **Audit recommended:** any Code node in any active workflow that adopted the `||` envelope pattern during data-contract sprints. This is sprint item TD-PGF-12.
+
 - **Meta Flow `helper-text` hard limit: 80 characters or less** (live-verified 2026-05-26):
   - Initial widened full_name helper-text was 84 chars (`"First [Middle] Last (e.g., John Doe, Mary-Jane O'Brien, Maria Jose Rodriguez Garcia)"`); Meta Flow Builder rejected with explicit error: "TextInput 'full_name' helper-text should be 80 characters or less to avoid truncation on different screen sizes."
   - Trimmed to 57 chars: `"First [Middle] Last (e.g., John Doe or Mary-Jane O'Brien)"`.
