@@ -5,7 +5,7 @@
 **Original input hash:** 1e57353d91e9ba176f6b424ff0ffaa0a06666cde404669d15e5ee65c944ee66e (sprint-plan time)
 **Hash-change reason:** mid-sprint scope addition 2026-05-27T00:54:52Z — appended TD-PGF-12/13/14 (Batch 2.5 P0 hot-fixes) to tasks.md "Mid-sprint scope additions" section. State.md updated in lockstep. Intentional re-baseline, not source drift.
 **Planned at:** 2026-05-26T20:58:38Z
-**Last updated:** 2026-05-27T04:15:00Z (WF-25 PUT landed; Batch 3 partial — 1 of 8 workflows done)
+**Last updated:** 2026-05-27T04:45:08Z (Batch 3 COMPLETE — all 8 workflow PUTs landed: WF-25 + WF-23 + WF-30 + WF-44 + WF-31 + WF-43 + WF-40 + WF-50 + WF-32; TD-PGF-05 + TD-PGF-09 closed)
 **Planning complete:** true
 
 **Discover-current-state:** skipped — source tasks.md embeds inline live-verification timestamps for every item (TD-PGF-02 re-verified 2026-05-26T10:25Z; TD-PGF-04 obsolete-on-verify 2026-05-26T11:20Z; TD-PGF-05 5-dim audit 2026-05-26T11:35Z; TD-PGF-08 corpus-wide SELECT audit 2026-05-26T11:55Z). Re-running would duplicate work captured <24 hrs ago.
@@ -29,11 +29,11 @@
 | TD-PGF-02 | ⬜ pending | 4 | P1 | WF-00 | — |
 | TD-PGF-03 | ⬜ pending | 4 | P1 | WF-11 | — |
 | TD-PGF-04 | ⚪ obsolete | — | — | WF-60 | — |
-| TD-PGF-05 | ⬜ pending | 3 | P1 | WF-23, WF-30, WF-44, WF-50, WF-32 | TD-PGF-09 (soft) |
+| TD-PGF-05 | ✅ done | 3 | P1 | WF-23, WF-30, WF-44, WF-31, WF-43, WF-40, WF-50, WF-32 | TD-PGF-09 (soft) |
 | TD-PGF-06 | ⚪ obsolete | — | — | WF-23, WF-30, WF-44 | TD-PGF-05 (subsumed) |
 | TD-PGF-07 | ⬜ pending | 5 | P3 | WF-10 | — |
 | TD-PGF-08 | ⬜ pending | 5 | P3 | WF-45 | — |
-| TD-PGF-09 | ⬜ pending | 3 | P1 | WF-25, WF-23, WF-30, WF-31, WF-43 | TD-PGF-05 (soft) |
+| TD-PGF-09 | ✅ done | 3 | P1 | WF-25, WF-23, WF-30, WF-31, WF-43 | TD-PGF-05 (soft) |
 | TD-PGF-10 | ⚪ obsolete | — | — | — | — |
 | TD-PGF-12 | ✅ done | 2.5 | P0 | — (audit only) | TD-PGF-01B (soft) |
 | TD-PGF-13 | ✅ done | 2.5 | P0 | WF-01, WF-21, WF-50 | TD-PGF-12 (hard) |
@@ -421,8 +421,9 @@ Verify: re-fetch → grep `message:` zero hits, `messageText:` 3+ hits → trigg
 
 ## TD-PGF-05 — Drift items audit + remediate unclosed items
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P1 | **Batch:** 3
+**Completed:** 2026-05-27T04:45:08Z (8 workflow PUTs across Batch 3: WF-23, WF-30, WF-44, WF-31, WF-43, WF-40, WF-50, WF-32 — envelope add-ons + dead-branch cleanup + WF-50 fallback tighten + WF-32 phoneNumber read)
 **Change type:** Structural (5 workflows)
 **Workflows:** WF-23, WF-30, WF-44, WF-50, WF-32
 **n8n IDs:** `VpCER0Vqq3NYJGpI` (WF-23), `gGJBY5fJha0Let8I` (WF-30), `Du2CJ3OTohRFZYoA` (WF-44), `BUVun38WEKb12zg9` (WF-50), `emUOLWVZiNVxcOe3` (WF-32)
@@ -490,8 +491,9 @@ Verify: re-fetch → grep `Load User Record` zero hits → trigger REBOOK from `
 
 ## TD-PGF-09 — WF-25 Gemini-failure graceful UX (explicit halt + user-and-admin notification)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P1 | **Batch:** 3
+**Completed:** 2026-05-27T04:45:08Z (5 Gemini-site halt-and-notify chains across WF-25 + WF-23 + WF-30 + WF-31 + WF-43; WF-40 explicitly excluded per Decision #2 — caller halts via Stop-and-Error propagation)
 **Change type:** Critical-path / Workflow-Create
 **Workflows:** WF-25, WF-23, WF-30, WF-31, WF-43, WF-44
 **n8n IDs:** `eTV1lUcYrXBg2q2T` (WF-25), `VpCER0Vqq3NYJGpI` (WF-23), `gGJBY5fJha0Let8I` (WF-30), [WF-31/43/44 IDs from registry]

@@ -96,3 +96,7 @@
 
 **Why:** Project session 2026-05-27 surfaced 5 Gemini call sites with inconsistent error handling — 1 had degraded fallback (silent intent guess), 4 had no error branch at all (silent execution halt). The unified rule above gives a single decision tree for any future AI call, removing the per-site judgment cost.
 
+
+## [2026-05-27] — Post-batch 3 regression
+
+- **WF-25 `Classify Intent` HTTP node — `retryOnFail: false` (vs WF-23/30/31/43 Gemini General Response which all have `retryOnFail: true, maxTries: 3`).** Found while running Batch 3 post-batch Gemini-site sibling parity scan. Classification: **adjacent** finding (not in TD-PGF-09 strict scope — WF-25's Classify Intent was rebuilt in the previous session and already has the halt-and-notify chain; the missing retry is a separate hardening question). Cause-and-effect: a transient Gemini error on the classifier would skip retries and immediately fan out apology + admin alerts + Stop and Error. Acceptable for MVP; reduces user-visible noise on flakes. **Decision needed:** add retry to classifier (consistency) OR keep no-retry (faster fail, fewer user-visible halts on flakes). Proposed: keep no-retry — classifier failures are caught and reported clearly via halt-and-notify; retry-then-halt adds 6-12s latency to user-facing apology message. No followup action proposed unless user disagrees.
