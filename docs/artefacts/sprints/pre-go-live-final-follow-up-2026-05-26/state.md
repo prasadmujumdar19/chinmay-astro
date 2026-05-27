@@ -18,7 +18,7 @@
 | ID | Status | Batch | Pri | Workflows | Depends On |
 |----|--------|-------|-----|-----------|------------|
 | TD-PGF-01A | ✅ done | 1 | P0 | — | — |
-| TD-PGF-01B | 🔵 in-progress | 2 | P0 | WF-22 | TD-PGF-01A (hard) |
+| TD-PGF-01B | ✅ done | 2 | P0 | WF-22 | TD-PGF-01A (hard) |
 | TD-PGF-02 | ⬜ pending | 4 | P1 | WF-00 | — |
 | TD-PGF-03 | ⬜ pending | 4 | P1 | WF-11 | — |
 | TD-PGF-04 | ⚪ obsolete | — | — | WF-60 | — |
@@ -28,9 +28,9 @@
 | TD-PGF-08 | ⬜ pending | 5 | P3 | WF-45 | — |
 | TD-PGF-09 | ⬜ pending | 3 | P1 | WF-25, WF-23, WF-30, WF-31, WF-43, WF-44 | TD-PGF-05 (soft) |
 | TD-PGF-10 | ⚪ obsolete | — | — | — | — |
-| TD-PGF-12 | ⬜ pending | 2.5 | P0 | — (audit only) | TD-PGF-01B (soft) |
-| TD-PGF-13 | ⬜ pending | 2.5 | P0 | WF-01, +TBD per TD-PGF-12 | TD-PGF-12 (hard) |
-| TD-PGF-14 | ⬜ pending | 2.5 | P0 | WF-21 | — |
+| TD-PGF-12 | ✅ done | 2.5 | P0 | — (audit only) | TD-PGF-01B (soft) |
+| TD-PGF-13 | ✅ done | 2.5 | P0 | WF-01, WF-21, WF-50 | TD-PGF-12 (hard) |
+| TD-PGF-14 | ✅ done | 2.5 | P0 | WF-21 | — |
 | TD-PGF-11 | ⬜ pending | 6 | EXIT | — | TD-PGF-01A (hard), TD-PGF-01B (hard), TD-PGF-02 (hard), TD-PGF-03 (hard), TD-PGF-05 (hard), TD-PGF-07 (hard), TD-PGF-08 (hard), TD-PGF-09 (hard), TD-PGF-12 (hard), TD-PGF-13 (hard), TD-PGF-14 (hard) |
 
 ## Batch 1 — P0 investigation
@@ -142,7 +142,7 @@ Verification deferred to TD-PGF-01B Phase 2 build (publish v2 Flow → submit on
 
 > Source tasks.md uses lowercase suffix `TD-PGF-01b`; uppercased here as `TD-PGF-01B`.
 
-**Status:** 🔵 in-progress
+**Status:** ✅ done
 **Priority:** P0 | **Batch:** 2
 **Change type:** Structural + DB-Schema
 **Workflows:** WF-22
@@ -152,6 +152,8 @@ Verification deferred to TD-PGF-01B Phase 2 build (publish v2 Flow → submit on
 **Estimated tokens:** ~25K
 **Estimated effort:** ~60–90 min
 **Started:** 2026-05-26T22:58:30Z
+**Completed:** 2026-05-27T01:31:00Z (build complete 2026-05-27T09:13; closure deferred until Batch 2.5 unblocked then folded into TD-PGF-11)
+**Closure decision:** 2026-05-27T01:31:00Z — User selected "Mark done; fold Step 5 verify into TD-PGF-11" at Batch 2.5 boundary. Build phases (Steps 1–4) verified complete: Flow v2 published as new Meta Flow ID `2260297164474475`; Postgres `email_address` column live; WF-22 INSERT mapping updated; WF-21 Flow ID swap landed (TD-PGF-14); WF-01 envelope `||→??` regression cleared (TD-PGF-13). End-to-end Step 5 verify (form submission round-trip) folds into TD-PGF-11 J-01 onboarding journey to avoid duplicate ceremony.
 
 Apply chosen path per field (time/place/email). Schema migration: `ALTER TABLE chinmay_astro.users ADD COLUMN email_address text;` (confirmed needed via live information_schema check 2026-05-26). All three fields locked Option B (Flow-native `pattern` + `error-message`) per TD-PGF-01A decisions block — NO n8n WF-22 Code/IF guards needed.
 
@@ -219,7 +221,7 @@ JavaScript `||` treats `""` as falsy → emits `null` where upstream sent `""` (
 
 ## TD-PGF-12 — `||` vs `??` regression-pattern audit across all active workflows
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P0 | **Batch:** 2.5
 **Change type:** Documentation (audit only — no JSON mutation)
 **Workflows:** — (audit covers all active workflows)
@@ -227,6 +229,12 @@ JavaScript `||` treats `""` as falsy → emits `null` where upstream sent `""` (
 **Size:** XS
 **Estimated tokens:** ~15K
 **Estimated effort:** ~30–45 min
+**Started:** 2026-05-27T01:06:51Z
+**Completed:** 2026-05-27T01:16:51Z
+**Actual tokens:** ~14K
+**Actual effort:** ~10 min
+**Estimate delta:** on-bucket (planned XS ~15K, actual ~14K)
+**Decision made:** 2026-05-27T01:16:51Z — TD-PGF-13 scope locked to Confirmed + medium-risk (6 lines, WF-01 + WF-21 + WF-50) per user selection.
 
 Audit every active workflow's Code nodes (and Set v3.4 contract-emit assignments) for the `||` fallback pattern applied to fields where `""` is a semantically valid value. The chinmay-astro Build WF-01 Envelope regression (commit `a21eb60`, data-contract Wave 1) used `const X = d.X || null` which silently converts empty strings to null on transport boundaries. Any other workflow that adopted the same pattern during the data-contract sprints is at risk of the same silent regression.
 
@@ -239,37 +247,105 @@ Audit method:
 
 Deliverable = expanded list of workflows requiring the `||` → `??` fix in TD-PGF-13.
 
-## TD-PGF-13 — Apply `||` → `??` fix to WF-01 + any other workflows surfaced by TD-PGF-12
+### Audit findings (2026-05-27T01:11Z)
 
-**Status:** ⬜ pending
+**Scan scope:** 27 active workflows; 88 Code nodes; 23 Set nodes. Pattern matches: 74 `|| null`, 7 `|| ''` (all intentional string-op fallbacks — safe), 0 `|| undefined`, 0 Set v3.4 `||` in value expressions.
+
+**Confirmed bugs — MUST fix in TD-PGF-13 (4 lines, all in WF-01 `hYGNM97sXvdo1WmI`):**
+
+| Workflow | Node | Line | Code | Class |
+|---|---|---|---|---|
+| WF-01 | Build WF-01 Envelope | 10 | `const messageContent = d.messageContent \|\| null;` | confirmed (root cause of WF-02 rejection 2026-05-27T00:28Z) |
+| WF-01 | Build WF-01 Envelope | 40 | `messageContentUpper: d.messageContentUpper \|\| null,` | confirmed (derived from messageContent; same regression class) |
+| WF-01 | Build WF-01 Envelope (Opted-Out) | 11 | `const messageContent = d.messageContent \|\| null;` | confirmed (same code in opted-out branch) |
+| WF-01 | Build WF-01 Envelope (Opted-Out) | 32 | `messageContentUpper: d.messageContentUpper \|\| null,` | confirmed (same) |
+
+Fix: replace `||` with `??` on these 4 lines. Preserves `""` while still defaulting genuine `null`/`undefined` to `null`.
+
+**Medium-risk (needs-decision — same regression class but not yet observed in production):**
+
+| Workflow | Node | Line | Code | Risk assessment |
+|---|---|---|---|---|
+| WF-21 (`zM8WbxSdt9nXRoLZ`) | Build Welcome Message | 5 | `const userMessage = input.messageContent \|\| null;` | After WF-01 fix preserves `""`, this would still collapse `""` → `null`. WF-21 fires on first user message; new users almost always send text, so `""` is unusual but theoretically possible (e.g., user opens WhatsApp by tapping a deep link with no text). Cosmetic only — userMessage is used in welcome-back template literal. |
+| WF-50 (`BUVun38WEKb12zg9`) | Prepare Payload | 10 | `const messageContent = input.messageContent \|\| input.message \|\| input.messageBody \|\| null;` | Fallback chain. If a caller intentionally passes `messageContent: ""` to send an interactive-only message (legal pattern — `interactivePayload` carries the real content), `""` collapses to next fallback then `null`. Downstream "Is text?" guard routes by truthy/falsy, so behavior is equivalent in this specific case — but the chain hides intent. |
+
+**Safe (LHS field semantically cannot be `""` in practice — 68 lines):**
+- All ID fields (`phoneNumber`, `userId`, `messageId`, `inboundMessageId`, `consultationId`, `slackChannelId`, `slackMessageTs`, `slackUserId`, `current_consultation_id`, lookup IDs) — present-or-absent, not present-as-empty.
+- All object/array fields (`rawMessage`, `interactivePayload`, `metadata`, `routing`, `user`, `pendingUser`).
+- All timestamp fields (`timestamp`, `sentAt`).
+- All enum fields (`messageType`, `status`, `interactiveType`, `transport`, `direction`).
+- Meta-issued strings that cannot be empty (`button_reply.title`, `list_reply.title` — Meta API contract requires non-empty title).
+- DB row fields (`row.id/name/phone_number/status/...` in WF-10 Build WF-10 Relay Envelope) — DB NULL → `null` is correct fallback.
+- Strings where `null` semantically equivalent to `""` for downstream (e.g., WF-10 Slack inbound `content` for log purposes; `error`, `templateName`, `contactName`, `channelName` as optional descriptors).
+
+**Full raw scan output:** `/tmp/claude-scratch/bab55e9f-0139-4f86-98ca-47fc7ca5aa53/or_null_hits.tsv` (74 lines).
+
+**TD-PGF-13 scope decision pending (needs-decision):** include only the 4 WF-01 confirmed lines, or also fold in WF-21 + WF-50 medium-risk lines for defense-in-depth.
+
+## TD-PGF-13 — Apply `||` → `??` fix to WF-01 + WF-21 + WF-50 (scope locked per TD-PGF-12)
+
+**Status:** ✅ done
 **Priority:** P0 | **Batch:** 2.5
-**Change type:** Surgical (per workflow) OR Batch Surgical (if many)
-**Workflows:** WF-01 (`hYGNM97sXvdo1WmI`) — confirmed; additional workflows TBD per TD-PGF-12 audit
-**n8n IDs:** WF-01 = `hYGNM97sXvdo1WmI`; others TBD
+**Change type:** Batch Surgical (3 workflows, 6 lines total — same transform per line) / parametric (operator correction restoring design contract; no `.pseudo` revision)
+**Workflows:** WF-01, WF-21, WF-50
+**n8n IDs:** WF-01 = `hYGNM97sXvdo1WmI`; WF-21 = `zM8WbxSdt9nXRoLZ`; WF-50 = `BUVun38WEKb12zg9`
 **Depends on:** TD-PGF-12 (hard)
-**Size:** XS–S (depends on count)
-**Estimated tokens:** ~15–30K
-**Estimated effort:** ~30–90 min
+**Size:** S
+**Estimated tokens:** ~20K
+**Estimated effort:** ~45 min
+**Started:** 2026-05-27T01:17:30Z
+**Completed:** 2026-05-27T01:27:50Z
+**Actual tokens:** ~18K
+**Actual effort:** ~10 min
+**Estimate delta:** on-bucket (planned S ~20K, actual ~18K)
 
-Minimum scope (confirmed bug):
-- WF-01 `Build WF-01 Envelope` jsCode: lines emitting `messageContent` + `messageContentUpper` → change `||` to `??`.
-- WF-01 `Build WF-01 Envelope (Opted-Out)` jsCode: same fix per a21eb60 commit modifying both variants.
+### Execution notes (2026-05-27T01:27:50Z)
 
-Expanded scope = whatever TD-PGF-12 audit surfaces.
+- 3 backups: `archive/backups/{hYGNM97sXvdo1WmI,zM8WbxSdt9nXRoLZ,BUVun38WEKb12zg9}-2026-05-27-11-23.json`.
+- 3 partial-update PUTs via `mcp__n8n__n8n_update_partial_workflow` (2 patches WF-01, 1 each WF-21/WF-50). All `success: true, saved: true`.
+- Post-fix grep verified all 6 lines now use `??` (see state.md audit trail entries from session log).
+- `post-workflow-lint.sh` exit 0 for all 3 workflows.
+- WF-50 routing impact pre-check: `Should Drop?` IF reads `$json.__drop` (set inside `Prepare Payload` guard), not upstream `messageContent` — `??` change is contract-restoration only, behavior identical in practice.
+- 3 workflow JSONs exported to `workflows/`. Secrets scan clean.
+- `.pseudo` not touched (parametric verdict per Step 2a — `||` vs `??` is implementation, not design contract).
+**Design decisions:** 2026-05-27T01:16:51Z — User selected "Confirmed + medium-risk" option in TD-PGF-12's needs-decision. Defense-in-depth fix: closes the regression class fully so future callers passing `messageContent: ""` stay safe end-to-end.
+
+Locked scope (6 lines):
+- WF-01 (`hYGNM97sXvdo1WmI`) `Build WF-01 Envelope` jsCode line 10: `const messageContent = d.messageContent || null;` → `??`
+- WF-01 (`hYGNM97sXvdo1WmI`) `Build WF-01 Envelope` jsCode line 40: `messageContentUpper: d.messageContentUpper || null,` → `??`
+- WF-01 (`hYGNM97sXvdo1WmI`) `Build WF-01 Envelope (Opted-Out)` jsCode line 11: `const messageContent = d.messageContent || null;` → `??`
+- WF-01 (`hYGNM97sXvdo1WmI`) `Build WF-01 Envelope (Opted-Out)` jsCode line 32: `messageContentUpper: d.messageContentUpper || null,` → `??`
+- WF-21 (`zM8WbxSdt9nXRoLZ`) `Build Welcome Message` jsCode line 5: `const userMessage = input.messageContent || null;` → `??`
+- WF-50 (`BUVun38WEKb12zg9`) `Prepare Payload` jsCode line 10: `const messageContent = input.messageContent || input.message || input.messageBody || null;` → use `??` only on the final null fallback (chain `||` of multiple distinct fields stays `||`; only the terminal `null` default changes). Final form: `const messageContent = (input.messageContent ?? input.message ?? input.messageBody) ?? null;`
 
 Verify: re-test the failing scenario — send WhatsApp message → fill form → confirm WF-22 INSERT lands → row has all fields including `email_address` populated.
 
 ## TD-PGF-14 — WF-21 Flow ID update (1408011897720771 → 2260297164474475)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P0 | **Batch:** 2.5
-**Change type:** Surgical (single field on a single node)
+**Change type:** Surgical (single field on a single node) / parametric (string literal swap)
 **Workflows:** WF-21
 **n8n IDs:** WF-21 = `zM8WbxSdt9nXRoLZ`
 **Depends on:** —
 **Size:** XXS
 **Estimated tokens:** ~5K
 **Estimated effort:** ~15 min
+**Started:** 2026-05-27T01:28:55Z
+**Completed:** 2026-05-27T01:29:49Z
+**Actual tokens:** ~4K
+**Actual effort:** ~1 min
+**Estimate delta:** on-bucket (planned XXS ~5K, actual ~4K)
+
+### Execution notes (2026-05-27T01:29:49Z)
+
+- Backup: `archive/backups/zM8WbxSdt9nXRoLZ-2026-05-27-11-28.json` (fresh post-TD-PGF-13).
+- Located Flow ID literal inside `Build Welcome Message` Code-node jsCode at `flowId: '1408011897720771'` (line 34 of jsCode). Not a Set or HTTP node — literal lives directly in the interactive payload constructor in jsCode.
+- `mcp__n8n__n8n_update_partial_workflow` with single `patchNodeField`, success+saved.
+- Post-fetch verification: new Flow ID present (1 occurrence), old Flow ID absent (0 occurrences).
+- `post-workflow-lint.sh` exit 0.
+- Exported to `workflows/zM8WbxSdt9nXRoLZ.json`. Secrets scan clean (from TD-PGF-13 batch).
+- `.pseudo` not touched (parametric — `.pseudo` describes the WhatsApp Flow form CTA role, not the Flow's Meta ID literal).
 
 In WF-21 (`New User Welcome + Form`), the WhatsApp Flow CTA interactive message references Flow ID `1408011897720771` (the original v1 Flow). User published the cloned v2 Flow (with validation + email_address field) as a NEW Flow with ID `2260297164474475`. WF-21 needs to swap the referenced Flow ID to the new published Flow so onboarding triggers the v2 form with validation, not the v1 baseline.
 
@@ -286,6 +362,7 @@ After TD-PGF-13 + TD-PGF-14 both land, TD-PGF-01B Step 5 verify is unblocked (or
 - **Estimated size:** S total (XS + S + XXS)
 - **Estimated tokens:** ~35–50K depending on TD-PGF-12 audit findings
 - **Execution model:** TD-PGF-12 sequentially first → TD-PGF-13 (driven by 12's output) + TD-PGF-14 (independent) in parallel inline
+- **Execution plan:** TD-PGF-12 = Mode B (inline-inherit; audit only, no Skill ceremony). TD-PGF-13 = Mode A (full build-workflow inline; Critical-path Code-node edit, scope set by 12). TD-PGF-14 = Mode B (inline-inherit; surgical Flow-ID swap). Sequential inline per [[feedback_sprint_parallelism]] — Mode D ruled out.
 
 ## TD-PGF-02 — WF-00 `nfm_reply` parse path missing switch case
 
