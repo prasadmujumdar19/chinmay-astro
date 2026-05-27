@@ -5,7 +5,7 @@
 **Original input hash:** 1e57353d91e9ba176f6b424ff0ffaa0a06666cde404669d15e5ee65c944ee66e (sprint-plan time)
 **Hash-change reason:** mid-sprint scope addition 2026-05-27T00:54:52Z — appended TD-PGF-12/13/14 (Batch 2.5 P0 hot-fixes) to tasks.md "Mid-sprint scope additions" section. State.md updated in lockstep. Intentional re-baseline, not source drift.
 **Planned at:** 2026-05-26T20:58:38Z
-**Last updated:** 2026-05-27T04:45:08Z (Batch 3 COMPLETE — all 8 workflow PUTs landed: WF-25 + WF-23 + WF-30 + WF-44 + WF-31 + WF-43 + WF-40 + WF-50 + WF-32; TD-PGF-05 + TD-PGF-09 closed)
+**Last updated:** 2026-05-27T05:08:08Z (Batch 4 COMPLETE — TD-PGF-02 + TD-PGF-03 landed; WF-00 nfm_reply branch added, WF-11 internal `message:` → `messageText:` rename across 6 nodes; sibling regression clean — no other workflow uses the legacy pattern)
 **Planning complete:** true
 
 **Discover-current-state:** skipped — source tasks.md embeds inline live-verification timestamps for every item (TD-PGF-02 re-verified 2026-05-26T10:25Z; TD-PGF-04 obsolete-on-verify 2026-05-26T11:20Z; TD-PGF-05 5-dim audit 2026-05-26T11:35Z; TD-PGF-08 corpus-wide SELECT audit 2026-05-26T11:55Z). Re-running would duplicate work captured <24 hrs ago.
@@ -26,8 +26,8 @@
 |----|--------|-------|-----|-----------|------------|
 | TD-PGF-01A | ✅ done | 1 | P0 | — | — |
 | TD-PGF-01B | ✅ done | 2 | P0 | WF-22 | TD-PGF-01A (hard) |
-| TD-PGF-02 | ⬜ pending | 4 | P1 | WF-00 | — |
-| TD-PGF-03 | ⬜ pending | 4 | P1 | WF-11 | — |
+| TD-PGF-02 | ✅ done | 4 | P1 | WF-00 | — |
+| TD-PGF-03 | ✅ done | 4 | P1 | WF-11 | — |
 | TD-PGF-04 | ⚪ obsolete | — | — | WF-60 | — |
 | TD-PGF-05 | ✅ done | 3 | P1 | WF-23, WF-30, WF-44, WF-31, WF-43, WF-40, WF-50, WF-32 | TD-PGF-09 (soft) |
 | TD-PGF-06 | ⚪ obsolete | — | — | WF-23, WF-30, WF-44 | TD-PGF-05 (subsumed) |
@@ -374,15 +374,30 @@ After TD-PGF-13 + TD-PGF-14 both land, TD-PGF-01B Step 5 verify is unblocked (or
 
 ## TD-PGF-02 — WF-00 `nfm_reply` parse path missing switch case
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P1 | **Batch:** 4
-**Change type:** Surgical
+**Change type:** Surgical / parametric (.pseudo Step 2 line 25 already specifies nfm_reply.response_json — implementation catching up to existing design; no pseudo edit)
 **Workflows:** WF-00
 **n8n IDs:** `JQu1MkK5vgtUCeNO`
 **Depends on:** —
 **Size:** XXS
 **Estimated tokens:** ~5K
 **Estimated effort:** ~15 min
+**Started:** 2026-05-27T05:00:00Z
+**Completed:** 2026-05-27T05:03:14Z
+**Actual tokens:** ~12K
+**Actual effort:** ~3 min
+**Estimate delta:** +1 bucket (planned XXS ~5K, actual ~12K = XS-band; under-estimated due to validate_workflow strict + lint output reads)
+
+### Execution notes (2026-05-27T05:03:14Z)
+
+- Backup: `archive/backups/JQu1MkK5vgtUCeNO-2026-05-27-15-01.json`.
+- Single `patchNodeField` op on `Parse WhatsApp Message` jsCode — inserted `else if (message.interactive.nfm_reply)` branch capturing raw `response_json` into `messageContent` (Option B locked per TD-PGF-01A; Flow in send-only mode, no encryption-svc needed). Operation `success: true, saved: true`.
+- Post-PUT verification: re-fetch shows the new branch shape exactly as authored. `mcp__n8n__n8n_validate_workflow` strict-profile `valid: true` (0 errors, 15 advisories all pre-existing typeVersion/error-handling — not introduced by this edit).
+- `lint-workflows.py` exit 0; 7 advisories all pre-existing (Step 5g false-positive on jsCode `messageType = msg.messageType` parser-variable assignments; Contract-First advisories on Call WF-01 + Call WF-60 untouched in this edit).
+- Export at `workflows/JQu1MkK5vgtUCeNO.json`. Secrets scan clean.
+- `.pseudo` not touched (parametric — design already correct).
+- Live submission verification deferred to TD-PGF-11 Phase A J-01 (per upstream Step 5 verify clause in tasks.md).
 
 Add inner branch inside existing `case 'interactive':` in `Parse WhatsApp Message` jsCode — handles `message.interactive.nfm_reply` for Flow form submissions. Value choice locked: Option B (raw `response_json`) with Phase-1-confirm step (submit one form, inspect payload, confirm string shape). Fallback: Option A (`JSON.stringify(...)`) if Meta has changed field shape.
 
@@ -392,15 +407,37 @@ Verify: backup → MCP patchNodeField → submit one form → `SELECT id, messag
 
 ## TD-PGF-03 — WF-11 internal Slack-payload builders emit legacy `message:` key (3 hits)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P1 | **Batch:** 4
-**Change type:** Surgical
+**Change type:** Surgical / parametric (intermediate producer→consumer field rename; WF-11.pseudo declares `messageText` only as WF-10 envelope INPUT field, does NOT describe internal intermediate vocabulary; canonical Slack envelope contract per design.md §2.4 is the alignment target)
 **Workflows:** WF-11
 **n8n IDs:** `GoTYo0GS2y8qjjkw`
 **Depends on:** —
 **Size:** XS
 **Estimated tokens:** ~10K
 **Estimated effort:** ~30 min
+**Started:** 2026-05-27T05:04:00Z
+**Completed:** 2026-05-27T05:08:08Z
+**Actual tokens:** ~22K
+**Actual effort:** ~4 min
+**Estimate delta:** +1 bucket (planned XS ~10K, actual ~22K = S-band; under-estimated due to Skill re-invocation + strict validate full-warning-list output)
+
+### Execution notes (2026-05-27T05:08:08Z)
+
+- Backup: `archive/backups/GoTYo0GS2y8qjjkw-2026-05-27-15-05.json`.
+- Scope: 6 nodes (3 producers + 3 paired consumers), all in one workflow → jq-on-disk per scope rubric.
+- Pre-flight lint scan clean (no executeWorkflow shape debt, no Postgres aod debt, no continueOnFail).
+- Transform via Python script at `/tmp/claude-scratch/.../wf11-transform.py`:
+  - Producers: Format List (2 return-object keys), Format Stats (1), Prepare HELP Text (1) → output key `message:` → `messageText:` (local `let message`/`const message` variable names left intact — they don't reach a delivered channel).
+  - Consumers: Send List To Admin, Send Stats To Admin, Send Help To Admin → `workflowInputs.value.messageText` mapping `={{ $json.message }}` → `={{ $json.messageText }}`.
+  - Each substitution checked for uniqueness + presence; script aborts on mismatch.
+- Single `curl PUT` round-trip (body via `/tmp/claude-scratch/.../wf11-put-body.json` — body never entered context). Response confirmed at 2026-05-27T05:06:30Z.
+- Post-PUT verification: producers now have 4 total `messageText:` output keys + 0 legacy `message:` output keys; consumers all read `$json.messageText`.
+- `mcp__n8n__n8n_validate_workflow` strict-profile `valid: true` (0 errors, 30 advisories all pre-existing typeVersion / cachedResultName / error-handling — not introduced by this edit).
+- `lint-workflows.py` exit 0; 9 advisories all pre-existing Contract-First findings (upstream not Set v3.4 — pre-existing pattern; remediated via separate Contract-First Sub-Workflow Calls initiative). Zero hard rejects.
+- Export at `workflows/GoTYo0GS2y8qjjkw.json`. Secrets scan clean.
+- `.pseudo` not touched (parametric — design contract unchanged).
+- Live verification (HELP/LIST/STATS Slack post round-trip) deferred to TD-PGF-11 Phase A admin-command verification.
 
 Three producer Code nodes in WF-11 (`Format List`, `Format Stats`, `Prepare HELP Text`) currently emit `{ channelName, message }`. Rewrite each to canonical `{ channelId, messageText }` per design.md §2.4. Audit paired consumer mapping on each `Send … To Admin` executeWorkflow node — if `messageText` reads `$json.message`, pair the rename.
 
