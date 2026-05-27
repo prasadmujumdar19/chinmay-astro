@@ -5,7 +5,7 @@
 **Original input hash:** 1e57353d91e9ba176f6b424ff0ffaa0a06666cde404669d15e5ee65c944ee66e (sprint-plan time)
 **Hash-change reason:** mid-sprint scope addition 2026-05-27T00:54:52Z — appended TD-PGF-12/13/14 (Batch 2.5 P0 hot-fixes) to tasks.md "Mid-sprint scope additions" section. State.md updated in lockstep. Intentional re-baseline, not source drift.
 **Planned at:** 2026-05-26T20:58:38Z
-**Last updated:** 2026-05-27T05:08:08Z (Batch 4 COMPLETE — TD-PGF-02 + TD-PGF-03 landed; WF-00 nfm_reply branch added, WF-11 internal `message:` → `messageText:` rename across 6 nodes; sibling regression clean — no other workflow uses the legacy pattern)
+**Last updated:** 2026-05-27T05:23:17Z (Batch 5 COMPLETE — TD-PGF-07 WF-10 `adminMessage`→`messageText` landed; TD-PGF-08 closed via smaller-scope pseudo-only resolution after audit-vs-reality drift surfaced 2/3 caller envelope gap; sibling regression clean. Only Batch 6 EXIT smoke remains.)
 **Planning complete:** true
 
 **Discover-current-state:** skipped — source tasks.md embeds inline live-verification timestamps for every item (TD-PGF-02 re-verified 2026-05-26T10:25Z; TD-PGF-04 obsolete-on-verify 2026-05-26T11:20Z; TD-PGF-05 5-dim audit 2026-05-26T11:35Z; TD-PGF-08 corpus-wide SELECT audit 2026-05-26T11:55Z). Re-running would duplicate work captured <24 hrs ago.
@@ -31,8 +31,8 @@
 | TD-PGF-04 | ⚪ obsolete | — | — | WF-60 | — |
 | TD-PGF-05 | ✅ done | 3 | P1 | WF-23, WF-30, WF-44, WF-31, WF-43, WF-40, WF-50, WF-32 | TD-PGF-09 (soft) |
 | TD-PGF-06 | ⚪ obsolete | — | — | WF-23, WF-30, WF-44 | TD-PGF-05 (subsumed) |
-| TD-PGF-07 | ⬜ pending | 5 | P3 | WF-10 | — |
-| TD-PGF-08 | ⬜ pending | 5 | P3 | WF-45 | — |
+| TD-PGF-07 | ✅ done | 5 | P3 | WF-10 | — |
+| TD-PGF-08 | ✅ done | 5 | P3 | WF-45 | — |
 | TD-PGF-09 | ✅ done | 3 | P1 | WF-25, WF-23, WF-30, WF-31, WF-43 | TD-PGF-05 (soft) |
 | TD-PGF-10 | ⚪ obsolete | — | — | — | — |
 | TD-PGF-12 | ✅ done | 2.5 | P0 | — (audit only) | TD-PGF-01B (soft) |
@@ -492,15 +492,35 @@ Execution in Batch 3 by-workflow PUT — combined with TD-PGF-09's General Respo
 
 ## TD-PGF-07 — WF-10 Build WF-41 Payload emits intermediate legacy adminMessage field
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P3 | **Batch:** 5
-**Change type:** Surgical
+**Change type:** Surgical / parametric (intermediate field rename in same semantic position; .pseudo describes WF-10→WF-41 external contract using `messageText`, not the internal Set-node assignment name)
 **Workflows:** WF-10
 **n8n IDs:** `wMh0oBRtJbvhLgOf`
 **Depends on:** —
 **Size:** XXS
 **Estimated tokens:** ~5K
 **Estimated effort:** ~5 min
+**Started:** 2026-05-27T05:14:00Z
+**Completed:** 2026-05-27T05:16:49Z
+**Actual tokens:** ~18K
+**Actual effort:** ~3 min
+**Estimate delta:** +1 bucket (planned XXS ~5K, actual ~18K = XS-band; under-estimated due to two jq attempts catching the Set v3.4 nested `assignments.assignments` shape + strict validate full-warning-list output)
+
+### Execution notes (2026-05-27T05:16:49Z)
+
+- Backup: `archive/backups/wMh0oBRtJbvhLgOf-2026-05-27-15-14.json`.
+- 2 paired node edits via jq+PUT (avoiding [[feedback_n8n_mcp_nested_array_update]] MCP bug):
+  - `Build WF-41 Payload` (Set v3.4): assignments.assignments[1].name `adminMessage` → `messageText`.
+  - `Build WF-10 Relay Envelope` (Code v2): jsCode read `inp.adminMessage` → `inp.messageText` (single occurrence inside the relay-envelope return object).
+- Set v3.4 nested-shape discovery: `parameters.assignments` is `{assignments: [...]}` (object wrapping array), not a flat array — first two jq attempts failed before correcting path to `parameters.assignments.assignments`.
+- Single `curl PUT` round-trip; body via `/tmp/claude-scratch/.../wf10-put-body.json` (never entered context).
+- Post-PUT verification: Set assignment name=`messageText` (value unchanged), Code jsCode now reads `inp.messageText` (zero `adminMessage` hits remaining in target nodes).
+- `mcp__n8n__n8n_validate_workflow` strict-profile `valid: true` (0 errors, 56 advisories all pre-existing typeVersion floor / error-handling / cachedResultName / long-linear-chain — not introduced by this edit).
+- `lint-workflows.py` exit 0; 16 advisories all pre-existing (Contract-First, Set v3.4 includeOtherFields, Step 5g false-positives). Zero hard rejects.
+- Export at `workflows/wMh0oBRtJbvhLgOf.json`. Secrets scan clean.
+- `.pseudo` not touched (parametric).
+- Live verification (admin → user relay round-trip) deferred to TD-PGF-11 Phase A J-10 (bidirectional relay).
 
 Two paired edits in WF-10: (1) `Build WF-41 Payload` Set node — rename output field `adminMessage` → `messageText`; (2) `Build WF-10 Relay Envelope` Code node — change read `inp.adminMessage` → `inp.messageText`. Pure cosmetic — external contract is already canonical; only the internal intermediate is legacy-named.
 
@@ -510,15 +530,38 @@ Verify: backup → MCP partial-update → grep `adminMessage` in WF-10 zero hits
 
 ## TD-PGF-08 — WF-45 local Load User Record SELECT (envelope-everywhere completion)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P3 | **Batch:** 5
-**Change type:** Structural
+**Change type:** Documentation (resolution-only — audit-vs-reality drift surfaced caller-contract gap; smaller-scope close per user direction; no JSON edit)
 **Workflows:** WF-45
 **n8n IDs:** `MUG7rPgSHc7UtAE9`
 **Depends on:** —
-**Size:** XS
+**Size:** XS (re-bracketed XXS after needs-decision resolution)
 **Estimated tokens:** ~10K
 **Estimated effort:** ~35–45 min
+**Started:** 2026-05-27T05:17:00Z
+**Decision required:** Original audit prescription ("remove redundant Load User Record SELECT; read user.name from envelope") doesn't match reality — 2/3 callers (WF-44, WF-20) pass only `{phoneNumber, userId[, userStatus]}`, not the full `user` envelope. Only WF-43 passes the user envelope (via `value: {}` passthrough). Removing the SELECT would degrade rebook welcome to "Welcome back there!" for WF-44 + WF-20 callers. Three options surfaced: (A) smaller-scope close + pseudo doc; (B) extend scope to refactor 3 callers + WF-45; (C) mark obsolete and defer post-MVP.
+**Decision made:** 2026-05-27T05:17:30Z — User selected Option A (smaller-scope close). Rationale: keeps go-live sprint focused on critical items; envelope-everywhere completion for WF-45 can come later as a 4-workflow multi-caller refactor. Followups.md updated with post-MVP candidate spec.
+**Completed:** 2026-05-27T05:23:17Z (Documentation-only — pseudo revised + followups logged; no live JSON change)
+**Actual tokens:** ~22K
+**Actual effort:** ~6 min
+**Estimate delta:** −1 bucket (planned XS ~10K, actual ~22K = S-band — but the over-estimate comes from token cost of caller audit + needs-decision surface, NOT JSON edit cost; the JSON-no-change resolution itself was fast)
+
+### Execution notes (2026-05-27T05:23:17Z)
+
+- Caller audit (via grep across `workflows/*.json` for executeWorkflow nodes targeting `MUG7rPgSHc7UtAE9`):
+  - WF-43 Post-Consultation Handler (`3va0M06kijgyLejf`): `workflowInputs.value: {}` — passthrough (carries WF-01 envelope including `user`).
+  - WF-44 Feedback Recorder (`Du2CJ3OTohRFZYoA`): `{phoneNumber, userId, userStatus}` only — NO user envelope.
+  - WF-20 Keyword Handler (`LgIDj1v4ZbCPlX25`): `{phoneNumber, userId}` only — NO user envelope.
+- WF-45's `When Executed by Another Workflow` trigger uses `inputSource: default` with no `workflowInputs` schema → acts as passthrough, surfacing exactly what each caller's `value` declares (`{}` from WF-43 = full upstream payload; `{...3 fields}` from WF-44 = only those 3 fields).
+- Resolution: WF-45's `Load User Record` SELECT is caller-contract required, not redundant. Keep as-is; document the rationale in WF-45.pseudo.
+- WF-45.pseudo updated:
+  - Added `## Inputs` H2 with `### Canonical (required)`, `### Optional (forwarded but not consumed here)`, `### Caller contract note (2026-05-27, TD-PGF-08)` sub-sections (Shape B single-behavior pattern per `build-workflow` Pseudo authoring conventions).
+  - Caller contract note explicitly enumerates the 3 callers' input shapes.
+  - Step 2 narrative annotated: "Caller-contract required — see Inputs note; not redundant."
+- followups.md appended with TD-PGF-08 disposition + post-MVP candidate spec (4-workflow refactor: WF-20, WF-43, WF-44, WF-45). Tracking name suggestion: TD-NEW envelope-cascade-WF45-callers.
+- NO live JSON change. NO backup taken (Documentation-class — backup hook not invoked). NO export needed. No registry WIP update needed (no live workflow change).
+- Live verification not needed (no behavior change).
 
 Lone remaining redundant user-data SELECT in the workflow corpus (live audit 2026-05-26T11:55Z). Rewrite all `$('Load User Record').item.json.X` reads → `$('When Executed by Another Workflow').item.json.user.X` (or top-level `phoneNumber` per Canon A). Remove `Load User Record` Postgres node. Rewire trigger → next downstream directly. Update WF-45.pseudo.
 

@@ -100,3 +100,17 @@
 ## [2026-05-27] — Post-batch 3 regression
 
 - **WF-25 `Classify Intent` HTTP node — `retryOnFail: false` (vs WF-23/30/31/43 Gemini General Response which all have `retryOnFail: true, maxTries: 3`).** Found while running Batch 3 post-batch Gemini-site sibling parity scan. Classification: **adjacent** finding (not in TD-PGF-09 strict scope — WF-25's Classify Intent was rebuilt in the previous session and already has the halt-and-notify chain; the missing retry is a separate hardening question). Cause-and-effect: a transient Gemini error on the classifier would skip retries and immediately fan out apology + admin alerts + Stop and Error. Acceptable for MVP; reduces user-visible noise on flakes. **Decision needed:** add retry to classifier (consistency) OR keep no-retry (faster fail, fewer user-visible halts on flakes). Proposed: keep no-retry — classifier failures are caught and reported clearly via halt-and-notify; retry-then-halt adds 6-12s latency to user-facing apology message. No followup action proposed unless user disagrees.
+
+
+## [2026-05-27] — TD-PGF-08 envelope-everywhere completion deferred to multi-caller refactor
+
+- **WF-45 `Load User Record` SELECT cannot be removed under current caller contracts.** Live audit of WF-45's 3 callers (WF-20 Keyword Handler, WF-43 Post-Consultation Handler, WF-44 Feedback Recorder):
+  - WF-43 calls with `workflowInputs.value: {}` (passthrough — its upstream carries the WF-01 envelope including `user`).
+  - WF-44 calls with `{phoneNumber, userId, userStatus}` only — NO `user` envelope.
+  - WF-20 calls with `{phoneNumber, userId}` only — NO `user` envelope.
+
+  Because 2/3 callers do not pass the user envelope, removing WF-45's SELECT would degrade the rebook welcome to "Welcome back there!" (the `'there'` fallback already in jsCode) for those callers. The audit's "remove redundant SELECT" prescription doesn't match reality.
+
+- **Disposition (user-locked 2026-05-27, TD-PGF-08 needs-decision):** smaller-scope close. WF-45's SELECT stays; WF-45.pseudo updated to document the caller-contract rationale (Inputs block now declares the divergence and labels the SELECT as contract-required, not redundant). No live JSON change.
+
+- **Post-MVP candidate (deferred — track as TD-NEW envelope-cascade-WF45-callers):** align WF-20, WF-43, WF-44 to pass the full `user` envelope alongside phoneNumber. Then WF-45's SELECT can be removed in a follow-up sprint that touches all 4 workflows together. Estimated S–M (~30–45 min) for the 4-workflow refactor. Not in scope for go-live; defers cleanly.
