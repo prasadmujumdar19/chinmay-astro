@@ -16,7 +16,7 @@ WF-44 — Feedback Recorder
 ## Algorithm
 
 Step 1: Start — triggered by WF-43 after the user typed a feedback message (or pressed Leave Feedback then typed). Receives WF-01 canonical envelope containing phoneNumber, messageContent, user.{id, status}.
-Step 2: Call WF-25 (Intent Classifier) with phoneNumber, messageContent, userId (user.id), userStatus (user.status) → returns intentResult. (Note: live implementation passes messageText key due to TD-DRIFT-009 — deferred bug.)
+Step 2: Call WF-25 (Intent Classifier) with 6 fields per data-contract-discipline (TD-PGF-05, 2026-05-27): phoneNumber, userId (user.id), messageText (canonical envelope `messageContent` re-keyed for WF-25 input contract), userStatus (user.status), userName (user.name), slackChannelId (user.slack_channel_id) → returns intentResult. WF-25 may itself halt-and-notify on its own Gemini outage; that halt propagates here via executeWorkflow error semantics and on to the WF-43 caller.
 Step 3: Check: intentResult == "rebook_intent"?
   - If YES → go to Step 4
   - If NO  → go to Step 5

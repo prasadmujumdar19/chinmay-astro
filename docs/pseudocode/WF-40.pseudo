@@ -12,6 +12,7 @@ WF-40 — User -> Admin Relay
   - `stop_intent` policy (2026-05-21 — TD-E): a user mentioning "STOP" or "unsubscribe" mid-consultation is NOT auto-opted-out — false-positive risk. Instead WF-40 relays the message verbatim to admin AND sends an automated clarifier to the user explaining how to opt out cleanly (send STOP keyword).
   - Inbound logging handled upstream by WF-00 → WF-60. WF-40 does NOT call WF-60.
   - **Phase 1 change:** `Load User Record` SELECT removed — user fields read from WF-01 envelope via trigger node.
+  - **WF-25 Gemini-failure halt — accepted behavior (TD-PGF-09 Decision #2, 2026-05-27):** WF-40 has no `onError: continueErrorOutput` on its `Call WF-25` node, so if WF-25 hits a Gemini outage and fires its `stopAndError` halt, WF-40's own execution terminates too — admin loses the relayed inbound message in that scenario. Accepted: the WF-25-side admin alert embeds the user's text as diagnostic context, so admin can respond manually. No WF-40 code change needed for TD-PGF-09.
 
 ---
 

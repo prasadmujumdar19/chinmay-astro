@@ -15,7 +15,7 @@ Step 1: Start — Triggered by WF-01 (via WF-02) with §2.1 envelope: { phoneNum
 Step 2: Check: Is user.status == "payment_submitted" already?
   - If YES → go to Step 3 (duplicate tap — reassure only)
   - If NO → go to Step 5 (first-time tap)
-Step 3: Build reassurance message: "Your payment has already been received and is under review ✅ Chinmay will approve your consultation shortly — please wait a moment! 🙏" with phoneNumber = user.phone_number, messageType=text.
+Step 3: Build reassurance message: "Your payment has already been received and is under review ✅ Chinmay will approve your consultation shortly — please wait a moment! 🙏" with phoneNumber = envelope top-level `phoneNumber` (Canon A per data-contract-discipline; TD-PGF-05 2026-05-27), messageType=text.
 Step 4: Call WF-50 with phoneNumber, messageType, messageContent. Go to Step 11.
 
 (First-time tap)
