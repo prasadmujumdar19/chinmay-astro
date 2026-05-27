@@ -5,13 +5,20 @@
 **Original input hash:** 1e57353d91e9ba176f6b424ff0ffaa0a06666cde404669d15e5ee65c944ee66e (sprint-plan time)
 **Hash-change reason:** mid-sprint scope addition 2026-05-27T00:54:52Z — appended TD-PGF-12/13/14 (Batch 2.5 P0 hot-fixes) to tasks.md "Mid-sprint scope additions" section. State.md updated in lockstep. Intentional re-baseline, not source drift.
 **Planned at:** 2026-05-26T20:58:38Z
-**Last updated:** 2026-05-27T00:54:52Z
+**Last updated:** 2026-05-27T04:15:00Z (WF-25 PUT landed; Batch 3 partial — 1 of 8 workflows done)
 **Planning complete:** true
 
 **Discover-current-state:** skipped — source tasks.md embeds inline live-verification timestamps for every item (TD-PGF-02 re-verified 2026-05-26T10:25Z; TD-PGF-04 obsolete-on-verify 2026-05-26T11:20Z; TD-PGF-05 5-dim audit 2026-05-26T11:35Z; TD-PGF-08 corpus-wide SELECT audit 2026-05-26T11:55Z). Re-running would duplicate work captured <24 hrs ago.
 **Dependency conflicts found:** TD-PGF-01B (P0) hard-depends on TD-PGF-01A (P0) — same priority, no conflict. TD-PGF-05 and TD-PGF-09 share 3 workflows (WF-23/WF-30/WF-44) as same-workflow siblings — resolved by by-workflow execution in Batch 3 (atomic per-workflow PUT covering both items' changes).
 **Priority adjustments confirmed:** TD-PGF-05 promoted P2→P1 per source 2026-05-26T11:35Z. TD-PGF-09 promoted P3→P1 per source 2026-05-26T12:10Z. Both pre-locked by user in tasks.md.
 **Excluded from execution:** TD-PGF-04 (obsolete — quote-wrap bug pre-fixed, empty messages table explained by ON DELETE CASCADE). TD-PGF-06 (subsumed into TD-PGF-05). TD-PGF-10 (deferred to post-MVP TD-NEW-034; incremental drift-check stays as execution discipline on touched workflows, not a tracked item).
+
+**Mid-sprint scope re-design 2026-05-27T02:05:00Z (Batch 3 start):** During Batch 3 kickoff, two design improvements + one cross-cutting audit landed. Captured in full in TD-PGF-09 and TD-PGF-05 sections; summary here for the items-table reader.
+- **TD-PGF-09 re-designed:** Original "5 caller-side bail-guard IFs" approach replaced with **halt inside WF-25 itself** (Stop and Error node after the fan-out). Caller halting propagates naturally via n8n executeWorkflow error semantics — no caller IF edits required. Net: 5 caller IF nodes removed from scope; WF-31 and WF-43 caller-edit-only contributions vanish, replaced by new General Response Gemini halt-and-notify (see next bullet).
+- **TD-PGF-09 expanded with Gemini-corpus audit findings:** Corpus-wide scan (2026-05-27T01:55Z, 27 workflows) found 4 additional Gemini HTTP call sites with no error branch configured at all — WF-23/WF-30/WF-31/WF-43 each has its own `Gemini General Response` HTTP node (post-classifier free-form response generation) that today halts execution silently on Gemini outage. Same regression class as the WF-25 classifier silent-fallback. Folded into TD-PGF-09's scope: add identical halt-and-notify treatment to each (onError branch → apology + 2 admin alerts → Stop and Error). Channel rule (locked this session): inform Admin ALWAYS, inform User SCENARIO-BASED. All 5 current sites are WhatsApp inbound → all notify both. Rule preserved for any future Gemini call on a Slack-admin inbound path.
+- **TD-PGF-05 expanded with WF-30 dead-branch cleanup:** WF-30's `Is Pass-Through Intent?` IF tests 4 intent types but only `stop_intent` is reachable post-classifier-redesign (the other 3 are terminated inside WF-25 with no return to caller). Simplification folded into WF-30's combined PUT in Batch 3.
+- **WF-40 (User → Admin Relay) explicitly excluded from TD-PGF-09 — no code change.** Documented rationale: WF-40's own `Stop Intent?` IF naturally rejects the `classifier_error` sentinel (string mismatch with `stop_intent`), so the STOP-clarifier branch self-exits without firing — Meta-compliance unsubscribe path is protected. Under the new halt-inside-WF-25 design, WF-25's Stop and Error errors out the WF-40 execution as well; admin loses the relayed message in this case (acceptable — admin still receives the WF-25-side alert which embeds the user's text as diagnostic context, so admin can respond manually).
+- **Workflow scope delta for Batch 3 after re-design:** WF-25 (TD-PGF-09 halt-and-notify), WF-23 (TD-PGF-05 envelope + TD-PGF-09 General Response halt-and-notify), WF-30 (TD-PGF-05 envelope + IF cleanup + TD-PGF-09 General Response halt-and-notify), WF-44 (TD-PGF-05 envelope), WF-31 (TD-PGF-09 General Response halt-and-notify), WF-43 (TD-PGF-09 General Response halt-and-notify), WF-50 (TD-PGF-05 fallback tighten), WF-32 (TD-PGF-05 phoneNumber read). 8 workflows total — same count as original plan but workflow set shifts (gains WF-43 as edited; loses WF-44 from -09; gains General Response edits in WF-23/30/31/43; loses caller IF edits in WF-23/30/31/43/44).
 
 ## Items
 
@@ -26,7 +33,7 @@
 | TD-PGF-06 | ⚪ obsolete | — | — | WF-23, WF-30, WF-44 | TD-PGF-05 (subsumed) |
 | TD-PGF-07 | ⬜ pending | 5 | P3 | WF-10 | — |
 | TD-PGF-08 | ⬜ pending | 5 | P3 | WF-45 | — |
-| TD-PGF-09 | ⬜ pending | 3 | P1 | WF-25, WF-23, WF-30, WF-31, WF-43, WF-44 | TD-PGF-05 (soft) |
+| TD-PGF-09 | ⬜ pending | 3 | P1 | WF-25, WF-23, WF-30, WF-31, WF-43 | TD-PGF-05 (soft) |
 | TD-PGF-10 | ⚪ obsolete | — | — | — | — |
 | TD-PGF-12 | ✅ done | 2.5 | P0 | — (audit only) | TD-PGF-01B (soft) |
 | TD-PGF-13 | ✅ done | 2.5 | P0 | WF-01, WF-21, WF-50 | TD-PGF-12 (hard) |
@@ -47,13 +54,14 @@
 - **Estimated size:** L
 - **Estimated tokens:** ~50K (worst case all-Option-C; ~20K if Meta-native paths chosen)
 
-## Batch 3 — P1 envelope + classifier (by-workflow execution)
+## Batch 3 — P1 envelope + Gemini halt-and-notify (by-workflow execution; re-designed 2026-05-27T02:05:00Z)
 
 - **Items:** 2 (TD-PGF-05, TD-PGF-09) — applied per-workflow atomically
-- **Description:** Eight workflow PUTs, each combining TD-PGF-05's envelope-rename + TD-PGF-09's classifier-error fan-out where they overlap (WF-23/30/44). Per-workflow PUT order: WF-25 first (-09 fan-out source) → WF-23, WF-30, WF-44 (-05 + -09 combined) → WF-31, WF-43 (-09 only) → WF-50, WF-32 (-05 only). State.md flips both items ✅ after final workflow in batch lands.
-- **Estimated size:** L
-- **Estimated tokens:** ~50K (8 workflows; combined PUTs save ~7K vs sequential execution of -05 then -09)
-- **Execution model:** by-workflow grouping — combines tightly-coupled items into atomic per-workflow PUTs to halve admin overhead and avoid double-touch of WF-23/WF-30/WF-44.
+- **Description (re-designed):** Eight workflow PUTs. TD-PGF-09's new shape is "halt inside WF-25 + halt-and-notify on 4 additional General Response Gemini sites". Caller-side bail-guard IFs (5×) removed from scope — n8n executeWorkflow error propagation handles caller termination naturally. Per-workflow PUT order (post-redesign): **WF-25 first** (TD-PGF-09 classifier halt-and-notify rebuild; user-facing apology + admin alert copy surfaced for user approval before PUT) → **WF-23** (TD-PGF-05 envelope rewrite + TD-PGF-09 General Response halt-and-notify) → **WF-30** (TD-PGF-05 envelope rewrite + dead-branch IF cleanup + TD-PGF-09 General Response halt-and-notify) → **WF-44** (TD-PGF-05 envelope rewrite only) → **WF-31** (TD-PGF-09 General Response halt-and-notify only) → **WF-43** (TD-PGF-09 General Response halt-and-notify only) → **WF-50** (TD-PGF-05 fallback tighten only) → **WF-32** (TD-PGF-05 phoneNumber read only). State.md flips both items ✅ after final workflow in batch lands.
+- **Estimated size:** L (unchanged vs original)
+- **Estimated tokens:** ~55K (8 workflows; re-design simpler per-caller but adds 4 General Response halt-and-notify sites; net delta ~+5K vs original ~50K)
+- **Execution model:** by-workflow grouping — combines tightly-coupled items into atomic per-workflow PUTs. WF-25 must land first (its sentinel + halt-and-error semantics are the contract that WF-23/30 etc. inherit transitively). 4 General Response sites share an identical halt-and-notify shape (onError branch → WF-50 apology + WF-51 consult alert + WF-51 admin-log alert → Stop and Error) — applied identically across WF-23/30/31/43.
+- **Execution plan (modes):** WF-25 = Mode A (full build-workflow inline; Critical-path structural). WF-23, WF-30 = Mode A (Critical-path structural; combine -05 + dead-branch cleanup + -09 halt-and-notify). WF-44 = Mode B (inline-inherit; surgical envelope rewrite only). WF-31, WF-43 = Mode B (inline-inherit; single halt-and-notify pattern repeated). WF-50, WF-32 = Mode B (inline-inherit; surgical). Mode D ruled out per [[feedback_sprint_parallelism]] — sequential inline.
 
 ## Batch 4 — P1 independent surgical edits
 
@@ -427,7 +435,12 @@ Consolidates TD-DRIFT-009 + TD-DRIFT-013 + TD-DRIFT-015 + TD-DRIFT-026 + the ori
 
 Per-caller fix (WF-23/30/44 `Call WF-25 Intent Classifier`): rewrite `workflowInputs.value` — `userId → $json.user.id`, `messageText → $json.messageContent` (rename key), `userStatus → $json.user.status`. WF-50 `Prepare Payload`: tighten fallback to require canonical `messageContent` (TD-DRIFT-012 already clean; safe to remove `|| input.message || input.messageBody`). WF-32 `Prepare Reassurance Message`: top-level `phoneNumber` read (cosmetic Canon-A drift).
 
-Execution in Batch 3 by-workflow PUT — combined with TD-PGF-09's IF guard insertions on WF-23/30/44.
+Execution in Batch 3 by-workflow PUT — combined with TD-PGF-09's General Response halt-and-notify on WF-23/30 (post-redesign; caller IFs no longer in scope).
+
+### Session re-scope (2026-05-27T02:05:00Z)
+
+- **WF-30 dead-branch IF cleanup added.** `Is Pass-Through Intent?` IF currently checks 4 intent types; only `stop_intent` is reachable after the TD-PGF-09 classifier redesign (the other 3 intent types — garbage/malicious/inappropriate — terminate inside WF-25 with no return to caller). Simplify the IF to test only `stop_intent`. Folded into WF-30's combined PUT in Batch 3 — no separate PUT.
+- **Scope unchanged elsewhere.** WF-23/WF-44 envelope rewrites, WF-50 fallback tighten, WF-32 phoneNumber read all as originally locked.
 
 ## TD-PGF-06 — WF-23 / WF-30 / WF-44 caller-side userStatus mapping verify
 
@@ -491,9 +504,77 @@ Shape 2 locked (source 2026-05-26T12:10Z): execution halts on Gemini failure. WF
 
 Locked user-apology + admin-alert copy in source Discussion Log (subject to user review at build time).
 
-Execution in Batch 3 by-workflow PUT — combined with TD-PGF-05's `workflowInputs` rewrite where they overlap (WF-23/30/44). WF-25 PUT goes first in batch (everyone else depends on its `classifier_error` sentinel). Smoke verification gates in Batch 6 Phase B.
+Execution in Batch 3 by-workflow PUT — combined with TD-PGF-05's `workflowInputs` rewrite where they overlap (WF-23/30). WF-25 PUT goes first in batch (its halt-and-error semantics are the contract everyone else inherits transitively).
 
-n8n executeWorkflow contract assumption: error-branch return values arrive at caller's `Call WF-25` main output identically to success-branch returns. Verify at build time before relying on sentinel routing.
+### Session re-scope (2026-05-27T02:05:00Z) — major design change + 4-site expansion
+
+**Design change — halt inside WF-25, not per-caller:**
+
+Original locked design (2026-05-26T12:10Z) was "WF-25 fan-out + 5 caller-side `Is Classifier Error?` IF guards on WF-23/30/31/43/44". User-proposed revision (2026-05-27) replaces this with: WF-25's error branch terminates with a **Stop and Error** node after the fan-out. n8n's executeWorkflow contract propagates sub-workflow errors to the caller's executeWorkflow node, which by default halts the caller execution. None of the 5 callers (nor WF-40) have `onError: continueErrorOutput` set on their `Call WF-25` node, so all halt cleanly via error propagation. **No caller edits needed for TD-PGF-09.** Net: 5 IF nodes removed from scope; cleaner state-end; single owner of the failure UX (WF-25).
+
+**WF-40 (User → Admin Relay) explicitly excluded — no code change.** WF-40's existing `Stop Intent?` IF naturally rejects the `classifier_error` sentinel (string mismatch with `stop_intent`), so the STOP-clarifier branch self-exits without firing → Meta-compliance unsubscribe path protected. Under the new halt-inside-WF-25 design, the Stop and Error errors out the WF-40 execution as well; admin loses the relayed message in this specific case (acceptable — admin still receives the WF-25-side alert which embeds the user's text as diagnostic context, so admin can respond manually).
+
+**Scope expansion — 4 additional General Response Gemini sites added:**
+
+Corpus-wide Gemini audit (2026-05-27T01:55Z, 27 active workflows) found 4 additional Gemini HTTP call sites that today halt execution silently on Gemini outage (no `onError` branch configured at all):
+- WF-23 `Gemini General Response` (pre-form free-form response)
+- WF-30 `Gemini General Response` (payment_pending free-form response)
+- WF-31 `Gemini General Response` (payment_submitted free-form response)
+- WF-43 `Gemini General Response` (post-consultation free-form response)
+
+Same regression class as the WF-25 classifier silent-fallback. All 4 sit on WhatsApp inbound paths → user is left waiting with nothing on Gemini outage. Folded into TD-PGF-09's scope: add identical halt-and-notify shape to each — `onError: continueErrorOutput` on the HTTP node → error branch fans out (WF-50 apology + WF-51 consult alert + WF-51 admin-log alert) → Stop and Error.
+
+**Notification channel rule (locked this session):** Inform Admin ALWAYS, inform User SCENARIO-BASED. All 5 current Gemini sites are WhatsApp inbound → both notify. Rule preserved for any future Gemini call on a Slack-admin inbound path (where admin alert alone suffices). Captured in plugin-improvement note TD-PGF-PLG-002 (suggested addition to a future Gemini-instance-handling skill or pattern doc).
+
+**n8n executeWorkflow error-propagation contract assumption to verify at build time:** When WF-25's Stop and Error fires inside the sub-workflow, the caller's `Call WF-25 (Intent Classifier)` executeWorkflow node receives an error and halts the caller execution (without an error branch configured). Verify by triggering one forced failure during build (cloned WF-25-test pointing Gemini HTTP to unreachable host) and confirming caller terminates without continuing downstream. Same verification covers all 6 callers (WF-23/30/31/43/44/40).
+
+**Workflows touched after re-scope:** WF-25 (halt-and-notify rebuild) + WF-23/30/31/43 (General Response halt-and-notify, identical pattern). WF-44 removed from TD-PGF-09 scope (no General Response Gemini call; classifier halt covers it transitively via executeWorkflow error propagation).
+
+**Estimate delta vs original ~30K:** ~+5K for the 4 General Response additions (identical pattern; high reuse). Updated bracket: M (~35K).
+
+### Approved user/admin copy (locked 2026-05-27T02:25:00Z)
+
+**User-facing WhatsApp apology (shared by classifier failure AND General Response failure stages):**
+
+> Sorry — we ran into a brief technical issue and couldn't process your message just now. Dr. Chinmay has been notified and will follow up with you shortly. We apologise for the inconvenience.
+
+**Admin Slack alert — classifier failure stage (WF-25)** — posted to BOTH user's consult channel AND `chinmay-admin-commands`:
+
+> ⚠️ The intent classifier couldn't process a message just now.
+>
+> *User:* {name} ({phone})
+> *Their state:* {state in plain English — e.g. "filling onboarding form", "awaiting payment approval", "in active consultation"}
+> *Their message:* "{text}"
+> *Reason:* {short error summary — e.g. "Gemini API timed out after 3 retries"}
+>
+> The user has been told there's a technical hiccup and that you'll follow up. Suggested action: reach out manually in their consult channel; consider a goodwill gesture (e.g. complimentary consultation) if they were mid-flow.
+
+**Admin Slack alert — General Response failure stage (WF-23/30/31/43)** — posted to BOTH user's consult channel AND `chinmay-admin-commands`:
+
+> ⚠️ The AI assistant couldn't generate a reply to a user just now.
+>
+> *User:* {name} ({phone})
+> *Their state:* {state in plain English}
+> *Their question:* "{text}"
+> *Reason:* {short error summary}
+>
+> The user has been told there's a technical hiccup and that you'll follow up. Suggested action: respond manually in their consult channel.
+
+**Implementation notes:**
+- Use 'Dr. Chinmay' (not 'the team') per locked persona decision — consistent with welcome-flow voice.
+- `{state in plain English}` requires translation map at message-render time: `payment_pending` → "awaiting payment approval", `consultation_active` → "in active consultation", `consultation_closed` → "consultation completed", `payment_submitted` → "payment under review", `(no record)` / pre-form → "filling onboarding form". Encode the translation inline in the Set/Code node that builds the admin alert payload.
+- The "Goodwill suggestion" line appears ONLY in the classifier-failure alert (not General Response) — classifier failures catch users mid-onboarding where the gesture has more weight; General Response failures happen post-payment where active consultation already exists.
+- No DB-row jargon, no WF-XX names, no internal field names — per [[feedback_admin_message_tone]].
+
+### Data-path decision locked (2026-05-27T02:55:00Z) — Option A (caller passes envelope fields)
+
+WF-25 needs `name` and `slackChannelId` for the dual-channel admin alert. Both already exist in the WF-01 envelope (`userEnv.name`, `userEnv.slack_channel_id`) per `Build WF-01 Envelope` jsCode. Today's WF-25 callers project only 4 fields (`phoneNumber`, `userId`, `messageContent`, `userStatus`) — they drop `name` and `slackChannelId` at the workflowInputs.value mapping.
+
+**Decision per [[feedback_data_contract_discipline]] principle:** caller-side mappings extend to also pass `userName` (from `user.name`) and `slackChannelId` (from `user.slackChannelId`). WF-25 reads them directly from input. NO DB lookup added to WF-25. This aligns with the Phase 1 data-contract design rule (TD-DCP-052 line 178): "rewrite downstream references from `$('Load User …').item.json.X` to `$('When Executed by Another Workflow').item.json.user.X`".
+
+**Pre-form fallback:** Users in pre-form state (WF-23) have no consult Slack channel (Design Rule #2 — channel created at form submission). When `slackChannelId` is null/empty, WF-25 conditionally sends the admin alert to `chinmay-admin-commands` only, skipping the consult-channel destination. Implemented inside WF-25 via an `IF Has Consult Channel?` gate after the user-apology send.
+
+**Caller-side scope add-on for TD-PGF-05:** Per-caller workflowInputs.value mappings now include 6 fields (was 4): `phoneNumber`, `userId`, `userName`, `slackChannelId`, `messageContent`, `userStatus`. Marginal additional change inside the already-planned TD-PGF-05 per-caller edit; same PUT, no extra round-trips.
 
 ## TD-PGF-10 — Pseudo doc-hygiene bundle
 

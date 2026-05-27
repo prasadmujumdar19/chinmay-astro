@@ -48,3 +48,51 @@
   - Pipeline already supports Unicode end-to-end: Postgres `text` columns are UTF-8 default, n8n Code/Set nodes are JavaScript (full Unicode), Slack renders Devanagari natively, Gemini 2.5 Flash Lite handles Hindi/Devanagari prompts cleanly.
   - The only unknown is the WhatsApp client's `pattern` regex engine flavor — whether Unicode range `ऀ-ॿ` (Devanagari block) is accepted. Needs empirical testing on a published Flow.
   - Proposed post-MVP task: clone Flow v2 → modify place-of-birth `pattern` to include Devanagari range → publish to Meta sandbox → test single-form submission with Devanagari input → if client accepts, promote to production; if rejected with PATTERN_MISMATCH, document workaround (no client-side validation; fall back to admin review only).
+
+## [2026-05-27] — Batch 3 kickoff: Gemini-corpus audit + TD-PGF-09 redesign
+
+### Audit findings
+
+- **Gemini corpus-wide scan (2026-05-27T01:55Z, 27 active workflows):** 5 Gemini HTTP call sites in total.
+  - WF-25 `Classify Intent` — has `onError: continueErrorOutput` but degrades silently today (TD-PGF-09 fixes).
+  - WF-23 `Gemini General Response` — `onError: default`, halts caller execution silently on Gemini outage. **Fix in TD-PGF-09 this sprint.**
+  - WF-30 `Gemini General Response` — same. **Fix in TD-PGF-09 this sprint.**
+  - WF-31 `Gemini General Response` — same. **Fix in TD-PGF-09 this sprint.**
+  - WF-43 `Gemini General Response` — same. **Fix in TD-PGF-09 this sprint.**
+- **No non-HTTP Gemini paths found** (no googlePalmApi nodes, no langchain Google nodes, no Code-node SDK calls). All 5 sites are HTTP nodes hitting `generativelanguage.googleapis.com`.
+
+### Design decisions locked this session
+
+- **Halt-inside-classifier (not per-caller IFs).** WF-25 error branch terminates with Stop and Error after fan-out. n8n executeWorkflow error propagation handles caller termination. No caller IF edits required. Replaces the locked 2026-05-26T12:10Z "5 caller bail-guard IFs" design.
+- **WF-40 (User → Admin Relay) intentionally excluded from TD-PGF-09 code edits.** Its existing `Stop Intent?` IF naturally rejects the classifier_error sentinel; admin still receives WF-25-side alert with the user's text embedded (admin can respond manually). Documented in state.md TD-PGF-09 session re-scope block.
+- **Notification channel rule:** Inform Admin ALWAYS, inform User SCENARIO-BASED. All 5 current Gemini sites are WhatsApp inbound → both notify. Rule applies to future Gemini calls on Slack-admin inbound paths (admin alert only).
+- **WF-30 `Is Pass-Through Intent?` IF cleanup:** Simplify to test only `stop_intent` (other 3 branches are dead code post-classifier-redesign — WF-25 terminates garbage/malicious/inappropriate internally with no return to caller). Folded into TD-PGF-05's WF-30 combined PUT.
+
+### Plugin improvement candidates (for `flush-plugin-improvements`)
+
+#### TD-PGF-PLG-001 · Always show consolidated functional view before proceeding
+
+**Plugin:** `n8n-whatsapp-methodology`
+**Skills affected:** `plan-sprint`, `build-sprint`
+
+**Rule to add:** When the session covers multiple design questions, scope additions, scope removals, or design changes affecting more than one item, **always present a consolidated functional view** (table form: workflow | functional change in plain language | scope-in-or-out status) before proceeding to (a) finalize the plan in `plan-sprint`, or (b) implement in `build-sprint`. The view must use business language — no internal item-IDs (TD-XXX-NN), no node-type names, no operational jargon — so the user can verify scope and intent without reconstructing the technical analysis. After review the user gives explicit go-ahead; only then does plan-finalization (plan-sprint) or implementation (build-sprint) proceed.
+
+**Why:** This session (Batch 3 kickoff of pre-go-live-final-follow-up-2026-05-26) accumulated five distinct changes during a single discussion thread — scope additions (4 Gemini sites + WF-30 IF cleanup), scope removals (5 caller IFs), design changes (halt-inside-classifier vs caller IFs), exclusions (WF-40), and channel-rule lock. Without a consolidated view at the end, the user would have had to mentally aggregate eight question-and-answer exchanges to confirm the final scope. The user explicitly requested the consolidated table; it took ~3 minutes to produce and prevented multiple downstream mismatch risks.
+
+**Suggested wording for the skill change (rough draft, plugin author to refine):**
+> "When the session covers ≥3 design decisions or any scope addition/removal affecting more than one item, before proceeding to plan-finalization or implementation, produce a consolidated functional view: (1) one row per workflow or item, (2) plain-language functional change description (no internal jargon), (3) explicit scope-in-or-out status including 'removed', 'added this session', 'documentation-only', and (4) a summary delta paragraph. Surface for explicit user go-ahead before proceeding."
+
+**Project context preserved:** This was raised by the user during Batch 3 kickoff of `pre-go-live-final-follow-up-2026-05-26` sprint after working through WF-40 scope, halt-design redesign, and Gemini-corpus audit findings in a single thread.
+
+#### TD-PGF-PLG-002 · Notification-channel rule for Gemini (and similar AI-call) error handling
+
+**Plugin:** `n8n-whatsapp-methodology`
+**Skills affected:** `build-workflow` (error-handling patterns section) or new pattern doc
+
+**Rule to add:** When designing error handling for any external AI API call (Gemini, OpenAI, etc.) in an n8n workflow, default to: **Admin alert ALWAYS, User notification SCENARIO-BASED**. Specifically:
+- If the workflow sits on a user-inbound transport (WhatsApp / SMS / public web), notify the user with an apology AND alert admin in their command channel + the relevant per-user channel (e.g., consult channel).
+- If the workflow sits on an admin-inbound transport (Slack admin command), alert admin only — no user notification (admin IS the user-equivalent and the admin-alert path already informs them).
+- Always halt execution at the AI error site (Stop and Error or equivalent); never silently degrade with a fallback intent/response that lets the workflow continue with low-confidence output.
+
+**Why:** Project session 2026-05-27 surfaced 5 Gemini call sites with inconsistent error handling — 1 had degraded fallback (silent intent guess), 4 had no error branch at all (silent execution halt). The unified rule above gives a single decision tree for any future AI call, removing the per-site judgment cost.
+
