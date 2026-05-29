@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/sprints/behavior-matrix-fixes-2026-05-27/tasks.md
 **Input hash:** 5e7e3db0999e1128ce39970bc1075716120bb3cf87f7067616220f7653ff7f54
 **Planned at:** 2026-05-29T07:53:18Z
-**Last updated:** 2026-05-29T08:55:00Z
+**Last updated:** 2026-05-29T13:00:29Z
 **Planning complete:** true
 
 **Reconciled scope:** Planned against the tasks.md RECONCILIATION banner (2026-05-29), NOT the original 7 TD-BMX item blocks. The redesign is defined across two companion specs — `docs/artefacts/specs/2026-05-29-bmx-06-new-contact-flow-design.md` (new + pre-form) and `docs/artefacts/specs/2026-05-29-existing-user-safety-net-design.md` (existing + opted_out + BMX-05). The original TD-BMX-01..07 items are decomposed into the build units of the cross-spec **Phase 0→5 build sequence** (safety-net spec §8.2). User confirmed phase-mapped granularity (19 build units) on 2026-05-29.
@@ -25,7 +25,7 @@
 | BMX-P0-DB | ✅ done | 1 | P0 | — | — |
 | BMX-P0-U1 | ✅ done | 1 | P0 | WF-53 | — |
 | BMX-P0-U2 | ✅ done | 1 | P0 | WF-61 | BMX-P0-DB (hard) |
-| BMX-P0-U3 | ⬜ pending | 2 | P0 | WF-62 | BMX-P0-U1 (hard) |
+| BMX-P0-U3 | ✅ done | 2 | P0 | WF-62 | BMX-P0-U1 (hard) |
 | BMX-P1-PSEUDO | ⬜ pending | 3 | P0 | WF-01, WF-02, WF-20, WF-21, WF-23, WF-25, WF-26, WF-30, WF-31, WF-40, WF-43, WF-44, WF-45, WF-53, WF-61, WF-62 | — |
 | BMX-P2-WF01 | ⬜ pending | 4 | P0 | WF-01 | BMX-P0-DB (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P2-WF02 | ⬜ pending | 4 | P0 | WF-02 | BMX-P0-U2 (hard), BMX-P1-PSEUDO (hard) |
@@ -158,6 +158,8 @@ Phase 0 foundation. (1) `CREATE TABLE chinmay_astro.silent_drop` (phone_number, 
 
 **Build outcome (2026-05-29T10:40:07Z):** Created WF-53 (`ONzUJ1Lj9hIbUYT0`), 10 nodes, active=true. Node graph exactly per locked design: Trigger(passthrough) → Entry Guard (Code v2, strict-envelope hard-fail) → Build Admin Alert (Code v2, assembles messageText from `context`, resolves channelId = `consultChannelId || C0A5B0ZE81E`) → Build WF-51 Alert Payload (Set v3.4, includeOtherFields=false `{channelId, messageText}`) → Call WF-51 Admin Alert (exec v1.2, onError=continueRegularOutput) → User-Facing? (IF v2.2, reads `$('Entry Guard').item.json.userFacing`) → [T] Build WF-50 Apology Payload (Set v3.4 `{phoneNumber, messageType:'text', messageContent:<locked apology>}`) → Call WF-50 Apology (exec v1.2, onError=continueRegularOutput) → Return Notified (User-Facing) (Set v3.4 `{notified:true}`); [F] Return Notified (Silent) (Set v3.4 `{notified:true}`, notes-annotated logged-accepted terminal). typeVersion floor honored (trigger 1.1, code 2, set 3.4, if 2.2, exec 1.2 — all project highest-in-live). MCP strict-validate `valid:true`, 0 errors, 8 warnings (all confirmed FP/intentional: Code-node `$`-usage heuristics, exec/if typeVersion-floor advisories, IF main[1]-as-error-output FP). Lint hook exit 0. cachedResultName added to both exec calls. Contract-First: both sends have named Set v3.4 contract-emit nodes immediately upstream; mappingMode=defineBelow+value:{}. Adjacent finding logged to followups.md (non-user-facing admin-copy line).
 
+**⚠️ CONTRACT FIX (2026-05-29T22:43Z — user-flagged during BMX-P0-U3 session):** U1 was built in Batch 1 to `return {notified:true}` on both terminal branches. This was a **build defect** — safety-net spec line 151 says "U1 sends apology + admin alert + **halts**; caller terminates via error propagation." Rationale: a Gemini *technical* failure means no valid classification/answer was produced, so the execution must terminate — we must never default an intent just to continue. Fix applied: removed both `Return Notified` Set nodes, added a single `Halt on Gemini Failure` (stopAndError v1); `Call WF-50 Apology` (user-facing) and `User-Facing?` FALSE (non-user-facing — admin alerted upstream, apology skipped) **both** route to Halt (user decision 2026-05-29: halt both branches). Due diligence: live scan of all ~250 workflows + `workflows/` exports found **zero callers** of `ONzUJ1Lj9hIbUYT0` (callers are Batches 4–7), so no return-consumer breaks. Lint exit 0; MCP strict-validate `valid:true`, 0 errors, 9 warnings (all FP/floor/benign). Backup: `archive/backups/ONzUJ1Lj9hIbUYT0-2026-05-29-22-43.json`. **Caller convention propagated to registry + downstream batches:** every `Call U1` executeWorkflow node MUST keep `onError = stopWorkflow` (default) — NOT `continueRegularOutput` — so U1's halt propagates and terminates the whole chain. Applies to U3 (this batch) + WF-21/23/handlers (Batches 4–7).
+
 New shared sub-workflow, proposed WF-53 (clash-free, verified 2026-05-29). Called from the onError branch of EVERY Gemini node (WF-21, WF-23, U3, and the safety-net handlers). BMX-06 §99-105. Follows data-contract discipline (strict envelope). No callers yet → build/activate standalone, verify against its envelope contract. Invoke `build-workflow`.
 
 **Design locked (2026-05-29T08:5xZ) — BUILD-READY, all decisions made; create next session.** Refactor of WF-43's existing inline Gemini-error chain (`Build apology → WF-50 → dual WF-51 alerts → stopAndError`, safety-net §169) into a shared utility. Step 5c design gate (formal `.pseudo` deferred to Batch 3 / BMX-P1-PSEUDO per locked plan — greenfield, spec is design source).
@@ -203,8 +205,16 @@ New shared sub-workflow, WF-61. Logic: INSERT silent_drop row → count 30-day r
 
 ## BMX-P0-U3 — Build U3 New-Contact Intent Classifier (WF-62)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-29T12:19:35Z
+**Completed:** 2026-05-29T13:00:29Z
+**Actual tokens:** ~75K (incl. the U1 halt-contract fix + due-diligence caller scan that surfaced mid-build)
+**Actual effort:** ~40 min
+**Estimate delta:** +1 bucket (planned M ~40K, actual ~75K — the U1 contract fix was unplanned scope folded into this batch)
+**Decision made:** (1) U3 classifier prompt (BMX-06 §11.2) + confidence<0.5 fail-open threshold approved VERBATIM by user 2026-05-29. (2) U1 Gemini-failure semantics corrected to HALT (see BMX-P0-U1 contract-fix note) — U3's `Call U1` uses default `onError=stopWorkflow` so U1's halt propagates → U3 halts, returning no bucket on Gemini failure.
 **Priority:** P0 | **Batch:** 2
+
+**Build outcome (2026-05-29T13:00:29Z):** Created WF-62 (`tJknCwk2PzLpEwTX`), 7 nodes, active=true. Flow: Execute Workflow Trigger (passthrough) → Entry Guard (Code v2, strict-envelope hard-fail: phoneNumber E.164 / text non-empty / stage ∈ {new,pre_form} / consultChannelId optional Slack-id) → Build Gemini Request (Code v2, interpolates the §11.2 prompt with stage+text, builds geminiBody with temp=0, maxOutputTokens=60, `responseMimeType: application/json`) → Classify Intent (httpRequest v4.2, POST gemini-2.5-flash-lite, cred googlePalmApi `zT7defyXYEvxWwZm`, retryOnFail=true/maxTries=3/timeout=10s, onError=continueErrorOutput) → [main0/success] Parse Classification (Code v2, strips ``` fences, JSON.parse, validates bucket ∈ 10-bucket enum + numeric confidence, returns raw `{bucket,confidence}`; malformed → `{unrelated,0}`) [terminal]; [main1/error] Build U1 Payload (Set v3.4 contract-emit `{phoneNumber, userFacing:true, consultChannelId, context:{source:'U3', userMessage, errorDetail}}`, reads `$('Entry Guard').first()` since the error item lacks input fields) → Call U1 (Gemini Error) (exec v1.2, **default onError=stopWorkflow** → U1 halt propagates → U3 halts). typeVersion floor honored (trigger 1.1, code 2, http 4.2, set 3.4, exec 1.2 — all project highest-in-live). Lint exit 0 (after Step-5g clean-up: `context.source` 'WF-62'→'U3' to match spec §170 utility-alias example + remove WF-\d false-positive; errorDetail rewritten to business-tone since U1 renders it into the admin Reason: line). MCP strict-validate `valid:true`, 0 errors, 9 warnings (all FP/floor/intentional — Code `$`-heuristics, httpRequest 4.2 floor + standard googlePalmApi predefined-cred, exec 1.2 floor). Contract-First: Build U1 Payload is a named Set v3.4 immediately upstream of Call U1 (mappingMode defineBelow + value:{}). **Caller obligation (Batches 5–6):** WF-21/WF-23 pass `{phoneNumber, text, stage, consultChannelId?}`, read raw `{bucket, confidence}` applying `confidence<0.5 → unrelated`, and keep `Call U3` default onError so a U3 halt (Gemini failure) propagates and terminates the turn. **Live end-to-end Gemini-classification execution deferred** to Batch 5/6 caller wiring + Batch 10 smoke test (no parent caller yet; Gemini cred in n8n vault; Batch-1 U1/U2 precedent). Backup n/a (net-new create).
 **Change type:** Workflow-create
 **Workflows:** WF-62
 **Depends on:** BMX-P0-U1 (hard)

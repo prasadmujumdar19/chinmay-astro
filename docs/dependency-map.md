@@ -1,5 +1,5 @@
 # Workflow Dependency Map
-Generated: 2026-05-29 21:53
+Generated: 2026-05-29 23:03
 
 ## Diagram
 ```mermaid
@@ -73,6 +73,7 @@ graph TD
   hYGNM97sXvdo1WmI["WF-01 Message Router"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   se82n3MUQ9xE5aEr["WF-34 Payment Rejection Processor"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   se82n3MUQ9xE5aEr["WF-34 Payment Rejection Processor"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
+  tJknCwk2PzLpEwTX["WF-62 U3 New-Contact Intent Classifier"] --> ONzUJ1Lj9hIbUYT0["WF-53 U1 Gemini Error Handler"]
   tKjwTYF6EER8ED3y["WF-26 Re-Engaged Opted-Out User Handler"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   tKjwTYF6EER8ED3y["WF-26 Re-Engaged Opted-Out User Handler"] --> PubCsNTOspF3xqXZ["WF-02 User State Router"]
   wMh0oBRtJbvhLgOf["WF-10 Slack Admin Handler"] --> 6H75p935FpBVBQtV["WF-60 Message Logger"]
@@ -110,6 +111,7 @@ graph TD
   "gGJBY5fJha0Let8I": { "name": "WF-30 Payment Pending Intent Filter", "calls": ["eTV1lUcYrXBg2q2T", "BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
   "hYGNM97sXvdo1WmI": { "name": "WF-01 Message Router", "calls": ["PubCsNTOspF3xqXZ", "tKjwTYF6EER8ED3y", "BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
   "se82n3MUQ9xE5aEr": { "name": "WF-34 Payment Rejection Processor", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
+  "tJknCwk2PzLpEwTX": { "name": "WF-62 U3 New-Contact Intent Classifier", "calls": ["ONzUJ1Lj9hIbUYT0"] },
   "tKjwTYF6EER8ED3y": { "name": "WF-26 Re-Engaged Opted-Out User Handler", "calls": ["BUVun38WEKb12zg9", "PubCsNTOspF3xqXZ"] },
   "wMh0oBRtJbvhLgOf": { "name": "WF-10 Slack Admin Handler", "calls": ["6H75p935FpBVBQtV", "GoTYo0GS2y8qjjkw", "6PzJRZsF7k2d9hV7", "wlZRK0YxnhP0b2RL"] },
   "wlZRK0YxnhP0b2RL": { "name": "WF-51 Send Slack Message", "calls": ["6H75p935FpBVBQtV"] },
