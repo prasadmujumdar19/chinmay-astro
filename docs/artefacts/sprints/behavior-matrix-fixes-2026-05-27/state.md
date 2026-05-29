@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/sprints/behavior-matrix-fixes-2026-05-27/tasks.md
 **Input hash:** 5e7e3db0999e1128ce39970bc1075716120bb3cf87f7067616220f7653ff7f54
 **Planned at:** 2026-05-29T07:53:18Z
-**Last updated:** 2026-05-29T22:00:00Z
+**Last updated:** 2026-05-29T22:31:01Z
 **Planning complete:** true
 
 **Reconciled scope:** Planned against the tasks.md RECONCILIATION banner (2026-05-29), NOT the original 7 TD-BMX item blocks. The redesign is defined across two companion specs — `docs/artefacts/specs/2026-05-29-bmx-06-new-contact-flow-design.md` (new + pre-form) and `docs/artefacts/specs/2026-05-29-existing-user-safety-net-design.md` (existing + opted_out + BMX-05). The original TD-BMX-01..07 items are decomposed into the build units of the cross-spec **Phase 0→5 build sequence** (safety-net spec §8.2). User confirmed phase-mapped granularity (19 build units) on 2026-05-29.
@@ -29,7 +29,7 @@
 | BMX-P1-PSEUDO | ✅ done | 3 | P0 | WF-01, WF-02, WF-20, WF-21, WF-23, WF-25, WF-26, WF-30, WF-31, WF-40, WF-43, WF-44, WF-45, WF-53, WF-61, WF-62 | — |
 | BMX-P2-WF01 | ✅ done | 4 | P0 | WF-01 | BMX-P0-DB (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P2-WF02 | ✅ done | 4 | P0 | WF-02 | BMX-P0-U2 (hard), BMX-P1-PSEUDO (hard) |
-| BMX-P2-WF21 | ⬜ pending | 5 | P0 | WF-21 | BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard) |
+| BMX-P2-WF21 | ✅ done | 5 | P0 | WF-21 | BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P2-WF23 | ⬜ pending | 6 | P0 | WF-23 | BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P3-WF25 | ⬜ pending | 7 | P0 | WF-25 | BMX-P0-U1 (hard), BMX-P0-U2 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P3-HANDLERS | ⬜ pending | 8 | P0 | WF-30, WF-31, WF-40, WF-43 | BMX-P3-WF25 (hard), BMX-P0-U1 (hard) |
@@ -83,6 +83,7 @@
 - **Description:** WF-21 rebuild — brand-new owner (no record). Wires U2/U3, alias preempts, 7-bucket classification. Split from WF-23 because the combined rebuild estimate exceeds the cap.
 - **Estimated size:** L
 - **Estimated tokens:** ~50K
+- **Post-batch regression (2026-05-29T22:31Z — PASS):** Dependency map rebuilt — WF-01→WF-21; WF-21→{WF-61(U2), WF-62(U3), WF-50, WF-53(U1)} — matches design exactly. Single caller (WF-01). Sibling = WF-23 (pre-form, same 7-bucket/U2/U3/U1 pattern) is the Batch-6 rebuild target, not yet built → no built sibling to regress; pattern net-new this batch, WF-23 replicates next. Shared callees unchanged; WF-21 call payloads verified vs each callee `.pseudo` Inputs at build. Postgres sanity: 3 Insert PU nodes operation=executeQuery + aod=true, columns match live pending_users (unchanged INSERT), queryReplacement (no {{ }} in query → no `=`-prefix needed). No strict findings. Adjacent: CLAUDE.md credential-table Flow ID drift (1408011897720771 vs live 2260297164474475) — surface at sprint end (not a regression).
 
 ## Batch 6 — Phase 2c · BMX-06 pre-form owner (WF-23)
 
@@ -297,16 +298,28 @@ WF-02 (messageType + state router for anyone with a record): add the new non-tex
 
 ## BMX-P2-WF21 — Rebuild WF-21 brand-new owner (BMX-06 §7)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-29T22:09:53Z
+**Completed:** 2026-05-29T22:31:01Z
+**Actual tokens:** ~65K
+**Actual effort:** ~21 min
+**Estimate delta:** +1 bucket (planned L ~50K, actual ~65K — copy sign-off round-trip + 4-callee contract verification + 39-node author-fresh script)
 **Priority:** P0 | **Batch:** 5
 **Change type:** Structural (workflow rebuild)
 **Workflows:** WF-21
 **Depends on:** BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard)
 **Size:** L
+**Decision made (copy verbatim sign-off, 2026-05-29T22:09Z):** User approved at build. (1) Welcome+form (Block A) = live WF-21 text verbatim, with the name changed to **"Dr. Chinmay Mujumdar"** (added "Dr."); dead `wasOptedOut` welcome-back prefix dropped (brand-new never opted-out). (2) Service-question Gemini answer prompt = drafted ₹500/GPay/WhatsApp-bounded prompt, name "Dr. Chinmay Mujumdar". (3) Gentle-redirect (Block C, unrelated/low-confidence) = §11.1 draft with "Dr. Chinmay Mujumdar". (4) WhatsApp **Flow ID = `2260297164474475`** (live value reused; CLAUDE.md's `1408011897720771` NOT used — flag CLAUDE.md drift at sprint end). U3 prompt §11.2 already locked in Batch 2. "Dr." used consistently across all name mentions.
+**Design decisions:**
+- Block A welcome (LOCKED): `Welcome! 🙏\n\nI'm Dr. Chinmay Mujumdar, a Vedic astrology consultant.\n\n📋 Privacy Policy: https://chinmaymujumdar.com/privacy-policy\n\n✨ How it works:\n• Share your birth details using the form below\n• Pay ₹500 consultation fee via GPay\n• Receive your personalised Vedic astrology consultation on WhatsApp\n\nTo get started, please fill in the form with your birth details.` + Flow (header "Birth Details Form", CTA "Fill Details", flowId 2260297164474475).
+- Block C redirect (LOCKED): `🙏 Thanks for reaching out! Chinmay Astro offers Vedic astrology consultations with Dr. Chinmay Mujumdar over WhatsApp. If you'd like a consultation, tap Fill Details below to get started.` + Flow CTA.
+- Block B service answer = Gemini answer + blank line + Block A; prompt name "Dr. Chinmay Mujumdar".
 **Estimated tokens:** ~50K
 **Estimated effort:** ~1.5–2 hr
 
 WF-21 rebuild (no record at all): step1 non-text → ⟦U2 thr=5⟧; step2 literal STOP/UNSUBSCRIBE/OPT OUT/OPT-OUT/REBOOK → silent drop + ⟦U2 thr=5⟧ (brand-new asymmetry, NO reply; aliases per decision #6); step3 text → ⟦U3 stage=new⟧ 7-bucket routing (welcome+form / Gemini answer / HELP / gentle redirect / silent / block+admin-alert). Gemini failure → ⟦U1⟧. **Delivers TD-BMX-06 (new-user) + part of TD-BMX-05.** Copy DRAFT (BMX-06 §11) — verify verbatim at build. Rebuild from scratch per §8a. Invoke `build-workflow`.
+
+**Build outcome (2026-05-29T22:31:01Z):** Author-fresh rebuild (Step 5e.0 criterion 1, standing §8a/sprint-plan approval — same path WF-01 used this sprint), 4→39 nodes, same ID `zM8WbxSdt9nXRoLZ`, active=true. Graph: Trigger(passthrough keeper) → `Normalize Envelope` (Code: reads WF-01 brand_new envelope, computes keyword/isAlias/aliasReason, hard-fails on missing phoneNumber) → `Non-Text?` IF (T→`Build U2 Payload (Non-Text)` Set→`Call U2 (Non-Text)`; F→) `Opt-Out/Rebook Alias?` IF (T→`Build U2 Payload (Alias)`→`Call U2 (Alias)`; F→) `Build U3 Payload` Set→`Call U3 Classify` (default onError=stopWorkflow → U3 halt propagates)→`Apply Fail-Open` (Code: confidence<0.5→unrelated, maps effectiveBucket→routeClass∈{welcome,service,redirect,silent,block}, recovers Normalize fields via `$('Normalize Envelope')`)→ IF-chain `Route: Welcome?`/`Route: Service?`/`Route: Redirect?`/`Route: Silent?` (else→block). Welcome: Insert PU→`Build Welcome Message`→Call WF-50→`Build U2 (Greeting Loop)` thr10→Call U2. Service: `Build Service Answer Request`→`Generate Service Answer` (http v4.2, gemini-2.5-flash-lite, retry3/timeout10s, onError=continueErrorOutput) — success→`Parse Service Answer`→Insert PU→`Build Service Message` (answer+welcome+form)→Call WF-50→`Build U2 (Service Loop)` thr10→Call U2; error(main[1])→`Build U1 Payload (Service)`→`Call U1 (Service)` (default onError→halt). Redirect: Insert PU→`Build Redirect Message`→Call WF-50→`Build U2 (Unrelated)` thr5→Call U2. Silent: `Build U2 (Garbage)` reason=silentReason(stop_intent|garbage) thr5→Call U2. Block: `Build U2 (Abuse)` thr1 blockReason=abuse→Call U2. Every Call U2 onError=continueRegularOutput (fire-and-forget; WF-21 never consumes {blocked} — brand-new is silent regardless). typeVersion floor held (code 2, if 2.2, set 3.4, exec 1.2, http 4.2, postgres 2.6 — all project highest-in-live; strict-validate "outdated" advisories are the intentional floor). 3 Insert PU nodes operation=executeQuery + aod=true (no operation-default trap). **Verification:** lint exit 0; MCP strict valid:true 0 errors / 44 warnings (all FP/floor/tech-deferred: IF-main[1]-as-error-output ×6, typeVersion-floor ×17, Code-no-input-ref ×3 [named-node refs], $json-each-mode FP, googlePalmApi hardcoded-cred FP, DB-retry advisory, long-chain info); dangling-ref scan clean (removed `Call WF-50 Send WhatsApp`/`Insert Pending User` — 0 refs); Step-6b per-node strict on Postgres + HTTP valid:true 0 errors. **Contracts:** consumes WF-01 brand_new envelope field-for-field (phoneNumber/messageType/messageContent/contactName/messageId/phoneNumberFormatted); emits exact U2 {phoneNumber,messageType,reason,messageContent,blockThreshold,blockReason} / U3 {phoneNumber,text,stage} / U1 {phoneNumber,userFacing,context} / WF-50 {phoneNumber,messageType:interactive,interactivePayload,messageContent,inboundMessageId,userMessage} contracts (verified vs each callee `.pseudo` Inputs). Copy LOCKED per Design decisions ("Dr. Chinmay Mujumdar" consistently; Flow ID 2260297164474475). Backup: `archive/backups/zM8WbxSdt9nXRoLZ-2026-05-30-08-27.json`. **Live Gemini-classification + WA-send end-to-end deferred to Batch 10 smoke** (users table empty; no test phone wired — same deferral as U3/WF-01 builds). **Flagged:** CLAUDE.md credential table Flow ID `1408011897720771` is drift vs live `2260297164474475` — surface at sprint end.
 
 ## BMX-P2-WF23 — Rebuild WF-23 pre-form owner (BMX-06 §8)
 

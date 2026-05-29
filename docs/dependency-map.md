@@ -1,5 +1,5 @@
 # Workflow Dependency Map
-Generated: 2026-05-30 07:59
+Generated: 2026-05-30 08:32
 
 ## Diagram
 ```mermaid
@@ -81,7 +81,10 @@ graph TD
   wMh0oBRtJbvhLgOf["WF-10 Slack Admin Handler"] --> 6PzJRZsF7k2d9hV7["WF-41 Admin -> User Relay"]
   wMh0oBRtJbvhLgOf["WF-10 Slack Admin Handler"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"] --> 6H75p935FpBVBQtV["WF-60 Message Logger"]
+  zM8WbxSdt9nXRoLZ["WF-21 New User Welcome + Form"] --> 9Zt23yt8k8PQSgji["WF-61 U2 Silent-Drop & Escalate"]
+  zM8WbxSdt9nXRoLZ["WF-21 New User Welcome + Form"] --> tJknCwk2PzLpEwTX["WF-62 U3 New-Contact Intent Classifier"]
   zM8WbxSdt9nXRoLZ["WF-21 New User Welcome + Form"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
+  zM8WbxSdt9nXRoLZ["WF-21 New User Welcome + Form"] --> ONzUJ1Lj9hIbUYT0["WF-53 U1 Gemini Error Handler"]
 ```
 
 ## Machine-Readable
@@ -115,6 +118,6 @@ graph TD
   "tKjwTYF6EER8ED3y": { "name": "WF-26 Re-Engaged Opted-Out User Handler", "calls": ["BUVun38WEKb12zg9", "PubCsNTOspF3xqXZ"] },
   "wMh0oBRtJbvhLgOf": { "name": "WF-10 Slack Admin Handler", "calls": ["6H75p935FpBVBQtV", "GoTYo0GS2y8qjjkw", "6PzJRZsF7k2d9hV7", "wlZRK0YxnhP0b2RL"] },
   "wlZRK0YxnhP0b2RL": { "name": "WF-51 Send Slack Message", "calls": ["6H75p935FpBVBQtV"] },
-  "zM8WbxSdt9nXRoLZ": { "name": "WF-21 New User Welcome + Form", "calls": ["BUVun38WEKb12zg9"] }
+  "zM8WbxSdt9nXRoLZ": { "name": "WF-21 New User Welcome + Form", "calls": ["9Zt23yt8k8PQSgji", "tJknCwk2PzLpEwTX", "BUVun38WEKb12zg9", "ONzUJ1Lj9hIbUYT0"] }
 }
 ```

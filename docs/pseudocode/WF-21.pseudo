@@ -13,7 +13,7 @@ WF-21 — Brand-New Owner (no record)
   - **Opt-out aliases (decision #6):** literal `STOP` / `UNSUBSCRIBE` / `OPT OUT` / `OPT-OUT` are preempted before U3 (exact-match after `uppercase(trim())`). `REBOOK` is preempted too. These never reach the classifier.
   - **Fail-open:** U3 returns raw `{ bucket, confidence }`; WF-21 maps `confidence < 0.5` to the `unrelated` (gentle-redirect) branch — never ghost a real prospect.
   - **All form-sending branches Insert `pending_users`** so the next message routes to WF-23 (pre-form), never back here.
-  - **Copy is DRAFT (BMX-06 §11.1) — verify verbatim at build** (reuse the exact live welcome / policy-URL / fee text).
+  - **Copy LOCKED (user sign-off 2026-05-29, build-sprint Batch 5):** Welcome+form = live WF-21 text verbatim with name = "Dr. Chinmay Mujumdar"; policy URL `https://chinmaymujumdar.com/privacy-policy`; fee ₹500 via GPay; Flow ID `2260297164474475`, CTA "Fill Details", header "Birth Details Form". Gentle-redirect = "🙏 Thanks for reaching out! Chinmay Astro offers Vedic astrology consultations with Dr. Chinmay Mujumdar over WhatsApp. If you'd like a consultation, tap Fill Details below to get started." Service answer = Gemini reply + blank line + welcome+form. "Dr." used consistently. (Dead `wasOptedOut` welcome-back prefix from live is dropped — brand-new is never opted-out.)
 
 ---
 
