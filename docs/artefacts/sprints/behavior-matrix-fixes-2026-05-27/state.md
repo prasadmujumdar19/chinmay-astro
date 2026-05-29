@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/sprints/behavior-matrix-fixes-2026-05-27/tasks.md
 **Input hash:** 5e7e3db0999e1128ce39970bc1075716120bb3cf87f7067616220f7653ff7f54
 **Planned at:** 2026-05-29T07:53:18Z
-**Last updated:** 2026-05-29T20:35:18Z
+**Last updated:** 2026-05-29T22:00:00Z
 **Planning complete:** true
 
 **Reconciled scope:** Planned against the tasks.md RECONCILIATION banner (2026-05-29), NOT the original 7 TD-BMX item blocks. The redesign is defined across two companion specs — `docs/artefacts/specs/2026-05-29-bmx-06-new-contact-flow-design.md` (new + pre-form) and `docs/artefacts/specs/2026-05-29-existing-user-safety-net-design.md` (existing + opted_out + BMX-05). The original TD-BMX-01..07 items are decomposed into the build units of the cross-spec **Phase 0→5 build sequence** (safety-net spec §8.2). User confirmed phase-mapped granularity (19 build units) on 2026-05-29.
@@ -27,8 +27,8 @@
 | BMX-P0-U2 | ✅ done | 1 | P0 | WF-61 | BMX-P0-DB (hard) |
 | BMX-P0-U3 | ✅ done | 2 | P0 | WF-62 | BMX-P0-U1 (hard) |
 | BMX-P1-PSEUDO | ✅ done | 3 | P0 | WF-01, WF-02, WF-20, WF-21, WF-23, WF-25, WF-26, WF-30, WF-31, WF-40, WF-43, WF-44, WF-45, WF-53, WF-61, WF-62 | — |
-| BMX-P2-WF01 | ⬜ pending | 4 | P0 | WF-01 | BMX-P0-DB (hard), BMX-P1-PSEUDO (hard) |
-| BMX-P2-WF02 | ⬜ pending | 4 | P0 | WF-02 | BMX-P0-U2 (hard), BMX-P1-PSEUDO (hard) |
+| BMX-P2-WF01 | ✅ done | 4 | P0 | WF-01 | BMX-P0-DB (hard), BMX-P1-PSEUDO (hard) |
+| BMX-P2-WF02 | ✅ done | 4 | P0 | WF-02 | BMX-P0-U2 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P2-WF21 | ⬜ pending | 5 | P0 | WF-21 | BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P2-WF23 | ⬜ pending | 6 | P0 | WF-23 | BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P3-WF25 | ⬜ pending | 7 | P0 | WF-25 | BMX-P0-U1 (hard), BMX-P0-U2 (hard), BMX-P1-PSEUDO (hard) |
@@ -74,6 +74,8 @@
 - **Description:** WF-01 identity/security gate rebuild (critical path) + WF-02 router edits. Both different workflows (no sibling race). WF-01 applies D1 block-unify; WF-02 gets the new non-text branch + nfm_reply guard (decision #10).
 - **Estimated size:** L
 - **Estimated tokens:** ~80K
+- **Execution plan:** ≤2 items → Step 2a skipped; both Mode A (full build-workflow inline). WF-01 author-fresh (user-approved); WF-02 on-disk mutate. Run sequentially (WF-01 first — WF-02 is its consumer).
+- **Post-batch regression (2026-05-29T22:00Z — PASS):** dependency map rebuilt — WF-01 calls {WF-26, WF-21, WF-02} (WF-50/51 dropped); WF-02 calls {WF-23,22,32,30,31,40,43,20,51, WF-61(U2), WF-50} (WF-21 dropped) — both match design. No sibling Postgres-lookup pattern shares WF-01's combined-anchor query; WF-02 added no Postgres. WF-02 guard relaxation-only → no existing caller breaks (WF-26 re-route still valid). Downstream consumers WF-21/23/26 are scheduled rebuilds (Batches 5/6/9), not regressions; WF-23 still gets the unchanged PRE_FORM_TEXT envelope. No strict findings; 2 adjacent plugin-improvement notes logged to followups.md (consumer-contract gate; Step-6a connection-target scan).
 
 ## Batch 5 — Phase 2b · BMX-06 brand-new owner (WF-21)
 
@@ -254,7 +256,12 @@ Per safety-net §8.2 Phase 1 + pseudocode-first practice ([[feedback_pseudocode_
 
 ## BMX-P2-WF01 — Rebuild WF-01 identity & security gate (BMX-06 §5)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-29T21:19:46Z
+**Completed:** 2026-05-29T21:38:27Z
+**Actual tokens:** ~60K
+**Actual effort:** ~19 min
+**Estimate delta:** on-bucket (planned L ~50K, actual ~60K)
 **Priority:** P0 | **Batch:** 4
 **Change type:** Structural (critical path)
 **Workflows:** WF-01
@@ -265,9 +272,16 @@ Per safety-net §8.2 Phase 1 + pseudocode-first practice ([[feedback_pseudocode_
 
 WF-01 rebuilt to: Country → blocked? → opted_out? → route. Applies D1 block-unify (single `blocked` status + the legacy block-audit trio `blocked_reason`/`blocked_at`/`blocked_by`, no `blacklisted`; see BMX-P0-U2 design change). Non-text handling removed from WF-01 (moves to WF-02/WF-21/WF-23). Critical path (entry) → built in its own small batch with WF-02. **Delivers the behavior that the as-written TD-BMX-02 targeted** (blocked+media → silent ✓; opted_out+media → re-engage via WF-26 by design, DR-4). Reads `status='blocked'` for the gate (the `blocked_reason` columns are pre-existing — no DB dep). Invoke `build-workflow`; rebuild approach (author TO-BE from scratch) per BMX-06 §8a.
 
+**Build outcome (2026-05-29T21:38:27Z):** Author-fresh rebuild (user-approved, Step 5e.0 criterion 1), 26→13 nodes, same ID `hYGNM97sXvdo1WmI`, active=true. TO-BE: `Country Filter`→`Country Rejected?`(true→`Silent Reject (Country)`; false→continue)→`Status Lookup` (NEW combined LEFT-JOIN users+pending_users on phone, anchored 1-row, aod=true, snake_case aliases)→`Classify & Build Envelope` (Code: route∈{blocked,opted_out,brand_new,existing}, §2.1 envelope + passthrough incl. rawMessage, forces pendingUser:null+wasOptedOut:true on opted_out)→IF-chain `Route: Blocked?`→`Silent Drop (Blocked)`; `Route: Opted Out?`→`Route Opted-Out to WF-26` (keeper); `Route: Brand New?`→`Call WF-21` (NEW direct edge); else→`Call WF-02 Rule Router` (keeper). Keepers spliced verbatim by name: trigger, `Layer 1: Country Filter`, `Country Rejected?`, `Silent Reject (Country)`, `Route Opted-Out to WF-26`, `Call WF-02 Rule Router`. Removed: non-text filter (4 nodes), duplicate blacklist chain (4), anomaly gate + WF-51 alert (4), duplicate opted-out load chain, both old envelope builders. cachedResultName added to all 3 exec nodes (2nd PUT). typeVersion floor held (if 2.2, exec 1.2, pg 2.6 — tv diff showed removals only). **Verification:** lint exit 0; MCP strict-validate valid:true, 0 errors, 19 warnings (all FP/floor: IF-main[1]-as-error-output ×4, typeVersion-floor advisories, terminal-const Code "doesn't reference input" ×2, tech-error-deferred on Status Lookup); dangling-ref scan clean (only ref is keeper trigger); Status Lookup SQL runtime-verified via read-only queries (unknown phone→1 all-null row; pending-only phone→route='existing'→WF-23). **Consumer-contract verification (envelope creator):** WF-26 live guard satisfied field-for-field on text re-engagement (media/non-text throws at WF-26's pre-Batch-9 guard — reconciled in Batch 9 WF-26 refine; WF-01 correctly does not filter, S8×G per matrix); old WF-21 has no guard, reads phoneNumber/phoneNumberFormatted/messageId/messageContent (all present); WF-02 co-verified in BMX-P2-WF02. Parent WF-00 calls WF-01→Return 200, does not consume WF-01 return — return-shape change safe. **Finding flagged:** pre-rebuild live country gate was inverted (true/rejected→continue, false/allowed→silent-reject); rebuild wires it correctly. Backup: `archive/backups/hYGNM97sXvdo1WmI-2026-05-30-07-29.json`. Full live end-to-end deferred to Batch 10 smoke (users table empty; WF-21/26 rebuild in Batches 5/9).
+
 ## BMX-P2-WF02 — WF-02 router edits + nfm_reply guard (BMX-06 §6 / decision #10)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-29T21:39:19Z
+**Completed:** 2026-05-29T21:58:05Z
+**Actual tokens:** ~55K
+**Actual effort:** ~19 min
+**Estimate delta:** +1 bucket (planned M ~30K, actual ~55K — extra consumer-contract verification + a rename-induced dangling-target fix round + 2 plugin-improvement notes)
 **Priority:** P0 | **Batch:** 4
 **Change type:** Structural (Code-node)
 **Workflows:** WF-02
@@ -278,6 +292,8 @@ WF-01 rebuilt to: Country → blocked? → opted_out? → route. Applies D1 bloc
 **Estimated effort:** ~1 hr
 
 WF-02 (messageType + state router for anyone with a record): add the new non-text branch (⟦U2 thr=10⟧ → if !blocked: "email us") and the nfm_reply guard ternary on the `Detect Route` node (decision #10). Hard dep on U2 (non-text branch calls it). Invoke `build-workflow`.
+
+**Build outcome (2026-05-29T21:58:05Z):** On-disk transform (mutate live, keepers preserved — NOT author-fresh), 19→23 nodes. Changes: (1) `Validate Inputs` relaxed — messageType any non-empty string (accepts media), messageContent key-present (allow null) per pseudo Step 1; (2) `Detect Route` rewritten — nfm_reply stage guard (user null + pendingUser present → DETAILS_FORM else UNHANDLED), NEW `EXISTING_NON_TEXT` (user!=null && messageType not text/interactive), `NEW_USER` removed (falls to UNHANDLED); (3) `Route Switch` index-0 repurposed NEW_USER→EXISTING_NON_TEXT (indices 1–8 stable); (4) `Is Text Message?` → `Existing-User Text?` gated on `messageType==='text' && user!=null` (pre-form text now skips WF-20 → WF-23); (5) dead `Call WF-21` node removed; (6) NEW branch: Route Switch[EXISTING_NON_TEXT] → `Build U2 Payload (Non-Text)` (Set v3.4 contract-emit {phoneNumber,messageType,reason:non_text,messageContent,blockThreshold:10,blockReason:threshold_non_text}) → `Call WF-61 (U2 Non-Text Escalate)` → `Non-Text Blocked?` IF (true=blocked→terminal w/ notes justification; false→`Build Deflection Payload` Set v3.4 → `Call WF-50 (Non-Text Deflection)` w/ approved verbatim "email us" copy). typeVersion: IF v2 (WF-02 floor), exec 1.2, Switch 3.2 (in-place); Set v3.4 introduced (justified project floor — 44/44 project Set nodes at 3.4). New exec nodes carry cachedResultName. **Verification:** lint exit 0; MCP strict-validate valid:true 0 errors. **Caught + fixed:** the `Is Text Message?`→`Existing-User Text?` rename updated the outgoing-connection key + `$()` refs but initially missed the INCOMING connection target (`Detect Route → "Is Text Message?"`) → validate flagged "Connection to non-existent node" + a cascade of "not reachable" warnings; fixed by renaming connection targets too, re-PUT, re-validate clean. Remaining 13 warnings all FP/pre-existing (IF/Switch main[1]-as-error-output FP ×3; cachedResultName missing on 9 pre-existing keeper exec nodes — live debt, left for Batch 8 handler edits; long-linear-chain info). **Consumer-contract verification:** WF-02 accepts WF-01's envelope field-for-field (the relaxed guard is exactly what lets WF-01's media envelope through); the new U2 + WF-50 calls satisfy WF-61 + WF-50 entry-guard contracts. **Plugin notes logged** (followups.md, flush at batch boundary): (a) consumer-contract acceptance should be an explicit build-workflow Step 6 gate for contract producers; (b) Step 6a dangling-ref scan should also cover connection TARGET names, not just `$('…')` expression refs. Backup: `archive/backups/PubCsNTOspF3xqXZ-2026-05-30-07-50.json`. Full live end-to-end deferred to Batch 10 smoke.
 
 ## BMX-P2-WF21 — Rebuild WF-21 brand-new owner (BMX-06 §7)
 
