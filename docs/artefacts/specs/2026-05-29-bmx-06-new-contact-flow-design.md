@@ -4,21 +4,35 @@
 > - BMX-06 **structure = FINAL** (WF-01/02/21/23 + utilities U1/U2/U3 + silent_drop table + thresholds).
 > - BMX-06 **content (copy + U3 prompt) = DRAFT** in §11 — MUST be re-verified VERBATIM with the user at
 >   build-sprint time (see the VERIFY banner in §11).
-> - **NOT yet designed:** message debouncing (§9a) and BMX-05 (§12). See agenda below.
+> - **Resolved since (2026-05-29):** message debouncing = deferred fast-follow (§9a); BMX-05 = designed in
+>   the existing-user safety-net spec (§12). See §0.
 >
 > This file is the durable source of truth — the final spec is a cleanup of this file, NOT a regeneration
 > from memory. Do not discard any flow without explicit user sign-off.
 
-## 0. NEXT SESSION — remaining agenda (in order)
+> 🔧 **AMENDED 2026-05-29 (folded from the existing-user safety-net spec §7):**
+> 1. **Block-state unified on `status='blocked'`** — every `blacklisted` below is now `blocked` (one
+>    terminal block state across admin BLOCK, WF-46-abuse, and threshold/abuse auto-block). A new nullable
+>    **`block_reason`** column on `users` records the cause (`admin` / `abuse` / `threshold_garbage` /
+>    `threshold_nontext`). The WF-01 "Blacklisted?" gate is the unified **"Blocked?"** gate.
+> 2. **Opt-out aliases in the literal preempts** — WF-21 step 2 and WF-23 step 2 preempt
+>    `STOP | UNSUBSCRIBE | OPT OUT | OPT-OUT` (exact-match after `uppercase(trim())`), same per-stage
+>    treatment as STOP. (REBOOK unchanged.)
+> Authority for both: `docs/artefacts/specs/2026-05-29-existing-user-safety-net-design.md` (decisions #1, #6).
+> Inline references below have been updated to match.
 
-A fresh brainstorming session resumes from THIS file. Pick up in this order:
-1. **Message debouncing / buffering** — design the per-phone buffer + Wait-node debounce (see §9a for the
-   agreed pattern, our-stack adaptation, and rationale). Cross-cutting (WF-00→WF-01 + active-consult relay).
-2. **BMX-05** — UNSUBSCRIBE / OPT OUT / OPT-OUT aliases for STOP, for EXISTING users (see §12). New/pre-form
-   fuzzy opt-out is already handled here via `stop_intent`; BMX-05's remaining piece is the existing-user
-   alias→WF-47 mapping.
-3. **Finalize BMX-06 copy/prompt verbatim** (§11) — then this design is spec-ready and we transition to
-   writing-plans.
+## 0. STATUS — agenda resolved (updated 2026-05-29)
+
+All items from this file's original next-session agenda are now resolved:
+1. **Message debouncing / buffering** — ✅ DECIDED: deferred to a pre-go-live fast-follow, NOT part of
+   BMX-06 (see §9a). Captured, not open.
+2. **BMX-05 / opt-out aliases** — ✅ DESIGNED in the existing-user safety-net spec
+   (`docs/artefacts/specs/2026-05-29-existing-user-safety-net-design.md` decision #6). Existing users →
+   WF-20→WF-47; new/pre-form aliases folded into WF-21/WF-23 step-2 preempts (see the AMENDED banner above).
+3. **Finalize BMX-06 copy/prompt verbatim** (§11) — still pending; done at build-sprint time per the §11
+   VERIFY banner.
+
+This design is spec-ready. Build per the cross-spec **Phase 0→5 sequence** in the safety-net spec §8.2.
 
 - **Session date:** 2026-05-29
 - **Sprint:** behavior-matrix-fixes-2026-05-27 (items TD-BMX-06 main, TD-BMX-05 folded in)
@@ -41,9 +55,10 @@ state-handler internals (unchanged).
 
 ## 2. Decisions locked (with rationale)
 
-1. **Block a no-record phone = insert `users` row `status=blacklisted`** (chose tasks.md option (a), a
-   stub row, over a separate `blocked_phones` table). One table, one lookup. Probable cause = the
-   abusive act. So the universal blacklist lookup catches ex-registered AND new-abuser phones alike.
+1. **Block a no-record phone = insert `users` row `status=blocked`** (chose tasks.md option (a), a
+   stub row, over a separate `blocked_phones` table; `block_reason='abuse'`). One table, one lookup.
+   Probable cause = the abusive act. So the universal block lookup catches ex-registered AND new-abuser
+   phones alike. *(Amended 2026-05-29: was `blacklisted` — unified on `blocked` + `block_reason`.)*
 2. **Fail-open on classification** — silent-drop only high-confidence garbage / stop_intent / abuse;
    `unrelated` and any low-confidence go to a gentle redirect + form (never ghost a real prospect).
    Echoes the SP-04 (2026-05-23) precedent against trusting Gemini on early-journey paths.
@@ -54,9 +69,10 @@ state-handler internals (unchanged).
 5. **New-user non-text → silent drop** (no "send Hi" reply). Genuine users self-correct with a text
    follow-up; abusers get no engagement. (The warm "send Hi" copy drafted earlier is retired.)
    Existing/pre-form users keep a deflection message (they have a relationship).
-6. **`silent_drop` table + threshold auto-blacklist.** Every drop/rate-limited reply logs a row;
+6. **`silent_drop` table + threshold auto-block.** Every drop/rate-limited reply logs a row;
    when the per-phone count over a **30-day rolling window** reaches the caller-supplied threshold,
-   auto-blacklist + admin alert. **30-day window is NEVER surfaced to users.**
+   auto-block (`status='blocked'`, `block_reason='threshold_*'`) + admin alert. **30-day window is NEVER
+   surfaced to users.**
 7. **Thresholds:** new/pre-form = 5; fully-onboarded = 10; legit-but-repeating (welcome/form loop) = 10;
    fail-open redirect = 5; abuse = instant. See §4 table.
 8. **WF-01 = identity/security gate only** (no messageType branching). **WF-02 = messageType + state
@@ -95,7 +111,7 @@ IN: { phone, messageType, reason, content, blockThreshold }
 1. INSERT chinmay_astro.silent_drop (phone, message_type, reason, content, created_at)
 2. SELECT count(*) WHERE phone = ? AND created_at >= now() - interval '30 days'
 3. count >= blockThreshold ?
-     ├─ yes → upsert users SET status=blacklisted (stub row if none)
+     ├─ yes → upsert users SET status=blocked, block_reason='threshold_'||reason (stub row if none)
      │        + admin alert via WF-51 ("auto-blocked: N dropped msgs in 30d, last <type>/<reason>")
      │        → return { blocked: true }
      └─ no  → return { blocked: false }
@@ -153,14 +169,14 @@ CREATE INDEX ON chinmay_astro.silent_drop (phone_number, created_at);
 ```
 1. Country Filter ──(non-+91)──▶ Silent Reject (Country)
 2. Status Lookup → { user_status, has_user, has_pending }   (single combined query)
-3. Blacklisted? ──yes──▶ Silent Drop                          [no log — already blocked]
+3. Blocked? ──yes──▶ Silent Drop                              [no log — already blocked; `status='blocked'`]
 4. opted_out? ──yes──▶ WF-26
 5. brand-new (no record)? ──yes──▶ WF-21
 6. else (has_user OR has_pending) ──▶ WF-02
 ```
-**Deltas vs live:** non-text Layer-2 filter removed (moves to WF-02/WF-21/WF-23); blacklist universal &
-above segregation; `anomaly_keyword` (STOP/REBOOK) deleted; `anomaly_interactive` removed (→ WF-21/23
-step 1); no messageType branching at all.
+**Deltas vs live:** non-text Layer-2 filter removed (moves to WF-02/WF-21/WF-23); block lookup universal &
+above segregation (unified `blocked` gate — amended 2026-05-29); `anomaly_keyword` (STOP/REBOOK) deleted;
+`anomaly_interactive` removed (→ WF-21/23 step 1); no messageType branching at all.
 
 ---
 
@@ -200,7 +216,7 @@ NEW: existing-user non-text reaches WF-02 (WF-01 stopped dropping it) → deflec
 ## 7. WF-21 (TO-BE) — brand-new owner  (no record at all)
 ```
 step 1: messageType ≠ text? ──▶ ⟦U2 thr=5⟧                     [merged interactive + non-text]
-step 2: literal STOP   ──▶ silent drop + ⟦U2 thr=5⟧            [NO reply — brand-new asymmetry]
+step 2: literal STOP / UNSUBSCRIBE / OPT OUT / OPT-OUT ──▶ silent drop + ⟦U2 thr=5⟧   [NO reply — brand-new asymmetry; aliases per safety-net #6]
         literal REBOOK ──▶ silent drop + ⟦U2 thr=5⟧            [NO reply]
 step 3: text → ⟦U3 classify, stage=new⟧:
    greeting | wants_consultation ───▶ Insert pending_users + Welcome + Form        + ⟦U2 thr=10⟧
@@ -208,7 +224,7 @@ step 3: text → ⟦U3 classify, stage=new⟧:
    HELP ─────────────────────────────▶ Insert pending_users + Welcome + Form       + ⟦U2 thr=10⟧
    unrelated | low-confidence ───────▶ Gentle redirect + Insert pending_users + Form + ⟦U2 thr=5⟧
    garbage | stop_intent ────────────▶ ⟦U2 thr=5⟧                                  [silent]
-   malicious | abusive | inappropriate ──▶ Insert users(blacklisted) + admin alert + NO reply
+   malicious | abusive | inappropriate ──▶ Insert users(blocked, block_reason='abuse') + admin alert + NO reply
    ⚠️ any Gemini failure → ⟦U1⟧
 ```
 *All form-sending branches Insert pending_users → next message routes to WF-23, never loops back here.*
@@ -218,7 +234,7 @@ step 3: text → ⟦U3 classify, stage=new⟧:
 ## 8. WF-23 (TO-BE) — pre-form owner  (has pending_users, no users row)
 ```
 step 1: messageType ≠ text? ──▶ ⟦U2 thr=5⟧                     [merged; non-text reason nudges form too]
-step 2: literal STOP   ──▶ clarifier ("nothing to opt out of — complete the form to start") + ⟦U2 thr=5⟧
+step 2: literal STOP / UNSUBSCRIBE / OPT OUT / OPT-OUT ──▶ clarifier ("nothing to opt out of — complete the form to start") + ⟦U2 thr=5⟧   [aliases per safety-net #6]
         literal REBOOK ──▶ clarifier ("no prior booking to rebook — complete the form to start") + ⟦U2 thr=5⟧
 step 3: text → ⟦U3 classify, stage=pre_form⟧:
    greeting | wants_consultation ───▶ Re-send Form                  + ⟦U2 thr=10⟧
@@ -226,7 +242,7 @@ step 3: text → ⟦U3 classify, stage=pre_form⟧:
    HELP ─────────────────────────────▶ help text + Re-send Form     + ⟦U2 thr=10⟧
    unrelated | low-confidence ───────▶ Gentle redirect + Re-send Form + ⟦U2 thr=5⟧
    garbage | stop_intent ────────────▶ ⟦U2 thr=5⟧                   [silent]
-   malicious | abusive | inappropriate ──▶ Insert users(blacklisted) + admin alert + NO reply
+   malicious | abusive | inappropriate ──▶ Insert users(blocked, block_reason='abuse') + admin alert + NO reply
    ⚠️ any Gemini failure → ⟦U1⟧
 ```
 *No pending_users insert here — row already exists; re-send form rather than welcome. Current WF-23
@@ -407,7 +423,13 @@ User message:
 ```
 - Caller fail-open threshold: `confidence < 0.5` → treat as `unrelated` branch (tune at build).
 
-## 12. BMX-05 context (for next session — NOT yet designed)
+## 12. BMX-05 context (✅ DESIGNED 2026-05-29 — see existing-user safety-net spec decision #6)
+
+> The remaining existing-user alias work below was designed in
+> `docs/artefacts/specs/2026-05-29-existing-user-safety-net-design.md` (decision #6): add `UNSUBSCRIBE` /
+> `OPT OUT` / `OPT-OUT` to WF-20's exact-match keyword switch (→ WF-47), exact-match-after-`uppercase(trim())`,
+> `OPTOUT` (no separator) excluded. New/pre-form aliases are handled via the WF-21/WF-23 step-2 preempts (see
+> the AMENDED banner at the top of this file). The historical context below is retained for the audit trail.
 
 **Scope remaining:** UNSUBSCRIBE / OPT OUT / OPT-OUT as STOP aliases, for **fully-onboarded (has_user)**
 users. (New + pre-form fuzzy opt-out is already covered here: brand-new `stop_intent` → silent+escalate;
