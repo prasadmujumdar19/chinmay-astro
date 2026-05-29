@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/sprints/behavior-matrix-fixes-2026-05-27/tasks.md
 **Input hash:** 5e7e3db0999e1128ce39970bc1075716120bb3cf87f7067616220f7653ff7f54
 **Planned at:** 2026-05-29T07:53:18Z
-**Last updated:** 2026-05-29T22:31:01Z
+**Last updated:** 2026-05-29T22:59:05Z
 **Planning complete:** true
 
 **Reconciled scope:** Planned against the tasks.md RECONCILIATION banner (2026-05-29), NOT the original 7 TD-BMX item blocks. The redesign is defined across two companion specs — `docs/artefacts/specs/2026-05-29-bmx-06-new-contact-flow-design.md` (new + pre-form) and `docs/artefacts/specs/2026-05-29-existing-user-safety-net-design.md` (existing + opted_out + BMX-05). The original TD-BMX-01..07 items are decomposed into the build units of the cross-spec **Phase 0→5 build sequence** (safety-net spec §8.2). User confirmed phase-mapped granularity (19 build units) on 2026-05-29.
@@ -30,7 +30,7 @@
 | BMX-P2-WF01 | ✅ done | 4 | P0 | WF-01 | BMX-P0-DB (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P2-WF02 | ✅ done | 4 | P0 | WF-02 | BMX-P0-U2 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P2-WF21 | ✅ done | 5 | P0 | WF-21 | BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard) |
-| BMX-P2-WF23 | ⬜ pending | 6 | P0 | WF-23 | BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard) |
+| BMX-P2-WF23 | ✅ done | 6 | P0 | WF-23 | BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P3-WF25 | ⬜ pending | 7 | P0 | WF-25 | BMX-P0-U1 (hard), BMX-P0-U2 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P3-HANDLERS | ⬜ pending | 8 | P0 | WF-30, WF-31, WF-40, WF-43 | BMX-P3-WF25 (hard), BMX-P0-U1 (hard) |
 | BMX-P3-WF44 | ⬜ pending | 8 | P0 | WF-44 | BMX-P3-WF25 (soft) |
@@ -91,6 +91,8 @@
 - **Description:** WF-23 rebuild — pre-form owner (has pending_users, no users row). Same U2/U3 + alias pattern as WF-21 (sibling pattern); built back-to-back with WF-21 for familiarity savings (~10%).
 - **Estimated size:** L
 - **Estimated tokens:** ~48K
+- **Execution plan:** 1 item → Step 2a skipped; Mode A (full build-workflow inline), author-fresh (user-approved). Recorded 2026-05-29T22:45Z.
+- **Post-batch regression (2026-05-29T22:59Z — PASS):** Dependency map rebuilt — WF-02→WF-23 (caller unchanged); WF-23→{WF-50, WF-61(U2), WF-62(U3), WF-53(U1)} — matches design exactly; WF-25 + WF-51 edges dropped (pre-form classification moved to U3, WF-25 call retired). Single caller (WF-02, Batch-4 build). Primary sibling = WF-21 (same new/pre-form 7-bucket/U2/U3/U1 pattern, built Batch 5, regression already PASS): unchanged (39 nodes, active); WF-23 replicates its verified pattern; shared callees U1/U2/U3/WF-50 unchanged (WF-23 only calls them — call payloads verified vs each callee `.pseudo` at build). WF-23 has 0 Postgres nodes → no sibling Postgres sanity checks apply (the pre-form row already exists; no Insert-PU, unlike WF-21). Other GAP-3C Gemini-pattern workflows (WF-30/31/43) are scheduled Batch 7–8 rebuilds, not regressions. No strict findings. No new adjacent findings this batch. Carried items (followups.md): 2 plugin-improvement notes from Batch 4 (consumer-contract gate; Step-6a connection-target scan) + CLAUDE.md Flow-ID drift — all still open for sprint-close flush.
 
 ## Batch 7 — Phase 3a · Safety-net hub (WF-25 full rebuild)
 
@@ -323,8 +325,14 @@ WF-21 rebuild (no record at all): step1 non-text → ⟦U2 thr=5⟧; step2 liter
 
 ## BMX-P2-WF23 — Rebuild WF-23 pre-form owner (BMX-06 §8)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-29T22:45:24Z
+**Completed:** 2026-05-29T22:59:05Z
+**Actual tokens:** ~55K
+**Actual effort:** ~14 min
+**Estimate delta:** on-bucket (planned L ~48K, actual ~55K — sibling-savings realized vs WF-21's ~65K; the WF-21 template + locked U1/U2/U3/WF-50 contracts cut analysis time)
 **Priority:** P0 | **Batch:** 6
+**Decision made (copy verbatim sign-off, 2026-05-29T22:45Z):** User approved strings A–G verbatim (BMX-06 §11.1 pre-form copy reconciled with "Dr. Chinmay Mujumdar" naming + WF-21 Flow-form params: header "Birth Details Form", flowId 2260297164474475, CTA "Fill Details", policy URL chinmaymujumdar.com/privacy-policy). Service-answer Gemini prompt reused verbatim from WF-21. Author-fresh build path approved (criterion 1 — pseudocode-driven complete rebuild; same path WF-01/WF-21 used this sprint).
 **Change type:** Structural (workflow rebuild)
 **Workflows:** WF-23
 **Depends on:** BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard)
@@ -333,6 +341,8 @@ WF-21 rebuild (no record at all): step1 non-text → ⟦U2 thr=5⟧; step2 liter
 **Estimated effort:** ~1.5–2 hr
 
 WF-23 rebuild (has pending_users, no users row): same shape as WF-21 but pre-form clarifiers — STOP-aliases → "nothing to opt out of, complete the form"; REBOOK → "no prior booking, complete the form"; U3 stage=pre_form buckets re-send/Gemini+form/help+form/redirect+form/silent/block. **Delivers TD-BMX-06 (pre-form) + pre-form HELP (the behavior TD-BMX-03 targeted for S2×E) + part of TD-BMX-05.** Sibling pattern to WF-21. Rebuild from scratch per §8a. Invoke `build-workflow`.
+
+**Build outcome (2026-05-29T22:59:05Z):** Author-fresh rebuild (Step 5e.0 criterion 1, user-approved this session — same path WF-01/WF-21 used), 21→45 nodes, same ID `VpCER0Vqq3NYJGpI`, active=true. WF-21 sibling used as the structural template (Build Service Answer Request / Generate Service Answer http / Parse Service Answer reused verbatim; all Set/Code contract shapes mirrored). Trigger upgraded v1→v1.1 `inputSource=passthrough` (was below floor; matches WF-21 + canonical sub-workflow pattern). Graph: Trigger → `Normalize Envelope` (Code: WF-02 pre-form envelope, keyword/isAlias/aliasReason, hard-fail on missing phoneNumber) → `Non-Text?` IF (T→`Build Deflection Message (Non-Text)` text→`Call WF-50 (Non-Text Deflection)`→`Build U2 Payload (Non-Text)` thr5 reason=non_text→`Call U2 (Non-Text)`; F→) `Opt-Out/Rebook Alias?` IF boolean (T→`Build Clarifier Message (Alias)` Code REBOOK?C:B text→`Call WF-50 (Alias Clarifier)`→`Build U2 Payload (Alias)` thr5 reason=aliasReason→`Call U2 (Alias)`; F→) `Build U3 Payload` Set {phoneNumber,text,stage:'pre_form'}→`Call U3 Classify` (default onError→halt propagates)→`Apply Fail-Open` (Code: confidence<0.5→unrelated; 6 routeClasses welcome/service/help/redirect/silent/block; recovers Normalize fields via `$('Normalize Envelope')`)→ IF-chain Route: Welcome?/Service?/Help?/Redirect?/Silent? (else→block). Welcome: `Build Welcome Message` (interactive form, string D)→Call WF-50→U2 greeting_loop thr10. Service: `Build Service Answer Request`→`Generate Service Answer` (http v4.2 gemini-2.5-flash-lite, retry3, onError=continueErrorOutput)—success→`Parse Service Answer`→`Build Service Message` (answer+string E+form)→Call WF-50→U2 service_loop thr10; error(main[1])→`Build U1 Payload (Service)` (source='WF-23')→`Call U1 (Service)` (default onError→halt). Help: `Build Help Message` (string F+form)→Call WF-50→U2 help_loop thr10. Redirect: `Build Redirect Message` (string G+form)→Call WF-50→U2 unrelated thr5. Silent: `Build U2 Payload (Garbage)` reason=silentReason(stop_intent|garbage) thr5→Call U2. Block: `Build U2 Payload (Abuse)` thr1 blockReason=abuse→Call U2. **Key WF-23-vs-WF-21 adaptations:** no Postgres/Insert-PU nodes (pending_users row already exists); non-text & alias branches send a WF-50 message BEFORE escalating, so their U2 Set nodes read `$('Normalize Envelope')` (not `$json`, which becomes WF-50's return post-send); distinct `help` routeClass (WF-21 folds HELP into welcome); stage='pre_form'; U1 context source 'WF-23'. Every Call U2/WF-50 onError=continueRegularOutput (fire-and-forget); Call U3/U1 default onError=stopWorkflow (halt propagates per U1/U3 caller conventions). **Verification:** lint exit 0; MCP strict valid:true, 0 errors, 53 warnings (all FP/floor/tech-deferred: IF-main[1]-as-error-output ×7, tv-floor "outdated" advisories, Code named-ref "doesn't reference input"/"$json each-mode" FP, googlePalmApi hardcoded-cred FP, long-chain info — same classes as WF-21 scaled for the extra Help route); dangling-ref scan clean (20 removed old nodes incl. `Call WF-25 Intent Classifier`, `Is Pass-Through Intent?`, the GAP-3C Gemini chain — 0 refs); Step-6b runtime probe: HTTP method=POST explicit + cred zT7defyXYEvxWwZm + retry3 carried, all 16 exec nodes op=call_workflow explicit, onError posture verified (U3/U1 default-stop, rest continue); tv floor held (only postgres absent vs WF-21 floor — expected, no new versions). **Contracts:** consumes WF-02 PRE_FORM envelope (phoneNumber/messageType/messageContent/contactName/messageId/phoneNumberFormatted); emits exact U2/U3{stage:pre_form}/U1{source:WF-23}/WF-50{text + interactive} contracts (verified vs each callee `.pseudo`). WF-25 call RETIRED (pre-form classification now via U3). Copy LOCKED per user sign-off ("Dr. Chinmay Mujumdar"; Flow ID 2260297164474475). Backup: `archive/backups/VpCER0Vqq3NYJGpI-2026-05-30-08-45.json`. **Live Gemini-classification + WA-send end-to-end deferred to Batch 10 smoke** (no pending_users test row wired — same deferral as WF-01/WF-21/U3 builds).
 
 ## BMX-P3-WF25 — Rebuild WF-25 Intent Classifier + Safety-Net Hub (safety-net §5)
 
