@@ -31,7 +31,7 @@
 | BMX-P2-WF02 | ✅ done | 4 | P0 | WF-02 | BMX-P0-U2 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P2-WF21 | ✅ done | 5 | P0 | WF-21 | BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P2-WF23 | ✅ done | 6 | P0 | WF-23 | BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard) |
-| BMX-P3-WF25 | ⬜ pending | 7 | P0 | WF-25 | BMX-P0-U1 (hard), BMX-P0-U2 (hard), BMX-P1-PSEUDO (hard) |
+| BMX-P3-WF25 | ✅ done | 7 | P0 | WF-25 | BMX-P0-U1 (hard), BMX-P0-U2 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P3-HANDLERS | ⬜ pending | 8 | P0 | WF-30, WF-31, WF-40, WF-43 | BMX-P3-WF25 (hard), BMX-P0-U1 (hard) |
 | BMX-P3-WF44 | ⬜ pending | 8 | P0 | WF-44 | BMX-P3-WF25 (soft) |
 | BMX-P3-WF20 | ⬜ pending | 8 | P0 | WF-20 | BMX-P1-PSEUDO (hard) |
@@ -100,6 +100,8 @@
 - **Description:** WF-25 full-replace rebuild on the SAME ID (`eTV1lUcYrXBg2q2T`) — carry over surviving nodes verbatim, generate U1/U2 calls + unified block + clarifier consolidation + D4 relay-return, retire WF-46 from this path. Critical hub; built alone (XL) and BEFORE its handlers so they edit against final hub behavior.
 - **Estimated size:** XL
 - **Estimated tokens:** ~70K
+- **Execution plan:** 1 item → Step 2a skipped; Mode A (full build-workflow inline), author-fresh (standing §8a/sprint-plan approval). Recorded 2026-05-29T23:10Z.
+- **Post-batch regression (2026-05-29T23:39Z — PASS):** Dependency map rebuilt (82 edges) — WF-25 now calls {WF-53(U1), WF-50, WF-61(U2)}; **WF-46 + direct WF-51 edges dropped** (U1/U2 own admin alerts internally) — matches design exactly. All **5 inbound callers** (WF-30/31/40/43 + WF-44) still resolve to the SAME ID `eTV1lUcYrXBg2q2T` (same-ID full-replace preserved — none break). WF-25 added **zero Postgres nodes** (SQL lives inside U1/U2/WF-61) → no Postgres sibling sanity-checks apply this batch. No structural sibling shares WF-25's hub pattern (WF-62/U3 is the new-user analog, already built Batch 2, distinct). Caller-consumption regression: pass-through return-SHAPE is byte-identical to the prior `$input.first()` behavior (Parse Intent == routed item), so callers consuming `intentResult` continue working; the new stop_intent + D4-active-garbage returns are **additive** — handlers WF-30/31/40/43 adapt to them in Batch 8 (hard dep, by design). No production regression in the gap (real users deferred to Batch 10 smoke; users table empty). **No strict findings.** Adjacent/plugin candidate (sprint-close flush): "terminal Return node in a send-then-return sub-workflow should read its canonical upstream (`$('<classifier>')`) not `$input.first()`, so branches that insert a sub-workflow send before returning still emit the original merged envelope, not the send's return value." Carried items (followups.md) from prior batches still open for sprint-close flush (2 Batch-4 plugin notes + CLAUDE.md Flow-ID drift + Batch-6 contract-emit `$('NamedNode')` candidate).
 
 ## Batch 8 — Phase 3b · Thin handlers + aliases + WF-46 retirement
 
@@ -346,7 +348,12 @@ WF-23 rebuild (has pending_users, no users row): same shape as WF-21 but pre-for
 
 ## BMX-P3-WF25 — Rebuild WF-25 Intent Classifier + Safety-Net Hub (safety-net §5)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-29T23:10:38Z
+**Completed:** 2026-05-29T23:39:24Z
+**Actual tokens:** ~60K
+**Actual effort:** ~29 min
+**Estimate delta:** on-bucket (planned XL ~70K, actual ~60K — keepers carried verbatim cut authoring time; copy was pure reuse-existing, no sign-off round-trip)
 **Priority:** P0 | **Batch:** 7
 **Change type:** Structural (full-replace rebuild, critical hub)
 **Workflows:** WF-25
@@ -357,6 +364,10 @@ WF-23 rebuild (has pending_users, no users row): same shape as WF-21 but pre-for
 **Estimated effort:** ~3–4 hr
 
 The central change. Author complete TO-BE node graph from scratch; carry over verbatim all workflow-level props + surviving nodes (Gemini classify HTTP node, parse Code node, Route switch); generate fresh nodes for U1/U2 calls + consultation_active D4 relay-return + clarifier consolidation; unify block on `blocked`+ legacy `blocked_reason`/`blocked_at`/`blocked_by`; **retire WF-46 from this path** (WF-25 stops calling it). **Apply via full-workflow replace on the SAME ID `eTV1lUcYrXBg2q2T`** — do NOT mint a new ID (4 callers WF-30/31/40/43 reference it by ID). Built BEFORE handlers so they edit against final hub behavior. Use jq+PUT for nested-array edits, verify with re-fetch ([[feedback_n8n_mcp_nested_array_update]]). Data-contract sanity on every U1/U2 call site ([[feedback_data_contract_discipline]]). Invoke `build-workflow`.
+
+**Resume multi-caller verification (2026-05-29T23:10Z):** live dependency-map shows **5** callers reference `eTV1lUcYrXBg2q2T` by ID (handoff said 4) — WF-30/31/40/43 (stay) + **WF-44** (`Du2CJ3OTohRFZYoA`, the redundant call retiring in Batch 8). Not a discrepancy — it confirms the same-ID full-replace constraint. PUT on same ID; no new ID minted.
+
+**Build outcome (2026-05-29T23:39:24Z):** Author-fresh rebuild (Step 5e.0 criterion 1 — pseudocode-driven complete rebuild; standing §8a/sprint-plan approval, same path WF-01/WF-21/WF-23 used this sprint), 22→19 nodes, same ID `eTV1lUcYrXBg2q2T`, active=true, via Python build script → curl PUT (body never entered context). **6 keepers carried verbatim by name:** trigger (upgraded v1→v1.1 `inputSource=passthrough`, matches sibling floor), Prepare Intent Request, Classify Intent (Gemini HTTP, cred googlePalmApi `zT7defyXYEvxWwZm`, onError=continueErrorOutput), Parse Intent (8-bucket validate + status-aware fallback), Route by Intent (switch v3, 8 outputs — rewired connections only), Return to Caller (one deliberate keeper edit: `return [$('Parse Intent').first()]` so send-then-return paths still return the merged `{...envelope, intentResult}`). **13 new nodes:** Gemini-fail → Build U1 Payload (Set v3.4, reads `$('Prepare Intent Request')`, userStateText status→plain-English map) → Call U1 (WF-53, default onError=stopWorkflow → halt propagates); stop_intent → Build Stop Clarifier Payload → Call WF-50 (continueRegularOutput) → Return; garbage → Build U2 Payload (Garbage) thr10 `threshold_garbage` → Call U2 (WF-61) → Garbage Blocked? IF (T→`End — Garbage Blocked (Silent)` notes-annotated terminal; F→) Active Consultation? IF (T→Return [D4]; F→Build Garbage Warning Payload → Call WF-50 [terminal]); abuse (Route 5+6) → Build U2 Payload (Abuse) thr1 `abuse` → Call U2 [terminal]. Copy REUSE-EXISTING verified verbatim vs live: stop clarifier (matched live handler WF-30) + garbage warning (matched live WF-25 `Prepare Garbage Warning`). **Removed (15):** Notify Admin of Garbage, Prepare/Send Block Warning, Auto-Block via WF-46, Prepare WF-51 Payload (Garbage Admin), the full inline Gemini-failure chain (Build User Apology Payload, Send Apology via WF-50, Build Admin Alert Text, Has Consult Channel?, Build/Send Consult+AdminCmds alerts ×4, Halt on Gemini Failure), Prepare Garbage Warning. **Verification:** lint hook exit 0; MCP strict-validate `valid:true`, 0 errors, 24 warnings (ALL FP/floor/tech-deferred — typeVersion-floor advisories [keepers + new at project floor 1.2/2.2/3.4], IF/Switch main[1]-as-error-output FP ×3, switch-v3 missing-outputKey ×8 [keeper verbatim], Code-can-throw ×2 + googlePalmApi hardcoded-cred FP + long-chain info); Step-6a post-PUT dangling-ref scan clean (0 refs to any of 15 removed names); Step-6b per-node strict on executeWorkflow canonical shape `valid:true` 0 errors (no operation-default trap — no Postgres/new-HTTP/Slack added); pre-flight lint scan was clean (no debt rollers needed). **Contracts:** emits exact U1 `{phoneNumber,userFacing:true,consultChannelId,context}` / U2 `{phoneNumber,messageType,reason,messageContent,blockThreshold,blockReason}` / WF-50 text `{phoneNumber,messageType:text,messageContent}` contracts (verified vs each callee `.pseudo` Inputs); contract-emit Set v3.4 immediately upstream of every exec call (includeOtherFields=false). **Return-shape preserved** for pass-through (same as old `$input.first()` since Parse Intent == routed item). Backup: `archive/backups/eTV1lUcYrXBg2q2T-2026-05-30-09-17.json`. **Live Gemini-classification + send end-to-end deferred to Batch 10 smoke** (users table empty; handlers WF-30/31/40/43 adapt to the new return-contract in Batch 8 — same deferral as WF-01/21/23/U1/U2/U3).
 
 ## BMX-P3-HANDLERS — Thin handler edits WF-30/31/40/43 (safety-net §6)
 

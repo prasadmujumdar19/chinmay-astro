@@ -1,5 +1,5 @@
 # Workflow Dependency Map
-Generated: 2026-05-30 09:00
+Generated: 2026-05-30 09:41
 
 ## Diagram
 ```mermaid
@@ -59,9 +59,9 @@ graph TD
   du32QBZbSQOjfESe["WF-40 User -> Admin Relay"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   du32QBZbSQOjfESe["WF-40 User -> Admin Relay"] --> eTV1lUcYrXBg2q2T["WF-25 Intent Classifier"]
   du32QBZbSQOjfESe["WF-40 User -> Admin Relay"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
+  eTV1lUcYrXBg2q2T["WF-25 Intent Classifier"] --> ONzUJ1Lj9hIbUYT0["WF-53 U1 Gemini Error Handler"]
   eTV1lUcYrXBg2q2T["WF-25 Intent Classifier"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
-  eTV1lUcYrXBg2q2T["WF-25 Intent Classifier"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
-  eTV1lUcYrXBg2q2T["WF-25 Intent Classifier"] --> UV62An60fzflU0uD["WF-46 User Blocker"]
+  eTV1lUcYrXBg2q2T["WF-25 Intent Classifier"] --> 9Zt23yt8k8PQSgji["WF-61 U2 Silent-Drop & Escalate"]
   emUOLWVZiNVxcOe3["WF-32 Payment Confirmation Receiver"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   emUOLWVZiNVxcOe3["WF-32 Payment Confirmation Receiver"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   fx70vqyJtRdF2DgR["WF-42 Consultation Closer"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
@@ -109,7 +109,7 @@ graph TD
   "VpCER0Vqq3NYJGpI": { "name": "WF-23 Pre-Form Intent Filter", "calls": ["BUVun38WEKb12zg9", "9Zt23yt8k8PQSgji", "tJknCwk2PzLpEwTX", "ONzUJ1Lj9hIbUYT0"] },
   "dr8QM0m92Ml8MvIh": { "name": "WF-22 Form Response Handler", "calls": ["IO5BZLUxuVmjzk5I", "BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
   "du32QBZbSQOjfESe": { "name": "WF-40 User -> Admin Relay", "calls": ["wlZRK0YxnhP0b2RL", "eTV1lUcYrXBg2q2T", "BUVun38WEKb12zg9"] },
-  "eTV1lUcYrXBg2q2T": { "name": "WF-25 Intent Classifier", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL", "UV62An60fzflU0uD"] },
+  "eTV1lUcYrXBg2q2T": { "name": "WF-25 Intent Classifier", "calls": ["ONzUJ1Lj9hIbUYT0", "BUVun38WEKb12zg9", "9Zt23yt8k8PQSgji"] },
   "emUOLWVZiNVxcOe3": { "name": "WF-32 Payment Confirmation Receiver", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
   "fx70vqyJtRdF2DgR": { "name": "WF-42 Consultation Closer", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
   "gGJBY5fJha0Let8I": { "name": "WF-30 Payment Pending Intent Filter", "calls": ["eTV1lUcYrXBg2q2T", "BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
