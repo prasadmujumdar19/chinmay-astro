@@ -1,5 +1,5 @@
 # Workflow Dependency Map
-Generated: 2026-05-27 15:24
+Generated: 2026-05-29 21:53
 
 ## Diagram
 ```mermaid
@@ -13,6 +13,7 @@ graph TD
   3va0M06kijgyLejf["WF-43 Post-Consultation Handler"] --> 2U7mxHMyqA41ROKX["WF-47 Unsubscribe Handler"]
   3va0M06kijgyLejf["WF-43 Post-Consultation Handler"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   6PzJRZsF7k2d9hV7["WF-41 Admin -> User Relay"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
+  9Zt23yt8k8PQSgji["WF-61 U2 Silent-Drop & Escalate"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   BUVun38WEKb12zg9["WF-50 Send WhatsApp"] --> 6H75p935FpBVBQtV["WF-60 Message Logger"]
   Du2CJ3OTohRFZYoA["WF-44 Feedback Recorder"] --> eTV1lUcYrXBg2q2T["WF-25 Intent Classifier"]
   Du2CJ3OTohRFZYoA["WF-44 Feedback Recorder"] --> MUG7rPgSHc7UtAE9["WF-45 Rebook Handler"]
@@ -34,6 +35,8 @@ graph TD
   MUG7rPgSHc7UtAE9["WF-45 Rebook Handler"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   NcHZedq9ycnAQ9SW["WF-33 Payment Approval Processor"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   NcHZedq9ycnAQ9SW["WF-33 Payment Approval Processor"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
+  ONzUJ1Lj9hIbUYT0["WF-53 U1 Gemini Error Handler"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
+  ONzUJ1Lj9hIbUYT0["WF-53 U1 Gemini Error Handler"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   PubCsNTOspF3xqXZ["WF-02 User State Router"] --> zM8WbxSdt9nXRoLZ["WF-21 New User Welcome + Form"]
   PubCsNTOspF3xqXZ["WF-02 User State Router"] --> VpCER0Vqq3NYJGpI["WF-23 Pre-Form Intent Filter"]
   PubCsNTOspF3xqXZ["WF-02 User State Router"] --> dr8QM0m92Ml8MvIh["WF-22 Form Response Handler"]
@@ -86,6 +89,7 @@ graph TD
   "2U7mxHMyqA41ROKX": { "name": "WF-47 Unsubscribe Handler", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
   "3va0M06kijgyLejf": { "name": "WF-43 Post-Consultation Handler", "calls": ["eTV1lUcYrXBg2q2T", "MUG7rPgSHc7UtAE9", "Du2CJ3OTohRFZYoA", "BUVun38WEKb12zg9", "2U7mxHMyqA41ROKX", "wlZRK0YxnhP0b2RL"] },
   "6PzJRZsF7k2d9hV7": { "name": "WF-41 Admin -> User Relay", "calls": ["BUVun38WEKb12zg9"] },
+  "9Zt23yt8k8PQSgji": { "name": "WF-61 U2 Silent-Drop & Escalate", "calls": ["wlZRK0YxnhP0b2RL"] },
   "BUVun38WEKb12zg9": { "name": "WF-50 Send WhatsApp", "calls": ["6H75p935FpBVBQtV"] },
   "Du2CJ3OTohRFZYoA": { "name": "WF-44 Feedback Recorder", "calls": ["eTV1lUcYrXBg2q2T", "MUG7rPgSHc7UtAE9", "BUVun38WEKb12zg9", "2U7mxHMyqA41ROKX"] },
   "GoTYo0GS2y8qjjkw": { "name": "WF-11 Command Parser", "calls": ["NcHZedq9ycnAQ9SW", "fx70vqyJtRdF2DgR", "wlZRK0YxnhP0b2RL", "se82n3MUQ9xE5aEr", "UV62An60fzflU0uD"] },
@@ -94,6 +98,7 @@ graph TD
   "LgIDj1v4ZbCPlX25": { "name": "WF-20 Keyword Handler", "calls": ["BUVun38WEKb12zg9", "MUG7rPgSHc7UtAE9", "2U7mxHMyqA41ROKX"] },
   "MUG7rPgSHc7UtAE9": { "name": "WF-45 Rebook Handler", "calls": ["BUVun38WEKb12zg9"] },
   "NcHZedq9ycnAQ9SW": { "name": "WF-33 Payment Approval Processor", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
+  "ONzUJ1Lj9hIbUYT0": { "name": "WF-53 U1 Gemini Error Handler", "calls": ["wlZRK0YxnhP0b2RL", "BUVun38WEKb12zg9"] },
   "PubCsNTOspF3xqXZ": { "name": "WF-02 User State Router", "calls": ["zM8WbxSdt9nXRoLZ", "VpCER0Vqq3NYJGpI", "dr8QM0m92Ml8MvIh", "emUOLWVZiNVxcOe3", "gGJBY5fJha0Let8I", "HB8nXudAtk9iXz7C", "du32QBZbSQOjfESe", "3va0M06kijgyLejf", "LgIDj1v4ZbCPlX25", "wlZRK0YxnhP0b2RL"] },
   "UV62An60fzflU0uD": { "name": "WF-46 User Blocker", "calls": ["wlZRK0YxnhP0b2RL"] },
   "VpCER0Vqq3NYJGpI": { "name": "WF-23 Pre-Form Intent Filter", "calls": ["eTV1lUcYrXBg2q2T", "BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },

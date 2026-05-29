@@ -1,5 +1,14 @@
 # BMX-06 — New-Contact Flow Redesign (incl. BMX-05 overlap)
 
+> **⚠️ DESIGN AMENDMENT (2026-05-29, applied during BMX-P0-U2 build):** Block audit unifies on the
+> **EXISTING legacy `users` columns** `blocked_reason` / `blocked_at` / `blocked_by` — NOT a new
+> `block_reason` column (that column, briefly added the same day, was dropped:
+> `scripts/migrations/2026-05-29-bmx06-drop-block-reason-use-legacy.sql`). `blocked_reason` is
+> **caller-supplied verbatim** via a `blockReason` envelope field on U2 (no string composition in the
+> utility — callers pass `threshold_non_text` / `threshold_garbage` / `abuse` / …); `blocked_at=NOW()`;
+> `blocked_by` = provenance (`'admin'` manual, workflow id e.g. `'WF-61'` for system blocks). All
+> `block_reason` references below have been updated to `blocked_reason`.
+>
 > **STATUS (2026-05-29 session close):**
 > - BMX-06 **structure = FINAL** (WF-01/02/21/23 + utilities U1/U2/U3 + silent_drop table + thresholds).
 > - BMX-06 **content (copy + U3 prompt) = DRAFT** in §11 — MUST be re-verified VERBATIM with the user at
@@ -13,7 +22,7 @@
 > 🔧 **AMENDED 2026-05-29 (folded from the existing-user safety-net spec §7):**
 > 1. **Block-state unified on `status='blocked'`** — every `blacklisted` below is now `blocked` (one
 >    terminal block state across admin BLOCK, WF-46-abuse, and threshold/abuse auto-block). A new nullable
->    **`block_reason`** column on `users` records the cause (`admin` / `abuse` / `threshold_garbage` /
+>    **`blocked_reason`** column on `users` records the cause (`admin` / `abuse` / `threshold_garbage` /
 >    `threshold_nontext`). The WF-01 "Blacklisted?" gate is the unified **"Blocked?"** gate.
 > 2. **Opt-out aliases in the literal preempts** — WF-21 step 2 and WF-23 step 2 preempt
 >    `STOP | UNSUBSCRIBE | OPT OUT | OPT-OUT` (exact-match after `uppercase(trim())`), same per-stage
@@ -56,9 +65,9 @@ state-handler internals (unchanged).
 ## 2. Decisions locked (with rationale)
 
 1. **Block a no-record phone = insert `users` row `status=blocked`** (chose tasks.md option (a), a
-   stub row, over a separate `blocked_phones` table; `block_reason='abuse'`). One table, one lookup.
+   stub row, over a separate `blocked_phones` table; `blocked_reason='abuse'`). One table, one lookup.
    Probable cause = the abusive act. So the universal block lookup catches ex-registered AND new-abuser
-   phones alike. *(Amended 2026-05-29: was `blacklisted` — unified on `blocked` + `block_reason`.)*
+   phones alike. *(Amended 2026-05-29: was `blacklisted` — unified on `blocked` + `blocked_reason`.)*
 2. **Fail-open on classification** — silent-drop only high-confidence garbage / stop_intent / abuse;
    `unrelated` and any low-confidence go to a gentle redirect + form (never ghost a real prospect).
    Echoes the SP-04 (2026-05-23) precedent against trusting Gemini on early-journey paths.
@@ -71,7 +80,7 @@ state-handler internals (unchanged).
    Existing/pre-form users keep a deflection message (they have a relationship).
 6. **`silent_drop` table + threshold auto-block.** Every drop/rate-limited reply logs a row;
    when the per-phone count over a **30-day rolling window** reaches the caller-supplied threshold,
-   auto-block (`status='blocked'`, `block_reason='threshold_*'`) + admin alert. **30-day window is NEVER
+   auto-block (`status='blocked'`, `blocked_reason='threshold_*'`) + admin alert. **30-day window is NEVER
    surfaced to users.**
 7. **Thresholds:** new/pre-form = 5; fully-onboarded = 10; legit-but-repeating (welcome/form loop) = 10;
    fail-open redirect = 5; abuse = instant. See §4 table.
@@ -107,15 +116,20 @@ Called from the onError branch of EVERY Gemini node (WF-21, WF-23, U3).
 
 ### U2 · Silent-Drop & Escalate  (proposed WF-61)
 ```
-IN: { phone, messageType, reason, content, blockThreshold }
-1. INSERT chinmay_astro.silent_drop (phone, message_type, reason, content, created_at)
-2. SELECT count(*) WHERE phone = ? AND created_at >= now() - interval '30 days'
+IN: { phoneNumber, messageType, reason, messageContent?, blockThreshold, blockReason }
+    -- reason     = granular drop reason logged on silent_drop (non_text|garbage|stop_intent|...)
+    -- blockReason = exact value to store in users.blocked_reason IF blocked, composed by the CALLER
+    --              (e.g. 'threshold_non_text', 'threshold_garbage', 'abuse'). U2 stores it verbatim.
+1. INSERT chinmay_astro.silent_drop (phone_number, message_type, reason, message_content, created_at)
+2. SELECT count(*) WHERE phone_number = ? AND created_at >= now() - interval '30 days'
 3. count >= blockThreshold ?
-     ├─ yes → upsert users SET status=blocked, block_reason='threshold_'||reason (stub row if none)
-     │        + admin alert via WF-51 ("auto-blocked: N dropped msgs in 30d, last <type>/<reason>")
+     ├─ yes → upsert users SET status='blocked', blocked_reason=blockReason, blocked_at=NOW(),
+     │        blocked_by='WF-61' (stub row if none)
+     │        + admin alert via WF-51 ("auto-blocked: N flagged msgs in 30d, last <type>/<reason>")
      │        → return { blocked: true }
      └─ no  → return { blocked: false }
 Callers read {blocked} to suppress any reply once blocked.
+(Abuse path: caller passes blockThreshold=1, blockReason='abuse' → blocks on first occurrence.)
 ```
 
 ### U3 · New-Contact Intent Classifier  (proposed WF-62)
@@ -224,7 +238,7 @@ step 3: text → ⟦U3 classify, stage=new⟧:
    HELP ─────────────────────────────▶ Insert pending_users + Welcome + Form       + ⟦U2 thr=10⟧
    unrelated | low-confidence ───────▶ Gentle redirect + Insert pending_users + Form + ⟦U2 thr=5⟧
    garbage | stop_intent ────────────▶ ⟦U2 thr=5⟧                                  [silent]
-   malicious | abusive | inappropriate ──▶ Insert users(blocked, block_reason='abuse') + admin alert + NO reply
+   malicious | abusive | inappropriate ──▶ Insert users(blocked, blocked_reason='abuse') + admin alert + NO reply
    ⚠️ any Gemini failure → ⟦U1⟧
 ```
 *All form-sending branches Insert pending_users → next message routes to WF-23, never loops back here.*
@@ -242,7 +256,7 @@ step 3: text → ⟦U3 classify, stage=pre_form⟧:
    HELP ─────────────────────────────▶ help text + Re-send Form     + ⟦U2 thr=10⟧
    unrelated | low-confidence ───────▶ Gentle redirect + Re-send Form + ⟦U2 thr=5⟧
    garbage | stop_intent ────────────▶ ⟦U2 thr=5⟧                   [silent]
-   malicious | abusive | inappropriate ──▶ Insert users(blocked, block_reason='abuse') + admin alert + NO reply
+   malicious | abusive | inappropriate ──▶ Insert users(blocked, blocked_reason='abuse') + admin alert + NO reply
    ⚠️ any Gemini failure → ⟦U1⟧
 ```
 *No pending_users insert here — row already exists; re-send form rather than welcome. Current WF-23

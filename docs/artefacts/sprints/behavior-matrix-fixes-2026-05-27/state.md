@@ -23,8 +23,8 @@
 | ID | Status | Batch | Pri | Workflows | Depends On |
 |----|--------|-------|-----|-----------|------------|
 | BMX-P0-DB | ✅ done | 1 | P0 | — | — |
-| BMX-P0-U1 | 🔵 in-progress | 1 | P0 | WF-53 | — |
-| BMX-P0-U2 | ⬜ pending | 1 | P0 | WF-61 | BMX-P0-DB (hard) |
+| BMX-P0-U1 | ✅ done | 1 | P0 | WF-53 | — |
+| BMX-P0-U2 | ✅ done | 1 | P0 | WF-61 | BMX-P0-DB (hard) |
 | BMX-P0-U3 | ⬜ pending | 2 | P0 | WF-62 | BMX-P0-U1 (hard) |
 | BMX-P1-PSEUDO | ⬜ pending | 3 | P0 | WF-01, WF-02, WF-20, WF-21, WF-23, WF-25, WF-26, WF-30, WF-31, WF-40, WF-43, WF-44, WF-45, WF-53, WF-61, WF-62 | — |
 | BMX-P2-WF01 | ⬜ pending | 4 | P0 | WF-01 | BMX-P0-DB (hard), BMX-P1-PSEUDO (hard) |
@@ -49,7 +49,7 @@
 ## Batch 1 — Phase 0a · Foundations (DB + U1 + U2)
 
 - **Items:** 3
-- **Description:** Leaf dependencies — nothing else can run first. DB migrations (silent_drop table + block_reason column) and the two utilities that don't depend on U3. Within-batch order: DB → U2 (U2 writes both new objects); U1 standalone. All build/activate standalone (no callers yet).
+- **Description:** Leaf dependencies — nothing else can run first. DB migrations (silent_drop table; block audit unified on legacy `blocked_reason`/`blocked_at`/`blocked_by` — see BMX-P0-U2 design change) and the two utilities that don't depend on U3. Within-batch order: DB → U2 (U2 writes both new objects); U1 standalone. All build/activate standalone (no callers yet).
 - **Estimated size:** M
 - **Estimated tokens:** ~75K
 - **Execution plan:** All Mode A (production-affecting, judgment + copy-verification required; none Mode-D-eligible). Order: (1) BMX-P0-DB via docker-exec psql write path — not build-workflow; (2) BMX-P0-U1 (WF-53) full build-workflow inline, standalone; (3) BMX-P0-U2 (WF-61) full build-workflow inline, AFTER the DB migration (hard dep). Recorded 2026-05-29T08:2xZ by build-sprint Step 2a.
@@ -135,19 +135,28 @@
 **Estimated tokens:** ~15K
 **Estimated effort:** ~30 min
 
-Phase 0 foundation. (1) `CREATE TABLE chinmay_astro.silent_drop` (phone_number, message_type, reason, content, created_at) + index on (phone_number, created_at) — BMX-06 §132-144. (2) `ALTER TABLE chinmay_astro.users ADD COLUMN block_reason text;` — additive, nullable, no backfill (safety-net §334). Both confirmed absent in live (2026-05-29). U2 writes both → must exist before U2. Apply via the docker-exec psql write path (CLAUDE.md). Serves: foundation for BMX-06 + safety-net.
+Phase 0 foundation. (1) `CREATE TABLE chinmay_astro.silent_drop` (phone_number, message_type, reason, message_content, created_at) + index on (phone_number, created_at) — BMX-06 §132-144. (2) `ALTER TABLE chinmay_astro.users ADD COLUMN block_reason text;` — additive, nullable, no backfill (safety-net §334). Both confirmed absent in live (2026-05-29). Apply via the docker-exec psql write path (CLAUDE.md). Serves: foundation for BMX-06 + safety-net.
+
+**⚠️ Partially superseded (2026-05-29T11:04:06Z — see BMX-P0-U2 design change):** part (2) — the new `block_reason` column — was **dropped** the same day. The block audit unifies on the EXISTING legacy `users` columns `blocked_reason`/`blocked_at`/`blocked_by` instead (no net-new columns). Revert migration: `scripts/migrations/2026-05-29-bmx06-drop-block-reason-use-legacy.sql`. Part (1) — the `silent_drop` table — stands (live column is `message_content`).
 
 ## BMX-P0-U1 — Build U1 Gemini Error Handler (WF-53)
 
-**Status:** 🔵 in-progress
+**Status:** ✅ done
 **Started:** 2026-05-29T08:31:00Z
+**Completed:** 2026-05-29T10:40:07Z
+**Actual tokens:** ~30K
+**Actual effort:** ~12 min (active build session; design was pre-locked)
+**Estimate delta:** on-bucket (planned S ~25K, actual ~30K)
 **Priority:** P0 | **Batch:** 1
 **Change type:** Workflow-create
 **Workflows:** WF-53
+**n8n IDs:** `ONzUJ1Lj9hIbUYT0`
 **Depends on:** —
 **Size:** S
 **Estimated tokens:** ~25K
 **Estimated effort:** ~45 min
+
+**Build outcome (2026-05-29T10:40:07Z):** Created WF-53 (`ONzUJ1Lj9hIbUYT0`), 10 nodes, active=true. Node graph exactly per locked design: Trigger(passthrough) → Entry Guard (Code v2, strict-envelope hard-fail) → Build Admin Alert (Code v2, assembles messageText from `context`, resolves channelId = `consultChannelId || C0A5B0ZE81E`) → Build WF-51 Alert Payload (Set v3.4, includeOtherFields=false `{channelId, messageText}`) → Call WF-51 Admin Alert (exec v1.2, onError=continueRegularOutput) → User-Facing? (IF v2.2, reads `$('Entry Guard').item.json.userFacing`) → [T] Build WF-50 Apology Payload (Set v3.4 `{phoneNumber, messageType:'text', messageContent:<locked apology>}`) → Call WF-50 Apology (exec v1.2, onError=continueRegularOutput) → Return Notified (User-Facing) (Set v3.4 `{notified:true}`); [F] Return Notified (Silent) (Set v3.4 `{notified:true}`, notes-annotated logged-accepted terminal). typeVersion floor honored (trigger 1.1, code 2, set 3.4, if 2.2, exec 1.2 — all project highest-in-live). MCP strict-validate `valid:true`, 0 errors, 8 warnings (all confirmed FP/intentional: Code-node `$`-usage heuristics, exec/if typeVersion-floor advisories, IF main[1]-as-error-output FP). Lint hook exit 0. cachedResultName added to both exec calls. Contract-First: both sends have named Set v3.4 contract-emit nodes immediately upstream; mappingMode=defineBelow+value:{}. Adjacent finding logged to followups.md (non-user-facing admin-copy line).
 
 New shared sub-workflow, proposed WF-53 (clash-free, verified 2026-05-29). Called from the onError branch of EVERY Gemini node (WF-21, WF-23, U3, and the safety-net handlers). BMX-06 §99-105. Follows data-contract discipline (strict envelope). No callers yet → build/activate standalone, verify against its envelope contract. Invoke `build-workflow`.
 
@@ -171,16 +180,26 @@ New shared sub-workflow, proposed WF-53 (clash-free, verified 2026-05-29). Calle
 
 ## BMX-P0-U2 — Build U2 Silent-Drop & Escalate (WF-61)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-29T10:45:00Z
+**Completed:** 2026-05-29T11:04:06Z
+**Actual tokens:** ~45K (incl. block-column design-change investigation + DDL revert + doc sweep)
+**Actual effort:** ~20 min
+**Estimate delta:** +1 bucket (planned M ~35K, actual ~45K — the mid-build block-column decision added scope)
 **Priority:** P0 | **Batch:** 1
 **Change type:** Workflow-create
 **Workflows:** WF-61
+**n8n IDs:** `9Zt23yt8k8PQSgji`
 **Depends on:** BMX-P0-DB (hard)
 **Size:** M
 **Estimated tokens:** ~35K
 **Estimated effort:** ~1 hr
 
-New shared sub-workflow, proposed WF-61. Logic: INSERT silent_drop row → count 30-day rolling drops per phone → at threshold, upsert users SET status='blocked', block_reason='threshold_'||reason (stub row if none) + admin alert. BMX-06 §108-118. Hard dep on BMX-P0-DB (writes silent_drop + block_reason). Strict envelope; verify `{blocked}` return path. Invoke `build-workflow`.
+New shared sub-workflow, WF-61. Logic: INSERT silent_drop row → count 30-day rolling drops per phone → at threshold, upsert users SET status='blocked' + **legacy block audit trio** (stub row if none) + admin alert. BMX-06 §108-118. Hard dep on BMX-P0-DB. Strict envelope; verify `{blocked}` return path. Invoke `build-workflow`.
+
+**⚠️ DESIGN CHANGE (2026-05-29T11:04:06Z — user decision, mid-build):** Block audit now uses the **EXISTING legacy `users` columns** `blocked_reason` / `blocked_at` / `blocked_by` instead of the new `block_reason` column. The new `block_reason` column (added earlier today by BMX-P0-DB) was **dropped** (`scripts/migrations/2026-05-29-bmx06-drop-block-reason-use-legacy.sql`; 0 rows, 0 readers → zero-risk). Rationale: no net-new columns; blocking is now system-driven (threshold + abuse), so the who/when/why trio gives a richer audit trail; legacy names are consistent with `status='blocked'`. **Conventions adopted:** `blocked_by` is a provenance tag — `'admin'` for manual admin blocks (WF-46 today), the **workflow id** for system blocks (U2 writes `blocked_by='WF-61'`); `blocked_at=NOW()`. **`blocked_reason` is caller-supplied verbatim** (user decision 2026-05-29, mid-build): the caller passes a `blockReason` envelope field with the exact value to store (`threshold_non_text`, `threshold_garbage`, `abuse`, …) — U2 does NO string composition (no hardcoded `'threshold_'` prefix). This keeps caller-specific naming out of the shared utility. `silent_drop.reason` stays granular (separate `reason` field, logged every call). This rename (`block_reason`→`blocked_reason` + `blocked_at`/`blocked_by` population) propagated to both specs + downstream state items (BMX-P0-DB, BMX-P2-WF01, BMX-P3-WF25) so later batches build the correct columns and pass `blockReason`.
+
+**Build outcome (2026-05-29T11:04:06Z):** Created WF-61 (`9Zt23yt8k8PQSgji`), 11 nodes, active=true. Flow: Trigger(passthrough) → Entry Guard (Code v2, strict-envelope hard-fail; validates phoneNumber/messageType/reason/blockThreshold/blockReason) → Insert Silent Drop (Postgres v2.6 executeQuery, aod=true, RETURNING id) → Count 30-Day Drops (Postgres v2.6, aod=true, `count(*)::int AS drop_count` over 30-day rolling window) → Threshold Reached? (IF v2.2, `drop_count >= blockThreshold`) → [T] Auto-Block Upsert (Postgres v2.6, `INSERT … ON CONFLICT (phone_number) DO UPDATE` writing the legacy block trio) → Build Block Alert (Code v2, admin-cmds `C0A5B0ZE81E`) → Build WF-51 Block Alert Payload (Set v3.4) → Call WF-51 Block Alert (exec v1.2, onError=continueRegularOutput) → Return Blocked (Set v3.4 `{blocked:true}`); [F] Return Not Blocked (Set v3.4 `{blocked:false}`). typeVersion floor honored (trigger 1.1, code 2, postgres 2.6, if 2.2, set 3.4, exec 1.2). All 3 Postgres nodes `alwaysOutputData:true`, explicit `operation:executeQuery` (no operation-default trap), params via `queryReplacement`, snake_case alias. MCP strict-validate `valid:true`, 0 errors, 10 warnings (all FP/intentional/tech-error-deferred). Lint hook exit 0. **Runtime SQL verified** via ROLLBACK dry-run against live schema (both reason types): Insert→id, Count→drop_count, Upsert(stub-insert) stores caller's `blockReason` verbatim — `blocked_reason='threshold_non_text'` (threshold) and `blocked_reason='abuse'` (abuse) both round-tripped, `blocked_by='WF-61'`, `status='blocked'` — nothing persisted. End-to-end parent execution deferred to caller batches (4–7) + Batch 10 smoke test. **Caller obligation (Batches 4–7):** each U2 call site must pass `blockReason` (the exact `users.blocked_reason` value) in addition to `reason` (granular drop log) — abuse callers pass `blockReason='abuse'`, `blockThreshold=1`.
 
 ## BMX-P0-U3 — Build U3 New-Contact Intent Classifier (WF-62)
 
@@ -219,7 +238,7 @@ Per safety-net §8.2 Phase 1 + pseudocode-first practice ([[feedback_pseudocode_
 **Estimated tokens:** ~50K
 **Estimated effort:** ~1.5–2 hr
 
-WF-01 rebuilt to: Country → blocked? → opted_out? → route. Applies D1 block-unify (single `blocked` status + `block_reason`, no `blacklisted`). Non-text handling removed from WF-01 (moves to WF-02/WF-21/WF-23). Critical path (entry) → built in its own small batch with WF-02. **Delivers the behavior that the as-written TD-BMX-02 targeted** (blocked+media → silent ✓; opted_out+media → re-engage via WF-26 by design, DR-4). Hard dep on block_reason column (D1). Invoke `build-workflow`; rebuild approach (author TO-BE from scratch) per BMX-06 §8a.
+WF-01 rebuilt to: Country → blocked? → opted_out? → route. Applies D1 block-unify (single `blocked` status + the legacy block-audit trio `blocked_reason`/`blocked_at`/`blocked_by`, no `blacklisted`; see BMX-P0-U2 design change). Non-text handling removed from WF-01 (moves to WF-02/WF-21/WF-23). Critical path (entry) → built in its own small batch with WF-02. **Delivers the behavior that the as-written TD-BMX-02 targeted** (blocked+media → silent ✓; opted_out+media → re-engage via WF-26 by design, DR-4). Reads `status='blocked'` for the gate (the `blocked_reason` columns are pre-existing — no DB dep). Invoke `build-workflow`; rebuild approach (author TO-BE from scratch) per BMX-06 §8a.
 
 ## BMX-P2-WF02 — WF-02 router edits + nfm_reply guard (BMX-06 §6 / decision #10)
 
@@ -273,7 +292,7 @@ WF-23 rebuild (has pending_users, no users row): same shape as WF-21 but pre-for
 **Estimated tokens:** ~70K
 **Estimated effort:** ~3–4 hr
 
-The central change. Author complete TO-BE node graph from scratch; carry over verbatim all workflow-level props + surviving nodes (Gemini classify HTTP node, parse Code node, Route switch); generate fresh nodes for U1/U2 calls + consultation_active D4 relay-return + clarifier consolidation; unify block on `blocked`+`block_reason`; **retire WF-46 from this path** (WF-25 stops calling it). **Apply via full-workflow replace on the SAME ID `eTV1lUcYrXBg2q2T`** — do NOT mint a new ID (4 callers WF-30/31/40/43 reference it by ID). Built BEFORE handlers so they edit against final hub behavior. Use jq+PUT for nested-array edits, verify with re-fetch ([[feedback_n8n_mcp_nested_array_update]]). Data-contract sanity on every U1/U2 call site ([[feedback_data_contract_discipline]]). Invoke `build-workflow`.
+The central change. Author complete TO-BE node graph from scratch; carry over verbatim all workflow-level props + surviving nodes (Gemini classify HTTP node, parse Code node, Route switch); generate fresh nodes for U1/U2 calls + consultation_active D4 relay-return + clarifier consolidation; unify block on `blocked`+ legacy `blocked_reason`/`blocked_at`/`blocked_by`; **retire WF-46 from this path** (WF-25 stops calling it). **Apply via full-workflow replace on the SAME ID `eTV1lUcYrXBg2q2T`** — do NOT mint a new ID (4 callers WF-30/31/40/43 reference it by ID). Built BEFORE handlers so they edit against final hub behavior. Use jq+PUT for nested-array edits, verify with re-fetch ([[feedback_n8n_mcp_nested_array_update]]). Data-contract sanity on every U1/U2 call site ([[feedback_data_contract_discipline]]). Invoke `build-workflow`.
 
 ## BMX-P3-HANDLERS — Thin handler edits WF-30/31/40/43 (safety-net §6)
 
@@ -326,7 +345,7 @@ Add `UNSUBSCRIBE`/`OPT OUT`/`OPT-OUT` to the WF-20 keyword path that routes exis
 **Estimated tokens:** ~12K
 **Estimated effort:** ~30 min
 
-WF-25 (and handlers) no longer call WF-46 — blocking now flows through U2 / unified `blocked`+`block_reason`. **Caller compliance audit:** before deleting WF-46, verify no OTHER live caller remains (audit all 28 workflows). If other callers exist, do NOT delete — only confirm WF-25 has re-pointed; record the finding. Depends on WF-25 + handlers having dropped their calls first. Invoke `build-workflow` for the delete/verify.
+WF-25 (and handlers) no longer call WF-46 — blocking now flows through U2 / unified `blocked`+ legacy `blocked_reason`/`blocked_at`/`blocked_by`. **Caller compliance audit:** before deleting WF-46, verify no OTHER live caller remains (audit all 28 workflows). If other callers exist, do NOT delete — only confirm WF-25 has re-pointed; record the finding. Depends on WF-25 + handlers having dropped their calls first. Invoke `build-workflow` for the delete/verify.
 
 ## BMX-P4-WF26 — WF-26 refine: drop welcome-back, inherit safety net (safety-net §6 decision #9)
 

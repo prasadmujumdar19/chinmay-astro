@@ -1,5 +1,14 @@
 # Existing-User Safety-Net Redesign (companion to BMX-06)
 
+> **⚠️ DESIGN AMENDMENT (2026-05-29, applied during BMX-P0-U2 build):** Block audit unifies on the
+> **EXISTING legacy `users` columns** `blocked_reason` / `blocked_at` / `blocked_by` — NOT a new
+> `block_reason` column (that column, briefly added the same day, was dropped:
+> `scripts/migrations/2026-05-29-bmx06-drop-block-reason-use-legacy.sql`). Conventions: `blocked_reason`
+> is **caller-supplied verbatim** via a `blockReason` envelope field (U2 does no string composition —
+> callers pass `threshold_non_text` / `threshold_garbage` / `abuse` / …); `blocked_at=NOW()`;
+> `blocked_by` = provenance (`'admin'` for manual, the workflow id e.g. `'WF-61'` for system blocks).
+> All `block_reason` references below have been updated to `blocked_reason` accordingly.
+>
 > **STATUS (2026-05-29):** Structure design **COMPLETE** — pending user review of this spec, then
 > writing-plans. All decisions (D1–D5 + aliases + admin-notify model + REBOOK/WF-45 interaction + WF-26
 > welcome-drop + WF-02 nfm_reply guard) are **locked** (see §2). Copy is **reuse-existing** (verify
@@ -40,9 +49,11 @@ varies leniency per stage); state handlers keep only their stage-specific functi
 
 1. **D1 — One block state: `status='blocked'` everywhere.** Drop BMX-06's separate `blacklisted`.
    WF-46, the admin BLOCK command, and DR-4 all already use `blocked`; `blacklisted` was a BMX-06 coinage.
-   Two terminal states for one concept is needless. Add a **`block_reason`** column on `users`
-   (e.g. `admin` / `abuse` / `threshold_garbage` / `threshold_nontext`) for audit instead of a second
-   status. **→ Amends BMX-06 decision #1** (its "insert users row `status=blacklisted`" becomes
+   Two terminal states for one concept is needless. Use the EXISTING legacy **`blocked_reason`** column
+   on `users` (values e.g. `admin` / `abuse` / `threshold_garbage` / `threshold_non_text`) — together with
+   the existing `blocked_at` (when) and `blocked_by` (which actor/workflow) — for audit instead of a second
+   status. *(Amended 2026-05-29: reuse the legacy block-audit trio `blocked_reason`/`blocked_at`/`blocked_by`;
+   NO new `blocked_reason` column — see the top-of-doc DESIGN AMENDMENT.)* **→ Amends BMX-06 decision #1** (its "insert users row `status=blacklisted`" becomes
    `status=blocked`; WF-01's "Blacklisted?" gate becomes the unified `blocked?` gate).
 2. **D2 — Existing-user garbage = gentle warning + counted, admin alert only on block.** They have a
    paying relationship, so unlike new-user silence they get a helpful nudge — but the message is logged to
@@ -119,7 +130,7 @@ BMX-06; note this when building it.
 | non-text — existing (WF-02) | 10 | already designed in BMX-06 §6 |
 | abuse (malicious/inappropriate) | instant (=1) | unconditional block on first occurrence, any stage |
 
-`block_reason` written by U2 at block time: `threshold_garbage` / `threshold_nontext` / `abuse`
+`blocked_reason` written by U2 at block time: `threshold_garbage` / `threshold_non_text` / `abuse` (plus `blocked_at=NOW()`, `blocked_by='WF-61'`)
 (admin BLOCK command writes `admin`).
 
 ---
@@ -157,8 +168,9 @@ Step 9: Branch on garbage outcome:
    - blocked == false AND userStatus == 'consultation_active' ─▶ Step 11           [D4 — return, caller relays, no warning]
    - else ─▶ Build + send gentle garbage warning via WF-50 (per §2.3). END.        [no admin notify]
 Step 10: (abuse) Call ⟦U2 · Silent-Drop & Escalate⟧:
-        { phone: phoneNumber, messageType:'text', reason:'abuse', content: messageContent,
-          blockThreshold: 1 }.   U2 sets status=blocked (block_reason='abuse') + admin alert (embeds
+        { phoneNumber, messageType:'text', reason:'abuse', messageContent,
+          blockThreshold: 1, blockReason: 'abuse' }.   U2 stores blocked_reason=blockReason verbatim
+        ('abuse'), status=blocked, blocked_at=NOW(), blocked_by='WF-61' + admin alert (embeds
         message). No user reply. END.                                              [no return]
 Step 11: Return to caller — original input merged with { intentResult }.
 ```
@@ -168,7 +180,7 @@ Step 11: Return to caller — original input merged with { intentResult }.
 - **Removed:** `Send Block Warning` user reply on abuse (D3 — silent).
 - **Removed:** inline Gemini-failure chain (`Build apology` → WF-50 → dual WF-51 alerts → `stopAndError`)
   → replaced by a single ⟦U1⟧ call.
-- **Removed:** `Auto-Block via WF-46` → replaced by ⟦U2⟧ (which now owns block + alert + `block_reason`).
+- **Removed:** `Auto-Block via WF-46` → replaced by ⟦U2⟧ (which now owns block + alert + `blocked_reason`).
   *(WF-46 retired from this path; verify no other live caller before deleting — see §8.)*
 - **Added:** ⟦U2⟧ calls on garbage + abuse; ⟦U1⟧ on Gemini failure; the stop_intent clarifier send
   (consolidated from the four handlers); the `consultation_active`-garbage relay return (D4).
@@ -291,7 +303,8 @@ The "details on file" reassurance is not lost in practice — the rebook path ne
 
 These cross into `2026-05-29-bmx-06-new-contact-flow-design.md` and must be reflected there:
 1. **Block-state unify (D1):** every `status=blacklisted` in BMX-06 → `status=blocked`; the WF-01
-   "Blacklisted?" gate → unified `blocked?` gate; add `block_reason` column.
+   "Blacklisted?" gate → unified `blocked?` gate; reuse the EXISTING legacy `blocked_reason`/`blocked_at`/`blocked_by`
+   columns for block audit (no new column — see top-of-doc DESIGN AMENDMENT 2026-05-29).
 2. **Aliases in literal preempts (decision #6):** WF-21 step 2 and WF-23 step 2 preempt
    `STOP | UNSUBSCRIBE | OPT OUT | OPT-OUT` (currently only STOP/REBOOK) — same per-stage treatment.
 
@@ -331,8 +344,10 @@ These cross into `2026-05-29-bmx-06-new-contact-flow-design.md` and must be refl
   sole caller at build (confirmed 2026-05-29 across all 28 workflows).
 - **WF-46 retirement:** WF-25 stops calling it. **Verify no other live caller** (audit) before deleting
   WF-46; if other callers exist, leave it and only re-point WF-25.
-- **`block_reason` migration:** `ALTER TABLE chinmay_astro.users ADD COLUMN block_reason text;` — additive,
-  nullable, no backfill needed.
+- **Block audit columns:** NO migration — reuse the EXISTING legacy `blocked_reason` / `blocked_at` / `blocked_by`
+  columns on `users` (already present). *(Amended 2026-05-29: the `block_reason` column briefly added on 2026-05-29
+  was dropped; see `scripts/migrations/2026-05-29-bmx06-drop-block-reason-use-legacy.sql` and the top-of-doc DESIGN
+  AMENDMENT. U2 writes `blocked_reason` = caller-supplied `blockReason` verbatim, `blocked_at=NOW()`, `blocked_by='WF-61'`.)*
 - **Data-contract sanity (mandatory — utilities have strict envelopes):** every WF-25 call site to U1/U2
   must send the exact contracted envelope (`defineBelow` + `{}`; correct field names/types); U2's
   `{blocked}` return read from the correct path; U1/U2 entry guards pass for the WF-25 call site. Pull exact
@@ -344,7 +359,7 @@ This work spans **two specs** (BMX-06 + this one) plus DB migrations and 3 new u
 dependency order. Build in these phases — **do not** let plan-sprint flatten them into priority-only order:
 
 **Phase 0 — Foundations (leaf dependencies; nothing else can run first):**
-1. DB migrations: create `silent_drop` table (BMX-06 §3) + add `block_reason` column to `users` (D1). U2
+1. DB migrations: create `silent_drop` table (BMX-06 §3) + add `blocked_reason` column to `users` (D1). U2
    writes both → they must exist before U2.
 2. Build utilities **U1** (Gemini Error Handler), **U2** (Silent-Drop & Escalate), **U3** (New-Contact
    Classifier). No callers yet — safe to build/activate standalone. Verify each against its envelope contract.
