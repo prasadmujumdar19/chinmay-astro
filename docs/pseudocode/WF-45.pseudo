@@ -1,37 +1,37 @@
 WF-45 — Rebook Handler
 
-## Inputs
-
-### Canonical (required)
-- phoneNumber: string — E.164 (without `+`). Routes all downstream lookups + sends.
-
-### Optional (forwarded but not consumed here)
-- userId: integer — passed by some callers (WF-20/WF-44); not consumed by WF-45 (the inline SELECT in Step 2 is keyed on phoneNumber).
-- userStatus: string — passed by WF-44 only; not consumed.
-
-### Caller contract note (2026-05-27, TD-PGF-08)
-- WF-43 Post-Consultation Handler calls with `value: {}` (passthrough — WF-43's own upstream carries the WF-01 envelope including `user`).
-- WF-44 Feedback Recorder calls with `{phoneNumber, userId, userStatus}` only — NO `user` envelope.
-- WF-20 Keyword Handler (REBOOK keyword path) calls with `{phoneNumber, userId}` only — NO `user` envelope.
-
-Because 2 of 3 callers do not carry the user envelope, WF-45 cannot rely on `$('When Executed by Another Workflow').item.json.user.name` — the inline SELECT in Step 2 is contract-required, not redundant. Envelope-everywhere completion for WF-45 is deferred until the 3 callers are aligned to pass the full `user` envelope (post-MVP sprint candidate; see `followups.md`).
-
 ## Summary
 
-- Outputs: user status set back to payment_pending; WhatsApp interactive payment prompt sent (WF-50 call per design.md §2.3).
-- State Transitions: consultation_closed (or other) → payment_pending.
+- Purpose: Handles a REBOOK request. A state guard at the head prevents an invalid status regression: only users in a rebook-eligible state are moved back to `payment_pending`; users mid-flow (payment_submitted / consultation_active) get an explanatory message and NO state change.
+- Inputs:
+  - `phoneNumber` — E.164 string, required. Routes all lookups + sends.
+  - `userId` — integer, optional (passed by some callers; not consumed — the inline SELECT is keyed on phoneNumber).
+- Outputs: For a rebook-eligible user — status set back to `payment_pending` + a WhatsApp interactive payment prompt. For payment_submitted / consultation_active — an explanatory message, no UPDATE. For pre-form/no-record — a "let's get you set up" + Flow CTA, no UPDATE (defensive-only — see note).
+- State Transitions: rebook-eligible (payment_pending / consultation_closed / opted_out-re-entry / unknown) → payment_pending. Other states: none.
 - Calls Sub-Workflows: WF-50 (Send WhatsApp).
-- Design rule: Does NOT call WF-52. Reuses the existing consult Slack channel (`slack_channel_id` stays on the users row).
+- Called by: WF-20 (REBOOK keyword — existing users), WF-43 (btn_rebook + rebook_intent). *(WF-44 no longer calls WF-45 — it became a pure recorder per safety-net decision #11.)*
+- **Deltas vs the prior WF-45 (TD-BMX-01, safety-net §REBOOK-by-stage):**
+  - ADDED a state-classifier guard before any UPDATE — branch by computed state (see Step 3). The prior WF-45 always UPDATEd to payment_pending regardless of current state.
+  - Design rule preserved: does NOT call WF-52; reuses the existing consult Slack channel (`slack_channel_id` stays on the row).
+- **Notes:**
+  - **Pre-form/no-record branch is defensive-only (dead in practice):** BMX-06 preempts pre-form/new REBOOK upstream (WF-23/WF-21 literal-keyword steps), and WF-20 only runs for existing users — so no live path reaches WF-45 without a `users` row. The branch self-heals if one ever does. 3 live branches remain (payment_submitted, consultation_active, happy-path) + 1 defensive.
+  - **Copy is subject to user review at build** (verify verbatim).
 
 ---
 
 ## Algorithm
 
-Step 1: Start — triggered by another workflow (WF-20, WF-43, or WF-44) with phoneNumber.
-Step 2: SELECT id, name, phone_number FROM chinmay_astro.users WHERE phone_number = <phoneNumber> LIMIT 1. (Caller-contract required — see Inputs note; not redundant.)
-Step 3: UPDATE chinmay_astro.users SET status = 'payment_pending', stage = NULL, updated_at = NOW() WHERE phone_number = <phoneNumber>.
-Step 4: Build interactive WhatsApp payload:
-  - body.text = "Welcome back, <user.name>! 🙏\n\nYour birth details are already on file, so we can get started right away.\n\n*Payment Information:*\nAmount: ₹500\n\nPlease send ₹500 via GPay / PhonePe / any UPI app to: +91-9653240263 (Chinmay Mujumdar). Once done, tap the button below:"
+Step 1: Start — triggered by WF-20 or WF-43 with `phoneNumber`.
+Step 2: SELECT id, name, phone_number, status FROM chinmay_astro.users WHERE phone_number = phoneNumber LIMIT 1.
+Step 3: Branch on the user's current state:
+  - No row found (pre-form / no record) → go to Step 4 (defensive — let's get you set up).
+  - status == 'payment_submitted' → go to Step 5 (under review, wait).
+  - status == 'consultation_active' → go to Step 6 (active consult — ask to close first).
+  - else (payment_pending / consultation_closed / opted_out-re-entry / unknown) → go to Step 7 (happy-path rebook).
+Step 4: Send a "let's get you set up" message + the WhatsApp Flow form CTA via WF-50. No UPDATE. End.
+Step 5: Send "Your payment is still under review — please wait for confirmation before rebooking." via WF-50. No UPDATE. End.
+Step 6: Send "You're currently in an active consultation. Please ask Chinmay to close it before rebooking." via WF-50. No UPDATE. End.
+Step 7: UPDATE chinmay_astro.users SET status = 'payment_pending', stage = NULL, updated_at = NOW() WHERE phone_number = phoneNumber. Then build the interactive payment prompt:
+  - body.text = "Welcome back, {user.name}! 🙏\n\nYour birth details are already on file, so we can get started right away.\n\n*Payment Information:*\nAmount: ₹500\n\nPlease send ₹500 via GPay / PhonePe / any UPI app to: +91-9653240263 (Chinmay Mujumdar). Once done, tap the button below:"
   - buttons: [ { id: "payment_completed", title: "Payment Completed" } ]
-Step 5: Call WF-50 (per design.md §2.3) with phoneNumber, messageType='interactive', interactivePayload=<payload above>.
-Step 6: End.
+  Call WF-50 with `{ phoneNumber, messageType: 'interactive', interactivePayload: <payload> }`. End.

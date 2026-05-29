@@ -2,49 +2,53 @@ WF-02 — User State Router
 
 ## Summary
 
-- Inputs: WF-01 canonical core envelope (§2.1): phoneNumber (E.164 string), messageType (text|interactive), messageContent (string), user:{id, phone_number, name, status, slack_channel_id, current_consultation_id} or null, pendingUser:{id, contact_name} or null. Additionally carries rawMessage, messageContentUpper, routing, messageId, timestamp for routing context.
-- Outputs: Dispatch to one state-specific sub-workflow; intermediate hand-off through WF-20 for keyword interception on text messages
-- State Transitions: none (delegates to handlers; this workflow only routes)
-- Calls Sub-Workflows: WF-20 (Keyword Handler), WF-21, WF-22, WF-23, WF-30, WF-31, WF-32, WF-40, WF-43, WF-51 (admin alert on UNHANDLED route only)
+- Inputs: canonical core envelope (§2.1) from WF-01 (or from WF-26 on opted_out re-engagement): `phoneNumber`, `messageType` (text|interactive|non-text), `messageContent`, `user` (object or null), `pendingUser` ({id, contact_name} or null), plus `rawMessage` for interactive payloads. WF-02 now also receives NON-TEXT payloads for the first time (WF-01 stopped dropping them).
+- Outputs: dispatch to one state-specific handler; for existing-user non-text, a deflection + escalation via U2 + WF-50; intermediate hand-off through WF-20 for keyword interception on existing-user text only.
+- State Transitions: none (delegates to handlers).
+- Calls Sub-Workflows: WF-20 (Keyword Handler — existing-user text only), WF-22, WF-23, WF-30, WF-31, WF-32, WF-40, WF-43, WF-61 (U2 — existing-user non-text escalation), WF-50 (non-text deflection), WF-51 (admin alert on UNHANDLED).
+- **Deltas vs the prior WF-02 (BMX-06 §6 + safety-net §6 / decision #10):**
+  - REMOVED the `NEW_USER` route — brand-new phones now reach WF-21 directly from WF-01 and never enter WF-02.
+  - NEW existing-user non-text branch — WF-01 no longer drops non-text, so an existing user's non-text message now reaches WF-02 → escalate via U2 (thr=10) → if not blocked, send the "email us" deflection.
+  - NEW `nfm_reply` stage guard (decision #10) — a form submission is valid ONLY pre-form; a non-pre-form `nfm_reply` routes to UNHANDLED.
+  - WF-20 is now gated to existing-user (`has_user`) text only — pre-form text skips WF-20 and goes straight to WF-23 (so a pre-form STOP is a clarifier in WF-23, not a real unsubscribe via WF-47).
 
 ---
 
 ## Algorithm
 
-Step 1: Validate Inputs (entry guard — defense-in-depth per design.md §2.1 + §2.7). Read envelope from the workflow trigger. Throw with descriptive error if:
-  - phoneNumber is missing or not a string.
-  - messageType is not one of: text, interactive.
-  - messageContent key is absent or null.
-  - user is present (non-null) but missing any of: id, phone_number, name, status, slack_channel_id key, current_consultation_id key; or user.status is not a valid state-machine value.
-  - pendingUser key is absent (undefined); must be explicit null or an object.
-  Pass through unchanged on success.
-Step 2: Detect Route based on userStatus, messageType, rawMessage.interactive.type, and pendingUser:
-  - If messageType='interactive' AND interactive.type='nfm_reply' → route='DETAILS_FORM'.
-  - Else if messageType='interactive' AND interactive.type='button_reply' AND user IS NOT NULL AND user.status='consultation_closed' → route='POST_CONSULT_TEXT'.
-  - Else if messageType='interactive' AND interactive.type='button_reply' AND user IS NOT NULL AND user.status='payment_pending' → route='PAYMENT_CONFIRM' (e.g. "Payment Completed" button — only valid for payment_pending users; other button_reply types fall through to UNHANDLED).
-  - Else if user is null AND pendingUser is null → route='NEW_USER'.
-  - Else if user is null AND pendingUser exists → route='PRE_FORM_TEXT'.
-  - Else if user IS NOT NULL AND user.status='payment_pending' → route='PAYMENT_PENDING_TEXT'.
-  - Else if user IS NOT NULL AND user.status='payment_submitted' → route='PAYMENT_SUBMITTED_TEXT'.
-  - Else if user IS NOT NULL AND user.status='consultation_active' → route='RELAY'.
-  - Else if user IS NOT NULL AND user.status='consultation_closed' → route='POST_CONSULT_TEXT'.
-  - Else → route='UNHANDLED' (caught at Step 6 — posts admin Slack alert via WF-51 with payload summary for visibility).
-Step 3: Check: messageType == 'text'?
-  - If YES → go to Step 4 (run keyword interception first).
-  - If NO → go to Step 6 (skip keyword check, go straight to Route Switch).
-Step 4: Call WF-20 (Keyword Handler) to check for hard-coded keywords (STOP / HELP / REBOOK etc).
-Step 5: Check: WF-20 returned action == 'passthrough'?
-  - If YES (no keyword matched) → go to Step 5a (restore the original route data) → Step 6.
+Step 1: Validate Inputs (entry guard — defense-in-depth per §2.1 + §2.7). Hard-fail on a malformed envelope: `phoneNumber` missing/not a string; `messageType` not text/interactive/a known non-text type; `messageContent` key absent; `user` present but missing required fields or carrying an invalid status; `pendingUser` key undefined (must be explicit null or object). Pass through on success.
+Step 2: Detect Route from `messageType`, `rawMessage.interactive.type`, `user`, `user.status`, and `pendingUser`:
+  - messageType='interactive' AND interactive.type='nfm_reply' → route = (user IS null AND pendingUser IS NOT null) ? 'DETAILS_FORM' : 'UNHANDLED'.  [NEW nfm_reply stage guard — form submit valid only pre-form, DR-1]
+  - Else if messageType='interactive' AND interactive.type='button_reply' AND user IS NOT null AND user.status='payment_pending' → route='PAYMENT_CONFIRM'.
+  - Else if messageType='interactive' AND interactive.type='button_reply' AND user IS NOT null AND user.status='consultation_closed' → route='POST_CONSULT_TEXT'.
+  - Else if user IS null AND pendingUser IS NOT null → route='PRE_FORM_TEXT'.
+  - Else if user IS NOT null AND messageType is a media type (image|audio|video|document|… — i.e. NOT text and NOT interactive) → route='EXISTING_NON_TEXT'.   [NEW — media only; an unmatched interactive button_reply falls through to UNHANDLED, not here]
+  - Else if user IS NOT null AND user.status='payment_pending' → route='PAYMENT_PENDING_TEXT'.
+  - Else if user IS NOT null AND user.status='payment_submitted' → route='PAYMENT_SUBMITTED_TEXT'.
+  - Else if user IS NOT null AND user.status='consultation_active' → route='RELAY'.
+  - Else if user IS NOT null AND user.status='consultation_closed' → route='POST_CONSULT_TEXT'.
+  - Else → route='UNHANDLED'.
+Step 3: Check: route == 'EXISTING_NON_TEXT'?
+  - If YES → go to Step 4 (escalate + deflect).
+  - If NO → go to Step 6.
+Step 4: Call U2 (Silent-Drop & Escalate) with `{ phoneNumber, messageType, reason: 'non_text', messageContent, blockThreshold: 10, blockReason: 'threshold_non_text' }`. Receive `{ blocked }`.
+Step 5: Check: `blocked == false`?
+  - If YES → send the "email us" deflection — call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <existing-user non-text deflection copy — reuse live verbatim> }`. End.
+  - If NO → End (blocked; U2 already sent the block alert, no reply).
+Step 6: Check: messageType == 'text' AND route is an existing-user text route (user IS NOT null)?
+  - If YES → go to Step 7 (keyword interception first).
+  - If NO → go to Step 9 (skip WF-20; pre-form text and interactive routes go straight to the switch).
+Step 7: Call WF-20 (Keyword Handler) to intercept hard keywords (STOP and its aliases / HELP / REBOOK).
+Step 8: Check: WF-20 returned action == 'passthrough'?
+  - If YES (no keyword matched) → go to Step 9 (continue routing).
   - If NO (WF-20 already handled the message) → End.
-Step 5a: Restore Route Data — reload the payload built in Step 2 (with route field intact).
-Step 6: Route Switch on route value:
-  - 'NEW_USER' → call WF-21 (Welcome + Form). End.
-  - 'PRE_FORM_TEXT' → call WF-23 (Pre-Form Intent Filter). End.
+Step 9: Route Switch on `route`:
+  - 'PRE_FORM_TEXT' → call WF-23 (Pre-Form Owner). End.
   - 'DETAILS_FORM' → call WF-22 (Details Form Processor). End.
   - 'PAYMENT_CONFIRM' → call WF-32 (Payment Confirmation Receiver). End.
-  - 'PAYMENT_PENDING_TEXT' → call WF-30 (Payment Pending Intent Filter). End.
+  - 'PAYMENT_PENDING_TEXT' → call WF-30 (Payment Pending Handler). End.
   - 'PAYMENT_SUBMITTED_TEXT' → call WF-31 (Payment Submitted Handler). End.
   - 'RELAY' → call WF-40 (User → Admin Relay). End.
   - 'POST_CONSULT_TEXT' → call WF-43 (Post-Consultation Handler). End.
-  - 'UNHANDLED' → call WF-51 with channelId='chinmay-admin-commands' (C0A5B0ZE81E) and messageText='⚠️ The system couldn't route this message. Phone: +<phoneNumber>, Message kind: <messageType>, Interactive type: <rawMessage.interactive.type or "n/a">, User status: <user.status or "not registered">, Onboarding in progress: <true|false>, Content (truncated to 200 chars): <content>. Please review.'. Admin gets visibility; no further action taken. End.
-Step 7: End.
+  - 'UNHANDLED' → call WF-51 with `channelId='C0A5B0ZE81E'` and a business-language admin alert summarizing the unroutable message (phone, message kind, interactive type, user status, onboarding-in-progress, truncated content). No further action. End.
+Step 10: End.

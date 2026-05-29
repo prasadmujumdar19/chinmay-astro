@@ -2,60 +2,39 @@ WF-31 — Payment Submitted Handler
 
 ## Summary
 
-- Inputs (WF-01 canonical envelope per data-contract-discipline Phase 1 — design.md §2.1): `phoneNumber` (E.164 string), `messageType`, `messageContent`, `user` (object: {id, phone_number, name, status, slack_channel_id, current_consultation_id}), `pendingUser` (null). Additional fields passed by WF-02: `messageText`, `userId`, `userStatus`. `user.name` used for Slack relay display; `user.slack_channel_id` used for Slack channel routing (no DB re-fetch required — envelope provides it).
-- Outputs: On Branch A — for `general_enquiry` intent a Gemini-generated WhatsApp reply tailored to the payment-submitted stage; for other pass-through intents the canned "under review" reassurance via WF-50; for stop_intent a clarifier. On Branch B — Slack relay of the user message into the user's consult channel (unconditional). On Gemini General Response outage (Branch A) — sends user apology + dual admin alerts then halts via stopAndError (error propagates to WF-02 caller, but Branch B is parallel and may have already fired its Slack relay independently — acceptable).
-- State Transitions: none. Auto-opt-out on Gemini-classified stop_intent removed 2026-05-23 (SP-04); explicit STOP keyword via WF-20 still unsubscribes canonically.
-- Calls Sub-Workflows: WF-25 (Intent Classifier), WF-50 (Send WhatsApp), WF-51 (Send Slack — admin relay + halt-and-notify alerts)
+- Purpose: Thin state handler for `payment_submitted` user text. Two parallel branches: Branch A classifies via WF-25 and replies (Gemini contextual reply for general enquiry, canned "under review" reassurance otherwise); Branch B unconditionally relays every inbound message into the user's consult Slack channel (tagged with time-since-paid). stop_intent needs no Branch-A extra (WF-25 sent the clarifier); garbage / abuse terminate inside WF-25.
+- Inputs (WF-01 canonical envelope §2.1): `phoneNumber` (top-level), `messageContent`, `user.{id, name, status, slack_channel_id}`, plus `messageText`, `userId`, `userStatus`. `user.slack_channel_id` drives the Branch-B relay (no DB re-fetch).
+- Outputs: Branch A — a Gemini reply or canned "under review" reassurance via WF-50. Branch B — a Slack relay of the user message into the consult channel (always).
+- State Transitions: none.
+- Calls Sub-Workflows: WF-25 (Intent Classifier + Safety-Net Hub), WF-53 (U1 — on the local Gemini reply's failure), WF-50 (Send WhatsApp), WF-51 (Send Slack — Branch B relay).
+- **Deltas vs the prior WF-31 (safety-net §6):**
+  - REMOVED the inline Gemini-error halt-and-notify chain → on Branch-A Gemini failure, call U1.
+  - REMOVED the in-handler stop_intent clarifier (now in WF-25).
+  - Branch B (unconditional Slack relay) is UNCHANGED — it relays every inbound (incl. stop_intent / garbage), independent of Branch A.
 - **Notes:**
-  - **General-enquiry Gemini branch (2026-05-26 — GAP-3C):** `general_enquiry` intent on Branch A now routes to a Gemini-generated contextual reply with a payment-submitted stage cue and an email-callout (`chinmay_astro@gmail.com`). Other pass-through intents still get the canned "under review" reassurance. Branch B (Slack admin relay) is unaffected — fires unconditionally regardless of intent.
-  - **Gemini General Response halt-and-notify (2026-05-27 — TD-PGF-09 scope expansion):** Identical pattern to WF-23/WF-30. HTTP node has `onError=continueErrorOutput`; on retries exhausted, error branch fans out to user apology (WF-50) + dual admin alerts (WF-51 consult + admin-commands), then `stopAndError` terminates Branch A. Payment-submitted users always have a consult Slack channel (Design Rule #2) — both alerts fire. Branch B may have already fired its Slack relay independently — acceptable.
-  - **stop_intent policy (2026-05-23 — SP-04):** Gemini-classified stop_intent no longer auto-routes to WF-47 unsubscribe. Clarifier message sent instead. Literal STOP still flows through WF-20.
-  - **Provably dead-code branch removed 2026-05-23 (SP-04):** the previous `Is Stop Intent?` IF's FALSE branch was unreachable per the WF-25 contract.
-  - Two parallel branches: Branch A intent path + Branch B unconditional Slack admin relay. Slack relay fires for every inbound message in `payment_submitted` state.
-  - **Load User for Relay removed (Phase 1):** `slack_channel_id` is now read from envelope. The `Load User for Relay` Postgres node has been removed.
-  - **Call WF-25 envelope add-on (2026-05-27 — TD-PGF-05):** previously `workflowInputs.value` was empty (passthrough-via-trigger pattern). Now explicit 6-field mapping per data-contract-discipline: phoneNumber, userId, messageText, userStatus, userName (`user.name`), slackChannelId (`user.slack_channel_id`). WF-25 reads these for its halt-and-notify alert template.
-  - WF-25 caller field name (TD-DRIFT-009): caller passes `messageText`; WF-25 reads `messageContent` — explicitly deferred from Phase 1 per §1.5.
+  - Branches A and B run in parallel from the trigger; Branch B fires regardless of intent (and regardless of any Branch-A halt).
+  - Copy reuse-existing — verify verbatim at build.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — Triggered by parent with WF-01 canonical envelope plus {messageText, userId, userStatus}. Read `phoneNumber` and `user.slack_channel_id` from envelope directly (no DB re-fetch).
-Step 2: Fan out in parallel from trigger:
-  - Branch A → GOTO Step 3 (intent classification + user reply)
-  - Branch B → GOTO Step 21 (admin Slack relay)
+Step 1: Start — triggered by WF-02 with the WF-01 canonical envelope plus `{ messageText, userId, userStatus }`. Read `phoneNumber` and `user.slack_channel_id` from the envelope.
+Step 2: Fan out in parallel from the trigger: Branch A → Step 3 (intent + reply); Branch B → Step 9 (Slack relay).
 
 (Branch A — user reply)
-Step 3: Call WF-25 with 6 fields: phoneNumber, userId, messageText, userStatus, userName (from `user.name`), slackChannelId (from `user.slack_channel_id`). Receive intentResult.
-Step 4: Check `Is Pass-Through Intent?` — is intentResult NOT one of {garbage, malicious_abusive, inappropriate, stop_intent}?
-  - If YES → GOTO Step 5
-  - If NO (only stop_intent reachable per WF-25 contract) → GOTO Step 19
-Step 5: Check `Is General Enquiry?` — is intentResult == "general_enquiry"?
-  - If YES → GOTO Step 6
-  - If NO → GOTO Step 18
-Step 6: Build Gemini prompt instructing a helpful, warm assistant for Chinmay's Vedic astrology consultation service on WhatsApp, with the user-stage cue "user has submitted payment which is now being reviewed by Dr. Chinmay" and the email-callout cue "they can email chinmay_astro@gmail.com if something urgent comes up". Ask Gemini to weave both naturally into a brief 2-3 sentence reply. Append the user's messageContent.
-Step 7: POST to Gemini (gemini-2.5-flash-lite) with temperature=0.3, maxOutputTokens=200, timeout=10s, retryOnFail=true, maxTries=3, onError=continueErrorOutput. On success: GOTO Step 8. On retries exhausted (error output): GOTO Step 9 (halt-and-notify).
-Step 8: Extract Gemini reply text from candidates[0].content.parts[0].text; fallback "Thank you for your message! For questions about our Vedic astrology consultation, feel free to ask." Call WF-50 with { phoneNumber, messageType="text", messageContent=reply } per §2.3 canonical contract. End of Branch A.
-Step 9: Build user apology WF-50 payload per §2.3 — { phoneNumber, messageType="text", messageContent="Sorry — we ran into a brief technical issue and couldn't process your message just now. Dr. Chinmay has been notified and will follow up with you shortly. We apologise for the inconvenience." }.
-Step 10: Call WF-50 (apology to user). Continue to admin alert chain.
-Step 11: Build admin alert text (Code) — translate userStatus to plain English (payment_submitted → "payment under review"). Resolve userName. Construct General Response failure variant messageText. Emit { messageText }.
-Step 12: Check `Has Consult Channel?` — is `user.slack_channel_id` non-empty (notEmpty unary)?
-  - If YES → GOTO Step 13.
-  - If NO → GOTO Step 15.
-Step 13: Build consult alert payload — { channelId: `user.slack_channel_id`, messageText: `$('Build Admin Alert Text').item.json.messageText` }.
-Step 14: Call WF-51 (consult-channel alert). GOTO Step 15.
-Step 15: Build admin-commands alert payload — { channelId: "C0A5B0ZE81E", messageText: `$('Build Admin Alert Text').item.json.messageText` }.
-Step 16: Call WF-51 (admin-commands alert). GOTO Step 17.
-Step 17: stopAndError — terminate Branch A.
-Step 18: (pass-through non-general-enquiry path — from Step 5 NO branch) Build "under review" message: "⏳ Your payment is currently under review. Chinmay will verify it and get back to you shortly (usually within a few hours). You don't need to do anything else right now. If you have any questions, feel free to ask!" Call WF-50 with { phoneNumber, messageType="text", messageContent=the message } per §2.3 canonical contract. End of Branch A.
-Step 19: (stop_intent path — from Step 4 NO branch) Build WF-50 stop-intent clarifier payload per §2.3 canonical contract:
-  - phoneNumber = <phoneNumber> (from top-level envelope)
-  - messageType = "text"
-  - messageContent = "This is an automated message from Chinmay Astro — we noticed your message mentioned STOP or unsubscribing. If this was unrelated, please ignore. If you do want to opt out of this service, simply send STOP at any time."
-Step 20: Call WF-50 (Stop Clarifier) with the prepared payload. End of Branch A.
+Step 3: Call WF-25 with `{ phoneNumber, userId, messageContent: messageText, userStatus, userName: user.name, slackChannelId: user.slack_channel_id }`. Receive `intentResult`. (Garbage / abuse / Gemini-failure terminate inside WF-25; control does not return for those.)
+Step 4: Check: `intentResult == 'stop_intent'`?
+  - If YES → End of Branch A (WF-25 already sent the clarifier; no extra).
+  - If NO → go to Step 5.
+Step 5: Check: `intentResult == 'general_enquiry'`?
+  - If YES → go to Step 6.
+  - If NO → go to Step 8.
+Step 6: Build a Gemini prompt for a brief, warm reply with the payment-submitted stage cue ("payment is being reviewed by Dr. Chinmay") + an email callout, append the user's message, then POST to Gemini (gemini-2.5-flash-lite, temperature=0.3). On Gemini failure → go to Step 7. On success → extract the reply (fallback default), call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <reply> }`. End of Branch A.
+Step 7: Gemini failure — call U1 with `{ phoneNumber, userFacing: true, consultChannelId: user.slack_channel_id, context: { source: 'WF-31', userName: user.name, userStateText: 'payment under review', userMessage: messageContent, errorDetail: <summary> } }`. End of Branch A.
+Step 8: Build the canned "under review" reassurance: "⏳ Your payment is currently under review. Chinmay will verify it and get back to you shortly (usually within a few hours). You don't need to do anything else right now. If you have any questions, feel free to ask!" Call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <message> }`. End of Branch A.
 
-(Branch B — relay user message into Slack consult channel, with aging tag)
-Step 21: SELECT created_at FROM chinmay_astro.payments WHERE user_id = user.id ORDER BY id DESC LIMIT 1. If no row found, treat elapsed as `?`.
-Step 22: Compute elapsed-since-paid as a human string: `< 60 min` → `{n} min ago`; `< 24 h` → `{n} h ago`; else `{n} d ago`.
-Step 23: Read `user.slack_channel_id` from the WF-01 envelope. Build relay payload: { channelId=user.slack_channel_id, messageText="⏱ Paid {elapsed} · 💬 *Message from <user.name or phoneNumber> (payment under review):*\n><messageContent>" }.
-Step 24: Call WF-51 (Send Slack) with { channelId, messageText } per §2.4 canonical contract. End of Branch B.
+(Branch B — relay user message into the consult Slack channel)
+Step 9: SELECT created_at FROM chinmay_astro.payments WHERE user_id = user.id ORDER BY id DESC LIMIT 1 (most recent payment). If no row, treat elapsed as `?`.
+Step 10: Compute elapsed-since-paid as a human string: `< 60 min` → "{n} min ago"; `< 24 h` → "{n} h ago"; else "{n} d ago".
+Step 11: Build the relay payload: `{ channelId: user.slack_channel_id, messageText: "⏱ Paid {elapsed} · 💬 *Message from {user.name or phoneNumber} (payment under review):*\n>{messageContent}" }`. Call WF-51. End of Branch B.

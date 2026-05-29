@@ -1,0 +1,36 @@
+WF-61 — U2 · Silent-Drop & Escalate
+
+## Summary
+
+- Purpose: Shared safety utility that records every dropped / rate-limited message, counts a per-phone 30-day rolling total, and auto-blocks the phone (with an admin alert) once the caller-supplied threshold is reached. Centralizes the "log → count → block" policy so callers only decide *which* messages to flag and at *what* threshold.
+- Inputs (strict contracted envelope per data-contract-discipline; first node is an entry guard, passthrough):
+  - `phoneNumber` — E.164 string, required.
+  - `messageType` — string, required (text|image|audio|video|document|interactive|…).
+  - `reason` — string, required. Granular drop reason logged on `silent_drop` (e.g. `non_text` | `garbage` | `stop_intent` | `abuse` | …).
+  - `messageContent` — string, optional. Stored on the drop row and embedded in the block alert.
+  - `blockThreshold` — integer, required. The 30-day count at which the phone auto-blocks (abuse callers pass `1` → block on first occurrence).
+  - `blockReason` — string, required. The EXACT value to store verbatim in `users.blocked_reason` if a block happens (e.g. `threshold_non_text` | `threshold_garbage` | `abuse`). U2 does NO string composition — the caller owns the naming so caller-specific labels stay out of the shared utility.
+- Outputs: A row inserted into `chinmay_astro.silent_drop` (always). When the threshold is reached: the phone's `users` row is upserted to `status='blocked'` with the legacy block-audit trio set, and an admin alert is posted. Returns `{ blocked: true|false }` so callers can suppress any reply once blocked.
+- State Transitions: `users.status → 'blocked'` only when the threshold is reached (otherwise none).
+- Calls Sub-Workflows: WF-51 (Send Slack — block alert, only on block).
+- Called by: WF-02 (existing-user non-text), WF-21, WF-23 (new/pre-form flagged messages), WF-25 (existing-user garbage + abuse).
+- **Notes:**
+  - **Block audit uses the EXISTING legacy `users` columns** `blocked_reason` / `blocked_at` / `blocked_by` — no net-new column (the briefly-added `block_reason` column was dropped, see `scripts/migrations/2026-05-29-bmx06-drop-block-reason-use-legacy.sql`). Conventions: `blocked_reason` = caller's `blockReason` verbatim; `blocked_at = NOW()`; `blocked_by = 'WF-61'` (provenance tag for system blocks — manual admin blocks write `'admin'`).
+  - **30-day rolling window is NEVER surfaced to users.** It is an internal abuse-rate control only.
+  - **Shared count, lower bar wins:** the count is per-phone across all reasons over 30 days; a phone mixing junk (thr 5) and greetings (thr 10) trips whichever threshold its *current* message belongs to. Accepted bias.
+
+---
+
+## Algorithm
+
+Step 1: Start — triggered by another workflow with the contracted envelope `{ phoneNumber, messageType, reason, messageContent?, blockThreshold, blockReason }` (passthrough).
+Step 2: Entry guard — validate the envelope; hard-fail with a descriptive contract error if `phoneNumber`, `messageType`, `reason`, `blockThreshold`, or `blockReason` is missing or malformed. Pass through on success.
+Step 3: INSERT INTO chinmay_astro.silent_drop (phone_number, message_type, reason, message_content, created_at) VALUES (phoneNumber, messageType, reason, messageContent, NOW()).
+Step 4: SELECT count(*) AS drop_count FROM chinmay_astro.silent_drop WHERE phone_number = phoneNumber AND created_at >= NOW() - INTERVAL '30 days'.
+Step 5: Check: `drop_count >= blockThreshold`?
+  - If YES → go to Step 6 (auto-block).
+  - If NO → go to Step 9 (not blocked).
+Step 6: Auto-block — upsert the `users` row: INSERT … ON CONFLICT (phone_number) DO UPDATE SET status='blocked', blocked_reason=blockReason, blocked_at=NOW(), blocked_by='WF-61'. (Stub row inserted if the phone has no `users` row — e.g. a brand-new abuser.) `blockReason` stored verbatim.
+Step 7: Build the block admin alert (business language; embeds the stored reason, the 30-day count, the most-recent type/reason, and the last message — accurate for both instant abuse and threshold blocks) and send it — call WF-51 with `{ channelId: 'C0A5B0ZE81E', messageText: "🚫 A number was automatically blocked.\n\n*Number:* {phoneNumber}\n*Reason:* {stored blocked_reason}\n*Flagged/dropped messages (last 30 days):* {drop_count}\n*Most recent:* {messageType} / {reason}\n*Their last message:* \"{messageContent or '(no text)', ≤500 chars}\"\n\nNo reply was sent. The number is now blocked." }`.
+Step 8: Return `{ blocked: true }`. End.
+Step 9: Return `{ blocked: false }`. End.

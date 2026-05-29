@@ -1,23 +1,43 @@
-WF-21 — New User Welcome + Form
+WF-21 — Brand-New Owner (no record)
 
 ## Summary
 
-- Inputs (WF-01 canonical envelope per data-contract-discipline Phase 1 — design.md §2.1): `phoneNumber` (E.164 string), `messageType`, `messageContent`, `user` (object: {id, phone_number, name, status, slack_channel_id, current_consultation_id} or null for new users), `pendingUser` ({id, contact_name} or null). Additional fields passed by WF-02: `contactName`, `messageId`. **Note:** prior to 2026-05-25 TD-DCP-107, WF-01 also called WF-21 directly on the opted-out re-engagement branch carrying a `wasOptedOut: true` flag. That branch was retargeted to WF-26 (`Re-Engaged Opted-Out User Handler`) so WF-21 now has a single caller (WF-02 on the NEW_USER state). The `wasOptedOut` prefix in Step 3's `Build Welcome Message` is retained as defensive dead code (one if-block, harmless).
-- Outputs: One outbound WhatsApp interactive message containing welcome text + privacy policy URL + WhatsApp Flow form CTA. A row in `pending_users` keyed by phone_number.
-- State Transitions: none in `users` table (no `users` row yet — first `users` write happens in WF-22 on form submission). Writes to `pending_users` only.
-- Calls Sub-Workflows: WF-50 (Send WhatsApp)
-- Called by: WF-02 (User State Router, NEW_USER state) — sole caller post-2026-05-25 TD-DCP-107.
-- **Contract-enforcement scope:** WF-21 is **not** in design.md §3.3 entry-guard scope. The §3.3 set is {WF-02, WF-11, WF-26} (router-downstream guards) + {WF-50, WF-51, WF-52, WF-60} (utility guards). WF-02 is WF-21's upstream and already guards the §2.1 envelope; the design treats WF-02 as the enforcement boundary for the NEW_USER branch, not its leaves. Do not add a `Validate Inputs` node to WF-21 — this was attempted by TD-DCP-110 (sprint `data-contract-sprint-bug-fix`) and reverted after the scope audit. See the sprint's `state.md` TD-DCP-110 `obsolete_reason` and the design.md Amendments section dated 2026-05-25 for the full rationale.
+- Purpose: Handles the first contact from a phone with NO record at all (no `users` row, no `pending_users` row). Triage by message type, preempt literal opt-out/rebook keywords, then classify free-form text via U3 and act per bucket. Brand-new asymmetry: junk / opt-out / rebook get NO reply (no relationship yet); genuine intents get a welcome + form.
+- Inputs (WF-01 canonical envelope §2.1): `phoneNumber` (E.164, top-level), `messageType`, `messageContent`, `user` (null), `pendingUser` (null), plus `contactName`, `consultChannelId?` (null at this stage), `messageId`.
+- Outputs: For genuine intents — a `pending_users` row + a welcome + WhatsApp Flow form (and, for service questions, a Gemini answer first). For non-text / opt-out / rebook / garbage — silent escalation via U2 (no reply). For abuse — instant block + admin alert via U2 (no reply).
+- State Transitions: none in `users` (first `users` write happens in WF-22 on form submission). Writes to `pending_users` on the form-sending branches.
+- Calls Sub-Workflows: WF-62 (U3 classifier), WF-61 (U2 escalate/block), WF-53 (U1 — Gemini failure), WF-50 (Send WhatsApp).
+- Called by: WF-01 (brand-new branch) — direct, post-BMX-06 (no longer via WF-02).
+- **Notes:**
+  - **Thresholds (BMX-06 §4):** non-text / opt-out / rebook / garbage / stop_intent / unrelated-redirect = 5; legit-but-repeating (greeting / wants / service / HELP) = 10; abuse = 1 (instant). Count is the shared per-phone 30-day rolling total owned by U2.
+  - **Opt-out aliases (decision #6):** literal `STOP` / `UNSUBSCRIBE` / `OPT OUT` / `OPT-OUT` are preempted before U3 (exact-match after `uppercase(trim())`). `REBOOK` is preempted too. These never reach the classifier.
+  - **Fail-open:** U3 returns raw `{ bucket, confidence }`; WF-21 maps `confidence < 0.5` to the `unrelated` (gentle-redirect) branch — never ghost a real prospect.
+  - **All form-sending branches Insert `pending_users`** so the next message routes to WF-23 (pre-form), never back here.
+  - **Copy is DRAFT (BMX-06 §11.1) — verify verbatim at build** (reuse the exact live welcome / policy-URL / fee text).
 
 ---
 
 ## Algorithm
 
-Step 1: Start — workflow triggered by WF-02 with WF-01 canonical envelope plus `contactName`, `messageId`. Read `phoneNumber` from top-level envelope field (canonical; do NOT use `user.phone_number` for phone-only purposes per §2.1). Read `contactName` from top-level envelope field.
-Step 2: INSERT INTO chinmay_astro.pending_users (phone_number, contact_name, created_at) VALUES (phoneNumber, contactName, NOW()) ON CONFLICT (phone_number) DO UPDATE SET contact_name = EXCLUDED.contact_name, created_at = NOW() RETURNING phone_number. This is intentionally NOT a `users` write — design rule: first `users` row is created in WF-22 after form submission.
-Step 3: Build the welcome message:
-  - If wasOptedOut == true (dead code post-TD-DCP-107 — retained defensively per Summary note): prepend "👋 Welcome back to Chinmay Astro! We're glad you're back. " to the greeting.
-  - Plain text body: (welcome-back prefix if applicable) + greeting, intro from Chinmay, privacy policy URL (https://chinmaymujumdar.com/privacy-policy), how-it-works bullets (form → ₹500 → consultation), and prompt to fill the form.
-  - Interactive payload: type="flow", header="Birth Details Form", body=welcome text, flowId=<published Meta Flow ID for `Collect Personal Details v2` — currently `2260297164474475` per TD-PGF-14 cutover 2026-05-27; v1 Flow `1408011897720771` retained published in Meta as immediate-revert path>, flowCta="Fill Details".
-Step 4: Call WF-50 with { phoneNumber, messageType="interactive", messageContent=welcome text, interactivePayload=the flow object } per §2.3 canonical contract.
-Step 5: End.
+Step 1: Start — triggered by WF-01 with the canonical envelope (`user: null`, `pendingUser: null`) plus `contactName`, `messageId`. Read `phoneNumber` and `contactName` from the top-level envelope fields.
+Step 2: Check: `messageType != 'text'` (non-text or interactive)?
+  - If YES → go to Step 3 (silent escalate).
+  - If NO → go to Step 4.
+Step 3: Call U2 with `{ phoneNumber, messageType, reason: 'non_text', blockThreshold: 5, blockReason: 'threshold_non_text' }`. No reply (brand-new asymmetry). End.
+Step 4: Normalize `keyword = uppercase(trim(messageContent))`. Check: keyword ∈ { "STOP", "UNSUBSCRIBE", "OPT OUT", "OPT-OUT", "REBOOK" }?
+  - If YES → go to Step 5 (silent escalate — no reply).
+  - If NO → go to Step 6.
+Step 5: Call U2 with `{ phoneNumber, messageType: 'text', reason: (keyword=='REBOOK' ? 'rebook_keyword' : 'stop_keyword'), messageContent, blockThreshold: 5, blockReason: 'threshold_garbage' }`. No reply (brand-new asymmetry — nothing to opt out of / rebook yet). End.
+Step 6: Call U3 (New-Contact Intent Classifier) with `{ phoneNumber, text: messageContent, stage: 'new', consultChannelId: null }`. On Gemini failure U3 hands off to U1 and halts (WF-21's turn ends — no bucket). On success, receive `{ bucket, confidence }`.
+Step 7: Apply fail-open — if `confidence < 0.5`, treat `bucket` as `unrelated`. Then branch on the effective bucket:
+  - greeting | wants_consultation | HELP → go to Step 8 (welcome + form, legit).
+  - service_related_question → go to Step 9 (Gemini answer + welcome + form, legit).
+  - unrelated → go to Step 11 (gentle redirect + form).
+  - garbage | stop_intent → go to Step 12 (silent escalate).
+  - malicious | abusive | inappropriate → go to Step 13 (instant block).
+Step 8: INSERT/UPSERT `pending_users` (phone_number, contact_name, created_at). Build the welcome message: greeting + intro + privacy-policy URL + how-it-works (form → ₹500 → consultation) + the WhatsApp Flow form CTA ("Fill Details"). Call WF-50 with the interactive welcome+form payload. Then call U2 with `{ phoneNumber, messageType: 'text', reason: 'greeting_loop', messageContent, blockThreshold: 10, blockReason: 'threshold_garbage' }` (legit-but-repeating guard). End.
+Step 9: Build a Gemini prompt for a brief, warm answer to the user's service question (Chinmay Astro / Vedic astrology / fees / process), then POST to Gemini (gemini-2.5-flash-lite). On Gemini failure → call U1 `{ phoneNumber, userFacing: true, consultChannelId: null, context: { source: 'WF-21', userMessage: messageContent, errorDetail: <summary> } }` (apologise + alert + halt). On success → go to Step 10.
+Step 10: INSERT/UPSERT `pending_users`. Send (Gemini answer) + blank line + the welcome + form (same as Step 8) via WF-50. Then call U2 with `{ … reason: 'service_loop', blockThreshold: 10, blockReason: 'threshold_garbage' }`. End.
+Step 11: INSERT/UPSERT `pending_users`. Send the gentle redirect ("Thanks for reaching out — Chinmay Astro offers Vedic astrology consultations; tap Fill Details to get started") + the Flow form CTA via WF-50. Then call U2 with `{ … reason: 'unrelated', blockThreshold: 5, blockReason: 'threshold_garbage' }`. End.
+Step 12: Call U2 with `{ phoneNumber, messageType: 'text', reason: (bucket=='stop_intent' ? 'stop_intent' : 'garbage'), messageContent, blockThreshold: 5, blockReason: 'threshold_garbage' }`. No reply (silent). End.
+Step 13: Call U2 with `{ phoneNumber, messageType: 'text', reason: 'abuse', messageContent, blockThreshold: 1, blockReason: 'abuse' }` — U2 blocks the phone on first occurrence (inserts a stub `users` row `status='blocked'`, `blocked_reason='abuse'`) and posts the admin alert. No user reply. End.

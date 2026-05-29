@@ -1,40 +1,45 @@
-WF-25 — Intent Classifier
+WF-25 — Intent Classifier + Safety-Net Hub
 
 ## Summary
 
-- Inputs: phoneNumber, userId, messageContent (the user's free-form text), userStatus. Called by any workflow that needs to classify a user message before acting (e.g. WF-23, WF-30, WF-31, WF-40, WF-43, WF-44).
-- Outputs: On the success path, returns the input payload extended with `intentResult` ∈ {wants_consultation, general_enquiry, rebook_intent, feedback_intent, stop_intent, garbage, malicious_abusive, inappropriate}. Side effects: for garbage sends a warning + notifies admin via Slack; for malicious_abusive / inappropriate sends a block warning + auto-blocks the user via WF-46; on Gemini failure, notifies user (apology) + admin (dual-channel alert) and halts execution with an error so the caller propagates termination.
-- State Transitions: none directly. WF-46 (called for abuse/inappropriate) transitions user to `blocked`.
-- Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack — admin notify), WF-46 (Auto-Block)
-- **Ambiguities / Notes:**
-  - **Three branches intentionally do NOT return to caller** — garbage (Step 11), auto-block (Step 14), and Gemini-failure halt (Step 7). Any caller relying on a return for those classifications receives either no data (garbage / auto-block — caller continues without intent enrichment) or an executeWorkflow error (Gemini failure — caller execution terminates via error propagation). This is by design — see TD-PGF-09 in sprint pre-go-live-final-follow-up-2026-05-26 for the Gemini-failure rationale.
+- Purpose: The existing-user classifier AND the centralized safety net. WF-25 classifies the message (8 buckets), and owns the cross-stage safety actions — stop_intent clarifier, garbage warning + counting, abuse block, and Gemini-failure handling — so the state handlers (WF-30/31/40/43) stay thin and stage-specific. Leniency varies by `userStatus` (it receives it).
+- Inputs: `{ phoneNumber, userId, messageContent, userStatus, userName, slackChannelId }`.
+- Callers (post-BMX-06): WF-30, WF-31, WF-40, WF-43 — existing-user only (WF-23 now uses U3). So `userStatus ∈ { payment_pending, payment_submitted, consultation_active, consultation_closed }`.
+- Outputs: see per-branch returns. WF-25 returns to the caller ONLY on pass-through, stop_intent, and the consultation_active-garbage-not-blocked (D4) path; garbage (other stages), garbage-blocked, abuse, and Gemini-failure all terminate inside WF-25 with no return.
+- State Transitions: none directly. U2 (called for garbage at threshold + abuse) sets `status='blocked'`.
+- Calls Sub-Workflows: WF-53 (U1 — Gemini failure), WF-61 (U2 — garbage counting + abuse block), WF-50 (Send WhatsApp — stop clarifier + garbage warning).
+- **Deltas vs the prior WF-25 (safety-net §5):**
+  - REMOVED `Notify Admin of Garbage` (admin is alerted only when U2 actually blocks — D2).
+  - REMOVED the abuse `Send Block Warning` user reply (silent — D3).
+  - REMOVED the inline Gemini-failure chain (apology → dual admin alerts → stopAndError) → replaced by a single U1 call.
+  - REMOVED `Auto-Block via WF-46` → replaced by U2 (which now owns block + alert + `blocked_reason`). WF-46 is retired from this path.
+  - ADDED U2 calls (garbage + abuse), the U1 call (Gemini failure), the stop_intent clarifier send (consolidated from the four handlers), and the consultation_active-garbage relay-return (D4).
+- **Notes:**
+  - **Garbage counts but admin is quiet until a block.** Existing users get a gentle warning (they have a paying relationship), the message is logged + counted by U2, and admin is alerted only when U2 trips the block.
+  - **D4 — consultation_active garbage is the most lenient:** no warning to the user; WF-25 RETURNS so WF-40 relays the original message to Chinmay. Still logged + counted (a flooder eventually blocks).
+  - **D5 — stop_intent clarifier is sent by WF-25, then WF-25 RETURNS** `intentResult=stop_intent` so the caller still does its stage-specific action (e.g. WF-40 relays; WF-31 Branch B relays). This removes the old WF-43 auto-unsubscribe inconsistency.
+  - **Return-contract (verified against callers):** the no-return branches are safe — WF-30/WF-43 take no action on garbage beyond WF-25's warning; WF-31's relay is its independent parallel Branch B; only WF-40 needs the message back, which the D4 branch provides.
+  - Classification prompt is UNCHANGED (8 buckets). Copy is REUSE-EXISTING — verify verbatim at build (safety-net §9).
 
 ---
 
 ## Algorithm
 
-Step 1: Start — workflow triggered by another workflow with phoneNumber, userId, messageContent, userStatus.
-Step 2: Build the Gemini classification request:
-  - Prompt: "You are an intent classifier for a WhatsApp astrology consultation service. User context: Status: <userStatus>. Classify the message into EXACTLY ONE of: wants_consultation, general_enquiry, rebook_intent, feedback_intent, stop_intent, garbage, malicious_abusive, inappropriate. <category definitions>. User message: \"<messageContent>\". Reply with ONLY the category word."
-  - Body: contents=[{parts:[{text: prompt}]}], generationConfig={temperature:0, maxOutputTokens:20}.
-Step 3: POST the body to Gemini gemini-2.5-flash-lite generateContent endpoint with the Gemini API key. On error → go to Step 4. On success → go to Step 8.
-Step 4: Build user apology payload (per design.md §2.3 WF-50 contract): phoneNumber=<phone>, messageType='text', messageContent="Sorry — we ran into a brief technical issue and couldn't process your message just now. Dr. Chinmay has been notified and will follow up with you shortly. We apologise for the inconvenience."
-Step 5: Call WF-50 to send the apology to the user.
-Step 6: Build admin alert payload (per design.md §2.4 WF-51 contract). messageText = "⚠️ The intent classifier couldn't process a message just now.\n\n*User:* <name> (<phone>)\n*Their state:* <state in plain English — e.g. 'filling onboarding form', 'awaiting payment approval', 'in active consultation'>\n*Their message:* \"<text>\"\n*Reason:* <short error summary — e.g. 'Gemini API timed out after 3 retries'>\n\nThe user has been told there's a technical hiccup and that you'll follow up. Suggested action: reach out manually in their consult channel; consider a goodwill gesture (e.g. complimentary consultation) if they were mid-flow." Determine destinations: ALWAYS post to `chinmay-admin-commands` (channelId = `C0A5B0ZE81E`). ADDITIONALLY post to the user's consult Slack channel (channelId = caller-supplied `slackChannelId`) ONLY IF `slackChannelId` is non-empty. Pre-form users (WF-23 callers before form submission) have no consult channel per Design Rule #2 — channel is created at form submission — so in that case admin-commands receives the alert alone (pre-form fallback locked 2026-05-27T02:55Z, TD-PGF-09 §Data-path decision).
-Step 7: Call WF-51 once or twice (parallel fan-out) per Step 6's destination determination — admin-commands always; consult channel only when present. Then halt the workflow with an explicit error so the caller's executeWorkflow node propagates the error and the caller execution terminates. End — no return to caller (caller halts via error propagation).
-Step 8: Parse Gemini response — read candidates[0].content.parts[0].text, trim and lowercase. If it matches one of the 8 valid categories, use it; otherwise default intentResult = "general_enquiry".
-Step 9: Route on intentResult:
-  - "wants_consultation" → go to Step 15
-  - "general_enquiry" → go to Step 15
-  - "rebook_intent" → go to Step 15
-  - "feedback_intent" → go to Step 15
-  - "garbage" → go to Step 10
-  - "malicious_abusive" → go to Step 12
-  - "inappropriate" → go to Step 12
-  - "stop_intent" → go to Step 15
-Step 10: Build a garbage warning payload (per design.md §2.3): phoneNumber=<phone>, messageType='text', messageContent="⚠️ Your message could not be understood. Please send a clear question about our astrology consultation service."
-Step 11: Call WF-50 to send the garbage warning to the user, then call WF-51 to notify the admin Slack channel about the garbage message. End (no return to caller — caller flow halts on garbage).
-Step 12: Build a block warning payload (per design.md §2.3): phoneNumber=<phone>, messageType='text', messageContent="🚫 Your message has been flagged as inappropriate or abusive. Your access to this service has been restricted."
-Step 13: Call WF-50 to send the block warning to the user.
-Step 14: Call WF-46 (Auto-Block) which moves the user to status=blocked. End (no return to caller — caller flow halts on auto-block).
-Step 15: Return to caller — pass through the original input merged with intentResult.
+Step 1: Start — triggered by a caller with `{ phoneNumber, userId, messageContent, userStatus, userName, slackChannelId }`.
+Step 2: Build the Gemini classification request — the existing 8-bucket prompt (wants_consultation, general_enquiry, rebook_intent, feedback_intent, stop_intent, garbage, malicious_abusive, inappropriate), with `userStatus` as context; deterministic config (temperature=0, short output).
+Step 3: POST the request to Gemini (gemini-2.5-flash-lite). On Gemini failure → go to Step 4. On success → go to Step 5.
+Step 4: Gemini failure — call U1 with `{ phoneNumber, userFacing: true, consultChannelId: slackChannelId, context: { source: 'WF-25', userName, userStateText: <userStatus in plain English>, userMessage: messageContent, errorDetail: <summary> } }`. U1 apologises + alerts admin + HALTS, so WF-25 terminates and the caller's turn ends. End — no return.
+Step 5: Parse the Gemini response → trim + lowercase. If it matches one of the 8 buckets, use it; else status-aware fallback (`consultation_closed → feedback_intent`; otherwise `general_enquiry`). Set `intentResult`.
+Step 6: Route on `intentResult`:
+  - pass-through { wants_consultation, general_enquiry, rebook_intent, feedback_intent } → go to Step 11 (return).
+  - stop_intent → go to Step 7.
+  - garbage → go to Step 9.
+  - malicious_abusive | inappropriate → go to Step 10.
+Step 7: Build the stop_intent clarifier (reuse live copy: "This is an automated message from Chinmay Astro — we noticed your message mentioned STOP or unsubscribing. If this was unrelated, please ignore. If you do want to opt out of this service, simply send STOP at any time.").
+Step 8: Call WF-50 to send the clarifier. Then go to Step 11 (return `intentResult=stop_intent` so the caller does its stage-specific extra, e.g. relay).
+Step 9: Garbage — call U2 with `{ phoneNumber, messageType: 'text', reason: 'garbage', messageContent, blockThreshold: 10, blockReason: 'threshold_garbage' }`. Receive `{ blocked }`. Then:
+  - If `blocked == true` → End — no return (U2 already sent the block alert; silent).
+  - Else if `blocked == false` AND `userStatus == 'consultation_active'` → go to Step 11 (D4 — return; WF-40 relays; no warning to the user).
+  - Else → send the gentle garbage warning via WF-50 ("⚠️ Your message could not be understood. Please send a clear question about our astrology consultation service."). End — no return, no admin notify.
+Step 10: Abuse — call U2 with `{ phoneNumber, messageType: 'text', reason: 'abuse', messageContent, blockThreshold: 1, blockReason: 'abuse' }`. U2 sets `status='blocked'` (`blocked_reason='abuse'`, `blocked_at=NOW()`, `blocked_by='WF-61'`) + posts the admin alert (embedding the message). No user reply. End — no return.
+Step 11: Return to the caller — the original input merged with `{ intentResult }`.

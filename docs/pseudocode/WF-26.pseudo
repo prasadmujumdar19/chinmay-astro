@@ -2,38 +2,24 @@ WF-26 — Re-Engaged Opted-Out User Handler
 
 ## Summary
 
-- Inputs (WF-01 canonical envelope per data-contract-discipline Phase 1 — design.md §2.1, opted-out variant per TD-DCP-105): `phoneNumber` (E.164 string), `messageType` (text|interactive), `messageContent` (string), `user` (object: {id, phone_number, name, status='opted_out', slack_channel_id, current_consultation_id} — must be non-null and `status` must be `opted_out`), `pendingUser` (must be null on this branch — opted_out users have no pending row), `wasOptedOut` (boolean, must be `true`). Additionally carries the standard WF-01 passthrough fields (`rawMessage`, `messageContentUpper`, `messageId`, `timestamp`, `contactName`, `metadata`) — forwarded unchanged to WF-02 in Step 6.
-- Outputs: One outbound WhatsApp text message (personalized welcome-back). User row updated to `status='consultation_closed'`. Inbound message re-entered into the state machine via WF-02 so the user's first re-engagement message is actually answered, not just acknowledged.
-- State Transitions: `users.status: opted_out → consultation_closed`. No `current_consultation_id` change (left as-is; a prior session, if any, was already closed at opt-out time by WF-47).
-- Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-02 (User State Router).
+- Purpose: Handles an opted_out user re-engaging by sending any message. It lifts the user back to `consultation_closed` and re-routes the inbound message through WF-02 so the FULL safety net (WF-43 → WF-25) runs on the re-engagement message — and crucially, an abusive/garbage re-engagement is handled (blocked / warned) WITHOUT first being welcomed back. No separate welcome-back message.
+- Inputs (WF-01 canonical envelope §2.1, opted-out variant): `phoneNumber`, `messageType`, `messageContent`, `user` (non-null; `status='opted_out'`), `pendingUser` (null), `wasOptedOut` (true), plus the standard passthrough fields (`rawMessage`, `messageId`, `timestamp`, `contactName`, `metadata`) forwarded unchanged.
+- Outputs: the `users` row updated to `status='consultation_closed'`; the inbound message re-entered into the state machine via WF-02 (answered in the same turn, not just acknowledged).
+- State Transitions: `users.status: opted_out → consultation_closed` (uniform re-entry status regardless of pre-opt-out state). No `current_consultation_id` change.
+- Calls Sub-Workflows: WF-02 (User State Router).
+- **Deltas vs the prior WF-26 (safety-net §6, decision #9):**
+  - REMOVED the welcome-back nodes (`Build Welcome Payload` + `Call WF-50 Welcome Back`). The re-route lands the message in WF-43 → WF-25, so the safety net runs on it exactly once; a legitimate message is answered warmly by WF-43's contextual reply, and the "details on file" reassurance is not lost in practice (the rebook path never re-asks for birth details).
+  - WF-26 no longer calls WF-50.
 - **Notes:**
-  - Uniform re-entry status: every re-engagement lands at `consultation_closed` regardless of the pre-opt-out state. No `pre_opt_out_status` column; no per-prior-state branching. Q1 design decision locked 2026-05-25 in sprint `data-contract-sprint-bug-fix` handoff `handoff-td-dcp-105-done-wf26-build-pending.md`.
-  - Forward-routing first message: after sending the welcome-back, WF-26 calls WF-02 with the refreshed envelope (`user.status='consultation_closed'`) so the user's first re-engagement message routes through the state machine in one turn rather than requiring a follow-up. Q2 design decision (locked, same source).
-  - Welcome wording is unified across pre-opt-out states (no special variant for users who opted out from `payment_submitted`). Q4 design decision (locked, same source).
-  - The `Refresh Envelope Status` Set v3.4 node (Step 3) MUST set `includeOtherFields: true` and overwrite `user.status` to `consultation_closed` on the in-flight envelope. Without this refresh, WF-02 sees the pre-UPDATE `opted_out` status and routes incorrectly (cf. Set v3.4 default-drop foot-gun, plugin Step 5f.5).
-  - Entry guard at Step 1 follows the WF-02 pattern — defense-in-depth per design.md §2.1 + §2.7. WF-26 is in design.md §3.3 entry-guard scope per the 2026-05-25 Amendment (sprint `data-contract-sprint-bug-fix`): post-TD-DCP-107 WF-26 became a direct WF-01 downstream on the opted-out re-engagement branch, parallel to WF-02's role on the main path. The guard throws loudly on contract violation (envelope shape, non-null `pendingUser`, `wasOptedOut !== true`, `user.status !== 'opted_out'`).
+  - **Uniform re-entry:** every re-engagement lands at `consultation_closed` (no `pre_opt_out_status` column, no per-prior-state branching).
+  - **Envelope refresh is essential:** the in-flight envelope's `user.status` must be overwritten to `consultation_closed` before the WF-02 call, or WF-02 routes on the stale `opted_out` value.
+  - **button_reply / nfm_reply from a re-engaging user:** button_reply lands in WF-43 (handled gracefully); nfm_reply is unreachable for opted_out users (post-onboarding by definition) and is covered regardless by WF-02's nfm_reply guard.
 
 ---
 
 ## Algorithm
 
-Step 1: Validate Inputs (entry guard — defense-in-depth per design.md §2.1 + §2.7). Read envelope from the workflow trigger. Throw with descriptive error if:
-  - phoneNumber is missing or not a string.
-  - messageType is not one of: text, interactive.
-  - messageContent key is absent or null.
-  - user is null/undefined OR user.id is missing OR user.status !== 'opted_out'.
-  - pendingUser is non-null (contract violation — opted_out users have no pending row).
-  - wasOptedOut !== true.
-  Pass through unchanged on success.
-
-Step 2: UPDATE chinmay_astro.users SET status = 'consultation_closed', updated_at = NOW() WHERE id = user.id RETURNING id, phone_number, name, status, slack_channel_id, current_consultation_id. Single-row update; if affected rows = 0 the workflow halts (contract failure — user.id should exist by construction since the envelope carries the loaded row).
-
-Step 3: Refresh the in-flight envelope's `user.status` to `consultation_closed` (overwrite the stale `opted_out` value) so the WF-02 call in Step 6 routes on the post-UPDATE state. Pass through every other envelope field unchanged. (Set v3.4 with `includeOtherFields: true`.)
-
-Step 4: Build the welcome-back WF-50 payload (canonical §2.3 contract): `{phoneNumber, messageType: 'text', messageContent: "Welcome back, ${user.name}. Since you'd opted out, your previous session has ended. This is a fresh start. You don't need to send birth details again — we have them on file."}`. Personalization uses `user.name` from the envelope.
-
-Step 5: Call WF-50 (Send WhatsApp) with the welcome-back payload from Step 4. Fire-and-forget from WF-26's perspective — WF-50 owns its own logging via WF-60.
-
-Step 6: Call WF-02 (User State Router) with the refreshed envelope from Step 3 (passthrough mode — the envelope already matches §2.1 shape with the updated `user.status`). WF-02 then routes the inbound message based on `messageType` + the refreshed `user.status='consultation_closed'` — which means a button_reply lands in WF-43 / WF-44 / WF-45 logic, plain text lands in WF-43's intent classifier path, etc. The user's first re-engagement message is answered in the same turn.
-
-Step 7: End.
+Step 1: Validate Inputs (entry guard — defense-in-depth per §2.1 + §2.7). Hard-fail if: `phoneNumber` missing/not a string; `messageType` not text/interactive; `messageContent` key absent; `user` null or missing `user.id`; `pendingUser` non-null; `wasOptedOut !== true`. Pass through on success.
+Step 2: UPDATE chinmay_astro.users SET status = 'consultation_closed', updated_at = NOW() WHERE id = user.id. (Single-row update; halts on 0 affected rows — contract failure, since the envelope carries the loaded row.)
+Step 3: Refresh the in-flight envelope — overwrite `user.status` to `consultation_closed` (replacing the stale `opted_out`), passing every other envelope field through unchanged, so the WF-02 call routes on the post-UPDATE state.
+Step 4: Call WF-02 (User State Router) with the refreshed envelope. WF-02 routes the inbound message on `messageType` + `user.status='consultation_closed'` (text → WF-43's classifier path → WF-25 safety net; button_reply → WF-43). The user's first re-engagement message is answered in the same turn. End.

@@ -1,0 +1,32 @@
+WF-62 — U3 · New-Contact Intent Classifier
+
+## Summary
+
+- Purpose: Shared Gemini classifier for NEW and PRE-FORM contacts (no `users` row yet). A single prompt is tuned by a `stage` parameter and returns one of ten intent buckets plus a confidence score. Callers (WF-21, WF-23) own all actions; U3 only classifies. It deliberately does NOT reuse WF-25 (different taxonomy, no side effects).
+- Inputs (strict contracted envelope per data-contract-discipline; first node is an entry guard, passthrough):
+  - `phoneNumber` — E.164 string, required.
+  - `text` — non-empty string, required. The user's message to classify.
+  - `stage` — string, required, one of { `new`, `pre_form` }. Tunes the prompt context ("we already sent this person the form" for `pre_form`).
+  - `consultChannelId` — Slack channel ID, optional. Forwarded to U1 on Gemini failure.
+- Outputs: On success, returns the RAW `{ bucket, confidence }` — the caller applies the fail-open rule (`confidence < 0.5 → treat as unrelated`). On Gemini failure, U3 hands off to U1 and HALTS (returns no bucket — the turn ends without a defaulted intent).
+- Buckets (10): `greeting` | `wants_consultation` | `service_related_question` | `HELP` | `unrelated` | `garbage` | `stop_intent` | `malicious` | `abusive` | `inappropriate`.
+- State Transitions: none.
+- Calls Sub-Workflows: WF-53 (U1 · Gemini Error Handler — on Gemini failure only).
+- Called by: WF-21 (stage=new), WF-23 (stage=pre_form).
+- **Notes:**
+  - **Caller applies fail-open, not U3.** U3 returns the raw confidence; the caller maps `confidence < 0.5` to its `unrelated` (gentle-redirect) branch. Keeping the threshold caller-side lets WF-21/WF-23 tune it without changing the shared utility.
+  - **Literal STOP / REBOOK never reach U3** — they are preempted by the literal keyword steps in WF-21/WF-23 before U3 is called. The prompt does not special-case them.
+  - **Malformed Gemini output (not an outage) → `{ unrelated, 0 }`** — a parse failure on an otherwise-successful response is treated as low-confidence fail-open, not as a technical failure (no U1).
+  - Multilingual: classifies English / Hindi / Marathi / Hinglish by meaning.
+  - Prompt copy + the 0.5 fail-open threshold were approved verbatim by the user 2026-05-29.
+
+---
+
+## Algorithm
+
+Step 1: Start — triggered by a caller (WF-21 or WF-23) with the contracted envelope `{ phoneNumber, text, stage, consultChannelId? }` (passthrough).
+Step 2: Entry guard — validate the envelope; hard-fail with a descriptive contract error if `phoneNumber` is not E.164, `text` is empty, or `stage` is not in { new, pre_form }. Pass through on success.
+Step 3: Build the Gemini classification request — interpolate the locked classifier prompt (BMX-06 §11.2) with `stage` and `text`; configure deterministic generation (temperature=0, short output, strict-JSON response). The prompt instructs Gemini to output ONLY `{"bucket": "<one of the 10>", "confidence": <0.0–1.0>}` and to set LOW confidence (<0.5) when genuinely unsure.
+Step 4: POST the request to Gemini (gemini-2.5-flash-lite). On success → go to Step 5. On failure (the model could not produce a response) → go to Step 6.
+Step 5: Parse the response — strip any code fences, parse the JSON, and validate `bucket` is one of the 10 buckets and `confidence` is numeric. If valid → return `{ bucket, confidence }` to the caller. If malformed → return `{ bucket: 'unrelated', confidence: 0 }` (low-confidence fail-open). End.
+Step 6: Gemini failure — call U1 (Gemini Error Handler) with `{ phoneNumber, userFacing: true, consultChannelId, context: { source: 'U3', userMessage: text, errorDetail: <business-tone failure summary> } }`. U1 apologises to the user, alerts admin, and HALTS — so U3 terminates here and returns no bucket (the caller's turn ends; no intent is defaulted). End.

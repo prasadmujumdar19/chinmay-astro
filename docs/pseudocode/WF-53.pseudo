@@ -1,0 +1,34 @@
+WF-53 — U1 · Gemini Error Handler
+
+## Summary
+
+- Purpose: Shared safety utility called from the failure branch of EVERY Gemini node in the system (the U3 classifier, WF-21/WF-23 service-answer Gemini, WF-25 classifier, and the WF-30/31/43 general-response Gemini). When Gemini cannot produce a valid classification or reply, U1 owns the user-facing apology + the admin escalation, then HALTS so the calling chain terminates without ever defaulting an intent.
+- Inputs (strict contracted envelope per data-contract-discipline; first node is an entry guard, passthrough):
+  - `phoneNumber` — E.164 string, required. (Canonical name, aligned with WF-50/51/52/60.)
+  - `userFacing` — boolean, required. Gates the user apology only.
+  - `consultChannelId` — Slack channel ID (`^[CDG][A-Z0-9]+$`), optional. Admin-alert destination; absent ⇒ admin-commands `C0A5B0ZE81E`.
+  - `context` — object, required: `{ source (e.g. 'WF-21' / 'WF-43' / 'U3' / 'WF-25'), userName?, userStateText?, userMessage?, errorDetail? }`. U1 assembles the admin alert text from this.
+- Outputs: An admin alert into Slack (always); a user apology via WhatsApp (only when `userFacing=true`). U1 does NOT return a value — it HALTS. Callers keep their default error-propagation on the `Call U1` node so the halt terminates the whole turn (no defaulted intent / no continued reply).
+- State Transitions: none.
+- Calls Sub-Workflows: WF-51 (Send Slack — admin alert), WF-50 (Send WhatsApp — user apology, user-facing only).
+- Called by: U3 (WF-62), WF-21, WF-23, WF-25, WF-30, WF-31, WF-43 — from each one's Gemini-failure path.
+- **Notes:**
+  - **Halt-not-return (design contract):** a Gemini *technical* failure means no valid classification/answer was produced, so the execution MUST terminate — we never default an intent just to keep going. Every caller therefore leaves its `Call U1` node on the default error-propagation behavior so U1's halt cascades up and ends the turn.
+  - **No individual named in shared copy:** the user apology references "our IT Support team", and the admin alert references "the team" — a shared utility must not name Dr. Chinmay (it is called from many contexts).
+  - **Admin "user has been told" sentence (matches live):** the admin alert ALWAYS ends with "The user has been told there's a technical hiccup and that the team will follow up. Suggested action: respond manually in their consult channel." — it is built in the `Build Admin Alert` node which runs before the user-facing branch. *(Deferred improvement — adjacent finding in `followups.md`: make this closing sentence conditional on `userFacing` so a non-user-facing alert does not claim the user was reassured. NOT yet applied to live, so the pseudo reflects the current always-included behavior; apply to live + pseudo together in a future batch.)*
+  - Copy is LOCKED business-tone (verify verbatim against live at build per the BMX-06 §11 / safety-net §9 banners).
+
+---
+
+## Algorithm
+
+Step 1: Start — triggered by another workflow with the contracted envelope `{ phoneNumber, userFacing, consultChannelId?, context }` (passthrough).
+Step 2: Entry guard — validate the envelope; hard-fail with a descriptive contract error if `phoneNumber` is missing/not E.164, `userFacing` is not boolean, or `context` is missing. Pass through on success.
+Step 3: Build the admin alert text from `context`. Resolve the destination channel = `consultChannelId` if present, else admin-commands `C0A5B0ZE81E`. Missing context fields render as "—". Assemble (the closing sentence is ALWAYS included — see the deferred-improvement note above):
+  "⚠️ The AI assistant couldn't generate a reply to a user just now.\n\n*User:* {context.userName or '—', ≤100 chars} ({phoneNumber})\n*Their state:* {context.userStateText or '—', ≤100 chars}\n*Their question:* \"{context.userMessage or '—', ≤500 chars}\"\n*Reason:* {context.errorDetail or '—', ≤200 chars}\n\nThe user has been told there's a technical hiccup and that the team will follow up. Suggested action: respond manually in their consult channel."
+Step 4: Send the admin alert — call WF-51 with `{ channelId: <resolved channel>, messageText: <assembled alert> }`.
+Step 5: Check: `userFacing == true`?
+  - If YES → go to Step 6 (apologise to the user).
+  - If NO → go to Step 7 (admin already alerted; no user apology).
+Step 6: Send the user apology — call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: "Sorry — we ran into a brief technical issue and couldn't process your message just now. Our IT Support team has been notified and will follow up with you shortly. We apologise for the inconvenience." }`. Go to Step 7.
+Step 7: HALT — terminate execution. No value is returned to the caller; the caller's turn ends here (its `Call U1` node propagates the termination). End.

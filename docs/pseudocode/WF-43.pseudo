@@ -2,53 +2,43 @@ WF-43 — Post-Consultation Handler
 
 ## Summary
 
-- Inputs (canonical WF-01 envelope per data-contract-discipline Phase 1 §2.1): `phoneNumber` (E.164 string, top-level), `messageType` (enum: 'text' | 'interactive'), `messageContent` (string), `rawMessage` (object — for interactive payloads), `user.id` (integer), `user.status` (enum: 'consultation_closed'), `user.current_consultation_id` (integer or null), `user.slack_channel_id` (string — required for btn_done Slack notification).
-- Outputs: Routes to WF-44 (feedback), WF-45 (rebook), WF-47 (unsubscribe); sends a thank-you (btn_done) via WF-50 + Slack notification via WF-51; or sends a Gemini-generated WhatsApp reply (per design.md §2.3 for WF-50 input contract and §2.4 for WF-51 input contract).
-- State Transitions: none directly (downstream WFs may transition)
-- Calls Sub-Workflows: WF-25 (Intent Classifier), WF-44 (Feedback Recorder), WF-45 (Rebook), WF-47 (Unsubscribe), WF-50 (Send WhatsApp), WF-51 (Send Slack Message — btn_done notification only)
+- Purpose: Handles `consultation_closed` user activity. Interactive button taps route directly (done / rebook / feedback). Free-form text is classified via WF-25 (which owns the safety net), then routed: rebook → WF-45, feedback → WF-44, stop_intent → no extra (clarifier already sent by WF-25), else a Gemini contextual reply.
+- Inputs (WF-01 canonical envelope §2.1): `phoneNumber` (top-level), `messageType` (text|interactive), `messageContent`, `rawMessage` (for interactive payloads), `user.{id, status, current_consultation_id, slack_channel_id}`.
+- Outputs: routes to WF-44 / WF-45; a thank-you (btn_done) via WF-50 + Slack notification via WF-51; a feedback prompt; or a Gemini-generated reply.
+- State Transitions: none directly (downstream WFs may transition).
+- Calls Sub-Workflows: WF-25 (Intent Classifier + Safety-Net Hub), WF-44 (Feedback Recorder), WF-45 (Rebook), WF-53 (U1 — on the local Gemini reply's failure), WF-50 (Send WhatsApp), WF-51 (Send Slack — btn_done notification).
+- **Deltas vs the prior WF-43 (safety-net §6, D5):**
+  - stop_intent NO LONGER auto-routes to WF-47 — WF-25 sends the clarifier and returns the intent; WF-43 takes no extra action on stop_intent (removes the live inconsistency + the false-positive unsubscribe risk).
+  - REMOVED the inline Gemini-error halt-and-notify chain → on the general-reply Gemini failure, call U1.
 - **Notes:**
-  - TD-DRIFT-009 (WF-25 caller passes messageText instead of messageContent) is a known bug deferred to the post-Phase-1 bug-fix sprint.
-  - **Gemini General Response halt-and-notify (2026-05-27 — TD-PGF-09 scope expansion):** Identical pattern to WF-23/WF-30/WF-31. HTTP node has `onError=continueErrorOutput`; on retries exhausted, error branch fans out to user apology (WF-50) + dual admin alerts (WF-51 consult + admin-commands), then `stopAndError` terminates execution. Consultation-closed users always have a consult Slack channel (Design Rule #10 — never archived) — both alerts fire. User-apology + admin-alert copy locked 2026-05-27T02:25:00Z. See revised Algorithm Step 13-23 for full chain.
-  - **Call WF-25 envelope add-on (2026-05-27 — TD-PGF-05):** previously `workflowInputs.value` was empty (passthrough-via-trigger). Now explicit 6-field mapping per data-contract-discipline: phoneNumber, userId, messageText, userStatus, userName (`user.name`), slackChannelId (`user.slack_channel_id`). WF-25 reads these for its halt-and-notify alert template.
+  - Interactive button cascade is unchanged.
+  - Copy reuse-existing — verify verbatim at build.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — triggered by another workflow (typically WF-01/WF-02 for a user in `consultation_closed`). Receives WF-01 canonical envelope.
-Step 2: Check: Is messageType == "interactive" (a button reply)?
-  - If YES → go to Step 3
-  - If NO  → go to Step 8
-Step 3: Check button_reply.id in order (cascade of IF gates):
-  - IF rawMessage.interactive.button_reply.id == "btn_done"  → go to Step 5
-  - ELSE IF rawMessage.interactive.button_reply.id == "btn_rebook" → go to Step 4
-  - ELSE (btn_feedback or any other id) → go to Step 7
-Step 4: Call WF-45 (Rebook) with phoneNumber, userId. End.
-Step 5: Build canonical WF-50 payload (per design.md §2.3): { phoneNumber, messageType: 'text', messageContent: "Thank you for choosing Chinmay Astro. We hope to see you again — just send REBOOK whenever you're ready.\n\nYou can also email chinmay_astro@gmail.com anytime if you need anything we can't help with here, or reply STOP if you'd prefer to unsubscribe." }; call WF-50.
-Step 6: Build Slack notification payload (per design.md §2.4) — channelId = user.slack_channel_id; messageText = "✅ User tapped \"Done, thanks\" — conversation closed. Channel stays open for any future rebook."; call WF-51. No state change (user.status remains consultation_closed). End.
-Step 7: Prompt for feedback — build canonical WF-50 payload (per design.md §2.3): { phoneNumber, messageType: 'text', messageContent: "✍️ Thanks for choosing to share your feedback! Please type your thoughts about the consultation and send them — we appreciate every word!" }; call WF-50. End.
-Step 8: Call WF-25 (Intent Classifier) with 6 fields per data-contract-discipline (TD-PGF-05, 2026-05-27): phoneNumber, userId (user.id), messageText (canonical envelope `messageContent` re-keyed for WF-25 input contract), userStatus (user.status), userName (user.name), slackChannelId (user.slack_channel_id) → returns intentResult. WF-25 may itself halt-and-notify on its own Gemini outage; that halt propagates here via executeWorkflow error semantics and on to WF-02.
-Step 9: Check: intentResult == "stop_intent"?
-  - If YES → call WF-47 (Unsubscribe) with phoneNumber, userId, userStatus. End.
-  - If NO  → go to Step 10
-Step 10: Check: intentResult == "rebook_intent"?
-  - If YES → call WF-45 (Rebook) with phoneNumber, userId. End.
-  - If NO  → go to Step 11
-Step 11: Check: intentResult == "feedback_intent"?
-  - If YES → call WF-44 (Feedback Recorder) with phoneNumber, userId, messageContent. End.
-  - If NO  → go to Step 12
-Step 12: Build Gemini prompt instructing a helpful, warm assistant for Chinmay's Vedic astrology consultation service on WhatsApp, with the user-stage cue "user has completed their consultation with Dr. Chinmay" and the email-callout cue "they can follow up here on WhatsApp or email chinmay_astro@gmail.com for anything else". Ask Gemini to weave both naturally into a brief 2-3 sentence reply. Append the user's messageContent.
-Step 13: POST to Gemini (gemini-2.5-flash-lite) with temperature=0.3, maxOutputTokens=200, timeout=10s, retryOnFail=true, maxTries=3, onError=continueErrorOutput. On success: GOTO Step 14. On retries exhausted (error output): GOTO Step 16 (halt-and-notify).
-Step 14: Extract reply text from candidates[0].content.parts[0].text; fallback = "Thank you for your message! For questions about our Vedic astrology consultation, feel free to ask."
-Step 15: Call WF-50 (per design.md §2.3) with { phoneNumber, messageType: 'text', messageContent: <reply> }. End.
-Step 16: Build user apology WF-50 payload per §2.3 — { phoneNumber, messageType="text", messageContent="Sorry — we ran into a brief technical issue and couldn't process your message just now. Dr. Chinmay has been notified and will follow up with you shortly. We apologise for the inconvenience." }.
-Step 17: Call WF-50 (apology). Continue to admin alert chain.
-Step 18: Build admin alert text (Code) — translate userStatus to plain English (consultation_closed → "consultation completed"). Resolve userName. Construct General Response failure variant messageText. Emit { messageText }.
-Step 19: Check `Has Consult Channel?` — is `user.slack_channel_id` non-empty (notEmpty unary)?
-  - If YES → GOTO Step 20.
-  - If NO → GOTO Step 22.
-Step 20: Build consult alert payload — { channelId: `user.slack_channel_id`, messageText: `$('Build Admin Alert Text').item.json.messageText` }.
-Step 21: Call WF-51 (consult-channel alert). GOTO Step 22.
-Step 22: Build admin-commands alert payload — { channelId: "C0A5B0ZE81E", messageText: `$('Build Admin Alert Text').item.json.messageText` }.
-Step 23: Call WF-51 (admin-commands alert). GOTO Step 24.
-Step 24: stopAndError — terminate execution. End.
+Step 1: Start — triggered by WF-02 for a `consultation_closed` user. Read the WF-01 canonical envelope.
+Step 2: Check: `messageType == 'interactive'` (a button reply)?
+  - If YES → go to Step 3.
+  - If NO → go to Step 8.
+Step 3: Inspect `rawMessage.interactive.button_reply.id`:
+  - "btn_done" → go to Step 5.
+  - "btn_rebook" → go to Step 4.
+  - otherwise (btn_feedback or any other id) → go to Step 7.
+Step 4: Call WF-45 (Rebook) with `phoneNumber`, `userId`. End.
+Step 5: Send the close-thanks — call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: "Thank you for choosing Chinmay Astro. We hope to see you again — just send REBOOK whenever you're ready.\n\nYou can also email chinmay_astro@gmail.com anytime if you need anything we can't help with here, or reply STOP if you'd prefer to unsubscribe." }`.
+Step 6: Notify admin — call WF-51 with `{ channelId: user.slack_channel_id, messageText: "✅ User tapped \"Done, thanks\" — conversation closed. Channel stays open for any future rebook." }`. No state change. End.
+Step 7: Prompt for feedback — call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: "✍️ Thanks for choosing to share your feedback! Please type your thoughts about the consultation and send them — we appreciate every word!" }`. End.
+Step 8: Call WF-25 with `{ phoneNumber, userId: user.id, messageContent, userStatus: user.status, userName: user.name, slackChannelId: user.slack_channel_id }`. Receive `intentResult`. (Garbage / abuse / Gemini-failure terminate inside WF-25.)
+Step 9: Check: `intentResult == 'stop_intent'`?
+  - If YES → End (WF-25 already sent the clarifier; no extra — D5).
+  - If NO → go to Step 10.
+Step 10: Check: `intentResult == 'rebook_intent'`?
+  - If YES → call WF-45 (Rebook) with `phoneNumber`, `userId`. End.
+  - If NO → go to Step 11.
+Step 11: Check: `intentResult == 'feedback_intent'`?
+  - If YES → call WF-44 (Feedback Recorder) with `phoneNumber`, `userId`, `messageContent`. End.
+  - If NO → go to Step 12.
+Step 12: Build a Gemini prompt for a brief, warm reply with the consultation-closed stage cue + an email callout, append the user's message, then POST to Gemini (gemini-2.5-flash-lite, temperature=0.3). On Gemini failure → go to Step 13. On success → extract the reply (fallback default), call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <reply> }`. End.
+Step 13: Gemini failure — call U1 with `{ phoneNumber, userFacing: true, consultChannelId: user.slack_channel_id, context: { source: 'WF-43', userName: user.name, userStateText: 'consultation completed', userMessage: messageContent, errorDetail: <summary> } }`. End.

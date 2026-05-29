@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/sprints/behavior-matrix-fixes-2026-05-27/tasks.md
 **Input hash:** 5e7e3db0999e1128ce39970bc1075716120bb3cf87f7067616220f7653ff7f54
 **Planned at:** 2026-05-29T07:53:18Z
-**Last updated:** 2026-05-29T13:00:29Z
+**Last updated:** 2026-05-29T20:35:18Z
 **Planning complete:** true
 
 **Reconciled scope:** Planned against the tasks.md RECONCILIATION banner (2026-05-29), NOT the original 7 TD-BMX item blocks. The redesign is defined across two companion specs — `docs/artefacts/specs/2026-05-29-bmx-06-new-contact-flow-design.md` (new + pre-form) and `docs/artefacts/specs/2026-05-29-existing-user-safety-net-design.md` (existing + opted_out + BMX-05). The original TD-BMX-01..07 items are decomposed into the build units of the cross-spec **Phase 0→5 build sequence** (safety-net spec §8.2). User confirmed phase-mapped granularity (19 build units) on 2026-05-29.
@@ -26,7 +26,7 @@
 | BMX-P0-U1 | ✅ done | 1 | P0 | WF-53 | — |
 | BMX-P0-U2 | ✅ done | 1 | P0 | WF-61 | BMX-P0-DB (hard) |
 | BMX-P0-U3 | ✅ done | 2 | P0 | WF-62 | BMX-P0-U1 (hard) |
-| BMX-P1-PSEUDO | ⬜ pending | 3 | P0 | WF-01, WF-02, WF-20, WF-21, WF-23, WF-25, WF-26, WF-30, WF-31, WF-40, WF-43, WF-44, WF-45, WF-53, WF-61, WF-62 | — |
+| BMX-P1-PSEUDO | ✅ done | 3 | P0 | WF-01, WF-02, WF-20, WF-21, WF-23, WF-25, WF-26, WF-30, WF-31, WF-40, WF-43, WF-44, WF-45, WF-53, WF-61, WF-62 | — |
 | BMX-P2-WF01 | ⬜ pending | 4 | P0 | WF-01 | BMX-P0-DB (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P2-WF02 | ⬜ pending | 4 | P0 | WF-02 | BMX-P0-U2 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P2-WF21 | ⬜ pending | 5 | P0 | WF-21 | BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard) |
@@ -226,7 +226,12 @@ New shared sub-workflow, proposed WF-62. Gemini classifier with `stage` param (n
 
 ## BMX-P1-PSEUDO — Pseudo-first: rewrite all changed .pseudo + author U1/U2/U3 .pseudo
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-29T19:48:31Z
+**Completed:** 2026-05-29T20:35:18Z
+**Actual tokens:** ~50K
+**Actual effort:** ~47 min
+**Estimate delta:** on-bucket (planned L ~55K, actual ~50K)
 **Priority:** P0 | **Batch:** 3
 **Change type:** Documentation (pseudo)
 **Workflows:** WF-01, WF-02, WF-20, WF-21, WF-23, WF-25, WF-26, WF-30, WF-31, WF-40, WF-43, WF-44, WF-45, WF-53, WF-61, WF-62
@@ -236,6 +241,16 @@ New shared sub-workflow, proposed WF-62. Gemini classifier with `stage` param (n
 **Estimated effort:** ~2–2.5 hr
 
 Per safety-net §8.2 Phase 1 + pseudocode-first practice ([[feedback_pseudocode_first_refactor]]): rewrite `.pseudo` for all 13 changed workflows and author new `.pseudo` for U1/U2/U3, reconciled against BOTH specs, BEFORE any n8n edit. Pseudo is tech-agnostic business design — no n8n error-handling internals ([[feedback_pseudo_tech_separation]]); linear Step 1..N numbering, no tombstones ([[feedback_pseudo_linear_numbering]]). This item gates all of Phase 2–4 (do not start any n8n edit until the relevant pseudo is revised). Run pseudo↔md drift-check after authoring.
+
+**Build outcome (2026-05-29T20:35:18Z):** Authored all 16 `.pseudo` files — 3 net-new utilities (WF-53/61/62) + 13 rewrites (WF-01/02/20/21/23/25/26/30/31/40/43/44/45) — reconciled against BMX-06 + safety-net specs, tech-agnostic, linear-numbered. Folded the 3 handoff items (U1 halt-on-failure contract + caller convention; U3 raw `{bucket,confidence}` + caller-side `confidence<0.5→unrelated`; the U1 admin-sentence improvement — see below). NO live changes (Batch 3 is pseudo-only).
+
+**Utility pseudo verified against LIVE (user-directed, 2026-05-29):** read live WF-53/61/62 JSON and reconciled the pseudo to match live (live prevails — never the reverse; see [[feedback_pseudo_live_sync_per_batch]]). Fixes: (1) WF-53 admin-alert closing sentence is UNCONDITIONAL in live (the `userFacing`-conditional from the handoff fold-b is the still-unfixed adjacent finding in `followups.md`) → pseudo set to match live + deferred-improvement note; (2) WF-53 userName/empty-field fallback is `—` (not phoneNumber); (3) WF-61 block-alert copy uses live's structured wording (not the BMX-06 §11.2 draft). WF-62 matched live, no fix. Live untouched throughout.
+
+**pseudo↔md drift-check DEFERRED to Batch 10 (BMX-P5-DRIFT), by design:** the 13 rewritten pseudo are intentionally AHEAD of live (pseudo-first; live builds in Batches 4–10), and the 3 new utilities have no `.md` yet. A gating sweep now would report all-expected forward-drift and write a misleading `.last-run` marker that would block this in-flight sprint. Both specs sequence the drift-check + `.md` regen to "once live" = Phase 5. The 27-workflow drift was already accepted + gate opened at sprint start (user arrangement). NOT writing the gating marker.
+
+**Sync convention (user-clarified 2026-05-29) — pseudocode-first is the standard:** for the 13 rebuilds (Batches 4–9) the Batch-3 pseudo IS the agreed design and live is BUILT to match it (forward direction). If a build-time discussion changes the design, update that pseudo in the SAME batch, then regenerate `.md` from live → commit. The reversed "reconcile-pseudo-TO-live" direction applies ONLY to the Phase-0 utilities WF-53/61/62 that plan-sprint sequenced build-live-first (reconciled this batch). Hard safety rule: NEVER overwrite existing live to match pseudo. Untouched workflows: pseudo + `.md` synced from live at sprint END. Backing memory: [[feedback_pseudo_live_sync_per_batch]].
+
+**Two BMX-06 spec divergences resolved-and-flagged (for build-time confirmation in Phases 2–4):** (1) WF-01 country filter — kept the live `{91 India, 61 Australia}` allow-list rather than the §5 shorthand "non-+91 → reject" (not intended to drop Australia, the operator's region); (2) WF-23 pre-form non-text — chose DEFLECTION (per decision #5 + the §11.1 pre-form non-text copy) over the §4-table "silent" lumping. Both noted inline in the respective `.pseudo`.
 
 ## BMX-P2-WF01 — Rebuild WF-01 identity & security gate (BMX-06 §5)
 

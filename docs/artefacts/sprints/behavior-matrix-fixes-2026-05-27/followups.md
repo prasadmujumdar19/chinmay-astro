@@ -9,6 +9,14 @@
 - **Fix:** when handoffs are repo-tracked, phrase the commit-status line commit-agnostically, e.g. *"Batch N changeset is committed as the same push that carries this handoff; if you see this file on `main`, the batch is pushed"* — instead of the absolute "NOT yet committed." Keeps the snapshot true after the push.
 - **Priority hint:** low (process clarity; no functional impact). Flush via `flush-plugin-improvements` at end of batch/sprint per priority.
 
+### [2026-05-29] plan-sprint: greenfield workflows should author `.pseudo` IN the build batch, not defer it
+- **Target:** `plan-sprint` skill (build-sequencing / pseudo-first ordering) + the cross-spec §8.2 sequencing-template pattern; reconcile with `build-sprint` phase ordering.
+- **Observed on:** BMX sprint Phase 0. plan-sprint followed the safety-net spec §8.2 build sequence, which placed the 3 new utilities (U1/U2/U3) in **Phase 0** ("Foundations — leaf dependencies; nothing else can run first") and the pseudo-first work in **Phase 1** — i.e. live built (Batches 1–2) BEFORE pseudo authored (Batch 3). Justified at the time by *"greenfield, spec is design source"* (BMX-P0-U1 state block), deferring the formal `.pseudo` to Batch 3.
+- **Gap:** (a) §8.2 is internally contradictory — Phase 0 *builds* U1/U2/U3 while Phase 1 says *"author new `.pseudo` for U1/U2/U3 before any n8n edit."* (b) The "spec-is-design-source" substitution didn't account for **in-build decisions diverging from the spec** (U1 halt-contract fix; block-column→legacy-trio switch), so the Batch-3 back-filled pseudo drifted from live the moment it was written — caught only by a user-directed verify-against-live pass in Batch 3.
+- **Fix:** for greenfield/new workflows, plan-sprint should author the `.pseudo` **inside the same Phase-0 build unit** (true pseudo-first), so in-build decisions update pseudo immediately while context is fresh. If a locked design spec genuinely substitutes as the design source and pseudo is back-filled later, the back-fill MUST be an explicit **verify-against-live** step, never author-from-docs. Also: §8.2-style sequencing templates must not say "author pseudo before any n8n edit" for workflows the same plan builds in an earlier phase.
+- **Priority hint:** medium (process correctness; this exact reversal cost a clarification round + a verify-against-live pass this sprint). Flush via `flush-plugin-improvements` at sprint boundary.
+- Backing memory: [[feedback_pseudo_live_sync_per_batch]].
+
 
 ## [2026-05-29] — Adjacent finding during BMX-P0-U1 (WF-53 build)
 
@@ -19,3 +27,4 @@
   - **Priority hint:** low — defer to whenever a non-user-facing caller of U1 is first introduced, or fold into the BMX-P1-PSEUDO authoring of WF-53.pseudo.
   - **Decision:** _pending user direction._
   - **Update 2026-05-29 (halt-both change):** U1 now halts on both branches (BMX-P0-U3 session). On the non-user-facing path the admin alert fires, the apology is skipped, then U1 halts — so the unconditional "The user has been told…" sentence is now actively wrong on that path (admin told the user was notified; no apology was sent). Still latent (no non-user-facing caller exists). Fix unchanged: make the closing sentence conditional on `userFacing` in the Build Admin Alert Code node — fold into BMX-P1-PSEUDO authoring of WF-53.pseudo (Batch 3).
+  - **Resolution 2026-05-29 (Batch 3 / BMX-P1-PSEUDO):** NOT folded into the pseudo as a fix — under the user-clarified sync rule, `WF-53.pseudo` must reflect LIVE, and live still emits the sentence unconditionally. So the pseudo documents the current always-included behavior + carries a "deferred improvement" note pointing here. This stays an open live fix: apply the `userFacing`-conditional to **live + pseudo together** in a future batch (or whenever a non-user-facing U1 caller is introduced). Decision: **deferred (live fix pending), not a pseudo-only change.**

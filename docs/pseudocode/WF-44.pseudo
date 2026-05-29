@@ -2,30 +2,22 @@ WF-44 — Feedback Recorder
 
 ## Summary
 
-- Inputs (canonical WF-01 envelope per data-contract-discipline Phase 1 §2.1, forwarded by WF-43): `phoneNumber` (E.164 string, top-level), `messageContent` (string — the user's feedback text), `user.id` (integer), `user.status` (enum). No Load User SELECT — all required fields provided by the WF-01 envelope.
-- Outputs: feedback text saved to users row; WhatsApp acknowledgement sent; OR rerouted to WF-45/WF-47 if intent says so
-- State Transitions: none on the feedback path (clears `stage` to NULL). Rebook/stop paths delegate to other WFs.
-- Calls Sub-Workflows: WF-25 (Intent Classifier), WF-45 (Rebook), WF-47 (Unsubscribe), WF-50 (Send WhatsApp)
+- Purpose: Pure recorder. Its sole caller, WF-43, calls it ONLY after WF-25 has already classified the message as `feedback_intent` and already routed rebook/stop elsewhere — so WF-44 just saves the feedback and acknowledges. It does not re-classify.
+- Inputs (WF-01 canonical envelope §2.1, forwarded by WF-43): `phoneNumber` (top-level), `messageContent` (the feedback text), `user.{id, status}`.
+- Outputs: feedback text saved to the `users` row; a WhatsApp acknowledgement.
+- State Transitions: none on the user lifecycle status (clears `stage` to NULL).
+- Calls Sub-Workflows: WF-50 (Send WhatsApp).
+- Called by: WF-43 (post-feedback_intent) — sole caller (confirmed across all live workflows 2026-05-29).
+- **Deltas vs the prior WF-44 (safety-net §6, decision #11):**
+  - REMOVED the `Call WF-25` node and the `rebook_intent?` → WF-45 / `stop_intent?` → WF-47 re-route branches. WF-43 already classified + routed those before calling WF-44, so the re-classify was dead redundancy — and post-redesign it would double-count the safety-net threshold.
+  - WF-44 no longer calls WF-25, WF-45, or WF-47. No Gemini call.
 - **Notes:**
-  - §3.4 listed a 'Load User for Relay' node for removal. Live AS-IS (2026-05-22T21:50:58.290Z) shows no such node — it was already absent. No removal action needed.
-  - TD-DRIFT-009: WF-25 caller sends `messageText` instead of `messageContent`. Deferred to post-Phase-1 bug-fix sprint.
-  - Save Feedback to DB already reads user.id from the WF-01 envelope via the trigger node — envelope-aware.
+  - Copy reuse-existing — verify verbatim at build.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — triggered by WF-43 after the user typed a feedback message (or pressed Leave Feedback then typed). Receives WF-01 canonical envelope containing phoneNumber, messageContent, user.{id, status}.
-Step 2: Call WF-25 (Intent Classifier) with 6 fields per data-contract-discipline (TD-PGF-05, 2026-05-27): phoneNumber, userId (user.id), messageText (canonical envelope `messageContent` re-keyed for WF-25 input contract), userStatus (user.status), userName (user.name), slackChannelId (user.slack_channel_id) → returns intentResult. WF-25 may itself halt-and-notify on its own Gemini outage; that halt propagates here via executeWorkflow error semantics and on to the WF-43 caller.
-Step 3: Check: intentResult == "rebook_intent"?
-  - If YES → go to Step 4
-  - If NO  → go to Step 5
-Step 4: Call WF-45 (Rebook) with phoneNumber, userId, userStatus. End.
-Step 5: Check: intentResult == "stop_intent"?
-  - If YES → go to Step 6
-  - If NO  → go to Step 7
-Step 6: Call WF-47 (Unsubscribe) with phoneNumber, userId, userStatus. End.
-Step 7: UPDATE chinmay_astro.users SET feedback = <messageContent>, stage = NULL, updated_at = NOW() WHERE id = <user.id>.
-Step 8: Build canonical WF-50 acknowledgement payload: { phoneNumber, messageType: 'text', messageContent: "🙏 Thank you for your feedback! We really appreciate you taking the time to share your experience with Chinmay's consultation service. Your input helps us improve." }
-Step 9: Call WF-50 with the canonical payload from Step 8.
-Step 10: End.
+Step 1: Start — triggered by WF-43 after the message was classified `feedback_intent`. Read `phoneNumber`, `messageContent`, `user.id` from the envelope.
+Step 2: UPDATE chinmay_astro.users SET feedback = messageContent, stage = NULL, updated_at = NOW() WHERE id = user.id.
+Step 3: Send the acknowledgement — call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: "🙏 Thank you for your feedback! We really appreciate you taking the time to share your experience with Chinmay's consultation service. Your input helps us improve." }`. End.
