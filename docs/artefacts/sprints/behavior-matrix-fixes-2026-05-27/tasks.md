@@ -21,6 +21,38 @@
 
 ---
 
+## 🔁 RECONCILIATION (2026-05-29T04:00:22Z) — sprint scope after the BMX-06 + existing-user redesigns
+
+TD-BMX-06 grew, in two design sessions, into **two companion redesigns** that reshape the inbound paths
+this sprint targeted. As a result several original task blocks are **superseded** (their as-written WF-01/
+WF-20 edits are now moot — do NOT implement them). Authoritative designs:
+- **BMX-06 / new + pre-form:** `docs/artefacts/specs/2026-05-29-bmx-06-new-contact-flow-design.md`
+- **Existing-user + opted_out safety net (+ BMX-05):** `docs/artefacts/specs/2026-05-29-existing-user-safety-net-design.md`
+
+| Item | Reconciled status (2026-05-29) | Where it's handled now |
+|---|---|---|
+| TD-BMX-01 | ✅ Design locked; **plan-ready** | tasks.md (locked). Pre-form branch now **dead** (BMX-06 moved pre-form/new REBOOK to WF-23/WF-21) → defensive-only; 3 live branches remain. |
+| TD-BMX-02 | ⚠️ **SUPERSEDED** | WF-01 fully rebuilt in BMX-06 §5 (Country → blocked? → opted_out? → route; non-text removed from WF-01). Blocked+media → silent ✓. Opted_out+media → **re-engaged via WF-26 by design** (DR-4; user re-initiated = compliant) — the "opted_out → zero outbound" expectation is **obsolete**. Original rewire = moot. |
+| TD-BMX-03 | ⚠️ **SUPERSEDED** | New/pre-form HELP now via WF-21/WF-23 U3 `HELP` bucket (BMX-06) — those users never reach WF-20. Existing-user HELP arms already live (TD-027). WF-20 null/pre-form arms = unnecessary; NULL-status default stays. |
+| TD-BMX-04 | ⏳ **Pending (operational)** | WF-26 confirmed `active=false` in live (registry drift — see registry fix). Activate + verify still to do. WF-26 also **refined** in safety-net spec §6 (drop welcome-back → inherit safety net). |
+| TD-BMX-05 | ✅ **Designed** | Safety-net spec decision #6 — aliases `UNSUBSCRIBE`/`OPT OUT`/`OPT-OUT` everywhere (WF-20 existing + WF-21/23 new/pre-form). |
+| TD-BMX-06 | ✅ **Designed** | BMX-06 spec (structure final) + existing-user safety-net spec (companion). |
+| TD-BMX-07 | ⏳ Exit gate — pending build | Re-verify the matrix after build; **update S8×G expectation** (opted_out re-engages via WF-26, not zero-outbound). |
+
+**Net for build-sprint:** implement TD-BMX-01 (+dead-branch note), TD-BMX-05/06 per the two specs, and the
+existing-user safety-net redesign (WF-25 hub + U1/U2 wiring + WF-30/31/40/43/44/26/02 edits + BMX-06
+amendments §7). **Skip the as-written TD-BMX-02 and TD-BMX-03 edits.** Then TD-BMX-04 (activate WF-26) and
+TD-BMX-07 (re-verify). A fresh plan-sprint should be re-run against the reconciled scope, not the original
+7-item list.
+
+> ⚠️ **SEQUENCING (read before plan-sprint):** this is NOT priority-only ordering — there are hard build
+> dependencies (DB migrations + utilities U1/U2/U3 before any caller; WF-25 before its handlers;
+> WF-26-refine before WF-26-activate). Follow the explicit **Phase 0→5 build sequence in the safety-net
+> spec §8.2** (`docs/artefacts/specs/2026-05-29-existing-user-safety-net-design.md`). plan-sprint must
+> respect that phasing, not flatten it.
+
+---
+
 ## Priority Key
 
 | Level | Meaning |
@@ -35,6 +67,12 @@
 ## 🔴 P0 — Go-live blockers
 
 ### TD-BMX-01 · WF-45 status-regression guard + entry-guard for missing users row
+
+> 🔁 **STILL VALID, with one BMX-06 interaction (2026-05-29):** the **pre-form / no-record branch is now
+> dead** — BMX-06 preempts pre-form/new REBOOK upstream (WF-23 clarifier / WF-21 silent-drop), and WF-45 is
+> called only by WF-20 (existing) + WF-43 btn_rebook (consultation_closed), both `has_user`. Keep that
+> branch as defensive-only (self-healing); the 3 live branches (payment_submitted / consultation_active /
+> default) are unchanged. See safety-net spec §2.
 
 **Source:** Behavior matrix cells S4×D, S5×D (status regression on REBOOK), S2×D ("Welcome back, undefined!"). Triage spec items M1 + M3.
 
@@ -71,6 +109,13 @@ WF-45 currently has its own `Load User Record` SELECT (post-TD-PGF-08 this is be
 ---
 
 ### TD-BMX-02 · Reorder WF-01 security layers — Country → Blacklist → Non-Text
+
+> ⚠️ **SUPERSEDED (2026-05-29) — DO NOT implement as written.** WF-01 is fully rebuilt in BMX-06 §5
+> (`docs/artefacts/specs/2026-05-29-bmx-06-new-contact-flow-design.md`): Country → blocked? → opted_out? →
+> route, with non-text handling removed from WF-01. Blocked+media (S7×G) → silent at the blocked gate ✓.
+> Opted_out+media (S8×G) → **re-engaged via WF-26 by design** (DR-4; user re-initiated = STOP-compliant) —
+> the "opted_out → zero outbound" expectation below is **obsolete**. The connection-rewire fix is moot. See
+> RECONCILIATION banner above.
 
 **Source:** Behavior matrix cells S7×G (blocked + media), S8×G (opted_out + media). Triage spec item M2.
 
@@ -110,6 +155,12 @@ No node logic changes — just connection rewiring.
 ---
 
 ### TD-BMX-04 · Activate WF-26 + verify opted-out re-engagement path
+
+> 🔁 **STILL VALID (2026-05-29):** WF-26 confirmed `active=false` in live (registry's "🟢 Active" is a
+> drift — being corrected). Activate + verify still to do. **WF-26 is also refined** by the safety-net spec
+> §6: **drop the welcome-back** and re-route, so the re-engagement message inherits the WF-25 safety net
+> (single classification; an abusive re-engagement is blocked without first being welcomed). Build the
+> refined WF-26 *then* activate. S8×G is no longer "TD-BMX-02 silent" — opted_out re-engages via WF-26.
 
 **Source:** Behavior matrix cells S8×A, B, C, D, E, F, H, I (8 cells, the entire opted-out re-engagement path except S8×G which is covered by TD-BMX-02). Triage spec item M5.
 
@@ -183,7 +234,20 @@ Today WF-46 (Auto-Block) requires `users.id` to set `status='blocked'`. For a ph
 
 **Pre-requisite:** TD-BMX-06 design session brainstorm — kick off immediately after this sprint's tasks.md is finalized.
 
-**DESIGN STATUS (2026-05-29):** Structure design **COMPLETE** — see `docs/artefacts/specs/2026-05-29-bmx-06-new-contact-flow-design.md`. The redesign is substantially larger than this task block anticipated: it reshapes WF-01/WF-02/WF-21/WF-23, introduces 3 shared utility workflows (U1 Gemini Error Handler, U2 Silent-Drop & Escalate, U3 New-Contact Intent Classifier) + a `silent_drop` table + threshold auto-blacklist. Copy + U3 prompt drafted (verify verbatim at build). STILL PENDING DESIGN (next session, in order): message debouncing (sibling concern), then TD-BMX-05. The new-user fix and TD-BMX-05 are now coupled — design/build them from the design doc, not these original task blocks.
+**DESIGN STATUS (updated 2026-05-29T04:00:22Z):** Structure design **COMPLETE across two companion specs**:
+- **New + pre-form:** `docs/artefacts/specs/2026-05-29-bmx-06-new-contact-flow-design.md` — reshapes
+  WF-01/WF-02/WF-21/WF-23 + 3 utilities (U1 Gemini Error Handler, U2 Silent-Drop & Escalate, U3 New-Contact
+  Classifier) + `silent_drop` table + threshold block.
+- **Existing + opted_out (+ BMX-05):** `docs/artefacts/specs/2026-05-29-existing-user-safety-net-design.md`
+  — centralizes the safety net in WF-25; edits WF-20/25/30/31/40/43/44/26/02; reuses U1/U2; amends BMX-06
+  (block-state unify → `blocked`; aliases in WF-21/23).
+
+Resolved since the original note: **message debouncing = DEFERRED** to a pre-go-live fast-follow (BMX-06
+§9a — NOT part of this work); **TD-BMX-05 = designed** (safety-net spec #6); **block state unified on
+`blocked`** (no `blacklisted`). Copy + U3 prompt drafted (verify verbatim at build). Build the new-user fix,
+TD-BMX-05, and the existing-user safety net from these two specs — **not the original TD-BMX-02/03 task
+blocks** (superseded; see RECONCILIATION banner). Full rollback backup of all 28 workflows taken
+(`workflows/backup-behavior-matrix-review-triggered-redesign-2026-05-29/`).
 
 **Drift-check:** WF-21.md vs WF-21.pseudo (pre-edit).
 
@@ -192,6 +256,12 @@ Today WF-46 (Auto-Block) requires `users.id` to set `status='blocked'`. For a ph
 ## 🟠 P1 — Real bugs, smaller scope
 
 ### TD-BMX-03 · WF-20 HELP ternary — add null + pendingUser arms (auto-covers NULL-status edge)
+
+> ⚠️ **SUPERSEDED (2026-05-29) — DO NOT implement the null/pre-form arms.** BMX-06 routes new + pre-form
+> users away from WF-20 entirely (new→WF-21, pre-form→WF-23), so their HELP is handled by the U3 `HELP`
+> bucket in those workflows — WF-20's proposed `user==null` arms are unreachable. Existing-user HELP arms
+> are already live (TD-027); the NULL-status default stays as the safety net. S1×E/S2×E now owned by BMX-06.
+> See RECONCILIATION banner above.
 
 **Source:** Behavior matrix cells S1×E (HELP from no-record), S2×E (HELP from pre-form), S10×E (HELP from unknown-status). Triage spec items M4 + W3.
 
@@ -226,6 +296,11 @@ Add two more ternary arms to the existing inline expression in WF-20 `Send HELP 
 ---
 
 ### TD-BMX-05 · UNSUBSCRIBE / OPT OUT / OPT-OUT aliases for STOP
+
+> ✅ **DESIGNED (2026-05-29) — safety-net spec decision #6.** Aliases added everywhere with per-stage
+> treatment identical to STOP: existing → WF-20 → WF-47; brand-new → WF-21 silent-drop+escalate; pre-form →
+> WF-23 clarifier. Exact-match-after-`uppercase(trim())`; `OPTOUT` (no separator) excluded. Build per the
+> safety-net spec, not the (a)/(b) options below.
 
 **Source:** Triage spec item M6 (the small/cheap portion). Behavior matrix cell S1×F is partially covered by TD-BMX-06; this item covers the specific UNSUBSCRIBE-typer edge.
 
