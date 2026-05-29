@@ -1,0 +1,15 @@
+# Handoff — BMX Batch 7 complete (WF-25 safety-net hub)
+
+## Stopping Point
+Batch 7 (BMX-P3-WF25) is done and pushed — WF-25 rebuilt author-fresh as the Intent Classifier + Safety-Net Hub (22→19 nodes, SAME ID `eTV1lUcYrXBg2q2T`), all verification green (lint exit 0, MCP strict valid:true 0 errors, dangling-ref + per-node-strict clean), post-batch regression PASS. Commit `e91528b` on origin/main (verified on remote; parent `a1227fc` Batch 6). Sprint: Batches 1–7 ✅ · 8–10 ⬜ (10 of 19 build units done). Tunnel open, n8n reachable.
+
+## Next Action
+Re-invoke `build-sprint` with the same input to resume at **Batch 8** — the first pending item is **BMX-P3-HANDLERS** (WF-30/31/40/43 thin-handler edits). Batch 8 is 4 items (mixed change types incl. structural node-add/remove) → run Step 2a execution-mode planning. Build order: BMX-P3-HANDLERS first (handlers now adapt to WF-25's NEW return-contract — pass-through shape unchanged, but stop_intent + D4-active-garbage are new additive returns each caller must consume; delete inline Gemini-error chains → Call U1; remove in-handler clarifiers now centralized in WF-25; WF-43 stop_intent → clarifier), then BMX-P3-WF44 (`Du2CJ3OTohRFZYoA` — strip the redundant Call WF-25 + rebook/stop IFs + WF-45/WF-47 calls, rewire trigger→Save Feedback; re-verify WF-43 is sole caller), BMX-P3-WF20 (XS surgical — add UNSUBSCRIBE/OPT OUT/OPT-OUT STOP-aliases), then **BMX-P3-WF46 LAST** (retire/delete WF-46 `UV62An60fzflU0uD` — but FIRST audit all workflows confirm no live caller remains after handlers drop their calls; WF-25 already dropped it this batch). WF-46 has a hard dep on HANDLERS completing. Per-workflow backup/verify; jq+PUT or partial per item.
+
+## Blockers
+- **Carried to sprint-close flush (followups.md + state.md Batch sections):** (1) 2 Batch-4 plugin notes — consumer-contract acceptance as explicit build-workflow Step-6 gate; Step-6a dangling-ref scan should also cover connection TARGET names. (2) Batch-6 candidate — contract-emit Set downstream of an exec call must read `$('NamedNode')`, not `$json` (the post-send return clobbers `$json`). (3) **New Batch-7 candidate** — terminal Return node in a send-then-return sub-workflow should read its canonical upstream (`$('<classifier>')`) not `$input.first()`, so branches that insert a sub-workflow send before returning still emit the original merged envelope, not the send's return value. (4) **CLAUDE.md drift** — "Key Credential IDs" table lists WhatsApp Flow ID `1408011897720771`; live value is `2260297164474475` (used by WF-21/23). All for sprint-close flush, not mid-Batch-8.
+- No user-input blockers. Real-phone end-to-end for the whole BMX chain is deferred to Batch 10 smoke (users table empty).
+
+## Changed Reference Values
+- WF-25 (`eTV1lUcYrXBg2q2T`) now calls: WF-53/U1 (`ONzUJ1Lj9hIbUYT0`), WF-61/U2 (`9Zt23yt8k8PQSgji`), WF-50 (`BUVun38WEKb12zg9`). Dropped: WF-46 (`UV62An60fzflU0uD`) + direct WF-51 (`wlZRK0YxnhP0b2RL`).
+- Backup of pre-rebuild WF-25: `archive/backups/eTV1lUcYrXBg2q2T-2026-05-30-09-17.json`.
