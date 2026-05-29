@@ -1,0 +1,70 @@
+WF-47 — Unsubscribe Handler (STOP keyword)
+
+## Summary
+
+- Inputs: phoneNumber, userId, userStatus (current status of the user at the moment STOP arrived; passed from caller WF-20).
+- Outputs: users row updated to opted_out with current_consultation_id cleared; if user was in consultation_active, the open consultations row is auto-closed; if the user has a Slack consult channel, an opt-out notice is posted there via WF-51; opt-out confirmation WhatsApp sent via WF-50.
+- State Transitions: any state → `opted_out` (unconditional — STOP is treated as a regulatory opt-out per Meta and standard WhatsApp messaging norms; no hold or queue).
+- Calls Sub-Workflows: WF-50 (Send WhatsApp — opt-out confirmation to user), WF-51 (Send Slack Message — opt-out notice to admin in consult channel, when channel exists).
+- **Design rule (DR-10):** Slack consult channel is NOT archived on STOP. Channels are preserved for potential REBOOK reuse.
+- **Design rule (DR-4):** `opted_out` (user-initiated, re-engages automatically via WF-01) is distinct from `blocked` (admin/system action, requires UNBLOCK).
+- **Audit metadata:** No write to `chinmay_astro.admin_actions` (table deprecated per TD-NEW-026 — `messages` + state machine + `users.updated_at` already record the opt-out fact for review).
+
+---
+
+## Inputs
+
+### Canonical (required)
+- `phoneNumber` — E.164 string, required. Drives the `UPDATE users WHERE phone_number=<phoneNumber>` lookup at Step 3.
+- `userId` — integer, required (FK to `chinmay_astro.users.id`). Drives the `UPDATE consultations WHERE user_id=<userId>` close at Step 2.
+- `userStatus` — enum string, required; one of `payment_pending` / `payment_submitted` / `consultation_active` / `consultation_closed` / `opted_out` / `blocked`. Read at Step 2 (head of graph) by the IF guard to decide whether to close an open consultations row before the user UPDATE fires. Atomicity: a failure in the Step 2 close prevents the Step 3 user UPDATE, keeping the user in their prior state for retry.
+
+---
+
+## Algorithm
+
+Step 1: Start — workflow triggered by WF-20 with `{ phoneNumber, userId, userStatus }`.
+
+Step 2: Check: userStatus equals 'consultation_active'?
+  - The IF reads `userStatus` from the trigger (pre-UPDATE value) by design — the user UPDATE at Step 3 has not run yet at IF-evaluation time, so the IF must use the trigger envelope as the source of truth for the pre-opt-out state.
+  - If YES → close the open consultations row (mirrors WF-42's admin-initiated close pattern):
+      `UPDATE chinmay_astro.consultations
+         SET status='closed',
+             ended_at=NOW(),
+             closed_by='user_opted_out'
+       WHERE user_id=<userId>
+         AND status='active';`
+    Then go to Step 3.
+  - If NO → go to Step 3 (no consultations row to close).
+
+Step 3: Update user record — opt the user out unconditionally and clear any active consultation pointer:
+  - `UPDATE chinmay_astro.users
+       SET status='opted_out',
+           current_consultation_id=NULL,
+           updated_at=NOW()
+     WHERE phone_number=<phoneNumber>
+     RETURNING slack_channel_id;`
+  - Postgres node: `alwaysOutputData=true` (SP-02 May 2026). Pre-onboarding STOP (user exists in `pending_users` only, no row in `users`) returns 0 rows → empty `{}` propagates downstream. Atomicity: the IF at Step 2 ran with `userStatus` from the trigger — for a pre-onboarding user the trigger `userStatus` is null/absent, so Step 2 took the FALSE branch and `Close Open Consultation` was skipped; Step 3's empty result then propagates to "Has Slack Channel?" (notEmpty=FALSE → skips Slack notice) and Step 5's WhatsApp confirmation still goes out via `phoneNumber` from the trigger. Architecturally-correct anomaly catch remains at the upstream WF-01 user-load gate (SP-11), not in WF-47.
+  - Carry `slack_channel_id` forward to Step 4.
+
+Step 4: Check: slack_channel_id (from Step 3 RETURNING) IS NOT NULL?
+  - If YES → call WF-51 with:
+      channelId = <slack_channel_id>
+      messageText = "⚠️ User has opted out via STOP. This consultation will not progress further. (Channel preserved per DR-10 in case of REBOOK.)"
+    Then go to Step 5.
+  - If NO (user opted out before form submission, so no channel was ever created) → go to Step 5.
+
+Step 5: Call WF-50 with:
+  messageType = "text"
+  phoneNumber = <phoneNumber>
+  messageContent = "You have been unsubscribed from Chinmay Astro. No further messages will be sent unless you reach out to us again."
+
+Step 6: End.
+
+---
+
+## Notes
+
+- Pre-2026-05-21 design held STOP during consultation_active (sent a "hold" message and made no state change, asking the user to re-send STOP after the consult closed). That behaviour was non-compliant with standard STOP semantics and produced poor UX (silent on a second STOP because of broken queryReplacement; see TD-B). The 2026-05-21 redesign makes STOP unconditional.
+- The Slack notice in Step 4 informs the astrologer (Chinmay) that an active conversation has ended via user opt-out. For pre-form-submission users (no slack_channel_id), nothing is posted because there is no consult channel yet.
+- The `consultations.closed_by='user_opted_out'` literal distinguishes opt-out-driven closes from admin-driven closes (`closed_by='admin'` per WF-42). Column is varchar(100), no CHECK constraint.

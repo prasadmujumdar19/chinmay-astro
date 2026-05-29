@@ -1,0 +1,69 @@
+<!doctype html><meta charset='utf-8'>
+<title>Drift Check — 2026-05-29</title>
+<style>
+body{font-family:system-ui;margin:2rem;max-width:1100px;color:#111}
+.header{background:#16a34a;color:white;padding:1rem 1.5rem;border-radius:6px;margin-bottom:1.5rem}
+.note{background:#fffbeb;border:1px solid #fcd34d;padding:1rem 1.25rem;border-radius:6px;margin-bottom:1.5rem}
+table{width:100%;border-collapse:collapse;margin-top:1rem}
+td,th{padding:.5rem .75rem;border-bottom:1px solid #e5e7eb;text-align:left;font-size:.92rem}
+th{background:#f9fafb}
+code{background:#f3f4f6;padding:.1rem .3rem;border-radius:3px}
+</style>
+<div class='header'>
+  <h1>Pseudo-vs-MD Drift Check — 2026-05-29</h1>
+  <p>Overall: <strong>CLEAN</strong> · 28 pairs enumerated · 🔴 0 drift · 🟡 28 triaged · ⚠️ 0 minor · ✅ 0 clean</p>
+</div>
+
+<div class='note'>
+  <strong>Fast-enumeration pass — not a deep D1–D9 comparison.</strong>
+  <p>User decision (2026-05-29): the <code>behavior-matrix-fixes-2026-05-27</code> sprint is about to apply major
+  design changes to most workflows (logic rewrites, utility-for-inline swaps, code becoming redundant, the BMX-06 +
+  safety-net companion redesigns). Syncing every <code>.pseudo</code> to current live now would be wasted effort —
+  those pseudos are about to be rewritten.</p>
+  <p>Every pair is therefore marked <strong>🟡 TRIAGED</strong>; remediation is tracked inside the active sprint:
+  each touched workflow is fixed <strong>pseudo-first</strong> (revise <code>.pseudo</code> → impact-analyze → edit
+  live), then checked off. Any workflow left untouched at sprint exit gets a <strong>real Sonnet D1–D9
+  drift-sync</strong> before the sprint is declared complete (TD-BMX-07 gate).</p>
+  <p><code>.md</code> files were regenerated fresh from live n8n immediately before this run, so the <code>.md</code>
+  side is accurate-to-live; the deferred work is purely on the <code>.pseudo</code> side. Per skill roll-up rules,
+  TRIAGED rows do not count toward <code>drift_count</code>, so <code>overall_status = CLEAN</code> and the
+  build-sprint gate opens.</p>
+</div>
+
+<h2>Pseudo-sync worklist</h2>
+<table>
+<thead><tr><th>WF</th><th>Status</th><th>pseudo-synced?</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>WF-00</td><td>🟡 TRIAGED</td><td>☐</td><td>pseudo-sync pending — pseudo-first during sprint</td></tr>
+<tr><td>WF-01</td><td>🟡 TRIAGED</td><td>☐</td><td>BMX-06 §5 full rebuild</td></tr>
+<tr><td>WF-02</td><td>🟡 TRIAGED</td><td>☐</td><td>BMX-06 / safety-net edits</td></tr>
+<tr><td>WF-10</td><td>🟡 TRIAGED</td><td>☐</td><td>pseudo-sync pending</td></tr>
+<tr><td>WF-11</td><td>🟡 TRIAGED</td><td>☐</td><td>pseudo-sync pending</td></tr>
+<tr><td>WF-20</td><td>🟡 TRIAGED</td><td>☐</td><td>safety-net + BMX-05 aliases</td></tr>
+<tr><td>WF-21</td><td>🟡 TRIAGED</td><td>☐</td><td>BMX-06 new-contact classifier</td></tr>
+<tr><td>WF-22</td><td>🟡 TRIAGED</td><td>☐</td><td>pseudo-sync pending</td></tr>
+<tr><td>WF-23</td><td>🟡 TRIAGED</td><td>☐</td><td>BMX-06 pre-form clarifier</td></tr>
+<tr><td>WF-25</td><td>🟡 TRIAGED</td><td>☐</td><td>safety-net hub</td></tr>
+<tr><td>WF-26</td><td>🟡 TRIAGED</td><td>☐</td><td>safety-net §6 refine + activate</td></tr>
+<tr><td>WF-30</td><td>🟡 TRIAGED</td><td>☐</td><td>safety-net wiring</td></tr>
+<tr><td>WF-31</td><td>🟡 TRIAGED</td><td>☐</td><td>safety-net wiring</td></tr>
+<tr><td>WF-32</td><td>🟡 TRIAGED</td><td>☐</td><td>pseudo-sync pending</td></tr>
+<tr><td>WF-33</td><td>🟡 TRIAGED</td><td>☐</td><td>pseudo-sync pending</td></tr>
+<tr><td>WF-34</td><td>🟡 TRIAGED</td><td>☐</td><td>pseudo-sync pending</td></tr>
+<tr><td>WF-40</td><td>🟡 TRIAGED</td><td>☐</td><td>safety-net wiring</td></tr>
+<tr><td>WF-41</td><td>🟡 TRIAGED</td><td>☐</td><td>pseudo-sync pending</td></tr>
+<tr><td>WF-42</td><td>🟡 TRIAGED</td><td>☐</td><td>pseudo-sync pending</td></tr>
+<tr><td>WF-43</td><td>🟡 TRIAGED</td><td>☐</td><td>safety-net wiring</td></tr>
+<tr><td>WF-44</td><td>🟡 TRIAGED</td><td>☐</td><td>safety-net wiring</td></tr>
+<tr><td>WF-45</td><td>🟡 TRIAGED</td><td>☐</td><td>TD-BMX-01 state guard</td></tr>
+<tr><td>WF-46</td><td>🟡 TRIAGED</td><td>☐</td><td>BMX-06 block contract</td></tr>
+<tr><td>WF-47</td><td>🟡 TRIAGED</td><td>☐</td><td>pseudo-sync pending</td></tr>
+<tr><td>WF-50</td><td>🟡 TRIAGED</td><td>☐</td><td>pseudo-sync pending</td></tr>
+<tr><td>WF-51</td><td>🟡 TRIAGED</td><td>☐</td><td>pseudo-sync pending</td></tr>
+<tr><td>WF-52</td><td>🟡 TRIAGED</td><td>☐</td><td>pseudo-sync pending</td></tr>
+<tr><td>WF-60</td><td>🟡 TRIAGED</td><td>☐</td><td>pseudo-sync pending</td></tr>
+</tbody>
+</table>
+
+<p style='margin-top:1.5rem;color:#6b7280;font-size:.85rem'>Tracker: <code>docs/artefacts/drift-checks/2026-05-29/tracker.md</code> ·
+Dispatch: 1 Haiku subagent (fast enumeration) · Generated 2026-05-29T08:23:43Z</p>

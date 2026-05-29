@@ -1,0 +1,23 @@
+WF-21 — New User Welcome + Form
+
+## Summary
+
+- Inputs (WF-01 canonical envelope per data-contract-discipline Phase 1 — design.md §2.1): `phoneNumber` (E.164 string), `messageType`, `messageContent`, `user` (object: {id, phone_number, name, status, slack_channel_id, current_consultation_id} or null for new users), `pendingUser` ({id, contact_name} or null). Additional fields passed by WF-02: `contactName`, `messageId`. **Note:** prior to 2026-05-25 TD-DCP-107, WF-01 also called WF-21 directly on the opted-out re-engagement branch carrying a `wasOptedOut: true` flag. That branch was retargeted to WF-26 (`Re-Engaged Opted-Out User Handler`) so WF-21 now has a single caller (WF-02 on the NEW_USER state). The `wasOptedOut` prefix in Step 3's `Build Welcome Message` is retained as defensive dead code (one if-block, harmless).
+- Outputs: One outbound WhatsApp interactive message containing welcome text + privacy policy URL + WhatsApp Flow form CTA. A row in `pending_users` keyed by phone_number.
+- State Transitions: none in `users` table (no `users` row yet — first `users` write happens in WF-22 on form submission). Writes to `pending_users` only.
+- Calls Sub-Workflows: WF-50 (Send WhatsApp)
+- Called by: WF-02 (User State Router, NEW_USER state) — sole caller post-2026-05-25 TD-DCP-107.
+- **Contract-enforcement scope:** WF-21 is **not** in design.md §3.3 entry-guard scope. The §3.3 set is {WF-02, WF-11, WF-26} (router-downstream guards) + {WF-50, WF-51, WF-52, WF-60} (utility guards). WF-02 is WF-21's upstream and already guards the §2.1 envelope; the design treats WF-02 as the enforcement boundary for the NEW_USER branch, not its leaves. Do not add a `Validate Inputs` node to WF-21 — this was attempted by TD-DCP-110 (sprint `data-contract-sprint-bug-fix`) and reverted after the scope audit. See the sprint's `state.md` TD-DCP-110 `obsolete_reason` and the design.md Amendments section dated 2026-05-25 for the full rationale.
+
+---
+
+## Algorithm
+
+Step 1: Start — workflow triggered by WF-02 with WF-01 canonical envelope plus `contactName`, `messageId`. Read `phoneNumber` from top-level envelope field (canonical; do NOT use `user.phone_number` for phone-only purposes per §2.1). Read `contactName` from top-level envelope field.
+Step 2: INSERT INTO chinmay_astro.pending_users (phone_number, contact_name, created_at) VALUES (phoneNumber, contactName, NOW()) ON CONFLICT (phone_number) DO UPDATE SET contact_name = EXCLUDED.contact_name, created_at = NOW() RETURNING phone_number. This is intentionally NOT a `users` write — design rule: first `users` row is created in WF-22 after form submission.
+Step 3: Build the welcome message:
+  - If wasOptedOut == true (dead code post-TD-DCP-107 — retained defensively per Summary note): prepend "👋 Welcome back to Chinmay Astro! We're glad you're back. " to the greeting.
+  - Plain text body: (welcome-back prefix if applicable) + greeting, intro from Chinmay, privacy policy URL (https://chinmaymujumdar.com/privacy-policy), how-it-works bullets (form → ₹500 → consultation), and prompt to fill the form.
+  - Interactive payload: type="flow", header="Birth Details Form", body=welcome text, flowId=<published Meta Flow ID for `Collect Personal Details v2` — currently `2260297164474475` per TD-PGF-14 cutover 2026-05-27; v1 Flow `1408011897720771` retained published in Meta as immediate-revert path>, flowCta="Fill Details".
+Step 4: Call WF-50 with { phoneNumber, messageType="interactive", messageContent=welcome text, interactivePayload=the flow object } per §2.3 canonical contract.
+Step 5: End.

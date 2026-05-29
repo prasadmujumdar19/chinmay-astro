@@ -1,0 +1,54 @@
+WF-30 — Payment Pending Intent Filter
+
+## Summary
+
+- Inputs (WF-01 canonical envelope per data-contract-discipline Phase 1 — design.md §2.1): `phoneNumber` (E.164 string), `messageType`, `messageContent`, `user` (object: {id, phone_number, name, status, slack_channel_id, current_consultation_id}), `pendingUser` (null for payment_pending users). Additional fields passed by WF-02: `messageText`, `userId`, `userStatus`.
+- Outputs: For `general_enquiry` intent — a Gemini-generated WhatsApp reply tailored to the payment-pending stage. For other pass-through intents — a contextual WhatsApp payment reminder. For stop_intent — a stop-intent clarifier message. On Gemini General Response outage — sends user apology + dual admin alerts then halts via stopAndError (error propagates to WF-02 caller).
+- State Transitions: none. Auto-opt-out on Gemini-classified stop_intent removed 2026-05-23 (SP-04); explicit STOP keyword via WF-20 still unsubscribes canonically.
+- Calls Sub-Workflows: WF-25 (Intent Classifier), WF-50 (Send WhatsApp), WF-51 (Send Slack Message — admin alerts on Gemini outage).
+- **Notes:**
+  - **General-enquiry Gemini branch (2026-05-26 — GAP-3C):** `general_enquiry` intent now routes to a Gemini-generated contextual reply with a payment-pending stage cue (gentle nudge to complete the ₹500 payment) and an email-callout (`chinmay_astro@gmail.com`). Other pass-through intents (wants_consultation, rebook_intent, feedback_intent) keep the existing canned payment-reminder reply.
+  - **Gemini General Response halt-and-notify (2026-05-27 — TD-PGF-09 scope expansion):** Identical pattern to WF-23. Gemini outage on `Gemini General Response` no longer silently halts the workflow. The HTTP node has `onError=continueErrorOutput`; on retries exhausted (3× with backoff), the error branch fans out to user apology (WF-50) + dual admin alerts (WF-51 to user's consult channel + admin-commands), then a `stopAndError` node terminates execution. The error propagates to WF-02's `Call WF-30` executeWorkflow node which halts the caller. Admin alert text: "AI assistant couldn't generate a reply" (General Response variant). Payment-pending users have a consult Slack channel (created at form submission per Design Rule #2) — both consult-channel AND admin-commands alerts will fire. User-apology + admin-alert copy locked 2026-05-27T02:25:00Z.
+  - **stop_intent policy (2026-05-23 — SP-04, applying WF-40's TD-E pattern):** Gemini-classified stop_intent no longer auto-routes to WF-47 unsubscribe — false-positive risk (e.g. user typing "I want to stop waiting for confirmation"). Instead WF-30 sends a clarifier asking the user to send STOP exactly. Literal STOP still flows through WF-20 (Design Rule #5).
+  - For intents in {garbage, malicious_abusive, inappropriate}, WF-25 already handles the response internally and does NOT return to caller — those messages terminate inside WF-25.
+  - **`Is Pass-Through Intent?` IF simplified 2026-05-27 (TD-PGF-05):** Previously tested 4 intent types ({garbage, malicious_abusive, inappropriate, stop_intent}) all combined with notEquals + AND. After the WF-25 halt-inside-WF-25 redesign (TD-PGF-09), garbage/malicious_abusive/inappropriate never return to caller — they terminate inside WF-25. Only `stop_intent` is reachable as a non-pass-through value. IF now has a single condition testing `intentResult != "stop_intent"`. Semantics preserved: TRUE branch = pass-through path; FALSE branch = stop_intent path.
+  - **Call WF-25 envelope add-on (2026-05-27 — TD-PGF-05):** caller-side `workflowInputs.value` mapping extended from 4 fields (phoneNumber, userId, messageText, userStatus) to 6 fields, adding `userName` (from `user.name`) and `slackChannelId` (from `user.slack_channel_id`) per data-contract-discipline. Payment-pending users always have user populated (Design Rule #2 — channel created at form submission), so no null-guard fallback needed here — but `(... || {}).field` is still used defensively in case envelope shape varies.
+  - WF-25 caller field name (TD-DRIFT-009): passes `messageText` but WF-25 reads `messageContent` — explicitly deferred from Phase 1 per §1.5.
+
+---
+
+## Algorithm
+
+Step 1: Start — Triggered by parent workflow with WF-01 canonical envelope plus {messageText, userId, userStatus}. Read `phoneNumber` from top-level envelope field (canonical per §2.1).
+Step 2: Call WF-25 with 6 fields: phoneNumber, userId, messageText, userStatus, userName (from `user.name`), slackChannelId (from `user.slack_channel_id`). Receive intentResult. Note: WF-25 may itself halt-and-notify on its own Gemini outage; that halt propagates here and on to WF-02.
+Step 3: Check `Is Pass-Through Intent?` — is intentResult != "stop_intent"? (simplified single-condition IF per TD-PGF-05 dead-branch cleanup)
+  - If YES (pass-through — wants_consultation, general_enquiry, rebook_intent, feedback_intent) → GOTO Step 4
+  - If NO (stop_intent — only reachable non-pass-through per WF-25 contract) → GOTO Step 19
+Step 4: Check `Is General Enquiry?` — is intentResult == "general_enquiry"?
+  - If YES → GOTO Step 5
+  - If NO → GOTO Step 17
+Step 5: Build Gemini prompt instructing a helpful, warm assistant for Chinmay's Vedic astrology consultation service on WhatsApp, with the user-stage cue "user has completed the intake form but has not yet paid the ₹500 consultation fee" and the email-callout cue "they can email chinmay_astro@gmail.com for anything else". Ask Gemini to weave both naturally into a brief 2-3 sentence reply in plain conversational English (no bullet lists, no robotic phrasing). Append the user's messageContent.
+Step 6: POST to Gemini (gemini-2.5-flash-lite per project standard) with temperature=0.3, maxOutputTokens=200, timeout=10s, retryOnFail=true, maxTries=3, onError=continueErrorOutput. On success (main output): GOTO Step 7. On retries exhausted (error output): GOTO Step 8 (halt-and-notify chain).
+Step 7: Extract Gemini reply text from candidates[0].content.parts[0].text; fallback default "Thank you for your message! For questions about our Vedic astrology consultation, feel free to ask." Call WF-50 with { phoneNumber, messageType="text", messageContent=reply } per §2.3 canonical contract. End.
+Step 8: Build user apology WF-50 payload per §2.3 — { phoneNumber, messageType="text", messageContent="Sorry — we ran into a brief technical issue and couldn't process your message just now. Dr. Chinmay has been notified and will follow up with you shortly. We apologise for the inconvenience." }.
+Step 9: Call WF-50 (apology to user). Continue to admin alert chain (Step 10).
+Step 10: Build admin alert text (Code node) — translate userStatus to plain English (payment_pending → "awaiting payment approval"; etc.). Resolve userName. Construct messageText: "⚠️ The AI assistant couldn't generate a reply to a user just now.\n\n*User:* {userName} ({phoneNumber})\n*Their state:* {stateText}\n*Their question:* \"{messageContent truncated to 500 chars}\"\n*Reason:* {error summary truncated to 200 chars}\n\nThe user has been told there's a technical hiccup and that you'll follow up. Suggested action: respond manually in their consult channel." Emit { messageText }.
+Step 11: Check `Has Consult Channel?` — is `user.slack_channel_id` non-empty (notEmpty unary)?
+  - If YES → GOTO Step 12 (consult-channel alert path, then admin-commands alert).
+  - If NO → GOTO Step 14 (admin-commands alert only — should be unreachable for payment_pending users but defensive).
+Step 12: Build consult alert payload per §2.5 — { channelId: `user.slack_channel_id`, messageText: `$('Build Admin Alert Text').item.json.messageText` }.
+Step 13: Call WF-51 (consult-channel alert). GOTO Step 14.
+Step 14: Build admin-commands alert payload per §2.5 — { channelId: "C0A5B0ZE81E", messageText: `$('Build Admin Alert Text').item.json.messageText` }.
+Step 15: Call WF-51 (admin-commands alert). GOTO Step 16.
+Step 16: stopAndError — terminate WF-30 execution with errorMessage "Gemini general response failed; user apology + admin alerts dispatched. Halting execution so caller propagates termination." n8n's executeWorkflow error-propagation contract halts WF-02 at its `Call WF-30` node.
+Step 17: (pass-through non-general-enquiry path — from Step 4 NO branch) Build contextual payment reminder message:
+  - If intentResult == "wants_consultation": prefix "Great! You're almost there. To confirm your consultation, please complete the payment below."
+  - Else if intentResult == "rebook_intent": prefix "For rebooking, please complete the pending payment first."
+  - Else: prefix "Happy to help! Once your payment is confirmed, Chinmay will be ready for your consultation."
+  - Append UPI block: ₹500 to +91-9653240263 (Chinmay Mujumdar), then "tap the Payment Completed button you received earlier."
+Step 18: Call WF-50 with { phoneNumber, messageType="text", messageContent=assembled message } per §2.3 canonical contract. End.
+Step 19: (stop_intent path — from Step 3 NO branch) Build WF-50 stop-intent clarifier payload per §2.3 canonical contract:
+  - phoneNumber = <phoneNumber> (from top-level envelope)
+  - messageType = "text"
+  - messageContent = "This is an automated message from Chinmay Astro — we noticed your message mentioned STOP or unsubscribing. If this was unrelated, please ignore. If you do want to opt out of this service, simply send STOP at any time."
+Step 20: Call WF-50 (Stop Clarifier) with the prepared payload. End.

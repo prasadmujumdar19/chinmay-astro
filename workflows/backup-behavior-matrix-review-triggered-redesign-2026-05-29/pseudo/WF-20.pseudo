@@ -1,0 +1,37 @@
+WF-20 — Keyword Handler
+
+## Summary
+
+- Inputs (canonical WF-01 envelope per data-contract-discipline Phase 1 §2.1): `phoneNumber` (E.164 string, top-level), `messageContent` (string), `user.id` (integer or null), `user.status` (enum or null), `user.name` (string or null), `user.slack_channel_id` (string or null), `user.current_consultation_id` (integer or null), `pendingUser` (object or null). `messageType` is always `text` on this path (keyword intercept runs before WF-25; only plain-text messages reach WF-20).
+- Outputs: Either routes user to WF-47 (unsubscribe), WF-45 (rebook), or sends a HELP message via WF-50. Otherwise returns `{action: 'passthrough', phoneNumber, userId, messageText}` so the caller (WF-02 Step 5) continues normal routing.
+- State Transitions: none directly (downstream WF-47 sets `opted_out`, WF-45 may move user to `payment_pending`)
+- Calls Sub-Workflows: WF-47 (Unsubscribe), WF-45 (Rebook), WF-50 (Send WhatsApp)
+- **Ambiguities / Notes:**
+  - The keyword Switch has a 4th `extra` fallback output that must be wired to a terminal Set / Code node returning `{action: 'passthrough', ...}`. In n8n, the `Set Passthrough` node MUST connect to the workflow's terminal output (otherwise WF-02 receives no payload back and the dispatch silently dies).
+
+---
+
+## Algorithm
+
+Step 1: Start — workflow triggered by WF-02 with the WF-01 canonical envelope. Read inputs:
+  - `phoneNumber` (from envelope top-level phoneNumber)
+  - `userId` (from envelope user.id; may be null for new/pendingUser)
+  - `userStatus` (from envelope user.status; may be null for new/pendingUser — used to drive HELP contextual response)
+  - `messageContent` (from envelope messageContent — canonical field name)
+Step 2: Normalize the input — set keyword = uppercase(trim(messageContent)). Carry forward phoneNumber, userId, messageContent as messageText, and userStatus (from envelope user.status — required by the STOP path's WF-47 call to drive the `Was Consultation Active?` IF, and by the HELP path's contextual branching).
+Step 3: Check: keyword value?
+  - If keyword == "HELP" → go to Step 4
+  - If keyword == "STOP" → go to Step 5
+  - If keyword == "REBOOK" → go to Step 6
+  - Otherwise (no keyword match) → go to Step 7
+Step 4: Build a contextual help message based on user.status (TC-1013 — 5 status-aware branches). Read user.status directly from the WF-01 envelope (trigger node):
+  - If user.status is null/undefined OR user.status == "pendingUser" (no full DB record yet): "Welcome to Chinmay Astro. Tap the 'Fill Details' button on the form to get started. If you don't see the form, send 'Hi' to receive it again."
+  - If user.status == "payment_pending": tell user to pay ₹500 via UPI to +91-9653240263 and tap "Payment Completed ✓".
+  - If user.status == "payment_submitted": tell user payment is under review.
+  - If user.status == "consultation_active": tell user to just type their question.
+  - If user.status == "consultation_closed": tell user to type REBOOK.
+  - Otherwise (defensive — should not occur): send generic menu listing REBOOK and STOP options.
+  Call WF-50 with { phoneNumber, messageType: 'text', messageContent: <chosen message body> }. End.
+Step 5: Call WF-47 (Unsubscribe) with phoneNumber, userId, userStatus. End.
+Step 6: Call WF-45 (Rebook) with phoneNumber, userId. End.
+Step 7: Return `{action: 'passthrough', phoneNumber, userId, messageText}` to the caller so WF-02 (Step 5) sees `action='passthrough'` and continues normal routing. (Implementation note: in n8n, the `Set Passthrough` node must connect to the workflow's terminal output node — not be left orphaned.) End.

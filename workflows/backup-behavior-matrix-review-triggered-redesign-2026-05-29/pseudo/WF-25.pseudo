@@ -1,0 +1,40 @@
+WF-25 — Intent Classifier
+
+## Summary
+
+- Inputs: phoneNumber, userId, messageContent (the user's free-form text), userStatus. Called by any workflow that needs to classify a user message before acting (e.g. WF-23, WF-30, WF-31, WF-40, WF-43, WF-44).
+- Outputs: On the success path, returns the input payload extended with `intentResult` ∈ {wants_consultation, general_enquiry, rebook_intent, feedback_intent, stop_intent, garbage, malicious_abusive, inappropriate}. Side effects: for garbage sends a warning + notifies admin via Slack; for malicious_abusive / inappropriate sends a block warning + auto-blocks the user via WF-46; on Gemini failure, notifies user (apology) + admin (dual-channel alert) and halts execution with an error so the caller propagates termination.
+- State Transitions: none directly. WF-46 (called for abuse/inappropriate) transitions user to `blocked`.
+- Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack — admin notify), WF-46 (Auto-Block)
+- **Ambiguities / Notes:**
+  - **Three branches intentionally do NOT return to caller** — garbage (Step 11), auto-block (Step 14), and Gemini-failure halt (Step 7). Any caller relying on a return for those classifications receives either no data (garbage / auto-block — caller continues without intent enrichment) or an executeWorkflow error (Gemini failure — caller execution terminates via error propagation). This is by design — see TD-PGF-09 in sprint pre-go-live-final-follow-up-2026-05-26 for the Gemini-failure rationale.
+
+---
+
+## Algorithm
+
+Step 1: Start — workflow triggered by another workflow with phoneNumber, userId, messageContent, userStatus.
+Step 2: Build the Gemini classification request:
+  - Prompt: "You are an intent classifier for a WhatsApp astrology consultation service. User context: Status: <userStatus>. Classify the message into EXACTLY ONE of: wants_consultation, general_enquiry, rebook_intent, feedback_intent, stop_intent, garbage, malicious_abusive, inappropriate. <category definitions>. User message: \"<messageContent>\". Reply with ONLY the category word."
+  - Body: contents=[{parts:[{text: prompt}]}], generationConfig={temperature:0, maxOutputTokens:20}.
+Step 3: POST the body to Gemini gemini-2.5-flash-lite generateContent endpoint with the Gemini API key. On error → go to Step 4. On success → go to Step 8.
+Step 4: Build user apology payload (per design.md §2.3 WF-50 contract): phoneNumber=<phone>, messageType='text', messageContent="Sorry — we ran into a brief technical issue and couldn't process your message just now. Dr. Chinmay has been notified and will follow up with you shortly. We apologise for the inconvenience."
+Step 5: Call WF-50 to send the apology to the user.
+Step 6: Build admin alert payload (per design.md §2.4 WF-51 contract). messageText = "⚠️ The intent classifier couldn't process a message just now.\n\n*User:* <name> (<phone>)\n*Their state:* <state in plain English — e.g. 'filling onboarding form', 'awaiting payment approval', 'in active consultation'>\n*Their message:* \"<text>\"\n*Reason:* <short error summary — e.g. 'Gemini API timed out after 3 retries'>\n\nThe user has been told there's a technical hiccup and that you'll follow up. Suggested action: reach out manually in their consult channel; consider a goodwill gesture (e.g. complimentary consultation) if they were mid-flow." Determine destinations: ALWAYS post to `chinmay-admin-commands` (channelId = `C0A5B0ZE81E`). ADDITIONALLY post to the user's consult Slack channel (channelId = caller-supplied `slackChannelId`) ONLY IF `slackChannelId` is non-empty. Pre-form users (WF-23 callers before form submission) have no consult channel per Design Rule #2 — channel is created at form submission — so in that case admin-commands receives the alert alone (pre-form fallback locked 2026-05-27T02:55Z, TD-PGF-09 §Data-path decision).
+Step 7: Call WF-51 once or twice (parallel fan-out) per Step 6's destination determination — admin-commands always; consult channel only when present. Then halt the workflow with an explicit error so the caller's executeWorkflow node propagates the error and the caller execution terminates. End — no return to caller (caller halts via error propagation).
+Step 8: Parse Gemini response — read candidates[0].content.parts[0].text, trim and lowercase. If it matches one of the 8 valid categories, use it; otherwise default intentResult = "general_enquiry".
+Step 9: Route on intentResult:
+  - "wants_consultation" → go to Step 15
+  - "general_enquiry" → go to Step 15
+  - "rebook_intent" → go to Step 15
+  - "feedback_intent" → go to Step 15
+  - "garbage" → go to Step 10
+  - "malicious_abusive" → go to Step 12
+  - "inappropriate" → go to Step 12
+  - "stop_intent" → go to Step 15
+Step 10: Build a garbage warning payload (per design.md §2.3): phoneNumber=<phone>, messageType='text', messageContent="⚠️ Your message could not be understood. Please send a clear question about our astrology consultation service."
+Step 11: Call WF-50 to send the garbage warning to the user, then call WF-51 to notify the admin Slack channel about the garbage message. End (no return to caller — caller flow halts on garbage).
+Step 12: Build a block warning payload (per design.md §2.3): phoneNumber=<phone>, messageType='text', messageContent="🚫 Your message has been flagged as inappropriate or abusive. Your access to this service has been restricted."
+Step 13: Call WF-50 to send the block warning to the user.
+Step 14: Call WF-46 (Auto-Block) which moves the user to status=blocked. End (no return to caller — caller flow halts on auto-block).
+Step 15: Return to caller — pass through the original input merged with intentResult.
