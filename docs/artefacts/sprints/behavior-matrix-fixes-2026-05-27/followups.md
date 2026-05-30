@@ -43,3 +43,16 @@
   - **Decision:** _pending user direction._
   - **Update 2026-05-29 (halt-both change):** U1 now halts on both branches (BMX-P0-U3 session). On the non-user-facing path the admin alert fires, the apology is skipped, then U1 halts — so the unconditional "The user has been told…" sentence is now actively wrong on that path (admin told the user was notified; no apology was sent). Still latent (no non-user-facing caller exists). Fix unchanged: make the closing sentence conditional on `userFacing` in the Build Admin Alert Code node — fold into BMX-P1-PSEUDO authoring of WF-53.pseudo (Batch 3).
   - **Resolution 2026-05-29 (Batch 3 / BMX-P1-PSEUDO):** NOT folded into the pseudo as a fix — under the user-clarified sync rule, `WF-53.pseudo` must reflect LIVE, and live still emits the sentence unconditionally. So the pseudo documents the current always-included behavior + carries a "deferred improvement" note pointing here. This stays an open live fix: apply the `userFacing`-conditional to **live + pseudo together** in a future batch (or whenever a non-user-facing U1 caller is introduced). Decision: **deferred (live fix pending), not a pseudo-only change.**
+
+
+## [2026-05-30] — Batch 8 (thin handlers + WF-46 retirement) plugin candidates
+
+- **build-workflow Step 5f/5g — Set node expression fields do NOT support optional chaining (`?.`); Code nodes DO.**
+  - **Target:** `build-workflow` Step 5 (Set-node authoring guidance) + the `n8n_validate_workflow` triage notes.
+  - **Observed on:** BMX-P3-HANDLERS / WF-30. The new `Build U1 Payload` Set node used `$('Node').first().json.user?.name` and `$(...)?.json?.error?.message` in `={{ }}` expression fields. Strict validate flagged "Optional chaining (?.) is not supported in n8n expressions" (warning, valid:true) — but it's a real silent-eval risk on the hard-to-test Gemini-error branch. Required a re-PUT to convert to `(x || {}).y` guards. The Batch-7 WF-25 `Build U1 Payload` template deliberately avoided `?.`; I reintroduced it by extending the expressions.
+  - **Fix:** add a one-line rule to Step 5/5f.2: "In Set/expression (`={{ }}`) fields, never use optional chaining `?.` — use `(x || {}).y` / `(x || '—')` guards. Optional chaining is valid only inside Code-node `jsCode`." Cheap, prevents a recurring foot-gun when porting Code-node logic into Set contract-emit nodes.
+  - **Priority hint:** medium. Flush via `flush-plugin-improvements` at sprint boundary.
+
+- **Project ops note (NOT plugin) — never pass n8n expressions through shell variables.**
+  - Passing a string containing `$('Node Name')` via a bash/zsh `VAR="...$('...')..."` triggers command substitution → mangles the value and (worse) can PUT broken content. On WF-30 this produced a bad intermediate PUT before I caught it. Correct pattern: write the expression to a file with the Write tool (no shell interpretation), then splice via `jq --rawfile ... | rtrimstr("\n")`, or embed it directly in a Write-authored newnodes JSON. This is already implied by CLAUDE.md's single-Bash-command discipline but the expression-as-data hazard is sharper — consider a CLAUDE.md line. Captured here for the sprint-close flush triage.
+  - **Priority hint:** low (operational; CLAUDE.md candidate, not plugin).

@@ -32,10 +32,10 @@
 | BMX-P2-WF21 | ✅ done | 5 | P0 | WF-21 | BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P2-WF23 | ✅ done | 6 | P0 | WF-23 | BMX-P0-U2 (hard), BMX-P0-U3 (hard), BMX-P1-PSEUDO (hard) |
 | BMX-P3-WF25 | ✅ done | 7 | P0 | WF-25 | BMX-P0-U1 (hard), BMX-P0-U2 (hard), BMX-P1-PSEUDO (hard) |
-| BMX-P3-HANDLERS | ⬜ pending | 8 | P0 | WF-30, WF-31, WF-40, WF-43 | BMX-P3-WF25 (hard), BMX-P0-U1 (hard) |
-| BMX-P3-WF44 | ⬜ pending | 8 | P0 | WF-44 | BMX-P3-WF25 (soft) |
-| BMX-P3-WF20 | ⬜ pending | 8 | P0 | WF-20 | BMX-P1-PSEUDO (hard) |
-| BMX-P3-WF46 | ⬜ pending | 8 | P0 | WF-46 | BMX-P3-WF25 (hard), BMX-P3-HANDLERS (hard) |
+| BMX-P3-HANDLERS | ✅ done | 8 | P0 | WF-30, WF-31, WF-40, WF-43 | BMX-P3-WF25 (hard), BMX-P0-U1 (hard) |
+| BMX-P3-WF44 | ✅ done | 8 | P0 | WF-44 | BMX-P3-WF25 (soft) |
+| BMX-P3-WF20 | ✅ done | 8 | P0 | WF-20 | BMX-P1-PSEUDO (hard) |
+| BMX-P3-WF46 | ✅ done | 8 | P0 | WF-46 | BMX-P3-WF25 (hard), BMX-P3-HANDLERS (hard) |
 | BMX-P4-WF26 | ⬜ pending | 9 | P0 | WF-26 | BMX-P3-WF25 (hard) |
 | BMX-P4-WF45 | ⬜ pending | 9 | P0 | WF-45 | BMX-P1-PSEUDO (hard) |
 | BMX-P4-ACTIVATE | ⬜ pending | 9 | P0 | WF-26 | BMX-P4-WF26 (hard) |
@@ -109,6 +109,8 @@
 - **Description:** WF-30/31/40/43 handler edits (delete inline Gemini-error → U1; remove in-handler clarifiers; WF-43 stop_intent → clarifier) + WF-44 (strip WF-25 call + rebook/stop IFs; rewire trigger → Save Feedback) + WF-20 STOP-aliases (TD-BMX-05) + WF-46 retirement (audit no other live caller, then delete). All structural edits applied against the live WF-25 hub from Batch 7. ~87K is slightly above target because the low-cost WF-46 retirement rides along to avoid a trivial standalone batch.
 - **Estimated size:** M
 - **Estimated tokens:** ~87K
+- **Post-batch regression (2026-05-30):** PASS. Whole-`workflows/` lint exit 0 — zero hard rejects across all 31 workflows (no pg_select_missing_aod, no camelCase-alias, no Code-return-shape, no mappingMode=passthrough); remaining findings all advisory (pre-existing Contract-First initiative + Step 5g WF-XX tokens in internal validation/audit nodes — none introduced/worsened by Batch 8). Handler-family siblings WF-21/WF-23 confirmed consistent (both call U1/WF-53, zero orphaned old-error-chain nodes). Dependency map rebuilt (82→79 edges); all touched workflow IDs unchanged → no caller repoint needed. WF-46 retained per caller audit. No strict-bucket sibling issues → none logged to followups (2 plugin candidates noted: Set-field optional-chaining rule + expression-as-shell-var hazard).
+- **Execution plan:** Recorded 2026-05-30 by build-sprint Step 2a. Order: HANDLERS → WF44 → WF20 → WF46 (WF46 last; hard-deps HANDLERS dropping its WF-46 calls). No same-workflow siblings; no Mode D (all production-affecting structural edits requiring judgment, per [[feedback_sprint_parallelism]]). (1) **BMX-P3-HANDLERS — Mode A** full build-workflow inline (4 WFs, node delete+rewire, per-handler impact judgment). (2) **BMX-P3-WF44 — Mode A** full build-workflow inline (node delete + rewire + sole-caller re-verify). (3) **BMX-P3-WF20 — Mode B** inline-inherit (surgical XS keyword-list add; full backup/change/lint/state discipline, no Skill reload). (4) **BMX-P3-WF46 — Mode A** full build-workflow inline, retirement after caller audit across all live workflows.
 
 ## Batch 9 — Phase 4 · WF-26 refine + WF-45 guard + activation
 
@@ -371,21 +373,40 @@ The central change. Author complete TO-BE node graph from scratch; carry over ve
 
 ## BMX-P3-HANDLERS — Thin handler edits WF-30/31/40/43 (safety-net §6)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P0 | **Batch:** 8
+**Started:** 2026-05-29T23:53:09Z
+**Completed:** 2026-05-30T00:15:02Z
 **Change type:** Structural (partial edits)
 **Workflows:** WF-30, WF-31, WF-40, WF-43
 **Depends on:** BMX-P3-WF25 (hard), BMX-P0-U1 (hard)
 **Size:** M
 **Estimated tokens:** ~40K
 **Estimated effort:** ~1.5 hr
+**Actual tokens:** ~95K
+**Actual effort:** ~22 min
+**Estimate delta:** +1 bucket (planned M ~40K, actual ~95K — 4 WFs × full jq-on-disk + per-WF strict validate, plus a WF-30 author-retry on optional-chaining/shell-quoting added ~15K → M-to-L band)
 
 Handlers become thin: delete inline Gemini-error chains → call U1; remove in-handler clarifiers (now centralized in WF-25); WF-43 stop_intent → clarifier. Partial edits (no full rebuild). Edited AFTER WF-25 (hard dep) so they target the final hub behavior. Per-workflow execution — separate backup/verify per WF or combined per-workflow PUTs. Invoke `build-workflow`.
 
+**Build record (2026-05-30):** jq-on-disk per WF (Step 5e). All `valid:true` strict, errorCount 0, no dangling refs, no optional-chaining in Set expr fields.
+- **WF-30** (gGJBY5fJha0Let8I) 21→12: removed 2 stop-clarifier + 9-node Gemini-error chain; added `Build U1 Payload`+`Call U1 (WF-53)` off Gemini error output (source WF-30, state 'awaiting payment'); `Is Pass-Through Intent?` FALSE→terminate (D5 note). U1 context re-PUT once to strip `?.` (unsupported in Set expr fields).
+- **WF-31** (HB8nXudAtk9iXz7C) 24→15: same removal+U1 (source WF-31, state 'payment under review'); Branch B (Load Payment→Relay to Admin Slack) preserved verbatim; `Is Pass-Through Intent?` FALSE→terminate.
+- **WF-40** (du32QBZbSQOjfESe) 7→4: removed `Stop Intent?`+clarifier build+`Call WF-50`; collapsed to trigger→WF-25→Format Slack→WF-51. No U1 (no own Gemini).
+- **WF-43** (3va0M06kijgyLejf) 30→22: kept `Stop Intent?` check, rewired TRUE→terminate (dropped `Call WF-47`, D5); removed 9-node Gemini-error chain; added U1 (source WF-43, state 'consultation completed'); button cascade unchanged.
+- U1-call shape mirrors Batch-7 WF-25 template verbatim (executeWorkflow v1.2, defineBelow+value:{}, default onError=halt). Backups: archive/backups/{uuid}-2026-05-30-*.json.
+
 ## BMX-P3-WF44 — WF-44 strip redundant WF-25 call (safety-net §6 decision #11)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P0 | **Batch:** 8
+**Started:** 2026-05-30T00:16:00Z
+**Completed:** 2026-05-30T00:18:21Z
+**Actual tokens:** ~14K
+**Actual effort:** ~3 min
+**Estimate delta:** on-bucket (planned S ~20K, actual ~14K)
+**Caller compliance audit:** RE-VERIFIED at build 2026-05-30 — WF-44 (Du2CJ3OTohRFZYoA) called ONLY by WF-43 across all exported workflows + dependency-map.md. Sole caller confirmed.
+**Build record:** Du2CJ3OTohRFZYoA 9→4 nodes. Removed `Call WF-25 Intent Classifier`, `Is Rebook Intent?`, `Call WF-45 Rebook`, `Is Stop Intent?`, `Call WF-47 Unsubscribe`; rewired trigger→`Save Feedback to DB`→`Prepare Ack Message`→`Send Ack via WF-50`. `Save Feedback` query params already read from trigger envelope (`$('When Executed by Another Workflow')`), so the input-source change is safe; `operation: executeQuery` explicit, `alwaysOutputData:true`. `valid:true` strict, errorCount 0, no dangling refs. Backup: archive/backups/Du2CJ3OTohRFZYoA-2026-05-30-10-16.json.
 **Change type:** Structural (partial edit)
 **Workflows:** WF-44
 **n8n IDs:** `Du2CJ3OTohRFZYoA`
@@ -398,8 +419,14 @@ Delete `Call WF-25` + the `rebook_intent?`/`stop_intent?` IFs + their WF-45/WF-4
 
 ## BMX-P3-WF20 — WF-20 STOP-aliases UNSUBSCRIBE/OPT OUT/OPT-OUT (TD-BMX-05, safety-net §6 decision #6)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P0 | **Batch:** 8
+**Started:** 2026-05-30T00:19:00Z
+**Completed:** 2026-05-30T00:20:13Z
+**Actual tokens:** ~10K
+**Actual effort:** ~2 min
+**Estimate delta:** on-bucket (planned XS ~15K, actual ~10K)
+**Build record (Mode B inline-inherit):** WF-20 (LgIDj1v4ZbCPlX25) `Match Keyword` Switch v3.2 — STOP rule (matched by `outputKey=="STOP"`, not index) expanded from single `equals "STOP"` to combinator `or` over 4 conditions: STOP, UNSUBSCRIBE, OPT OUT, OPT-OUT. `OPTOUT` (no separator) deliberately excluded. caseSensitive:false (already) + upstream `Normalize Keyword` uppercases. outputKey unchanged → still routes to `Call WF-47 Unsubscribe`. jq+PUT (nested-array edit; MCP updateNode avoided per [[feedback_n8n_mcp_nested_array_update]]). `valid:true` strict, errorCount 0. No nodes removed → no dangling rescan. Backup: archive/backups/LgIDj1v4ZbCPlX25-2026-05-30-10-19.json.
 **Change type:** Surgical
 **Workflows:** WF-20
 **Depends on:** BMX-P1-PSEUDO (hard)
@@ -411,8 +438,15 @@ Add `UNSUBSCRIBE`/`OPT OUT`/`OPT-OUT` to the WF-20 keyword path that routes exis
 
 ## BMX-P3-WF46 — Retire WF-46 Auto-Block (safety-net §8 / §332)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P0 | **Batch:** 8
+**Started:** 2026-05-30T00:21:00Z
+**Completed:** 2026-05-30T00:21:55Z
+**Actual tokens:** ~9K
+**Actual effort:** ~2 min
+**Estimate delta:** on-bucket (planned XS ~12K, actual ~9K)
+**Caller compliance audit (2026-05-30):** Scanned all exported workflows + dependency-map.md for refs to WF-46 (`UV62An60fzflU0uD`). **WF-46 HAS a live caller: WF-11 Command Parser (`GoTYo0GS2y8qjjkw`) — the admin BLOCK command.** WF-25, all 4 handlers (WF-30/31/40/43), and WF-44 confirmed ZERO refs to WF-46 (auto-block path already retired in Batch-7 WF-25 rebuild → U2).
+**Disposition (per item conditional + safety-net §8 line 345-346):** WF-46 **NOT deleted** — it remains the admin-BLOCK handler invoked by WF-11. The "auto-block retirement" goal is satisfied by the Batch-7 WF-25 re-point (WF-25 abuse/garbage-at-threshold now flows through U2, not WF-46). No workflow edit this item — confirm-and-record only. WF-46 stays 🟢 Active. This is the explicitly-anticipated "other callers exist → leave it" branch, not a deviation.
 **Change type:** Structural (retirement)
 **Workflows:** WF-46
 **Depends on:** BMX-P3-WF25 (hard), BMX-P3-HANDLERS (hard)
