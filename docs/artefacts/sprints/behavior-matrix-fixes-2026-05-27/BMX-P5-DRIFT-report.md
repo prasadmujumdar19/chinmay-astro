@@ -100,7 +100,7 @@ During Batch-11 prep, a live cross-check of WF-30's `Call WF-25` mapping contrad
 - **False negatives** (real issues never listed — the WF-34 class) — **NOT** caught by per-item verification, because there is no item to verify. Only a fresh, systematic per-workflow sweep surfaces these. This is why §2 is a full sweep, not a punch-list.
 
 ## 2.2 — Inputs to the sweep (what to load per workflow)
-1. Fresh AS-IS `.md` (regenerate via `generate-workflow-md` if the committed copy is stale vs live — recommended before starting).
+1. AS-IS `.md` — the committed `docs/pseudocode/*.md` were **verified content-fresh vs live on 2026-05-30** (all 31 content-identical to a fresh `generate-workflow-md` run; they pass `assert-md-fresh.sh`). Use them directly — **no re-download or regeneration needed** unless a workflow is edited after this date.
 2. The workflow's `.pseudo` (GitHub `main`).
 3. `docs/reference/contract-reference.md` §A–§C (the canonical envelope + sub-workflow input contracts) — the authority for entry-guard completeness.
 4. `docs/dependency-map.md` (to enumerate every caller/callee for the cross-cutting checks).
@@ -130,7 +130,7 @@ During Batch-11 prep, a live cross-check of WF-30's `Call WF-25` mapping contrad
 | P5 | **Locked copy sync** | `.pseudo` carries draft "Dr. Chinmay" where live is locked to "Dr. Chinmay Mujumdar" (esp. WF-23) |
 
 ## 2.5 — Algorithm (how to run it inline, workflow-by-workflow)
-1. Regenerate fresh `.md` for the corpus (or per workflow) if the committed `.md` is stale vs live.
+1. Use the committed `docs/pseudocode/*.md` directly — verified content-fresh vs live on 2026-05-30 (§2.2). Only regenerate a workflow's `.md` if it was edited after that date.
 2. For each workflow WF-XX (process one at a time; do **not** batch reasoning across workflows):
    a. Load §2.2 inputs.
    b. Run every applicable T1–T11 + P1–P5 check.
