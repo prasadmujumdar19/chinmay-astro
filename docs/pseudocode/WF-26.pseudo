@@ -3,7 +3,7 @@ WF-26 — Re-Engaged Opted-Out User Handler
 ## Summary
 
 - Purpose: Handles an opted_out user re-engaging by sending any message. It lifts the user back to `consultation_closed` and re-routes the inbound message through WF-02 so the FULL safety net (WF-43 → WF-25) runs on the re-engagement message — and crucially, an abusive/garbage re-engagement is handled (blocked / warned) WITHOUT first being welcomed back. No separate welcome-back message.
-- Inputs (WF-01 canonical envelope §2.1, opted-out variant): `phoneNumber`, `messageType`, `messageContent`, `user` (non-null; `status='opted_out'`), `pendingUser` (null), `wasOptedOut` (true), plus the standard passthrough fields (`rawMessage`, `messageId`, `timestamp`, `contactName`, `metadata`) forwarded unchanged.
+- Inputs (WF-01 canonical envelope §2.1, opted-out variant): `phoneNumber`, `messageType` (text | interactive | or any non-text/media transport type — WF-01 routes ALL opted_out messages here regardless of type), `messageContent` (string or null — media may carry no caption), `user` (non-null; `status='opted_out'`), `pendingUser` (null), `wasOptedOut` (true), plus the standard passthrough fields (`rawMessage`, `messageId`, `timestamp`, `contactName`, `metadata`) forwarded unchanged.
 - Outputs: the `users` row updated to `status='consultation_closed'`; the inbound message re-entered into the state machine via WF-02 (answered in the same turn, not just acknowledged).
 - State Transitions: `users.status: opted_out → consultation_closed` (uniform re-entry status regardless of pre-opt-out state). No `current_consultation_id` change.
 - Calls Sub-Workflows: WF-02 (User State Router).
@@ -14,12 +14,13 @@ WF-26 — Re-Engaged Opted-Out User Handler
   - **Uniform re-entry:** every re-engagement lands at `consultation_closed` (no `pre_opt_out_status` column, no per-prior-state branching).
   - **Envelope refresh is essential:** the in-flight envelope's `user.status` must be overwritten to `consultation_closed` before the WF-02 call, or WF-02 routes on the stale `opted_out` value.
   - **button_reply / nfm_reply from a re-engaging user:** button_reply lands in WF-43 (handled gracefully); nfm_reply is unreachable for opted_out users (post-onboarding by definition) and is covered regardless by WF-02's nfm_reply guard.
+  - **Non-text / media from a re-engaging user (S8×G):** accepted — opt-out is lifted (uniform re-entry to `consultation_closed`) and the media re-routes through WF-02 → EXISTING_NON_TEXT → escalate + "please send text" deflection. WF-61 counts the non-text message toward the threshold and auto-blocks at 10, identical to any other existing user — so a re-engaged user cannot bombard us with media unbounded. DR-4: re-initiation re-engages regardless of message type; it is NOT zero-outbound silently dropped (the obsolete TD-BMX-02 expectation).
 
 ---
 
 ## Algorithm
 
-Step 1: Validate Inputs (entry guard — defense-in-depth per §2.1 + §2.7). Hard-fail if: `phoneNumber` missing/not a string; `messageType` not text/interactive; `messageContent` key absent; `user` null or missing `user.id`; `pendingUser` non-null; `wasOptedOut !== true`. Pass through on success.
+Step 1: Validate Inputs (entry guard — defense-in-depth per §2.1 + §2.7; structural-only, mirrors WF-02's guard shape). Hard-fail if: `phoneNumber` missing/not a string; `messageType` missing or not a non-empty string (text | interactive | media all accepted — WF-01 forwards every opted_out message type here); `messageContent` key absent (null allowed — media may carry no caption); `user` null or missing `user.id`; `pendingUser` non-null; `wasOptedOut !== true`. Pass through on success.
 Step 2: UPDATE chinmay_astro.users SET status = 'consultation_closed', updated_at = NOW() WHERE id = user.id. (Single-row update; halts on 0 affected rows — contract failure, since the envelope carries the loaded row.)
 Step 3: Refresh the in-flight envelope — overwrite `user.status` to `consultation_closed` (replacing the stale `opted_out`), passing every other envelope field through unchanged, so the WF-02 call routes on the post-UPDATE state.
-Step 4: Call WF-02 (User State Router) with the refreshed envelope. WF-02 routes the inbound message on `messageType` + `user.status='consultation_closed'` (text → WF-43's classifier path → WF-25 safety net; button_reply → WF-43). The user's first re-engagement message is answered in the same turn. End.
+Step 4: Call WF-02 (User State Router) with the refreshed envelope. WF-02 routes the inbound message on `messageType` + `user.status='consultation_closed'` (text → WF-43's classifier path → WF-25 safety net; button_reply → WF-43; non-text/media → EXISTING_NON_TEXT → WF-61 escalate + "please send text" deflection, threshold-blocks at 10). The user's first re-engagement message is answered in the same turn. End.

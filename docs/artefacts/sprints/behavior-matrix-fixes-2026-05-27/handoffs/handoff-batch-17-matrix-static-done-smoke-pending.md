@@ -1,0 +1,15 @@
+## Stopping Point
+Batch 17 (BMX-P5-MATRIX exit gate) static phase complete: full-matrix regression done (9 parallel Opus row-agents over fresh post-remediation live `.md`), Fix A (WF-26 media guard) applied + verified live, Fix B (S10 NULL-status) parked post-MVP by user. Paused before the live opted_out re-engagement smoke at user's request ("static traces first"). 14/16 forward-test cells pass (7 static-✅, S8×G fixed-✅), 7 S8 cells ⚠️ pending runtime; regression clean except the parked S10 row.
+
+## Next Action
+Run the live opted_out re-engagement smoke for the 7 ⚠️ S8 cells (S8×A,B,C,D,E,F,I). Steps: (1) get a WhatsApp test number from the user + confirm SSH tunnel open; (2) set it up in `opted_out` — **users table is currently EMPTY**, so recommended path is run the phone through onboarding→consultation→close first (gives a real `slack_channel_id` so WF-43's relay path works end-to-end), then flip to `opted_out`; faster alternative is a direct constructed `opted_out` record (but WF-43 Slack relay runs against null channel); (3) send a re-engagement message and observe via `monitor-test-run`: WF-01 opted_out branch → WF-26 (NO welcome-back interstitial) → `users.status` opted_out→consultation_closed → WF-02 re-route → WF-43→WF-25 contextual reply via WF-50, answered same turn. Then do Phase 4: update `docs/artefacts/reviews/behavior-matrix-2026-05-27/index.html` (flip the live-side verdicts for the 7 S8 cells + the already-static-confirmed cells; **rewrite S8×G expectation** to "re-engages via WF-26 → deflect + threshold-block, NOT zero-outbound" per DR-4; mark the S10 row 🛑 deferred-post-MVP; refresh the summary counts), then close the gate (mark BMX-P5-MATRIX done, lint state.md, remove `_active` per build-sprint Step 5).
+
+## Blockers
+- Live smoke needs a real WhatsApp handset + SSH tunnel open, user driving — picked up in a fresh session.
+- Gate cannot close until the smoke confirms the 7 S8 cells AND the HTML is updated.
+- Smoke-INDEPENDENT pending sprint work (Batch 18, can be done anytime): **BMX-P8-DOCS** (CLAUDE.md + registry WhatsApp Flow ID drift fix — live/correct Flow ID is 2260297164474475, the 1408011897720771 in CLAUDE.md is dead; see [[project_whatsapp_flow_id]]); **BMX-P8-PLUGIN** (flush carried plugin improvements — followups.md).
+- Plugin improvement to flush at BMX-P8-PLUGIN: "Full-matrix behavior regression via Workflow-tool fan-out of 1 Opus agent per state-row over fresh live `.md` — exit-gate verification pattern producing structured per-cell verdicts with forward-test vs regression classification; consider a reusable skill analogous to `bmx-drift-rerun-opus`." (recorded in followups.md)
+
+## Changed Reference Values
+- **WF-26 (`tKjwTYF6EER8ED3y`) live changed (Fix A):** `Validate Inputs` guard relaxed — `messageType` now any non-empty string (was `text|interactive`-only), `messageContent` now key-present (was non-null). Backup: `archive/backups/tKjwTYF6EER8ED3y-2026-05-31-01-56.json`. Re-export: `workflows/tKjwTYF6EER8ED3y.json`. Pseudo/md/registry updated.
+- No credential / URL / other-ID changes.

@@ -59,7 +59,7 @@
 | BMX-R15-WF11 | ✅ done | 15 | P1 | WF-11 | — |
 | BMX-R15-WF47 | ✅ done | 15 | P1 | WF-47 | — |
 | BMX-R16-PSEUDO | ✅ done | 16 | P2 | WF-00, WF-01, WF-10, WF-23, WF-41, WF-42 (pseudo) | — |
-| BMX-P5-MATRIX | ⬜ pending | 17 | P0 | — | BMX-R11-WF30, BMX-R11-WF31, BMX-R11-WF43, BMX-R12-WF25, BMX-R13-WF34, BMX-R13-WF33 (hard) |
+| BMX-P5-MATRIX | 🔵 in-progress | 17 | P0 | — | BMX-R11-WF30, BMX-R11-WF31, BMX-R11-WF43, BMX-R12-WF25, BMX-R13-WF34, BMX-R13-WF33 (hard) |
 | BMX-P8-DOCS | ⬜ pending | 18 | P2 | — | — |
 | BMX-P8-PLUGIN | ⬜ pending | 18 | P2 | — | — |
 | TD-BMX-02 | ⚪ obsolete | — | P0 | WF-01 | — |
@@ -630,7 +630,7 @@ Run `pseudo-md-drift-check` for all changed workflows; regenerate AS-IS `.md` fr
 
 ## BMX-P5-MATRIX — TD-BMX-07 behavior-matrix re-verification (exit gate)
 
-**Status:** ⬜ pending
+**Status:** 🔵 in-progress
 **Priority:** P0 | **Batch:** 17
 **Change type:** Verification
 **Workflows:** —
@@ -638,8 +638,18 @@ Run `pseudo-md-drift-check` for all changed workflows; regenerate AS-IS `.md` fr
 **Size:** M
 **Estimated tokens:** ~40K
 **Estimated effort:** ~1 hr
+**Started:** 2026-05-30T15:20:09Z
+**Scope extension (user-directed, 2026-05-30):** Expanded from the 16 remediated cells to a **full-matrix regression** — all ~74 verifiable cells (9 states × 9 scenarios − 7 N/A form-resubmission cells). Rationale: the exit gate doubles as a fully-loaded regression against the post-remediation live state. The 16 remediated cells remain the must-flip-to-✅ acceptance subset; the other ~58 (previously ✅) are re-verified to confirm no fix introduced a regression.
+**Execution plan (Mode A, hybrid — recorded 2026-05-30T15:20:09Z by build-sprint Step 2a):** Verification-only batch (no live workflow mutation). (P0) Fresh `export-all-workflows.sh` + `generate-workflow-md.py` regen of all 31 `.md` from current live (the existing `.md` predate Batch 11–15 fixes → stale for exactly the cells under test); `assert-md-fresh.sh` gate. (P1) **Workflow tool fan-out, 1 Opus agent per state-row** (S1/S2/S3/S4/S5/S6/S7/S8/S10 = 9 agents), each tracing scenarios A–I through the fresh `.md` graph, returning structured per-cell verdicts (✅/⚠️/🛑 + evidence trace). Opus + parallel explicitly user-sanctioned (overrides Haiku-default subagent rule). (P2) Synthesize; surface any non-✅ before close. (P4) Update matrix HTML static verdicts + rewrite S8×G expectation (re-engage via WF-26, DR-4). (P3) **Live real-phone opted_out smoke — deferred within-batch: user chose "static traces first"**, pause before Phase 3 so a handset is readied, then run via `monitor-test-run`. Gate closes after live smoke confirms + HTML finalized.
 
 Sprint exit gate. **Sequenced to Batch 17 — last among functional work — so it re-walks the matrix against the fully-remediated live state** (all Batch 11–15 fixes landed). The hard deps are the classifier-contract fixes (WF-43/WF-31 mis-key + WF-25 entry-guard) that directly change S-cell behavior for `payment_submitted`/`consultation_closed`; re-walking those cells before the fix would test buggy behavior (BMX-P5-DRIFT PART E + batch-10 handoff). Walk the affected cells (S1×E/F, S2×D/E, S4×D, S5×D, S7×G, S8×A–I, S10×E) using the existing `docs/artefacts/reviews/behavior-matrix-2026-05-27/index.html` as the test plan; confirm each moves to ✅ Working. **Update S8×G expectation** — opted_out+media now re-engages via WF-26 (NOT zero-outbound; the original TD-BMX-02 silent-reject expectation is obsolete per DR-4). Update the matrix HTML to post-fix state. Use `smoke-test` for execution + `monitor-test-run` for live observation. Includes the deferred real-phone opted_out re-engagement smoke (reset a test phone to opted_out first). **Gate:** sprint cannot complete until all re-verified cells show ✅ and the HTML is updated.
+
+**Verification progress (2026-05-30, full-matrix regression via 9 parallel Opus row-agents over fresh post-remediation live .md):**
+- **Forward-test (16 remediated cells):** 14 PASS static (S1×E/F, S2×D/E, S4×D, S5×D, S7×G all ✅; S8×A/B/C/D/E/F/I ⚠️ wiring-correct, pending live runtime smoke). 2 breakages found → both dispositioned:
+  - **S8×G (opted_out+media threw in WF-26):** FIXED in-sprint via Fix A (WF-26 `Validate Inputs` guard relaxed to accept non-text/media; full build-workflow discipline — pseudo + registry + .md + export updated). Re-traced ✅ — media re-engages → WF-02 EXISTING_NON_TEXT → WF-61 deflect + threshold-block@10.
+  - **S10×E (NULL-status forward-test) + S10 regression row (8 cells):** PARKED post-MVP by user (see followups.md). NULL/out-of-enum status hard-throws at WF-02 data-contract guard (regression from 2026-05-24 sprint, pre-dates this sprint). Agreed fix recorded; S10 marked 🛑 deferred-post-MVP; gate closes with this explicit user carve-out.
+- **Regression (~58 other cells):** clean — all trace ✅ working; ~28 "changed vs prior baseline" are stale-baseline-text refinements (agents documented each), NOT regressions. Only regression breakages = the parked S10 row.
+- **Remaining:** Phase 3 live real-phone opted_out re-engage smoke for the 7 ⚠️ S8 cells (user chose static-first → PAUSED for handset); then Phase 4 HTML update + gate close.
 
 ## TD-BMX-02 — Reorder WF-01 security layers (Country → Blacklist → Non-Text) [as written]
 
