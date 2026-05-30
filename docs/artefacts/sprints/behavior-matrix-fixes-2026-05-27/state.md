@@ -60,7 +60,7 @@
 | BMX-R15-WF47 | ✅ done | 15 | P1 | WF-47 | — |
 | BMX-R16-PSEUDO | ✅ done | 16 | P2 | WF-00, WF-01, WF-10, WF-23, WF-41, WF-42 (pseudo) | — |
 | BMX-P5-MATRIX | 🔵 in-progress | 17 | P0 | — | BMX-R11-WF30, BMX-R11-WF31, BMX-R11-WF43, BMX-R12-WF25, BMX-R13-WF34, BMX-R13-WF33 (hard) |
-| BMX-P8-DOCS | ⬜ pending | 18 | P2 | — | — |
+| BMX-P8-DOCS | ✅ done | 18 | P2 | — | — |
 | BMX-P8-PLUGIN | ⬜ pending | 18 | P2 | — | — |
 | TD-BMX-02 | ⚪ obsolete | — | P0 | WF-01 | — |
 | TD-BMX-03 | ⚪ obsolete | — | P1 | WF-20 | — |
@@ -980,7 +980,7 @@ Run `pseudo-md-drift-check` after. No `.md` regeneration needed (no live change)
 
 ## BMX-P8-DOCS — CLAUDE.md + registry WhatsApp Flow ID drift (carried sprint-close)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P2 | **Batch:** 18
 **Change type:** Documentation
 **Workflows:** —
@@ -988,6 +988,9 @@ Run `pseudo-md-drift-check` after. No `.md` regeneration needed (no live change)
 **Size:** XS
 **Estimated tokens:** ~10K
 **Estimated effort:** ~15 min
+**Completed:** 2026-05-30T16:04:50Z
+**Actual effort:** ~5 min | **Actual tokens:** ~8K | **Estimate delta:** on-bucket (planned XS ~10K, actual ~8K)
+**Resolution:** CLAUDE.md:370 + workflow-registry.md:343 (legacy table) Flow ID `1408011897720771` → `2260297164474475`; WF-21 row drift-NOTE marked resolved. Systemic audit found the dead ID also in `docs/Tech_Debts.md:207` (dated 2026-05-23 finding — left as audit trail, incidental context not a credential assertion) + backup/archive snapshots + sprint artefacts describing the drift (all correctly left untouched). [[project_whatsapp_flow_id]] still accurate (it already records 2260… as correct).
 
 Carried from Batches 5–10 (flagged repeatedly, deferred to sprint close). CLAUDE.md "Key Credential IDs" table lists WhatsApp Flow ID `1408011897720771`; the correct/active value (used by WF-21/23/45) is `2260297164474475`. **Operator-confirmed 2026-05-30: the `1408…` (14xx) ID is dead in Meta — the `2260…` (2xx) ID is the live/correct one; never reintroduce 14xx.** Correct the CLAUDE.md entry + the stale duplicate in the workflow-registry legacy table (~line 343). Doc-only; no live-value re-verification needed (operator-confirmed). No workflow change. Backing memory: [[project_whatsapp_flow_id]].
 
