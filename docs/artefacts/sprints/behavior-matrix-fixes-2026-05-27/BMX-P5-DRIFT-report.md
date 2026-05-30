@@ -16,7 +16,7 @@
 > - **NEW bug the original missed entirely — WF-34** (Payment Rejection Processor): `Prepare Rejection Message` double-nests its payload (`{json:{json:{…}}}`) into an empty-passthrough `Call WF-50` → the rejection WhatsApp message to the user is **broken**.
 > - **WF-33 `status='verified'` vs pseudo `'approved'`** is a **pseudo-lag** (live `'verified'` is canonical, used in 4 places) → fix the pseudo, not live.
 >
-> **Scope caveat (do not misread the new CLEAN verdicts):** the Opus re-run was scoped to **pseudo-vs-md drift (D1–D9) + caller-contract cross-check only**, and deliberately **excluded tech-mechanism findings** (`onError`, `alwaysOutputData`, re-SELECT, retries) per the pseudo-vs-tech separation rule. So a PART-F "CLEAN" means *no drift + no caller-contract break* — it does **NOT** invalidate the MED/LOW **code-quality** findings in PARTS A/B (WF-45 re-SELECT, WF-53 `context.source` guard, WF-61 onError-swallow, etc.). Those remain valid on a separate axis (the sprint's MED/LOW batches).
+> **Scope caveat (do not misread the new CLEAN verdicts):** the Opus re-run was scoped to **pseudo-vs-md drift (D1–D9) + caller-contract cross-check only**, and deliberately **excluded tech-mechanism findings** (`onError`, `alwaysOutputData`, re-SELECT, retries) per the pseudo-vs-tech separation rule. So a PART-F "CLEAN" means *no drift + no caller-contract break* on that workflow — it says **nothing** about the code-quality axis. **The PARTS A/B MED/LOW code-quality findings are therefore NOT confirmed by this re-run — they remain UNVERIFIED, resting entirely on the same Batch-10 Sonnet analysis whose reliability we just discredited.** They must be **independently re-audited on the tech axis before any is trusted or fixed** (see PART F.8). "Carried over" ≠ "validated".
 >
 > **Evidence persisted:** raw structured Opus findings → `BMX-P5-DRIFT-opus-reaudit-findings.json`; full agent output → `BMX-P5-DRIFT-opus-reaudit-raw-output.json` (same folder). **`.md` fidelity proven:** 431/431 nodes + 431/431 parameter blobs reproduced verbatim from live, all connection edges match, 0 disabled nodes — so no finding is an artifact of a lossy `.md`. **Recommendation:** the committed `docs/pseudocode/*.md` may be stale vs live; run `generate-workflow-md` + commit at a convenient point.
 
@@ -188,7 +188,7 @@ During Batch-11 prep, a live cross-check of WF-30's `Call WF-25` mapping contrad
 | ⚠️ MINOR | WF-01, WF-47 |
 | ✅ CLEAN | WF-00, WF-10, WF-11, WF-20, WF-21, WF-23, WF-25, WF-26, WF-32, WF-40, WF-41, WF-42, WF-44, WF-45, WF-46, WF-50, WF-51, WF-52, WF-53, WF-60, WF-61, WF-62 |
 
-> Reminder: CLEAN = no pseudo-vs-md drift + no caller-contract break. PARTS A/B MED/LOW **code-quality** findings on some of these CLEAN workflows (e.g. WF-45 re-SELECT, WF-53 `context.source`, WF-61 onError-swallow, WF-11 BLOCK-reason/string-SQL, WF-60 content guard) are a **separate axis** and still stand.
+> Reminder: CLEAN = no pseudo-vs-md drift + no caller-contract break. PARTS A/B MED/LOW **code-quality** findings on some of these CLEAN workflows (e.g. WF-45 re-SELECT, WF-53 `context.source`, WF-61 onError-swallow, WF-11 BLOCK-reason/string-SQL, WF-60 content guard) are a **separate, UN-RE-AUDITED axis** — they are *not* confirmed by this run and *not* refuted by it; they still rest on the discredited Sonnet analysis. See PART F.8.
 
 ## F.4 — Authoritative findings
 
@@ -243,11 +243,27 @@ During Batch-11 prep, a live cross-check of WF-30's `Call WF-25` mapping contrad
 1. **WF-30 falsely cleared** (PART E) → confirmed bug.
 2. **Mis-key scope understated** — original flagged 1 field (`messageText`) on 2 callers; reality is 3 fields on 3 callers.
 3. **WF-34 rejection-message break** — not detected by the original at all.
-4. Everything else in PARTS A–E that PART F marks CLEAN was either (a) a tech-mechanism/code-quality item PART F intentionally excluded (still valid, separate axis), or (b) genuinely clean on the drift axis.
+4. Everything else in PARTS A–E that PART F marks CLEAN was either (a) a tech-mechanism/code-quality item PART F intentionally excluded (**UNVERIFIED — still rests on the discredited Sonnet run; re-audit per F.8**), or (b) genuinely clean on the drift axis.
 
 ## F.7 — Disposition for plan-sprint (the trustworthy fix list)
 - **Live functional fixes (HIGH):** WF-25 caller mis-key Batch-Surgical across **WF-30 + WF-31 + WF-43** (3 fields each) → then WF-25 entry-guard; **WF-34** double-nest; **WF-22** email parse.
 - **Decision needed:** WF-33 admin-notice richness (`BMX-P7-WF33`).
 - **Pseudo-lag fixes (pseudo only):** WF-33 `verified` + command/subCommand Inputs; WF-01 Inputs shape.
 - **Copy/cosmetic:** WF-31 copy, WF-47 copy.
-- **Still valid from PARTS A/B (code-quality axis, NOT re-litigated here):** WF-45 re-SELECT, WF-53 `context.source` guard + conditional admin sentence, WF-61 onError-swallow + type-check, WF-11 BLOCK-reason + string-SQL + re-SELECT, WF-10 key/SELECT drift, WF-60 content guard, WF-32 RETURNING-read, plus the PART C pseudo-convention normalization.
+- **UNVERIFIED, carried from PARTS A/B (code-quality axis — re-audit BEFORE trusting/fixing, per F.8):** WF-45 re-SELECT, WF-53 `context.source` guard + conditional admin sentence, WF-61 onError-swallow + type-check, WF-11 BLOCK-reason + string-SQL + re-SELECT, WF-10 key/SELECT drift, WF-60 content guard, WF-32 RETURNING-read, plus the PART C pseudo-convention normalization. None of these has been confirmed against live by the Opus re-run.
+
+## F.8 — The code-quality / tech-mechanism axis is NOT yet trustworthy (open item)
+
+The Opus re-run restored trust on the **drift + caller-contract** axis. It did **not** touch the **tech-mechanism / code-quality** axis — and that axis's findings (PARTS A/B MED/LOW + the data-contract §A–§C compliance items) come **entirely from the Batch-10 Sonnet run we just discredited.** We have two distinct risks there, and per-item "verify before fixing" only covers one of them:
+
+- **False positives** (a listed finding isn't actually a problem / is obsolete) — caught by `build-workflow` Step 3 "verify plan target before mutating" at fix time. Cheap, already in the methodology.
+- **False negatives** (real code-quality issues the Sonnet run *missed* — the way it missed WF-34 on the drift axis) — **NOT** caught by per-item verification, because there's no item to verify. Only a fresh sweep on the tech axis surfaces these.
+
+**Recommended fix (mirrors what we just did on the drift axis):** a dedicated **tech-axis Opus re-audit** — same fan-out pattern (fresh live `.md`/JSON already in scratch and fidelity-proven; ~11 Opus agents × ~3 WF), but a **tech-axis rubric** instead of D1–D9:
+- envelope-first / no-re-SELECT of core fields; `alwaysOutputData` hygiene on SELECT guards; `onError`/`continueRegularOutput` silent-swallow of sub-workflow failures; entry-guard completeness vs contract-reference §A–§C required fields; parameterized vs string-interpolated SQL; Set v3.4 `includeOtherFields` correctness; HTTP retry/`jsonBody` anti-patterns; queryReplacement comma-string; double-nested payloads (the WF-34 class) generalized across all WF-50/WF-51 callers.
+- Structured schema forcing a per-category verdict per workflow (no silent skips), + the same main-thread ground-truth spot-checks on every HIGH it returns.
+- Output: a trustworthy tech-axis findings set folded into THIS report (PART G), replacing the carried-over Sonnet code-quality findings as the basis for the MED/LOW fix batches.
+
+**Sequencing:** run this **before** `plan-sprint`, so the remediation batches are planned against trustworthy findings on *both* axes — not re-planned around un-trusted ones (the exact failure we just corrected on the drift axis). Some of the methodology's `technical-workflow-review` checks overlap this rubric and could be folded in or run alongside.
+
+**Status: OPEN — awaiting user direction (run now vs. make it the sprint's first remediation batch).**
