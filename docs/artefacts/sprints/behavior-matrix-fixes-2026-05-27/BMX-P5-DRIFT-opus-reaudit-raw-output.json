@@ -1,0 +1,3204 @@
+{
+  "summary": "Re-run pseudo-vs-md drift check (D1-D9) with Opus agents over fresh live-derived .md",
+  "agentCount": 11,
+  "logs": [
+    "Drift re-run complete: 31 workflows audited"
+  ],
+  "result": {
+    "audited": 31,
+    "results": [
+      {
+        "wf_id": "WF-00",
+        "is_subworkflow": false,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All pseudo nodes present in live (Parse, Should Skip?, Lookup, Duplicate?, Record New Message, Message Cleanup, Gather, Build WF-60 Payload, Call WF-60, Call WF-01, Return Skip/Success). Build WF-60 Payload Code literal implements the Step 8a per-type content rule (interactive -> interactiveLabel||messageContent). No outbound message copy in this WF to mismatch."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "webhook POST /whatsapp-astro-webhook responseMode=responseNode matches pseudo Step 1. GET hub.challenge verification absence is documented in pseudo notes (handled elsewhere), sticky-note mention is not a connected branch."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Should Skip? (skip==true), Duplicate? (id notEmpty -> skip, else record) match pseudo Steps 3/5 in variable, direction and branch targets."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "Calls WF-60 (Build WF-60 Payload emits transport/direction/messageType/content/phoneNumber/whatsappMessageId/metadata) and WF-01 (full parsed payload). Both match callee Inputs."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "dataTable get (Lookup), insert (Record New Message), deleteRows createdAt<=today-3days (Message Cleanup) present in same control-flow position; node-name says >7 Days but pseudo Step 7 explicitly treats 3 days as truth."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "No business-visible recovery branches in pseudo; onError settings (continueRegularOutput on webhook/Call WF-60) are tech-mechanism, not pseudo content."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Return Skip -> {status:skipped}, Return Success -> {status:processed} match pseudo Steps 10/11."
+          },
+          {
+            "category": "D8",
+            "verdict": "na",
+            "note": "Webhook-entry workflow (not executeWorkflowTrigger sub-workflow); D8 inputs-contract validity N/A."
+          },
+          {
+            "category": "D9",
+            "verdict": "na",
+            "note": "Webhook-entry workflow; no Inputs section required for a trigger-entry receiver."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-60",
+            "emitted_keys": [
+              "transport",
+              "direction",
+              "userId",
+              "consultationId",
+              "messageType",
+              "content",
+              "whatsappMessageId",
+              "phoneNumber",
+              "metadata"
+            ],
+            "callee_required_keys": [
+              "transport",
+              "direction",
+              "messageType",
+              "content",
+              "phoneNumber(when userId absent, wa)"
+            ],
+            "mismatch": false,
+            "note": "transport='wa' direction='inbound' content via interactiveLabel||messageContent; phoneNumber present (userId null). Satisfies WF-60 §2.6 wa-inbound variant."
+          },
+          {
+            "calls_wf": "WF-01",
+            "emitted_keys": [
+              "(passthrough full parsed payload: phoneNumber, phoneNumberFormatted, messageType, messageContent, messageContentUpper, interactiveLabel, rawMessage, contactName, timestamp, metadata, messageId)"
+            ],
+            "callee_required_keys": [
+              "phoneNumberFormatted (Country Filter)",
+              "phoneNumber (Status Lookup)",
+              "messageType/messageContent/passthrough (Classify & Build Envelope)"
+            ],
+            "mismatch": false,
+            "note": "executeWorkflow value={} -> WF-01 passthrough trigger receives full item. All fields WF-01 early nodes read are present."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-01",
+        "is_subworkflow": true,
+        "status": "MINOR",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All pseudo nodes present (Country Filter, Country Rejected?, Status Lookup, Classify & Build Envelope, Route: Blocked?/Opted Out?/Brand New?, Silent Reject/Drop, Call WF-26/WF-21/WF-02). No outbound user copy in this gate."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough; accepts WF-00 parsed payload as pseudo Step 1 states."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Country Rejected? (securityCheck==REJECTED), then route forks blocked->opted_out->brand_new->existing in the same order and direction as pseudo Steps 5/7/9/11. Country allow-list ['91','61'] matches."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "WF-26 (opted_out, envelope with wasOptedOut:true, pendingUser forced null), WF-21 (brand_new, user/pending null), WF-02 (existing). All three present both ways; emitted envelope keys satisfy each callee's required fields."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "Status Lookup is a read-only SELECT (no mutation), matching pseudo (read-only gate, no state transitions). No INSERT/UPDATE/DELETE expected or present."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "Silent reject (country) and silent drop (blocked) terminal branches match pseudo Steps 3/6; no extra/missing business recovery branch."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Terminal leaves return {silentReject,reason} for country/blocked; downstream calls emit §2.1 envelope. Matches pseudo outputs."
+          },
+          {
+            "category": "D8",
+            "verdict": "divergent",
+            "note": "Classify & Build Envelope (router's own node) consumes messageContentUpper, messageId, timestamp, metadata which are NOT explicitly declared in the Inputs prose (only swept under 'etc.'). Same root cause as D9; documentation/shape gap, not a runtime break (all values arrive from WF-00)."
+          },
+          {
+            "category": "D9",
+            "verdict": "divergent",
+            "note": "No structured ## Inputs section; Summary line 'phoneNumber, phoneNumberFormatted, messageType, messageContent, rawMessage, contactName, etc.' uses vague 'etc.' with no required/optional/type enumeration. Per D9 rule, vague Inputs = divergent."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-02",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent",
+              "user",
+              "pendingUser",
+              "route",
+              "messageContentUpper",
+              "messageId",
+              "contactName",
+              "rawMessage",
+              "timestamp",
+              "metadata",
+              "phoneNumberFormatted",
+              "isNewUser"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent",
+              "user(object|null)",
+              "pendingUser(object|null)",
+              "rawMessage(for interactive routing)"
+            ],
+            "mismatch": false,
+            "note": "WF-02 Validate Inputs requires phoneNumber/messageType/messageContent/user/pendingUser; all emitted. rawMessage present for nfm_reply/button_reply routing."
+          },
+          {
+            "calls_wf": "WF-21",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent",
+              "user(null)",
+              "pendingUser(null)",
+              "contactName",
+              "messageId",
+              "rawMessage",
+              "metadata",
+              "phoneNumberFormatted"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent",
+              "user(null)",
+              "pendingUser(null)",
+              "contactName",
+              "messageId"
+            ],
+            "mismatch": false,
+            "note": "Brand-new branch envelope has user=null,pendingUser=null per Classify code; contactName & messageId present. Matches WF-21 Inputs."
+          },
+          {
+            "calls_wf": "WF-26",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent",
+              "user(non-null)",
+              "pendingUser(null)",
+              "wasOptedOut(true)",
+              "rawMessage",
+              "messageId",
+              "timestamp",
+              "contactName",
+              "metadata"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent",
+              "user(non-null with id)",
+              "pendingUser(null)",
+              "wasOptedOut(true)"
+            ],
+            "mismatch": false,
+            "note": "opted_out route forces pendingEnv=null and sets wasOptedOut=true; user populated from sql row with id. Matches WF-26 entry guard."
+          }
+        ],
+        "findings": [
+          {
+            "category": "D9",
+            "severity": "🔴",
+            "description": "WF-01 lacks a structured ## Inputs section; inputs are described in Summary prose ending in 'etc.', with no required/optional split, no types, no validity rules — violates the D9 explicit-shape requirement for a sub-workflow (executeWorkflowTrigger entry).",
+            "evidence": "WF-01.pseudo line 6: 'Inputs: Parsed WhatsApp message payload from WF-00 (phoneNumber, phoneNumberFormatted, messageType, messageContent, rawMessage, contactName, etc.).'"
+          },
+          {
+            "category": "D8",
+            "severity": "🔴",
+            "description": "Router's own node 'Classify & Build Envelope' consumes m.messageContentUpper, m.messageId, m.timestamp, m.metadata to build the outbound envelope, but these are not explicitly declared in the Inputs prose (only implied by 'etc.'). Consumed-but-undeclared = D8 divergent.",
+            "evidence": "WF-01.md 'Classify & Build Envelope' jsCode reads m.messageContentUpper, m.messageId, m.timestamp, m.metadata; WF-01.pseudo Inputs line does not name them."
+          }
+        ]
+      },
+      {
+        "wf_id": "WF-02",
+        "is_subworkflow": true,
+        "status": "DRIFT",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All pseudo nodes present (Validate Inputs, Detect Route, Existing-User Text?, Call WF-20, Keyword Passthrough?, Restore Route Data, Route Switch, Build U2/Deflection/UNHANDLED payloads, Call WF-61/50/51/22/23/30/31/32/40/43). Deflection copy is 'reuse live verbatim' so no copy to mismatch; UNHANDLED alert copy is business-language summary as pseudo Step 9 describes."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough; accepts WF-01/WF-26 §2.1 envelope incl non-text, as pseudo Step 1 states."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Detect Route Code branch ladder matches pseudo Step 2 verbatim (nfm_reply stage guard, button_reply payment_pending/consultation_closed, pre-form, existing non-text media, status text routes, else UNHANDLED). Existing-User Text? gate, Keyword Passthrough?, Non-Text Blocked? (TRUE=blocked terminal, FALSE=deflect) and the 9-output Route Switch all match."
+          },
+          {
+            "category": "D4",
+            "verdict": "divergent",
+            "note": "WF-02 forwards the WF-01 envelope unchanged (empty value mapping) to WF-30/WF-31/WF-43, but those callees read top-level keys messageText, userId, userStatus to pass to WF-25 — keys WF-02 never emits (envelope has messageContent, user.id, user.status). Caller-contract mismatch; all three handlers send undefined to WF-25."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "No DB writes in WF-02 (delegates). Outbound side-effects: WF-50 deflection, WF-51 UNHANDLED alert, WF-61 escalation — all in pseudo-matching control-flow positions (EXISTING_NON_TEXT -> U2 -> deflect; UNHANDLED -> WF-51)."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "Non-Text Blocked? TRUE terminal (no reply when blocked) matches pseudo Step 5 / node-note; no missing or extra business recovery branch."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "WF-02 dispatches to a handler per route and ends; no aggregate return contract beyond delegation. Matches pseudo (State Transitions: none, delegates)."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Router fields it reads in its own nodes (Validate Inputs: phoneNumber/messageType/messageContent/user/pendingUser; Detect Route: rawMessage.interactive.type, user.status) are all declared in Summary Inputs. Forwarded passthrough fields belong to callee audits per router refinement."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Inputs enumerated with names + types/nullability + the messageType union (text|interactive|non-text) and user/pendingUser object shapes, tied to canonical §2.1; explicit enough (not the vague 'etc.' form)."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-20",
+            "emitted_keys": [
+              "(full envelope: phoneNumber, messageContent, user{id,status,name,slack_channel_id,current_consultation_id}, pendingUser, messageType)"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageContent",
+              "user.id",
+              "user.status"
+            ],
+            "mismatch": false,
+            "note": "WF-20 reads phoneNumber/messageContent/user.* from the envelope; all present (Restore Route Data forwards full Detect Route output). Existing-User Text? gate ensures user!=null & text."
+          },
+          {
+            "calls_wf": "WF-23",
+            "emitted_keys": [
+              "(full envelope)"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageContent",
+              "user/pendingUser"
+            ],
+            "mismatch": false,
+            "note": "PRE_FORM_TEXT path forwards full envelope; pendingUser present, user null. Consistent with WF-23 pre-form contract."
+          },
+          {
+            "calls_wf": "WF-22",
+            "emitted_keys": [
+              "(full envelope incl rawMessage with nfm_reply)"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "rawMessage(nfm_reply.response_json)",
+              "pendingUser"
+            ],
+            "mismatch": false,
+            "note": "DETAILS_FORM only when user null & pendingUser non-null & nfm_reply; rawMessage forwarded."
+          },
+          {
+            "calls_wf": "WF-30",
+            "emitted_keys": [
+              "(full WF-01 envelope: phoneNumber, messageContent, user.*, NO messageText, NO userId, NO userStatus)"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageText",
+              "userId",
+              "userStatus"
+            ],
+            "mismatch": true,
+            "note": "WF-30 'Call WF-25 Intent Classifier' maps messageText/userId/userStatus from $json (the WF-02-forwarded envelope), which lacks all three -> WF-25 receives undefined messageText/userId/userStatus. WF-02 never injects them; WF-30.pseudo wrongly claims they are 'passed by WF-02'."
+          },
+          {
+            "calls_wf": "WF-31",
+            "emitted_keys": [
+              "(full WF-01 envelope: NO messageText, NO userId, NO userStatus)"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageText",
+              "userId",
+              "userStatus"
+            ],
+            "mismatch": true,
+            "note": "WF-31 'Call WF-25' reads $json.messageText/userId/userStatus — absent from WF-02's envelope -> undefined to WF-25. Same caller-contract gap as WF-30."
+          },
+          {
+            "calls_wf": "WF-43",
+            "emitted_keys": [
+              "(full WF-01 envelope: NO messageText, NO userId, NO userStatus)"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageText",
+              "userId",
+              "userStatus"
+            ],
+            "mismatch": true,
+            "note": "WF-43 'Call WF-25' reads $json.messageText/userId/userStatus — absent from WF-02's envelope -> undefined to WF-25. Same caller-contract gap."
+          },
+          {
+            "calls_wf": "WF-32",
+            "emitted_keys": [
+              "(full envelope incl rawMessage button_reply, user payment_pending)"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "rawMessage",
+              "user"
+            ],
+            "mismatch": false,
+            "note": "PAYMENT_CONFIRM interactive button_reply; envelope carries rawMessage + user. No messageText dependency observed for WF-32 in scope."
+          },
+          {
+            "calls_wf": "WF-40",
+            "emitted_keys": [
+              "(full envelope, user consultation_active)"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageContent",
+              "user"
+            ],
+            "mismatch": false,
+            "note": "RELAY path forwards full envelope; relay consumes messageContent/user which are present."
+          },
+          {
+            "calls_wf": "WF-61",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "reason='non_text'",
+              "messageContent",
+              "blockThreshold=10",
+              "blockReason='threshold_non_text'"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "reason",
+              "blockThreshold",
+              "blockReason",
+              "messageContent(optional)"
+            ],
+            "mismatch": false,
+            "note": "Build U2 Payload (Non-Text) Set node emits exactly WF-61's required contract."
+          },
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType='text'",
+              "messageContent"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent(when text)"
+            ],
+            "mismatch": false,
+            "note": "Build Deflection Payload Set node emits canonical text-send shape; matches WF-50 §2.3 text variant."
+          },
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId='C0A5B0ZE81E'",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Build UNHANDLED Alert Code node emits channelId+messageText; matches WF-51 §2.4 contract."
+          }
+        ],
+        "findings": [
+          {
+            "category": "D4",
+            "severity": "🔴",
+            "description": "WF-02 forwards the WF-01 §2.1 envelope unchanged to WF-30, WF-31 and WF-43, but each of those handlers' 'Call WF-25 Intent Classifier' node maps messageText/userId/userStatus from $json — keys WF-02 never emits (the envelope carries messageContent, user.id, user.status instead). All three handlers therefore pass undefined messageText/userId/userStatus to WF-25's classifier. Systemic caller-contract break on the existing-user text path (payment_pending, payment_submitted, post-consult).",
+            "evidence": "WF-02.md executeWorkflow nodes to WF-30/31/43 have workflowInputs.value={} (passthrough of Restore Route Data envelope). WF-30/31/43 .md 'Call WF-25 Intent Classifier' value: {\"messageText\":\"={{ $json.messageText }}\",\"userId\":\"={{ $json.userId }}\",\"userStatus\":\"={{ $json.userStatus }}\"}. WF-01 envelope (Classify & Build Envelope) contains messageContent, user{...}, but no top-level messageText/userId/userStatus. WF-30.pseudo line 6 falsely states '...plus messageText, userId, userStatus passed by WF-02'."
+          }
+        ]
+      },
+      {
+        "wf_id": "WF-10",
+        "is_subworkflow": false,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All pseudo nodes present in .md (Build*Envelope, Classify Admin/User, all alert builders, all WF-51 calls, WF-60 side-branch). Code-node alert copy strings match pseudo wording (wrong-channel, phone-absent/mismatch, orphan, wrong-state); only cosmetic 'User'→'customer' wording in live alerts, within business-tone latitude."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "Webhook POST /slack-webhook, responseMode=responseNode; Event Callback vs URL Verification switch on body.type matches Step 1-4."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "All forks match: Event Callback/URL switch, Human vs Bot IF (notEquals), Admin vs User channel switch (==chinmay-admin-commands / startsWith consult-), Route by Kind (Admin/User), Phone Match (ok/bypass|absent|mismatch), State Match (expectedState==* OR status==expectedState), Dispatch by Kind."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "WF-11/WF-41/WF-51(x6)/WF-60 calls all present per pseudo; envelope-build Code nodes sit between payload-prep and each Execute Workflow call as design states."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "Load User Status SELECT (id,status,name,phone_number,slack_channel_id,current_consultation_id WHERE slack_channel_id) matches Step 17 (live SELECT even adds current_consultation_id used by Relay Envelope). No unexpected writes; WF-10 delegates all mutation downstream as designed."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "No business-visible recovery branches in pseudo; live onError settings on Webhook/WF-60 call are tech-mechanism, not flagged."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Three respondToWebhook terminals (challenge echo / 200 OK / 200 fallback) match Steps 3/4/30."
+          },
+          {
+            "category": "D8",
+            "verdict": "na",
+            "note": "Webhook-entry workflow (not executeWorkflowTrigger sub-workflow); D8 inputs-validity check not applicable."
+          },
+          {
+            "category": "D9",
+            "verdict": "na",
+            "note": "Webhook-entry workflow; no sub-workflow Inputs contract to enumerate."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-11",
+            "emitted_keys": [
+              "commandType",
+              "phoneNumber",
+              "reason",
+              "adminUserId",
+              "channelId",
+              "channelName",
+              "messageText",
+              "user"
+            ],
+            "callee_required_keys": [
+              "commandType",
+              "adminUserId",
+              "channelId",
+              "channelName",
+              "messageText",
+              "phoneNumber(user-targeted)",
+              "user(user-targeted)"
+            ],
+            "mismatch": false,
+            "note": "Upstream Build WF-10 Command Envelope emits exact §2.2 contract; WF-11 Validate Inputs reads the same key names. executeWorkflow value:{} = passthrough of full json item to WF-11's inputSource=passthrough trigger."
+          },
+          {
+            "calls_wf": "WF-41",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageText",
+              "user",
+              "adminUserId",
+              "channelId",
+              "channelName"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Build WF-10 Relay Envelope emits messageText (canonical §2.2); WF-41 Step 2 reads $json.phoneNumber and $json.messageText (maps messageText->messageContent for WF-50). No legacy 'adminMessage' leak into the callee read path."
+          },
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "All six WF-51 call sites (Help Prompt, Orphan, Phone Absent, Phone Mismatch, Wrong Channel Admin/User, Wrong State) fed by Set nodes emitting {channelId, messageText}; WF-51 entry guard reads exactly those."
+          },
+          {
+            "calls_wf": "WF-60",
+            "emitted_keys": [
+              "transport",
+              "direction",
+              "messageType",
+              "content",
+              "slackChannelId",
+              "slackMessageTs",
+              "userId",
+              "consultationId",
+              "whatsappMessageId",
+              "phoneNumber",
+              "metadata"
+            ],
+            "callee_required_keys": [
+              "transport",
+              "direction",
+              "messageType",
+              "content",
+              "slackChannelId(when userId absent)"
+            ],
+            "mismatch": false,
+            "note": "Build WF-60 Payload (Slack Inbound) emits canonical multi-transport shape; slackChannelId populated for the userId-null inbound lookup branch."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-11",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All pseudo nodes present: Validate Inputs, Switch (8 cases + extra fallback), WF-33/34/42/46 calls, Get Active Users/Format List/Send List, Get Stats/Format Stats/Send Stats, Prepare HELP Text/Send Help, Lookup Blocked User/Unblock User/Confirm User Unblocked, Unknown Command Response. Confirm-unblocked copy matches Step 16; HELP/LIST/STATS copy match Steps 9/11/12."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough; receives WF-10 Command Envelope. Matches Step 2."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Switch on commandType with 8 named outputs (APPROVE_PAYMENT/REJECT_PAYMENT/CLOSE_CONSULTATION/BLOCK_USER/LIST/STATS/HELP/UNBLOCK_USER) + extra fallback->Unknown Command Response, matching pseudo Step 3 fork set."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "WF-33/34/42/46 calls present; each passes full envelope via value:{} passthrough to callees whose triggers read user.id/phone_number/slack_channel_id from §2.2 envelope. WF-51 utility calls (Send List/Stats/Help/Confirm Unblocked/Unknown) emit {channelId, messageText} matching WF-51 contract."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "Get Active Users SELECT (Step 8), Get Stats SELECT (Step 10), Lookup Blocked User SELECT (Step 14), Unblock User UPDATE users + INSERT admin_actions (Step 15, deprecated-but-retained no-op per project memory) all present and in correct control-flow position. Slack posts via WF-51."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "Unknown Command Response is the designed defensive fallback (Step 17); no other business recovery branch in pseudo. Removed UNBLOCK 'No Blocked User Found' branch correctly absent per trust-mode design."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "No explicit return contract to caller beyond side-effect dispatch; matches pseudo (terminal sends/dispatches)."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Pseudo Inputs (commandType, phoneNumber, reason, adminUserId, channelId, channelName, messageText, user) all referenced by early nodes: Validate Inputs reads all; Switch reads commandType; Lookup Blocked User reads phoneNumber; Send/Confirm nodes read channelId; user object consumed by validation + downstream. No declared-unreferenced or consumed-undeclared field."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo has explicit ## Inputs-equivalent enumeration with required/optional, types, enum values, and admin-wide vs user-targeted discriminated variants spelled out; matches Validate Inputs enforcement."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-33",
+            "emitted_keys": [
+              "commandType",
+              "phoneNumber",
+              "reason",
+              "adminUserId",
+              "channelId",
+              "channelName",
+              "messageText",
+              "user"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "user.id",
+              "user.name",
+              "user.phone_number",
+              "user.slack_channel_id"
+            ],
+            "mismatch": false,
+            "note": "value:{} passthrough forwards full §2.2 Command Envelope unchanged; WF-33 reads user.* from envelope."
+          },
+          {
+            "calls_wf": "WF-34",
+            "emitted_keys": [
+              "commandType",
+              "phoneNumber",
+              "reason",
+              "adminUserId",
+              "channelId",
+              "channelName",
+              "messageText",
+              "user"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "reason",
+              "user.name",
+              "user.phone_number",
+              "user.slack_channel_id"
+            ],
+            "mismatch": false,
+            "note": "Passthrough; WF-34 reads reason (renamed from rejectionReason 2026-05-23) and user.* from envelope — names align."
+          },
+          {
+            "calls_wf": "WF-42",
+            "emitted_keys": [
+              "commandType",
+              "phoneNumber",
+              "reason",
+              "adminUserId",
+              "channelId",
+              "channelName",
+              "messageText",
+              "user"
+            ],
+            "callee_required_keys": [
+              "user.id",
+              "user.name",
+              "user.phone_number",
+              "user.slack_channel_id"
+            ],
+            "mismatch": false,
+            "note": "Passthrough of §2.2 envelope; WF-42 reads user.* directly."
+          },
+          {
+            "calls_wf": "WF-46",
+            "emitted_keys": [
+              "commandType",
+              "phoneNumber",
+              "reason",
+              "adminUserId",
+              "channelId",
+              "channelName",
+              "messageText",
+              "user"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "reason",
+              "channelId",
+              "user.id",
+              "user.name",
+              "user.phone_number",
+              "user.slack_channel_id"
+            ],
+            "mismatch": false,
+            "note": "Passthrough; WF-46 reads reason + channelId (falls back to user.slack_channel_id) + user.* — all present in emitted envelope."
+          },
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Send List/Stats/Help, Confirm User Unblocked, Unknown Command Response all map {channelId, messageText} explicitly; matches WF-51 entry guard. channelId sourced from trigger envelope ($('When Executed by Another Workflow').channelId) or $json.channelId."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-20",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All pseudo nodes present: trigger, Normalize Keyword, Match Keyword switch, Call WF-47, Route to Rebook (WF-45), Send HELP Response (WF-50), Set Passthrough. Status-aware HELP copy in Send HELP Response inline expression matches pseudo Step 5 per-status bodies (payment_pending UPI +91-9653240263, payment_submitted under review, consultation_active type question, consultation_closed REBOOK, default REBOOK/STOP menu)."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger (empty params, inputSource defaults to passthrough); receives WF-01 canonical envelope from WF-02. Matches Step 1."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Match Keyword switch: HELP (equals), STOP OR-group {STOP,UNSUBSCRIBE,OPT OUT,OPT-OUT}, REBOOK (equals), extra fallback->Set Passthrough. OPTOUT-no-separator correctly excluded. Matches Step 3 branch set; caseSensitive:false aligns with uppercase-normalized keyword."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "WF-47 (Unsubscribe), WF-45 (Rebook via Route to Rebook), WF-50 (Send WhatsApp via Send HELP Response) all present and wired from correct switch outputs."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "No direct DB writes/external sends in WF-20 itself (all delegated); matches pseudo (State Transitions: none directly)."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "extra fallback terminates in Set Passthrough returning {action:'passthrough',...} wired to terminal output, satisfying the explicit pseudo note that the fallback must return passthrough so WF-02 continues. No missing recovery branch."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Set Passthrough emits {action:'passthrough', phoneNumber, userId, messageText} matching pseudo Step 7 return contract to WF-02."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Pseudo Inputs (phoneNumber, messageContent, user.id/status/name/slack_channel_id/current_consultation_id, pendingUser) — early nodes consume: Normalize Keyword reads $json.phoneNumber, $json.messageContent, $json.user.id, $json.user.status; Send HELP reads $('When Executed by Another Workflow').user.status. messageType/pendingUser declared but unconsumed are documented defensive/contextual fields, not stale — within router/defensive-safety-net scope noted in pseudo."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo Inputs section enumerates names, types (E.164, string, object-or-null), required/contextual status, and the canonical WF-01 §2.1 envelope reference; sufficient shape spec for a forwarding handler."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-47",
+            "emitted_keys": [
+              "phoneNumber",
+              "userId",
+              "userStatus"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "userId",
+              "userStatus"
+            ],
+            "mismatch": false,
+            "note": "Call WF-47 maps phoneNumber/userId/userStatus from Normalize Keyword output; WF-47 Inputs require exactly these three. Names align."
+          },
+          {
+            "calls_wf": "WF-45",
+            "emitted_keys": [
+              "phoneNumber",
+              "userId"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "userId(optional)"
+            ],
+            "mismatch": false,
+            "note": "Route to Rebook maps phoneNumber + userId from Normalize Keyword; WF-45 requires phoneNumber (userId optional, not consumed). Match."
+          },
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent(when text)"
+            ],
+            "mismatch": false,
+            "note": "Send HELP Response maps phoneNumber + messageType:'text' + status-aware messageContent; matches WF-50 §2.3 text-variant contract. No 'messageText'->'messageContent' mismatch (the known WF-30 bug shape is absent here)."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-21",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All 39 nodes present and named in pseudo (welcome/service/redirect/silent/abuse branches). Code-node copy verbatim matches pseudo: welcome+form with 'Dr. Chinmay Mujumdar', privacy-policy URL, GPay/₹500, flowId 2260297164474475, header 'Birth Details Form', gentle-redirect copy, service answer = Gemini + welcome. No wasOptedOut prefix (correctly dropped)."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger passthrough; reads WF-01 canonical envelope (phoneNumber/messageType/messageContent/contactName/messageId) — matches pseudo entry contract."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Forks match: Non-Text?, Opt-Out/Rebook Alias?, Route: Welcome?/Service?/Redirect?/Silent? cascade on routeClass; Apply Fail-Open confidence<0.5→unrelated and bucket→routeClass mapping (welcome/service/redirect/silent/block) matches Steps 7-13."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "Calls WF-62(U3), WF-61(U2 x7), WF-53(U1), WF-50(x3) — all present both directions, correct UUIDs. Emitted keys match callee Inputs (see caller_contract_checks)."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "3 pending_users UPSERTs (Welcome/Service/Redirect) into chinmay_astro.pending_users with phone_number+contact_name+created_at, at correct control-flow positions; Gemini HTTP POST present; no users-table write (correct — first users write is WF-22)."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "Gemini-failure branch: Generate Service Answer error output (main#1) → Build U1 Payload → Call U1, matching pseudo Step 9 U1 handoff. No missing business-recovery branch."
+          },
+          {
+            "category": "D7",
+            "verdict": "na",
+            "note": "Terminal journey workflow; each branch ends after U2/WF-50 — no structured return contract consumed by a caller."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Early node Normalize Envelope reads phoneNumber/contactName/messageType/messageContent/messageId/phoneNumberFormatted — all carried by WF-01 canonical envelope. user/pendingUser/consultChannelId are canonical envelope passthrough fields not WF-21-specific; phoneNumberFormatted is an envelope field. No stale/undocumented dependency at the journey-workflow level."
+          },
+          {
+            "category": "D9",
+            "verdict": "na",
+            "note": "Journey workflow (WF-01-triggered, consumes full canonical envelope), not a strict-contract shared utility; Inputs documented narratively in Summary per project convention for envelope-consumers."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-62",
+            "emitted_keys": [
+              "phoneNumber",
+              "text",
+              "stage"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "text",
+              "stage",
+              "consultChannelId?"
+            ],
+            "mismatch": false,
+            "note": "Build U3 Payload (includeOtherFields:false) emits exactly phoneNumber/text/stage='new'; WF-62 reads text (NOT messageContent) — correct, no messageText/messageContent bug. consultChannelId optional."
+          },
+          {
+            "calls_wf": "WF-61",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "reason",
+              "messageContent",
+              "blockThreshold",
+              "blockReason"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "reason",
+              "blockThreshold",
+              "blockReason",
+              "messageContent?"
+            ],
+            "mismatch": false,
+            "note": "All 7 U2 Set nodes (Non-Text/Alias/Garbage/Abuse/Greeting/Service/Unrelated Loop) emit the full required set; thresholds (5/5/5/1/10/10/5) and blockReason values match pseudo."
+          },
+          {
+            "calls_wf": "WF-53",
+            "emitted_keys": [
+              "phoneNumber",
+              "userFacing",
+              "context"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "userFacing",
+              "context",
+              "consultChannelId?"
+            ],
+            "mismatch": false,
+            "note": "Build U1 Payload (Service) emits phoneNumber/userFacing=true/context{source:'WF-21',userMessage,errorDetail}; matches WF-53 contract."
+          },
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent",
+              "interactivePayload",
+              "inboundMessageId",
+              "userMessage"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "interactivePayload(when interactive)"
+            ],
+            "mismatch": false,
+            "note": "Welcome/Service/Redirect builders emit canonical WF-50 interactive payload with flow type; no legacy message/messageBody keys."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-22",
+        "is_subworkflow": true,
+        "status": "DRIFT",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "divergent",
+            "note": "Extract Form Data node does NOT extract email_address (returns full_name/date_of_birth/time_of_birth/place_of_birth/consent/flow_token/raw_form_data only), but pseudo Step 2 explicitly extracts email_address. Payment message copy + admin alert copy match pseudo verbatim."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger passthrough; consumes WF-01 envelope via WF-02 (phoneNumber + rawMessage). Extract Form Data parses rawMessage.interactive.nfm_reply.response_json — matches pseudo Step 1-2."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Single fork WF-52 Success? on $json.success (true→Save Slack Channel ID, false→Build Admin Alert) matches pseudo Steps 5-7."
+          },
+          {
+            "category": "D5",
+            "verdict": "divergent",
+            "note": "Create User Record UPSERT and Save Slack Channel ID UPDATE present at correct positions. BUT email_address column is written from $json.email_address which is undefined (Extract Form Data never sets it) → always inserts NULL, even for v2 form submissions that DO carry email_address. Pseudo intends the v2 email to persist."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "Calls WF-52 (IO5BZLUxuVmjzk5I), WF-50, WF-51 — all present both directions. WF-52 payload {phoneNumber,name,userId} matches WF-52 canonical Inputs; WF-51 alert {channelId,messageText} matches; WF-50 button payload canonical."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "WF-52 failure branch (success=false → Build Admin Alert → Call WF-51, payment skipped) matches pseudo Step 7 business-recovery path."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Terminal (ends after WF-50 send / admin alert); no return contract consumed upstream — matches pseudo Outputs."
+          },
+          {
+            "category": "D8",
+            "verdict": "divergent",
+            "note": "Pseudo ## Inputs declares email collected from rawMessage form fields and consumed by Create User Record, but the early node (Extract Form Data) never references/emits email_address — declared-consumed field is dropped before the write. Consumed-but-mis-sourced dependency."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Has explicit ## Inputs section enumerating phoneNumber/rawMessage/user/pendingUser with types, required flags, and per-field usage. Shape is well-formed."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-52",
+            "emitted_keys": [
+              "phoneNumber",
+              "name",
+              "userId"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "name",
+              "userId"
+            ],
+            "mismatch": false,
+            "note": "Prepare WF-52 Payload Set maps phone_number→phoneNumber, name→name, id→userId (canonical). WF-52 entry guard requires exactly these; no legacy phone_number/userName keys."
+          },
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "interactivePayload"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "interactivePayload(button)"
+            ],
+            "mismatch": false,
+            "note": "Prepare Payment Instructions emits canonical button interactivePayload; matches WF-50 §2.3 discriminated union."
+          },
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Build Admin Alert emits channelId='C0A5B0ZE81E' + messageText; matches WF-51 canonical contract."
+          }
+        ],
+        "findings": [
+          {
+            "category": "D1/D5/D8",
+            "severity": "🔴",
+            "description": "WF-22 'Extract Form Data' node never extracts email_address from the Flow response_json, yet 'Create User Record' UPSERT references $json.email_address — so email_address is always written as NULL even for v2 (collect-personal-details-v2) submissions that carry the field. Pseudo Step 2 + ## Inputs require the email to be parsed and persisted.",
+            "evidence": "Extract Form Data jsCode returns {phoneNumber, full_name, date_of_birth, time_of_birth, place_of_birth, consent, flow_token, raw_form_data} — no email_address key. Create User Record queryReplacement: [$json.phoneNumber, $json.full_name, $json.date_of_birth, $json.time_of_birth, $json.place_of_birth, $json.email_address] → $json.email_address resolves undefined → NULL. Pseudo Step 2: 'pull out: full_name, date_of_birth, time_of_birth, place_of_birth, email_address, consent, flow_token'."
+          }
+        ]
+      },
+      {
+        "wf_id": "WF-23",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All 45 nodes present and named (deflection/clarifier/welcome/service/help/redirect/silent/abuse). Code-node copy verbatim matches pseudo §11.1: non-text deflection (email chinmay_astro@gmail.com + Fill Details), per-keyword alias clarifier (rebook vs opt-out), welcome re-send, service+intro, help text, gentle redirect — all reference 'Dr. Chinmay Mujumdar', flowId 2260297164474475, header 'Birth Details Form'."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger passthrough; Normalize Envelope reads WF-01 envelope via WF-02 (PRE_FORM_TEXT route). Matches pseudo Step 1."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Forks match: Non-Text?, Opt-Out/Rebook Alias?, Route: Welcome?/Service?/Help?/Redirect?/Silent? cascade on routeClass. Apply Fail-Open maps HELP→'help' (distinct from WF-21's HELP→welcome), service→service, unrelated→redirect, garbage/stop_intent→silent, else→block — matches Steps 7-14."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "Calls WF-62(U3 stage=pre_form), WF-61(U2 x7), WF-53(U1), WF-50(x6) — all present both directions, correct UUIDs. Emitted keys match callee contracts (see caller_contract_checks)."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "No DB writes (correct — no pending_users insert pre-existing row, no users row yet). Gemini HTTP POST + 6 WF-50 sends + 7 U2 escalations at correct positions matching Steps 3-14."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "Gemini-failure branch: Generate Service Answer error output (main#1) → Build U1 Payload (Service) → Call U1, matching pseudo Step 9. No missing recovery branch."
+          },
+          {
+            "category": "D7",
+            "verdict": "na",
+            "note": "Terminal journey workflow; each branch ends after WF-50/U2 — no structured return consumed by caller."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Normalize Envelope reads phoneNumber/contactName/messageType/messageContent/messageId/phoneNumberFormatted — all WF-01 canonical envelope fields forwarded by WF-02. No stale/undocumented dependency at journey-workflow level."
+          },
+          {
+            "category": "D9",
+            "verdict": "na",
+            "note": "Journey workflow (WF-02-triggered, consumes canonical envelope), not a strict-contract shared utility; Inputs documented narratively in Summary per project convention."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-62",
+            "emitted_keys": [
+              "phoneNumber",
+              "text",
+              "stage"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "text",
+              "stage",
+              "consultChannelId?"
+            ],
+            "mismatch": false,
+            "note": "Build U3 Payload emits phoneNumber/text=messageContent/stage='pre_form'; WF-62 reads 'text' — correct, NOT the messageText/messageContent bug. consultChannelId optional, null pre-form."
+          },
+          {
+            "calls_wf": "WF-61",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "reason",
+              "messageContent",
+              "blockThreshold",
+              "blockReason"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "reason",
+              "blockThreshold",
+              "blockReason",
+              "messageContent?"
+            ],
+            "mismatch": false,
+            "note": "All 7 U2 Set nodes emit full required set; thresholds (non_text 5/alias 5/garbage 5/abuse 1/greeting 10/help 10/service 10/unrelated 5) and blockReason values match pseudo."
+          },
+          {
+            "calls_wf": "WF-53",
+            "emitted_keys": [
+              "phoneNumber",
+              "userFacing",
+              "context"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "userFacing",
+              "context",
+              "consultChannelId?"
+            ],
+            "mismatch": false,
+            "note": "Build U1 Payload (Service) emits phoneNumber/userFacing=true/context{source:'WF-23',userMessage,errorDetail}; matches WF-53."
+          },
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent",
+              "interactivePayload",
+              "inboundMessageId",
+              "userMessage"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent(text) / interactivePayload(interactive)"
+            ],
+            "mismatch": false,
+            "note": "Non-text deflection + alias clarifier emit text payloads (messageContent); welcome/service/help/redirect emit flow interactivePayload. No legacy message/messageBody keys."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-25",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All pseudo nodes present in .md (U1, U2 garbage, U2 abuse, WF-50 stop clarifier + garbage warning, switch, silent-blocked terminal, D4 Active-Consultation fork). Code-node literals (stop clarifier copy, garbage warning copy) match pseudo Steps 7/9 verbatim."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger passthrough; consumes the {phoneNumber,userId,messageContent,userStatus,userName,slackChannelId} envelope as pseudo declares."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Route by Intent switch has 8 outputs mapping the 8 buckets; pass-through(0-3)->return, garbage(4)->U2, abuse(5,6)->U2 abuse, stop(7)->clarifier. Garbage Blocked? and Active Consultation? forks match Steps 9 D4 branch direction."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "Calls U1(WF-53 ONzUJ1Lj9hIbUYT0), U2(WF-61 9Zt23yt8k8PQSgji) x2, WF-50(BUVun38WEKb12zg9) x2 — all present per pseudo Step 4/8/9/10. Payloads built in Set nodes match declared keys."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "No DB writes in WF-25 itself (delegated to U2). Gemini HTTP POST + two WF-50 sends present at correct control-flow positions; matches pseudo."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "Gemini-failure branch (Classify Intent main#1 -> Build U1 Payload -> Call U1) is the business recovery branch in pseudo Step 4. Present."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Return to Caller returns Parse Intent item (original input + intentResult); matches pseudo Step 11 on pass-through and stop_intent paths."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Inputs {phoneNumber,userId,messageContent,userStatus,userName,slackChannelId} all referenced: Prepare Intent Request reads phoneNumber/userId/messageContent/userStatus; Build U1 Payload reads userName/slackChannelId/messageContent. No stale/undeclared field. NOTE: the caller WF-30 emits 'messageText' not 'messageContent' — that is a caller-contract bug, recorded under WF-30."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo Inputs line enumerates all six required fields by name with the userStatus enum constraint; explicit and concrete."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-53",
+            "emitted_keys": [
+              "phoneNumber",
+              "userFacing",
+              "consultChannelId",
+              "context"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "userFacing",
+              "consultChannelId",
+              "context"
+            ],
+            "mismatch": false,
+            "note": "Build U1 Payload emits the U1 contract shape; matches WF-53 Inputs."
+          },
+          {
+            "calls_wf": "WF-61",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "reason",
+              "messageContent",
+              "blockThreshold",
+              "blockReason"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "reason",
+              "messageContent",
+              "blockThreshold",
+              "blockReason"
+            ],
+            "mismatch": false,
+            "note": "Both U2 (Garbage thr=10/threshold_garbage) and U2 (Abuse thr=1/abuse) payloads emit the full U2 contract."
+          },
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "mismatch": false,
+            "note": "Stop clarifier + garbage warning Set nodes emit canonical WF-50 text-send shape."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-26",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All 4 pseudo steps map to nodes: Validate Inputs, Update User Status, Refresh Envelope Status, Call WF-02 Re-Route (+ trigger). No copy literals to compare (no outbound message copy)."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger passthrough; consumes WF-01 opted-out envelope variant as pseudo Inputs declare."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "No decision forks in pseudo or .md — linear chain; matches."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "Single call WF-02 (PubCsNTOspF3xqXZ) present per pseudo Step 4. See caller_contract_checks."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "Single Postgres UPDATE users SET status='consultation_closed', updated_at=NOW() WHERE id=$1 present at Step 2 position; matches pseudo exactly."
+          },
+          {
+            "category": "D6",
+            "verdict": "na",
+            "note": "No business-visible error/recovery branch in pseudo; n8n mechanism settings excluded by rule."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Output is the WF-02 dispatch result; pseudo says re-entry into state machine, no distinct return shape. Matches."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Inputs (phoneNumber, messageType, messageContent, user, pendingUser, wasOptedOut, + passthrough) all referenced by Validate Inputs guard ($i.phoneNumber/messageType/messageContent/user.id/user.status/pendingUser/wasOptedOut). Refresh Envelope forwards rawMessage/messageId/timestamp/contactName/metadata + extras (messageContentUpper,isNewUser) — passthrough, not consumed-for-logic; no stale declared field."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo Inputs enumerate required fields with the opted-out variant constraints (user non-null status='opted_out', pendingUser null, wasOptedOut true) explicitly; matches guard."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-02",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent",
+              "user",
+              "pendingUser",
+              "wasOptedOut",
+              "rawMessage",
+              "messageContentUpper",
+              "messageId",
+              "timestamp",
+              "contactName",
+              "metadata",
+              "isNewUser"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent",
+              "user",
+              "pendingUser",
+              "rawMessage"
+            ],
+            "mismatch": false,
+            "note": "Refresh Envelope Status emits all keys WF-02 reads (phoneNumber, messageType, messageContent, user{with status overwritten to consultation_closed}, pendingUser, rawMessage). user.status is correctly refreshed before the call so WF-02 routes on the post-UPDATE state. Extra keys are harmless passthrough."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-30",
+        "is_subworkflow": true,
+        "status": "DRIFT",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All pseudo nodes present: Call WF-25, Is Pass-Through?, Is General Enquiry?, Prepare/Gemini General Response/Extract reply, Build U1+Call U1, Prepare Payment Reminder, two WF-50 sends. Code-node copy (payment reminder prefixes + UPI block ₹500 +91-9653240263 Chinmay Mujumdar; general-reply fallback) matches pseudo Steps 5/7 verbatim."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger (default inputSource) consumes WF-01 envelope + {messageText,userId,userStatus} from WF-02 as pseudo Step 1 declares."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Is Pass-Through Intent? (intentResult notEquals stop_intent), Is General Enquiry? (equals general_enquiry), Gemini error fork all match pseudo Steps 3/4 direction and labels. FALSE=stop_intent terminate is lint-allowed per node note."
+          },
+          {
+            "category": "D4",
+            "verdict": "divergent",
+            "note": "Caller-contract bug: Call WF-25 emits key 'messageText' but WF-25 reads 'messageContent' — classifier gets undefined message body. See caller_contract_checks. (WF-25 and WF-50 calls otherwise present and correctly directed.)"
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "No DB writes (none in pseudo). Two WF-50 sends (Gemini reply, payment reminder) + Gemini HTTP POST present at correct positions."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "Gemini-failure recovery branch (Gemini General Response main#1 -> Build U1 Payload -> Call U1) present per pseudo Step 6."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Terminal handler — sends WhatsApp via WF-50, no distinct return contract to a caller. Matches pseudo (no return)."
+          },
+          {
+            "category": "D8",
+            "verdict": "divergent",
+            "note": "WF-30 itself reads userId/userStatus/messageText from the envelope at Call WF-25 node. Per ROUTER/passthrough refinement these are forwarded TO WF-25; the field WF-30 mis-maps ('messageText'->messageContent expected by callee) is a caller-contract D4/D8 defect. messageText is supplied by WF-02 but WF-25 never consumes a 'messageText' key — undocumented-dependency mismatch at the boundary. 🔴."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo Inputs enumerate envelope fields + the WF-02-supplied {messageText,userId,userStatus}; explicit enough. The defect is in the emitted mapping (D4/D8), not the Inputs enumeration shape."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-25",
+            "emitted_keys": [
+              "phoneNumber",
+              "userId",
+              "messageText",
+              "userStatus",
+              "userName",
+              "slackChannelId"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "userId",
+              "messageContent",
+              "userStatus",
+              "userName",
+              "slackChannelId"
+            ],
+            "mismatch": true,
+            "note": "🔴 BUG: WF-30 emits 'messageText' but WF-25 'Prepare Intent Request' destructures 'messageContent' (const { phoneNumber, userId, messageContent } = input). WF-25 receives messageContent=undefined; the Gemini classification prompt embeds an empty user message, so classification of payment_pending text is unreliable (likely garbage/general_enquiry fallback). This is the exact known-bug shape the prior audit missed."
+          },
+          {
+            "calls_wf": "WF-53",
+            "emitted_keys": [
+              "phoneNumber",
+              "userFacing",
+              "consultChannelId",
+              "context"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "userFacing",
+              "consultChannelId",
+              "context"
+            ],
+            "mismatch": false,
+            "note": "Build U1 Payload emits canonical U1 contract for the local Gemini-reply failure path."
+          },
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "mismatch": false,
+            "note": "Both Send Gemini Reply (built by Extract Gemini Reply code node) and Send Payment Reminder emit canonical WF-50 text-send shape."
+          }
+        ],
+        "findings": [
+          {
+            "category": "D4",
+            "severity": "🔴",
+            "description": "WF-30 'Call WF-25 Intent Classifier' passes the inbound message under key 'messageText', but WF-25 reads it under 'messageContent'. The classifier therefore sees an undefined/empty user message for every payment_pending text, producing unreliable intent classification.",
+            "evidence": "WF-30 .md Call WF-25 node workflowInputs.value: \"messageText\":\"={{ $json.messageText }}\" (no messageContent key). WF-25 .md 'Prepare Intent Request' jsCode: const { phoneNumber, userId, messageContent } = input; ... User message: \\\"${messageContent}\\\". WF-25 .pseudo Inputs line 6 and Step 2 both name 'messageContent' as the message field. Caller emits messageText; callee never reads messageText."
+          },
+          {
+            "category": "D8",
+            "severity": "🔴",
+            "description": "Boundary field mismatch at the WF-30->WF-25 call: WF-25's early node consumes 'messageContent' which WF-30 never emits (it emits 'messageText'). Consumed-but-undeclared-by-caller / declared-by-callee-but-unsupplied — a contract validity defect.",
+            "evidence": "Same evidence as D4 finding: emitted key 'messageText' vs callee-consumed key 'messageContent'; no Y||X fallback exists in WF-25 Parse/Prepare nodes."
+          }
+        ]
+      },
+      {
+        "wf_id": "WF-31",
+        "is_subworkflow": true,
+        "status": "DRIFT",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "divergent",
+            "note": "All nodes present (WF-25, U1/WF-53, two WF-50, WF-51 relay, Gemini chain). Canned 'under review' copy matches wording but live adds bold/blank-line formatting (cosmetic). Gemini prompt + admin-relay copy match pseudo intent."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger; consumes WF-01 canonical envelope + {messageText,userId,userStatus} as pseudo states."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Live 'Is Pass-Through Intent?' (garbage/abusive/inappropriate/stop_intent notEquals) then 'Is General Enquiry?'. stop_intent FALSE-branch terminal is lint-allowed (node note); equivalent to pseudo Step4/Step5."
+          },
+          {
+            "category": "D4",
+            "verdict": "divergent",
+            "note": "Call WF-25 emits key 'messageText' but WF-25 reads 'messageContent' (no fallback) -> classifier receives undefined. Other calls (U1, WF-50, WF-51) passthrough correct keys."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "Branch B SELECT chinmay_astro.payments latest + WF-51 relay present; WF-50 sends present. No DB writes in this handler, matching pseudo (State Transitions: none)."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "Gemini-failure -> Build U1 Payload -> Call U1 business recovery branch present (continueErrorOutput main#1), matches pseudo Step7."
+          },
+          {
+            "category": "D7",
+            "verdict": "na",
+            "note": "Handler terminal; no return contract to caller (WF-02 fire-and-forget)."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Early nodes consume phoneNumber,userId,messageText,userStatus,user.{name,slack_channel_id,id},messageContent - all enumerated in pseudo Inputs (§2.1 envelope + messageText/userId/userStatus)."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo Inputs enumerates envelope field names with §2.1 reference; required fields named."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-25",
+            "emitted_keys": [
+              "phoneNumber",
+              "userId",
+              "messageText",
+              "userStatus",
+              "userName",
+              "slackChannelId"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "userId",
+              "messageContent",
+              "userStatus",
+              "userName",
+              "slackChannelId"
+            ],
+            "mismatch": true,
+            "note": "Caller emits 'messageText'; WF-25 'Prepare Intent Request' destructures input.messageContent with NO messageText fallback -> classifier sees messageContent=undefined. Same bug-shape as the known WF-30 defect. Note: WF-31's own pseudo Step 3 says pass messageContent: messageText (correct), so live diverges from its own design too."
+          },
+          {
+            "calls_wf": "WF-53",
+            "emitted_keys": [
+              "phoneNumber",
+              "userFacing",
+              "consultChannelId",
+              "context"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "userFacing",
+              "consultChannelId",
+              "context"
+            ],
+            "mismatch": false,
+            "note": "Build U1 Payload sets canonical keys; matches WF-53 contracted envelope."
+          },
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "mismatch": false,
+            "note": "Both WF-50 calls passthrough upstream Code-node output (Extract Gemini Reply / Prepare Under Review Message) with canonical text keys."
+          },
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Relay to Admin Slack passthrough; Prepare Admin Relay emits channelId+messageText."
+          }
+        ],
+        "findings": [
+          {
+            "category": "D4",
+            "severity": "🔴",
+            "description": "WF-31 'Call WF-25 Intent Classifier' passes the user message under key 'messageText', but WF-25 reads it under 'messageContent' with no fallback. The intent classifier therefore receives an undefined message and will misclassify every payment_submitted free-text reply. Identical to the known WF-30 caller-contract bug.",
+            "evidence": "WF-31.md Call WF-25 node workflowInputs.value: \"messageText\":\"={{ $json.messageText }}\" (no messageContent key). WF-25.md 'Prepare Intent Request' jsCode: const { phoneNumber, userId, messageContent } = input; (no ||messageText). WF-31.pseudo Step 3 intends messageContent: messageText."
+          },
+          {
+            "category": "D1",
+            "severity": "⚠️",
+            "description": "Canned 'under review' reassurance copy matches the pseudo wording but live adds Markdown bold and blank-line formatting not reflected in pseudo Step 8 (cosmetic).",
+            "evidence": "Live 'Prepare Under Review Message': '⏳ *Your payment is currently under review.*\\n\\nChinmay will verify it...'; pseudo Step 8 single-line variant without bold."
+          }
+        ]
+      },
+      {
+        "wf_id": "WF-32",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All nodes present: IF gate, two WF-50, WF-51, Create Payment Record, Update User Status, Prepare Reassurance/UserConfirmation/AdminNotification. Reassurance, user-confirmation, and admin-notification copy all match pseudo Steps 3/7/9 verbatim."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough; consumes WF-01 §2.1 envelope (user.status, phoneNumber, user.id)."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "'Already Payment Submitted?' IF: $json.user.status == 'payment_submitted' -> reassure (true) / create payment (false). Matches pseudo Step 2 direction/branches."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "Two WF-50 calls + one WF-51 call, all passthrough upstream Code nodes emitting canonical keys (see caller_contract_checks). No WF-25/WF-52 calls, matching pseudo."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "INSERT payments (user.id,500,INR,pending_verification,gpay) and UPDATE users status=payment_submitted, updated_at, last_message_at - both present in first-time branch, matching pseudo Steps 5-6 incl. table/values."
+          },
+          {
+            "category": "D6",
+            "verdict": "na",
+            "note": "No business-visible error/recovery branch in pseudo or live."
+          },
+          {
+            "category": "D7",
+            "verdict": "na",
+            "note": "Terminal handler; no return contract to caller."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Early nodes consume user.status, user.id, phoneNumber, user.{phone_number,name,slack_channel_id} - all declared in Inputs envelope. No stale-declared fields read."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo Inputs enumerates §2.1 envelope incl. nested user object fields; adequately explicit."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "mismatch": false,
+            "note": "Both WF-50 calls (Already Submitted / Send Payment Confirmation) passthrough Prepare Reassurance Message / Prepare User Confirmation, which emit canonical text keys."
+          },
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Call WF-51 (Notify Admin) passthrough Prepare Admin Notification emitting channelId+messageText."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-33",
+        "is_subworkflow": true,
+        "status": "DRIFT",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "divergent",
+            "note": "Node set matches, BUT Slack activation copy diverges: pseudo Step 9 = detailed 'Consultation Activated' with DOB/TOB/Place + CLOSE CHAT CONSULT instruction; live 'Prepare WF-51 Payload' = short 'Payment approved for {name} ({phone}). User notified... consultation is now active.'"
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough; consumes WF-10 §2.2 Command Envelope (phoneNumber, adminUserId, user.id)."
+          },
+          {
+            "category": "D3",
+            "verdict": "divergent",
+            "note": "Pseudo Outputs claims a wrong-state branch ('If user is in wrong state, only a Slack warning'), but live has NO state-validation IF/Switch (trust-mode SP-03). The pseudo Notes acknowledge no re-validation, so the Outputs sentence is stale/contradictory; live = linear, no fork."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "WF-50 (template) + WF-51 calls present, passthrough upstream Code nodes with correct keys. Does NOT call WF-52, matching pseudo."
+          },
+          {
+            "category": "D5",
+            "verdict": "divergent",
+            "note": "Update Payment Status writes status='verified' but pseudo Step 3 specifies status='approved'. Different literal persisted to chinmay_astro.payments.status. (verified_by, verified_at, consultations INSERT, users updates otherwise match.)"
+          },
+          {
+            "category": "D6",
+            "verdict": "na",
+            "note": "No business-visible error/recovery branch in live; pseudo's 'wrong state' path captured under D3."
+          },
+          {
+            "category": "D7",
+            "verdict": "na",
+            "note": "Terminal command processor; no return contract."
+          },
+          {
+            "category": "D8",
+            "verdict": "divergent",
+            "note": "Extract Command Data consumes input.command and input.subCommand, but Inputs envelope declares 'commandType' (not command/subCommand) - consumed-but-undeclared. Other consumed fields (phoneNumber, adminUserId, user.{id,name,phone_number,slack_channel_id}) are declared."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo Inputs enumerates §2.2 Command Envelope field names incl. nested user object; explicit enough on names though command/subCommand omitted (captured under D8)."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "templateName",
+              "templateParams"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "templateName",
+              "templateParams"
+            ],
+            "mismatch": false,
+            "note": "Call WF-50 Notify User passthrough Prepare User Activation Message; template path keys match WF-50 §2.3 template contract (messageType='template')."
+          },
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Call WF-51 Notify Admin passthrough Prepare WF-51 Payload emitting channelId+messageText (copy content differs from pseudo - see D1, but key contract is correct)."
+          }
+        ],
+        "findings": [
+          {
+            "category": "D5",
+            "severity": "🔴",
+            "description": "WF-33 Update Payment Status writes payments.status='verified', but the design (pseudo Step 3) and the workflow's own Outputs/state-machine semantics specify status='approved'. Any downstream logic or reporting keyed on payments.status='approved' will not match live data.",
+            "evidence": "WF-33.md Update Payment Status query: SET status = 'verified', verified_at = NOW(), verified_by = $1 ... WHERE status = 'pending_verification'. WF-33.pseudo Step 3: SET status='approved'."
+          },
+          {
+            "category": "D8",
+            "severity": "🔴",
+            "description": "WF-33 Extract Command Data reads input.command and input.subCommand, but the §2.2 Command Envelope Inputs declares 'commandType' (not command/subCommand). Consumed-but-undeclared dependency: the Inputs contract does not document the keys the workflow actually reads, masking the real WF-11 payload contract.",
+            "evidence": "WF-33.md Extract Command Data jsCode: command: input.command, subCommand: input.subCommand. WF-33.pseudo Inputs line lists 'commandType' only (no command/subCommand)."
+          },
+          {
+            "category": "D1",
+            "severity": "🔴",
+            "description": "WF-33 Slack activation message copy diverges substantially from design. Pseudo Step 9 specifies a full activation notice including user DOB/TOB/Place and an explicit 'CLOSE CHAT CONSULT <phone>' operator instruction; live posts only a one-line 'Payment approved... consultation is now active.' losing the DOB/TOB/Place context and the close-command reminder to the admin.",
+            "evidence": "WF-33.md Prepare WF-51 Payload: `✅ Payment approved for ${user.name} (${user.phone_number}). User notified via WhatsApp; consultation is now active.` vs WF-33.pseudo Step 9 detailed '✅ Consultation Activated — User:... DOB:... To close consultation when done, type: CLOSE CHAT CONSULT <phone_number>'."
+          },
+          {
+            "category": "D3",
+            "severity": "⚠️",
+            "description": "Pseudo Outputs section claims a wrong-state branch posting a Slack warning, but live WF-33 has no state-validation fork (trust-mode SP-03, pre-validated by WF-10). The pseudo internally contradicts itself (Notes say no re-validation). Stale pseudo text, not a live business branch.",
+            "evidence": "WF-33.pseudo Outputs: 'If user is in wrong state, only a Slack warning is posted via WF-51.' WF-33.md: linear flow, no IF/Switch on user.status."
+          }
+        ]
+      },
+      {
+        "wf_id": "WF-34",
+        "is_subworkflow": true,
+        "status": "DRIFT",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "divergent",
+            "note": "Node set matches pseudo (Load User, Update Payment, Reset Status, Prepare Rejection Message, Call WF-50, Prepare WF-51 Payload, Call WF-51). WA interactive body copy in Prepare Rejection Message matches Step 5 verbatim. BUT Prepare Rejection Message returns a DOUBLE-NESTED item: `return [{ json: { json: { phoneNumber, messageType, interactivePayload } } }]` — the inner `json` key wraps the real payload one level too deep, so WF-50 sees $json.json.* not $json.*. Pseudo Step 5 describes a flat top-level payload."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough; receives WF-10 Command Envelope as designed."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "No decision forks in pseudo or live; trust-mode (validation removed upstream per SP-03). Linear chain."
+          },
+          {
+            "category": "D4",
+            "verdict": "divergent",
+            "note": "Both WF-50 and WF-51 executeWorkflow nodes have empty workflowInputs.value `{}` (defineBelow with no mapped fields). Combined with the double-json wrap on the WF-50 prepared payload, the emitted payload to WF-50 is structurally one level too deep vs WF-50's flat contract (phoneNumber/messageType/interactivePayload at top level)."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "Step 2 SELECT payment_id, Step 3 UPDATE payments status=rejected + rejection_reason=COALESCE(reason,...), Step 4 UPDATE users status=payment_pending all present in same order with matching tables/columns. WhatsApp send + Slack send present."
+          },
+          {
+            "category": "D6",
+            "verdict": "na",
+            "note": "No business-visible error/recovery branches in pseudo (trust-mode); none in live. n8n onError settings out of scope."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Terminal sub-workflow; no explicit return contract beyond side-effects, matches pseudo Step 9 End."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Inputs declared: phoneNumber, reason?, user.{name,phone_number,slack_channel_id}. Live early nodes consume phoneNumber ($json.phoneNumber), reason (trigger.reason), user.phone_number/name/slack_channel_id — all declared. payment_id is the only DB-fetched field per design. No stale/undeclared."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo Summary enumerates the full WF-10 Command Envelope with field names and trust-mode validity rules; required vs optional (reason?) distinguished."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "interactivePayload"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "interactivePayload"
+            ],
+            "mismatch": true,
+            "note": "Key NAMES align with WF-50 §2.3 (interactive button variant). MISMATCH is structural not nominal: Prepare Rejection Message double-nests under an extra `json` key (`{json:{json:{...}}}`), AND the executeWorkflow node passes empty workflowInputs.value `{}`. So WF-50's entry guard reading $json.phoneNumber/$json.messageType would not see them at top level."
+          },
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Prepare WF-51 Payload emits flat { channelId, messageText } matching WF-51 §2.4. Names correct. (Node uses empty workflowInputs.value `{}` like the WF-50 node — relies on upstream item passthrough; payload itself is single-wrapped and correct.)"
+          }
+        ],
+        "findings": [
+          {
+            "category": "D1/D4",
+            "severity": "⚠️",
+            "description": "Prepare Rejection Message Code node double-wraps the WhatsApp payload under an extra `json` key, so the object handed to WF-50 is `$json.json.{phoneNumber,messageType,interactivePayload}` rather than flat top-level as pseudo Step 5 specifies. WF-50's entry guard reads $json.phoneNumber / $json.messageType, which would resolve undefined at top level.",
+            "evidence": "WF-34.md Prepare Rejection Message jsCode: `return [{ json: { json: { phoneNumber: trigger.user.phone_number, messageType: \"interactive\", interactivePayload: {...} } } }];` — note the nested `json: { json: {...} }`."
+          }
+        ]
+      },
+      {
+        "wf_id": "WF-40",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "Pseudo collapses to Call WF-25 -> Format Slack relay -> Call WF-51 (4 nodes incl. trigger). Live has exactly: Call WF-25, Format Slack Message, Call WF-51, trigger. Slack relay copy `📲 *{name}:* {messageContent}` matches Step 3 verbatim. Removed in-handler stop_intent nodes confirmed absent."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough; receives WF-01 canonical envelope (phoneNumber, messageContent, user.*) as designed."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "No IF/Switch forks in pseudo or live — linear by design (WF-25 owns all branching)."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "Both calls present and key-correct. See caller_contract_checks."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "No DB writes in pseudo; live has none. Single Slack send via WF-51 at end matches Step 4."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "No business-visible error branch in pseudo (WF-25 terminates internally on block/Gemini-fail and control does not return); live mirrors this — no fallback branch."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Terminal relay; no return contract beyond Slack post. Matches pseudo End."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Inputs (phoneNumber, messageContent, user.{id,name,status,slack_channel_id}) all consumed by early nodes: Call WF-25 reads phoneNumber, user.id, messageContent, user.status, user.name, user.slack_channel_id; Format Slack reads user.slack_channel_id, user.name, messageContent. All declared; nothing stale."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo Inputs line cites WF-01 canonical envelope §2.1 with explicit field names and nested user.* enumeration."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-25",
+            "emitted_keys": [
+              "phoneNumber",
+              "userId",
+              "messageContent",
+              "userStatus",
+              "userName",
+              "slackChannelId"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "userId",
+              "messageContent",
+              "userStatus",
+              "userName",
+              "slackChannelId"
+            ],
+            "mismatch": false,
+            "note": "EXACT match to WF-25 Inputs `{ phoneNumber, userId, messageContent, userStatus, userName, slackChannelId }`. Critically WF-40 emits key `messageContent` (not the buggy `messageText`), so the known WF-30 bug shape is NOT present here. Mappings derived from trigger envelope correctly."
+          },
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Format Slack Message Set node produces channelId + messageText; Call WF-51 maps both via workflowInputs.value {channelId:$json.channelId, messageText:$json.messageText}. Matches WF-51 §2.4 exactly."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-41",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "3 nodes: Prepare WhatsApp Message (Code), WF-50 call, trigger — matches pseudo (Prepare WhatsApp Message -> Call WF-50). Orphaned whatsapp_to_slack branch confirmed absent (removed TD-003 F5). No outbound copy literal to compare (relays admin's messageText verbatim)."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough; receives WF-10 Relay Envelope (phoneNumber, messageText, user, ...) as designed."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "No decision forks in pseudo or live (single-direction relay). Linear chain."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "Single WF-50 call present; field rename messageText->messageContent handled in Prepare node. See caller_contract_checks."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "No DB writes in pseudo or live. Single WhatsApp send via WF-50 matches Step 3."
+          },
+          {
+            "category": "D6",
+            "verdict": "na",
+            "note": "No business-visible error branch in pseudo; live has none. Caller WF-10 owns precondition validation."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Terminal; no return contract beyond WF-50 send. Matches pseudo Step 4 End."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Inputs (phoneNumber, messageText, user.*, adminUserId, channelId, channelName). Early node Prepare WhatsApp Message consumes input.phoneNumber and input.messageText — both declared. user.* etc. forwarded/unused here but declared by the Relay Envelope contract; pseudo Step 2 explicitly states no DB lookup so user fields are passthrough-only — acceptable."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo Inputs enumerates the WF-10 Relay Envelope with explicit nested field names and §2.2 reference; field-name note clarifies messageText (in) -> messageContent (out to WF-50)."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "mismatch": false,
+            "note": "Prepare WhatsApp Message emits flat { phoneNumber: input.phoneNumber, messageType: 'text', messageContent: input.messageText }. Matches WF-50 §2.3 text-variant contract exactly — single-wrapped, correct field names (canonical messageContent, NOT legacy message/messageBody). Note: WF-50 call node uses empty workflowInputs.value `{}` relying on upstream item passthrough, consistent with project convention; payload is correctly flat (unlike WF-34's double-wrap)."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-42",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All 7 live nodes named/generalized in pseudo. Code-node copy in Prepare Feedback Message (3-button interactive: btn_feedback/btn_rebook/btn_done) and Prepare WF-51 Payload (Slack close confirmation) match pseudo Steps 4 and 6 verbatim, including the 3rd 'Done, thanks' button."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger passthrough; pseudo states WF-11 supplies §2.2 Command Envelope with user object. Matches."
+          },
+          {
+            "category": "D3",
+            "verdict": "na",
+            "note": "No IF/Switch nodes — linear chain trigger->close consult->update user->prepare->WF-50->prepare->WF-51. Pseudo has no decision forks."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "WF-50 (Send Feedback) and WF-51 (Notify Admin) both present per pseudo Steps 5,7. Upstream Prepare nodes shape correct payloads; see caller_contract_checks."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "UPDATE consultations (status=closed,ended_at,closed_by) Step2 and UPDATE users (consultation_closed,current_consultation_id=NULL,total_consultations+1) Step3 match pseudo table/columns/control-flow position exactly; both keyed on user.id from envelope."
+          },
+          {
+            "category": "D6",
+            "verdict": "na",
+            "note": "No business-visible error/recovery branch in pseudo or live. Trust-mode WF (SP-03) — no re-validation/fallback branch."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "No explicit return contract — pseudo Step 8 End; live terminates at Notify Admin in Slack. Caller (WF-11) does not consume a return."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Consumed fields all declared: user.id (both UPDATEs), user.phone_number+user.name (Prepare Feedback), user.slack_channel_id+user.name+user.phone_number (Prepare WF-51). Non-user envelope fields (commandType, reason, adminUserId, channelId, etc.) are the shared §2.2 Command Envelope passthrough, not WF-42-specific stale declarations — no undocumented dependency."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo Summary+Step1 enumerate the §2.2 Command Envelope with named user sub-fields {id,name,phone_number,status,slack_channel_id}; explicit enough for a passthrough sub-workflow."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "interactivePayload"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "interactivePayload"
+            ],
+            "mismatch": false,
+            "note": "Call WF-50 Send Feedback node has empty workflowInputs.value but upstream 'Prepare Feedback Message' Code node shapes {phoneNumber,messageType:interactive,interactivePayload(type:button)} which passes through to WF-50's passthrough trigger. Keys match WF-50 interactive-button contract."
+          },
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Notify Admin in Slack node has empty value but upstream 'Prepare WF-51 Payload' shapes {channelId:user.slack_channel_id, messageText}. Matches WF-51 §2.4 contract."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-43",
+        "is_subworkflow": true,
+        "status": "DRIFT",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All 22 live nodes present/generalized in pseudo. Code/Set copy matches: Build Thank-You Payload = Step5, Build Btn-Done Slack Payload = Step6, Prompt for Feedback = Step7, Extract Gemini Reply fallback + Build U1 Payload = Steps 12-13. Verbatim."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger (passthrough, empty params); pseudo Step1 reads WF-01 §2.1 canonical envelope. Matches."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Forks match pseudo: Is Button Reply (messageType==interactive) S2, Is Done Button (btn_done) S3, Is Rebook Button (btn_rebook) S3, Stop Intent (intentResult==stop_intent) S9 [TRUE terminal — node-note lint-allow], Rebook Intent S10, Feedback Intent S11. Same variables, directions, branch targets."
+          },
+          {
+            "category": "D4",
+            "verdict": "divergent",
+            "note": "WF-25/44/45/50/51/53 all present. BUT Call WF-25 Intent Classifier emits key 'messageText' while WF-25's Inputs (Step1) require 'messageContent' — known caller-contract bug. Also userId/userStatus sourced from non-existent top-level $json.userId/$json.userStatus (envelope has user.id/user.status). See caller_contract_checks."
+          },
+          {
+            "category": "D5",
+            "verdict": "na",
+            "note": "No Postgres writes in WF-43. All sends delegated to WF-50/WF-51 sub-workflows. No direct external side-effect to position-check."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "Gemini-failure recovery branch present: Gemini General Response main#1 -> Build U1 Payload -> Call U1 (WF-53), matching pseudo Step 12->13. continueErrorOutput is the n8n mechanism (not flagged); the business branch itself matches."
+          },
+          {
+            "category": "D8",
+            "verdict": "divergent",
+            "note": "Consumed-but-undeclared: Call WF-25 node reads $json.messageText, $json.userId, $json.userStatus — none declared in WF-43 Inputs §2.1 (which has messageContent, user.id, user.status). Wrong-key/wrong-source reads = undocumented (and broken) dependency. Same root cause as the D4 mismatch."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo has explicit Inputs section enumerating phoneNumber, messageType(text|interactive), messageContent, rawMessage, and user.{id,status,current_consultation_id,slack_channel_id} with the §2.1 envelope reference."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-25",
+            "emitted_keys": [
+              "phoneNumber",
+              "userId",
+              "messageText",
+              "userStatus",
+              "userName",
+              "slackChannelId"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "userId",
+              "messageContent",
+              "userStatus",
+              "userName",
+              "slackChannelId"
+            ],
+            "mismatch": true,
+            "note": "🔴 Caller emits 'messageText' (={{ $json.messageText }}) but WF-25 Step1 reads 'messageContent' — the message body never reaches the classifier. Additionally userId/userStatus map from top-level $json.userId/$json.userStatus which are absent in the WF-01 envelope (only user.id/user.status exist), so both also resolve undefined. WF-43's own pseudo Step8 correctly specifies messageContent + userId:user.id — live drifted away from its own design."
+          },
+          {
+            "calls_wf": "WF-44",
+            "emitted_keys": [
+              "(passthrough envelope: phoneNumber, messageContent, user.id)"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageContent",
+              "user.id"
+            ],
+            "mismatch": false,
+            "note": "Route to Feedback WF-44 has empty value mapping; passes through the WF-25-returned envelope (original input + intentResult) which carries phoneNumber/messageContent/user.id that WF-44 reads. Matches."
+          },
+          {
+            "calls_wf": "WF-45",
+            "emitted_keys": [
+              "(passthrough envelope: phoneNumber)"
+            ],
+            "callee_required_keys": [
+              "phoneNumber"
+            ],
+            "mismatch": false,
+            "note": "Route to Rebook WF-45 empty value; envelope phoneNumber passes through. WF-45 Step2 SELECT keyed on phoneNumber. Matches (userId optional, unconsumed by WF-45)."
+          },
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Send Btn-Done Slack via WF-51 empty value; upstream 'Build Btn-Done Slack Payload' Set node shapes {channelId:user.slack_channel_id, messageText}. Matches WF-51 contract."
+          },
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "mismatch": false,
+            "note": "Three WF-50 calls (Thank-You, Feedback Prompt, Gemini Reply) all empty value; upstream Set/Code nodes (Build Thank-You Payload, Prompt for Feedback, Extract Gemini Reply) each shape {phoneNumber,messageType:text,messageContent}. Matches WF-50 text contract."
+          },
+          {
+            "calls_wf": "WF-53",
+            "emitted_keys": [
+              "phoneNumber",
+              "userFacing",
+              "consultChannelId",
+              "context"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "userFacing",
+              "consultChannelId",
+              "context"
+            ],
+            "mismatch": false,
+            "note": "Call U1 (WF-53) empty value; upstream 'Build U1 Payload' Set node shapes {phoneNumber,userFacing:true,consultChannelId:user.slack_channel_id,context:{source,userName,userStateText,userMessage,errorDetail}}. Matches WF-53 §contract exactly."
+          }
+        ],
+        "findings": [
+          {
+            "category": "D4",
+            "severity": "🔴",
+            "description": "WF-43 -> WF-25 caller-contract break: the message body key is mismatched. Call WF-25 Intent Classifier emits 'messageText' but WF-25 reads 'messageContent', so the classifier receives no message text. This is the exact bug class the audit was told to catch (caller passes messageText, WF-25 reads messageContent).",
+            "evidence": "WF-43.md 'Call WF-25 Intent Classifier' workflowInputs.value: \"messageText\":\"={{ $json.messageText }}\"; WF-25.pseudo Step1 Inputs require 'messageContent'. WF-43.pseudo Step8 itself specifies passing 'messageContent', so live diverges from its own design."
+          },
+          {
+            "category": "D4",
+            "severity": "🔴",
+            "description": "Same WF-25 call also mis-sources userId and userStatus from top-level $json.userId / $json.userStatus, which do not exist on the WF-01 §2.1 envelope (fields live under user.id / user.status). Both resolve undefined; WF-25's per-status leniency and any userId-keyed logic receive nothing.",
+            "evidence": "WF-43.md 'Call WF-25': \"userId\":\"={{ $json.userId }}\",\"userStatus\":\"={{ $json.userStatus }}\" vs userName/slackChannelId correctly using $json.user.name / $json.user.slack_channel_id; WF-43.pseudo Step8 specifies userId:user.id, userStatus:user.status."
+          },
+          {
+            "category": "D8",
+            "severity": "🔴",
+            "description": "Consumed-but-undeclared input dependency: the Call WF-25 node reads $json.messageText/$json.userId/$json.userStatus, none of which are declared in WF-43's Inputs §2.1 (which declares messageContent, user.id, user.status). These are the wrong-key reads driving the D4 break.",
+            "evidence": "WF-43.pseudo Inputs line: 'messageContent', 'user.{id, status,...}' vs WF-43.md node reading messageText/userId/userStatus from top level."
+          }
+        ]
+      },
+      {
+        "wf_id": "WF-44",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All 4 live nodes present in pseudo. Prepare Ack Message copy ('🙏 Thank you for your feedback!...') matches pseudo Step3 verbatim; Save Feedback to DB query matches Step2."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger passthrough; pseudo Step1 reads WF-01 §2.1 envelope forwarded by WF-43. Matches."
+          },
+          {
+            "category": "D3",
+            "verdict": "na",
+            "note": "No IF/Switch nodes — pure linear recorder (trigger->Save Feedback->Prepare Ack->WF-50). Pseudo has no decision forks (WF-44 does NOT re-classify per decision #11 delta)."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "Only WF-50 called, present in pseudo Step3. See caller_contract_checks."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "UPDATE chinmay_astro.users SET feedback=$1, stage=NULL, updated_at=NOW() WHERE id=$2 matches pseudo Step2 exactly (table, columns, control-flow position as first node after trigger). Args [messageContent, user.id]."
+          },
+          {
+            "category": "D6",
+            "verdict": "na",
+            "note": "No error/recovery branch in pseudo or live; pure recorder."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "No return value to caller (WF-43 fires-and-ends after route). Pseudo Step3 ends after WF-50 ack. Matches."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Consumed fields all declared: messageContent + user.id (Save Feedback queryReplacement), phoneNumber (Prepare Ack). Declared user.status is the contextual §2.1 envelope user object and is genuinely unconsumed, but no undocumented (consumed-but-undeclared) dependency exists — the dangerous direction is clean."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo Inputs enumerates phoneNumber, messageContent, user.{id,status} with the §2.1 envelope reference and notes sole caller WF-43 post-feedback_intent. Explicit."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "mismatch": false,
+            "note": "Send Ack via WF-50 explicitly maps {phoneNumber:$json.phoneNumber, messageType:'text', messageContent:$json.messageContent} from upstream Prepare Ack Message output. Matches WF-50 text contract; no legacy fallback keys."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-45",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All 4 outbound copies match pseudo: active clarifier, under-review clarifier, setup-flow body, and happy-path payment prompt verbatim. Pseudo Step 4 mentions a privacy-policy URL but that is not part of the interactivePayload flow shape WF-50 consumes (WF-50 flow build has no policy param) — cosmetic, not a copy mismatch in a consumed field."
+          },
+          {
+            "category": "D2",
+            "verdict": "na",
+            "note": "executeWorkflowTrigger sub-workflow; no webhook trigger. Trigger present and consistent."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Classify Rebook State Code + Route by State switch reproduce pseudo Step 3 exactly: no-row->setup, payment_submitted->under_review, consultation_active->active, else->happy (4 outputKeys match)."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "All 4 WF-50 calls (setup/under-review/active/happy) present per pseudo. Emitted keys via upstream Code/Set nodes + passthrough trigger match WF-50 canonical {phoneNumber, messageType, messageContent|interactivePayload}."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "Single UPDATE in happy branch: SET status='payment_pending', stage=NULL, updated_at=NOW() WHERE phone_number — matches pseudo Step 7. Setup/under-review/active branches correctly perform NO UPDATE."
+          },
+          {
+            "category": "D6",
+            "verdict": "na",
+            "note": "No business-visible recovery branch in pseudo; onError:continueRegularOutput on WF-50 calls is a tech-mechanism setting, not pseudo content."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Terminal sub-workflow; no explicit return contract declared in pseudo (each branch ends after WF-50 send). Consistent."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "phoneNumber declared+consumed (Load User Record query, Classify, UPDATE WHERE). userId declared optional and explicitly documented as not-consumed by the inline phone-keyed SELECT — transparent, not stale/misleading."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Inputs section enumerates phoneNumber (E.164, required) and userId (integer, optional) with types and consumption notes. Adequate shape."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "interactivePayload"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "interactivePayload"
+            ],
+            "mismatch": false,
+            "note": "Prepare WF-50 Payload (Rebook Payment) -> Send Payment Instructions; interactivePayload type:'button'. Matches WF-50 interactive contract."
+          },
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent",
+              "interactivePayload"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "interactivePayload"
+            ],
+            "mismatch": false,
+            "note": "Build Setup Message (Code) -> Call WF-50 (Setup); messageType:'interactive', interactivePayload type:'flow' with flowId/flowCta. Matches WF-50 flow contract."
+          },
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "mismatch": false,
+            "note": "Build Active Message (Set, includeOtherFields:false) -> Call WF-50 (Active); messageType:'text'. Matches WF-50 text contract."
+          },
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "mismatch": false,
+            "note": "Build Under-Review Message (Set, includeOtherFields:false) -> Call WF-50 (Under Review); messageType:'text'. Matches WF-50 text contract."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-46",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "Only outbound copy is the WF-51 admin Slack confirmation '🚫 User blocked: ${name} (${phone}). Reason: ${reason}. Status set to blocked.' — matches pseudo Step 3 verbatim incl. 'Not provided' fallback when reason blank."
+          },
+          {
+            "category": "D2",
+            "verdict": "na",
+            "note": "executeWorkflowTrigger (inputSource:passthrough) sub-workflow; no webhook entry to validate."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "No IF/Switch forks in either pseudo or live. channelId||user.slack_channel_id fallback and reason||'Not provided' are inline coalesces, not control-flow branches; both present in live Prepare node matching pseudo."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "Single WF-51 call present per pseudo Step 4. Emitted {channelId, messageText} matches WF-51 required inputs exactly."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "UPDATE users SET status='blocked', blocked_at, blocked_by='admin', blocked_reason='Blocked by admin', updated_at WHERE id=$1 RETURNING * — matches pseudo Step 2. Hardcoded blocked_reason drift is explicitly documented in pseudo notes (TD candidate), not undisclosed drift. No admin_actions INSERT (deprecated, per memory)."
+          },
+          {
+            "category": "D6",
+            "verdict": "na",
+            "note": "No error-handling business branch in pseudo or live."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Terminal sub-workflow; ends after WF-51 send, no explicit return contract declared. Consistent."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Consumed: user.id (UPDATE WHERE), user.name + user.phone_number (Slack msg), user.slack_channel_id (channelId fallback), trigger.channelId, trigger.reason — all declared in the §2.2/§2.1 envelope. Top-level phoneNumber declared but unconsumed; it is a standard Command-Envelope field documented in pseudo Summary (Load-by-phone removed note), not a stale invented field — accepted as envelope passthrough."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo enumerates envelope {phoneNumber, reason, channelId, user:{id,name,phone_number,slack_channel_id}} with required/fallback semantics and dual-caller (WF-11 §2.2 / WF-25 §2.1) variants. Explicit shape."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Prepare WF-51 Payload (Notify Admin Blocked) -> Call WF-51 Notify Admin; channelId=trigger.channelId||user.slack_channel_id, messageText built. Matches WF-51 canonical contract; WF-51 trigger is passthrough so empty workflowInputs.value forwards the upstream item."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-47",
+        "is_subworkflow": true,
+        "status": "MINOR",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "divergent",
+            "note": "WF-50 opt-out confirmation matches pseudo verbatim. WF-51 opt-out Slack notice DIVERGES cosmetically: live injects '(phone: '+trig.phoneNumber+')' after 'via STOP' — pseudo Step 4 copy omits the phone fragment. Extra audit detail, harmless; cosmetic D1."
+          },
+          {
+            "category": "D2",
+            "verdict": "na",
+            "note": "executeWorkflowTrigger sub-workflow; no webhook entry."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Two IF forks match pseudo: 'Was Consultation Active?' tests userStatus=='consultation_active' (Step 2, strict equals), 'Has Slack Channel?' tests slack_channel_id notEmpty (Step 4). Branch directions and downstream targets match (TRUE->close / TRUE->Slack notice)."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "WF-51 (opt-out notice) and WF-50 (opt-out confirmation) both present per pseudo Steps 4-5. Emitted keys match callee contracts."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "Close Open Consultation UPDATE (status='closed', ended_at, closed_by='user_opted_out' WHERE user_id=$1 AND status='active') matches pseudo Step 2; Update User Status UPDATE (status='opted_out', current_consultation_id=NULL, updated_at, RETURNING slack_channel_id) matches pseudo Step 3. Control-flow positions match."
+          },
+          {
+            "category": "D6",
+            "verdict": "na",
+            "note": "No business-visible recovery branch; pseudo notes alwaysOutputData/atomicity which are tech-mechanism, not branch logic."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Terminal; ends after WF-50 confirmation send (waitForSubWorkflow:true). No explicit caller-return contract declared in pseudo Step 6."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "All declared inputs consumed by early nodes: phoneNumber (UPDATE users, Prepare WF-50, Prepare WF-51), userId (Close Open Consultation queryReplacement), userStatus ('Was Consultation Active?' IF). No undeclared consumed fields."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Explicit Inputs section: phoneNumber (E.164 required), userId (int FK required), userStatus (enum required, 6 values enumerated) with per-field usage rules and atomicity note. Strong shape."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Prepare WF-51 Payload (Opt-out Notice) -> Notify Admin Opt-out via WF-51; channelId=upd.slack_channel_id, messageText built. Matches WF-51 contract (passthrough trigger forwards upstream item)."
+          },
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "mismatch": false,
+            "note": "Prepare WF-50 Payload (Opt-out Confirmation) -> Send Opt-out Confirmation via WF-50; messageType:'text'. Matches WF-50 text contract."
+          }
+        ],
+        "findings": [
+          {
+            "category": "D1",
+            "severity": "⚠️",
+            "description": "WF-47 live Slack opt-out notice copy adds a '(phone: <phoneNumber>)' fragment not present in the pseudo Step 4 LOCKED copy.",
+            "evidence": "Live Prepare WF-51 Payload (Opt-out Notice): messageText = '⚠️ User has opted out via STOP (phone: ' + trig.phoneNumber + '). This consultation will not progress further. ...' vs pseudo Step 4: '⚠️ User has opted out via STOP. This consultation will not progress further. ...' — extra '(phone: ...)' inserted in live; cosmetic, harmless audit detail."
+          }
+        ]
+      },
+      {
+        "wf_id": "WF-50",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All pseudo nodes present in live (Validate Inputs, Prepare Payload, Should Drop?, Message Type Switch, Send Text/Interactive/Template, Process Result, Build WF-60 + Drop payloads, Log Drop, Return). Code-node literals match: interactive footer 'Tap below to continue', flow_token=`${Date.now()}`, template language 'en', drop error 'empty_body_dropped' all match pseudo Steps 5,8,10."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough; matches 'triggered by another workflow with message-send parameters'."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Should Drop? IF on $json.__drop==true (Step 4 guard) and Message Type Switch on messageType text/interactive/template (Step 6) match pseudo forks, same variable, same branch labels TEXT/INTERACTIVE/TEMPLATE."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "Two WF-60 calls (Call WF-60 Message Logger success path, Log Drop to WF-60 drop path) both present in pseudo Steps 5/13. workflowId 6H75p935FpBVBQtV. Emitted keys match WF-60 contract (see caller_contract_checks)."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "3 WA send side-effects (whatsApp send-text node + 2 httpRequest POSTs to graph.facebook.com/v22.0/.../messages) match Steps 7/9/11. WF-60 logging on both success and drop paths matches Steps 5/13. No DB writes in WF-50 itself."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "Drop branch (Should Drop? TRUE) is the only business recovery branch; present and matches pseudo. retryOnFail/maxTries on send nodes are tech settings, not flagged."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Return Status emits {success, messageId, error, phoneNumber, sentAt} matching pseudo Step 14 output contract; Build Drop Return emits same shape with success=false."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Inputs phoneNumber/messageType/messageContent/interactivePayload/templateName/templateParams + optional userId/consultationId/inboundMessageId/userMessage all referenced by Validate Inputs + Prepare Payload. Every consumed field is declared. phoneNumberFormatted is an internal alias resolved in Prepare Payload, declared in pseudo Step 3."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo has explicit discriminated-union Inputs section (text/interactive-flow/interactive-button/template variants) enumerating required vs optional with types per design.md §2.3; matches the live entry-guard's discriminated-union checks."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-60",
+            "emitted_keys": [
+              "transport",
+              "direction",
+              "userId",
+              "consultationId",
+              "messageType",
+              "content",
+              "whatsappMessageId",
+              "phoneNumber",
+              "metadata"
+            ],
+            "callee_required_keys": [
+              "transport",
+              "direction",
+              "messageType",
+              "content",
+              "phoneNumber-or-userId(wa-variant)"
+            ],
+            "mismatch": false,
+            "note": "Build WF-60 Payload (Outbound) success path emits canonical wa-outbound shape; transport='wa', content extracted per messageType, whatsappMessageId from result. All WF-60-required keys present with matching names."
+          },
+          {
+            "calls_wf": "WF-60",
+            "emitted_keys": [
+              "transport",
+              "direction",
+              "userId",
+              "consultationId",
+              "messageType",
+              "content",
+              "whatsappMessageId",
+              "phoneNumber",
+              "metadata"
+            ],
+            "callee_required_keys": [
+              "transport",
+              "direction",
+              "messageType",
+              "content",
+              "phoneNumber-or-userId(wa-variant)"
+            ],
+            "mismatch": false,
+            "note": "Build WF-60 Drop Payload emits same canonical wa-outbound shape with whatsappMessageId:null + metadata.drop=true; key names match WF-60 contract."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-51",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All pseudo nodes present: Validate Inputs, Post to Slack, Build WF-60 Payload (Slack Outbound), Call WF-60 Message Logger. No outbound copy literals to compare (text passed through from caller). channelId regex ^[CDG][A-Z0-9]{8,}$ in guard matches pseudo Step 2."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough; pseudo Step 1 describes {channelId, messageText, [userId], [consultationId]} passthrough — accepted-as-is per documented project convention (TD-DRIFT-028/011)."
+          },
+          {
+            "category": "D3",
+            "verdict": "na",
+            "note": "No IF/Switch/route forks in WF-51 (linear: validate -> post -> build -> log)."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "Single WF-60 call (Call WF-60 Message Logger, workflowId 6H75p935FpBVBQtV) matches pseudo Step 5. Emitted slack-outbound keys match WF-60 slack-variant contract (see caller_contract_checks)."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "Slack chat.postMessage via Slack node (channel + text) matches Step 3. WF-60 logging on success path only matches Step 5. Pseudo explicitly notes no Slack-failure logging wired (TD-NEW-028) — live has no error->WF-60 branch, consistent."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "No business recovery branch in pseudo or live; Call WF-60 onError=continueRegularOutput is a tech setting (not flagged) and matches pseudo's 'WF-60 result not propagated' intent."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Pseudo Step 6: Slack response returned to caller, WF-60 result not propagated. Live terminal node is Call WF-60 with continueRegularOutput; Slack response carried downstream. Matches."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Inputs channelId/messageText referenced by Validate Inputs + Post to Slack; optional userId/consultationId referenced by Build WF-60 Payload node ($('Execute Workflow Trigger').userId/consultationId). All consumed fields declared; all declared fields referenced."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo has explicit Inputs section enumerating channelId (required, regex), messageText (required, non-empty string), userId/consultationId (optional) with types and validity rules per design.md §2.4."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-60",
+            "emitted_keys": [
+              "transport",
+              "direction",
+              "messageType",
+              "content",
+              "slackChannelId",
+              "slackMessageTs",
+              "userId",
+              "consultationId",
+              "whatsappMessageId",
+              "phoneNumber",
+              "metadata"
+            ],
+            "callee_required_keys": [
+              "transport",
+              "direction",
+              "messageType",
+              "content",
+              "slackChannelId-or-userId(slack-variant)",
+              "slackMessageTs(slack-variant)"
+            ],
+            "mismatch": false,
+            "note": "Build WF-60 Payload (Slack Outbound) emits transport='slack', direction='outbound', messageType='slack_text', content=messageText, slackChannelId, slackMessageTs from Slack response ts. All WF-60 slack-variant required keys present with matching canonical names."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-52",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All pseudo nodes present: Validate Inputs, Prepare Channel Name, Create Slack Channel, Invite Admin to Channel, Check if Name Taken Error, Get All Private Channels, Filter - Existing User Channel, Return Channel Info New/Existing, Return Error. channelName=`consult-${phoneNumber}` literal matches Step 3. Both admin user IDs U0B4BBML6CS + U0A4175DJ5D in Invite node match Step 5. channelUrl template uses context_team_id at runtime matching Steps 6/9."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough; matches pseudo Step 1 {phoneNumber, name, userId} passthrough."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Create Slack Channel onError=continueErrorOutput splits success(main#0->Invite) vs error(main#1->Check if Name Taken). Check if Name Taken Error IF on $json.error contains 'name_taken' (Step 7): YES->Get All Private Channels (Step 8), NO->Return Error (Step 10). Filter on channelName==name (Step 9). All forks match, same variables, same directions."
+          },
+          {
+            "category": "D4",
+            "verdict": "na",
+            "note": "WF-52 calls no sub-workflows (pseudo: Calls Sub-Workflows: none). No executeWorkflow nodes present."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "Slack side-effects: conversations.create (Create Slack Channel), conversations.invite (Invite Admin), conversations.list/getAll (Get All Private Channels) match Steps 4/5/8. No DB writes (caller WF-22 persists slack_channel_id per pseudo). Matches."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "name_taken recovery branch (Check if Name Taken Error -> Get All Private Channels -> Filter -> Return Existing) is the business recovery path, present and matches Steps 7-9. Non-name_taken errors -> structured error return (Step 10). Both branches match pseudo."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Three return nodes: Return New {success:true, channelId, channelName, channelUrl, isNew:true}, Return Existing {...isNew:false}, Return Error {success:false, error, channelId:null, channelName, channelUrl:null, isNew:false}. All match pseudo Steps 6/9/10 output contract."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Inputs phoneNumber/name/userId all referenced: Validate Inputs guards all three; Prepare Channel Name reads phoneNumber, name, userId. Every declared field consumed; every consumed field declared. Legacy aliases phone_number/userName correctly absent from both pseudo and live."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo has explicit Inputs section enumerating phoneNumber (E.164 string, required), name (string, required), userId (integer, required) with types and the removed-legacy-alias note per design.md §2.5; live entry guard enforces exactly these three with matching types (Number.isInteger for userId)."
+          }
+        ],
+        "caller_contract_checks": [],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-53",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All 9 .md nodes (Entry Guard, Build Admin Alert, Build WF-51 Alert Payload, Call WF-51 Admin Alert, User-Facing?, Build WF-50 Apology Payload, Call WF-50 Apology, Halt on Gemini Failure, Execute Workflow Trigger) map to pseudo Steps 1-7. Code-node literals match verbatim: admin alert copy = pseudo Step 3; apology copy = pseudo Step 6 ('Our IT Support team...'). No individual named in shared copy as pseudo requires."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough; pseudo Step 1 says triggered by another workflow with envelope passthrough. Match."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Single fork 'User-Facing?' IF evaluates Entry Guard.userFacing boolean==true; TRUE->apology, FALSE->halt. Matches pseudo Step 5."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "Two executeWorkflow calls: WF-51 (admin alert, payload {channelId,messageText}) and WF-50 (apology, payload {phoneNumber,messageType:text,messageContent}). Both present in pseudo (Steps 4,6); emitted keys match callee Inputs (see caller_contract_checks). Call order WF-51 before WF-50 matches pseudo."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "Side effects: Slack admin alert (always) + WhatsApp apology (user-facing only). No DB writes. Matches pseudo. Control-flow position correct."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "Halt-on-error business branch present (stopAndError node) per pseudo Step 7 design contract; reached from both User-Facing FALSE and after apology send. onError:continueRegularOutput on Call nodes is a tech setting, not flagged."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "No return value — HALTs via stopAndError. Matches pseudo Output 'U1 does NOT return a value — it HALTS'."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Inputs declared {phoneNumber,userFacing,consultChannelId?,context}; all four referenced by early nodes (Entry Guard reads all; Build Admin Alert reads context/phoneNumber/consultChannelId; User-Facing? reads userFacing). No consumed-but-undeclared field."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo has explicit Inputs block with names, types, required/optional, and validity rules (E.164, boolean, Slack-ID regex, context object shape). Sufficiently enumerated."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Build WF-51 Alert Payload Set (includeOtherFields:false) emits exactly channelId+messageText; WF-51 entry guard reads channelId+messageText. Match."
+          },
+          {
+            "calls_wf": "WF-50",
+            "emitted_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "messageType",
+              "messageContent"
+            ],
+            "mismatch": false,
+            "note": "Build WF-50 Apology Payload Set emits phoneNumber+messageType:'text'+messageContent; WF-50 entry guard requires phoneNumber, messageType, and messageContent for text. Correct key names (messageContent, not messageText). Match."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-60",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All 12 .md nodes map to pseudo Steps: When Executed->S1, Validate Inputs->S2, Extract Message Data->S3, Filter Skip?->S4, Needs Phone Lookup?->S5, Lookup User By Phone + Merge Lookup Result->S6, Has userId?->S7, Log to Messages Table->S8, Build Filter Skip Result->S9, Skip Log (no userId)->S10, Done->S11. Code-node literals (skip reasons 'whitespace_only_filtered','pre_onboarding_user','no userId — caller...') match pseudo copy verbatim."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough; canonical multi-transport payload per pseudo Step 1. Match."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Three forks all match: Filter Skip? (_filterReason notEmpty)=S4, Needs Phone Lookup? (_needsLookup==true)=S5, Has userId? (userId notEmpty)=S7. Same variables, same directions, same branch leaves."
+          },
+          {
+            "category": "D4",
+            "verdict": "na",
+            "note": "WF-60 calls no sub-workflows (pseudo 'Calls Sub-Workflows: none'); no executeWorkflow nodes in .md. Consistent."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "DB writes match: SELECT lookup on chinmay_astro.users (S6), INSERT into chinmay_astro.messages 9-col with $8::jsonb metadata, created_at=NOW(), RETURNING id (S8). Tables, columns, control-flow positions all match pseudo. No external sends."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "No business-visible recovery branch in pseudo to compare; the onError:continueRegularOutput on Log to Messages Table is a tech reliability setting (pseudo D6 note acknowledges it as .md-generator gap, not drift). Not flagged."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Four return shapes match pseudo Outputs: {logged:true,logId} (Done S11); {logged:false,reason:'whitespace_only_filtered'} (S9); {logged:false,reason:'pre_onboarding_user'} and {logged:false,reason:'no userId...'} (Skip Log S10)."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "All declared Inputs (transport,direction,messageType,content+aliases,phoneNumber+aliases,whatsappMessageId,slackChannelId+aliases,slackMessageTs+aliases,userId,consultationId,metadata passthrough fields) are referenced by Validate Inputs + Extract Message Data early nodes. All consumed fields are declared. No stale/undeclared mismatch."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo has explicit, thorough Inputs section with discriminated-union variants (transport='wa' vs 'slack'), required vs optional, types, aliases, and validity rules. Exemplary."
+          }
+        ],
+        "caller_contract_checks": [],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-61",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All 11 .md nodes map to pseudo Steps: Execute Workflow Trigger->S1, Entry Guard->S2, Insert Silent Drop->S3, Count 30-Day Drops->S4, Threshold Reached?->S5, Auto-Block Upsert->S6, Build Block Alert + Build WF-51 Block Alert Payload + Call WF-51 Block Alert->S7, Return Blocked->S8, Return Not Blocked->S9. Build Block Alert Code literal (🚫 auto-block copy with Number/Reason/30-day count/Most recent/last message) matches pseudo Step 7 verbatim, including 500-char clip and blocked_by='WF-61' provenance."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough; envelope per pseudo Step 1. Match."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Single fork 'Threshold Reached?' IF: drop_count >= Entry Guard.blockThreshold (number gte). TRUE->Auto-Block, FALSE->Return Not Blocked. Matches pseudo Step 5."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "DB writes match: INSERT silent_drop (5 cols, created_at=NOW()) S3; SELECT count(*) 30-day window S4; INSERT...ON CONFLICT(phone_number) DO UPDATE status='blocked',blocked_reason=$2,blocked_at=NOW(),blocked_by='WF-61' on users (legacy columns, no net-new) S6. Slack block alert via WF-51 only on block S7. All positions/tables match pseudo and Notes."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "One executeWorkflow call: WF-51 (block alert, payload {channelId,messageText}) on block branch only. Present in pseudo Step 7; emitted keys match WF-51 Inputs (see caller_contract_checks)."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "No additional business recovery branch beyond the threshold fork. onError:continueRegularOutput on Call WF-51 is a tech setting, not flagged."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Returns {blocked:true} (Return Blocked Set, S8) or {blocked:false} (Return Not Blocked Set, S9). Matches pseudo Output."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Declared Inputs {phoneNumber,messageType,reason,messageContent?,blockThreshold,blockReason} all referenced: Entry Guard reads all six; Insert reads phoneNumber/messageType/reason/messageContent; Count+Auto-Block+Threshold read phoneNumber/blockReason/blockThreshold; Build Block Alert reads messageContent/messageType/reason. No consumed-but-undeclared."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Pseudo Inputs section explicit: names, types, required/optional, semantics (blockThreshold integer >=1, blockReason verbatim-stored). Sufficient."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-51",
+            "emitted_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "callee_required_keys": [
+              "channelId",
+              "messageText"
+            ],
+            "mismatch": false,
+            "note": "Build WF-51 Block Alert Payload Set (includeOtherFields:false) emits exactly channelId+messageText; WF-51 entry guard reads channelId+messageText. Match."
+          }
+        ],
+        "findings": []
+      },
+      {
+        "wf_id": "WF-62",
+        "is_subworkflow": true,
+        "status": "CLEAN",
+        "category_checks": [
+          {
+            "category": "D1",
+            "verdict": "clean",
+            "note": "All 7 pseudo steps map to live nodes (Execute Workflow Trigger, Entry Guard, Build Gemini Request, Classify Intent, Parse Classification, Build U1 Payload, Call U1). Build Gemini Request prompt literal matches pseudo: 10 buckets, stage new/pre_form, low-confidence<0.5 fail-open, STOP/REBOOK-upstream note, multilingual, temp=0. Build U1 Payload context business-tone errorDetail matches."
+          },
+          {
+            "category": "D2",
+            "verdict": "clean",
+            "note": "executeWorkflowTrigger inputSource=passthrough matches pseudo Step 1 'contracted envelope (passthrough)'."
+          },
+          {
+            "category": "D3",
+            "verdict": "clean",
+            "note": "Step 4 success/failure fork = Classify Intent main#0->Parse / main#1->Build U1 Payload (continueErrorOutput). Step 5 malformed-vs-valid handled in Parse Classification try/catch, consistent."
+          },
+          {
+            "category": "D4",
+            "verdict": "clean",
+            "note": "WF-53 (U1) call present (ONzUJ1Lj9hIbUYT0) on Gemini-failure branch; matches pseudo Step 6. No extra/missing sub-workflow calls."
+          },
+          {
+            "category": "D5",
+            "verdict": "clean",
+            "note": "No DB writes. External effect = Gemini POST (Classify Intent, Step 4). User apology/admin alert side-effects owned by WF-53 downstream. Matches pseudo."
+          },
+          {
+            "category": "D6",
+            "verdict": "clean",
+            "note": "Gemini-failure recovery branch -> U1 present; malformed-output fail-open (unrelated/0) handled in Parse code. Matches pseudo. No missing/extra business recovery branch."
+          },
+          {
+            "category": "D7",
+            "verdict": "clean",
+            "note": "Success returns {bucket,confidence} (Parse Classification). Failure halts via U1 with no return. Matches pseudo Outputs."
+          },
+          {
+            "category": "D8",
+            "verdict": "clean",
+            "note": "Inputs {phoneNumber,text,stage,consultChannelId?} all read by Entry Guard; stage+text also read by Build Gemini Request. No undeclared-consumed, no declared-unreferenced."
+          },
+          {
+            "category": "D9",
+            "verdict": "clean",
+            "note": "Explicit Inputs section enumerates each field with type, required/optional, validity (E.164, non-empty, enum {new,pre_form}, Slack-id pattern). stage enum enumerated."
+          }
+        ],
+        "caller_contract_checks": [
+          {
+            "calls_wf": "WF-53",
+            "emitted_keys": [
+              "phoneNumber",
+              "userFacing",
+              "consultChannelId",
+              "context"
+            ],
+            "callee_required_keys": [
+              "phoneNumber",
+              "userFacing",
+              "consultChannelId",
+              "context"
+            ],
+            "mismatch": false,
+            "note": "Build U1 Payload Set node assembles phoneNumber/userFacing/consultChannelId/context; Call U1 (executeWorkflow v1.2) uses mappingMode=defineBelow value={} which (with WF-53 trigger inputSource=passthrough) passes the upstream item through. This is the repo-wide convention for passthrough-trigger utilities (identical pattern in WF-43 calling same WF-53 UUID). Emitted keys exactly match WF-53's required envelope {phoneNumber,userFacing,consultChannelId?,context}. context sub-shape {source:'U3',userMessage,errorDetail} matches WF-53 Inputs. No messageText/messageContent-style key drift."
+          }
+        ],
+        "findings": []
+      }
+    ]
+  }
+}
