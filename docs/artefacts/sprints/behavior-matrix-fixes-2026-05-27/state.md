@@ -55,7 +55,7 @@
 | BMX-R13-WF34 | ✅ done | 13 | P1 | WF-34 | — |
 | BMX-R13-WF33 | ✅ done | 13 | P1 | WF-33 | — |
 | BMX-R13-WF32 | ✅ done | 13 | P2 | WF-32 | — |
-| BMX-R14-WF22 | ⬜ pending | 14 | P1 | WF-22 | — |
+| BMX-R14-WF22 | ✅ done | 14 | P1 | WF-22 | — |
 | BMX-R15-WF11 | ⬜ pending | 15 | P1 | WF-11 | — |
 | BMX-R15-WF47 | ⬜ pending | 15 | P1 | WF-47 | — |
 | BMX-R16-PSEUDO | ⬜ pending | 16 | P2 | WF-00, WF-01, WF-10, WF-23, WF-41, WF-42 (pseudo) | — |
@@ -174,6 +174,7 @@
 
 ## Batch 13 — Payment lifecycle · WF-34 / WF-33 / WF-32
 
+- **Committed:** Batch 13 pushed to GitHub `main` @ `0a0c41f` (2026-05-31) — 3 workflow JSONs (WF-32/33/34) + WF-33.pseudo + registry + dependency-map + state/followups + handoff (`handoff-batch13-complete-resume-batch14.md`, written before the commit). Batch concluded; Batch 14 (BMX-R14-WF22) to be picked up next per the ascending-batch sequencing directive.
 - **Items:** 3
 - **Description:** The payment approval/rejection/confirmation family. WF-34: fix the double-nested WF-50 payload so the rejection message to the user actually sends (Section-1 HIGH). WF-33: restore the richer admin activation notice (DOB/TOB/Place + CLOSE-CHAT reminder per pseudo Step 9, via a minimal SELECT) + convert 3 param-lists to array form (T9) + pseudo status='verified' & command/subCommand Inputs (Section-1 pseudo-lag). WF-32: convert the payment-insert param-list to array form (T9). Mixed priority by design (group-by-workflow) — build-sprint follows batch order, not priority.
 - **Estimated size:** M
@@ -857,15 +858,22 @@ Invoke `build-workflow`.
 
 ## BMX-R14-WF22 — WF-22 extract email_address + param-list + typeVersion
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P1 | **Batch:** 14
-**Change type:** Surgical
+**Change type:** Surgical / parametric (missing-field parse + param-list array form + typeVersion bump — no control-flow / data-contract / interface change)
 **Workflows:** WF-22
 **n8n IDs:** `dr8QM0m92Ml8MvIh`
 **Depends on:** —
 **Size:** S
 **Estimated tokens:** ~20K
 **Estimated effort:** ~40 min
+**Started:** 2026-05-30T14:14:00Z
+**Completed:** 2026-05-30T14:20:02Z
+**Actual tokens:** ~40K
+**Actual effort:** ~25 min
+**Estimate delta:** +1 bucket (planned S ~20K, actual ~40K = M-band) — overage driven by the email-field reality-check: live executions (2026-05-24) predate the v2 email field, so confirming against `.pseudo` Step 2 + form definition + INSERT binding before parsing took an extra investigation pass (correctly, per audit-vs-reality discipline). New versionId `ae7133fa-4163-4b3b-90f4-666dcb967998`. Backup `archive/backups/dr8QM0m92Ml8MvIh-2026-05-31-00-14.json`.
+
+**Verification:** field key `email_address` confirmed in `workflows/flows/collect-personal-details.json`, `Create User Record` INSERT `$6` binding, and WF-22.pseudo Step 2. Forward-compatible — pre-v2 form submissions parse `undefined` → NULL (explicitly accepted by pseudo note; Flow v2 cutover is TD-PGF-01B Step 4, pending user publish). Step 6 lint exit 0; workflow validate `valid:true` 0 errors; Step 6b strict per-node validation on both Postgres nodes 0 errors/0 warnings; typeVersion diff clean (postgres `[2.4,2.6]`→`[2.6]`, no new version). Step 6a skipped (no nodes removed/renamed). The WF-22 create-failure-swallow HIGH (T3) remains deferred to TD-NEW-035 — not in this item.
 
 Three changes:
 

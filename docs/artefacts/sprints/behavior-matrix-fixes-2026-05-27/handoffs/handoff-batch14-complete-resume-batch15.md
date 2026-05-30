@@ -1,0 +1,11 @@
+## Stopping Point
+Batch 14 (BMX-R14-WF22) is complete and verified; post-batch regression PASSED (T9 anti-pattern sweep across all 31 workflow JSONs found zero remaining non-array comma-joined `queryReplacement` — confirms WF-22 `Save Slack Channel ID` was the last live instance). Ready to commit Batch 14 (this handoff is included in that commit).
+
+## Next Action
+Re-invoke `build-sprint "behavior-matrix-fixes-2026-05-27"`; it resumes at Batch 15. **Start with BMX-R15-WF11** (WF-11, n8n ID `GoTYo0GS2y8qjjkw`, **Structural / M — run impact-analysis**): five changes — (1) drop the deprecated `admin_actions` INSERT on the UNBLOCK `Unblock User` node + delete the `Lookup Blocked User` re-SELECT and read `id`/`name` from the WF-10 command-envelope `user` object instead (this leaves WF-11 as admin_actions' last live writer; the `DROP TABLE` itself stays in TD-NEW-026); (2) parameterize the UNBLOCK `WHERE phone_number` to `$1` + queryReplacement array (T5); (3) add `alwaysOutputData:true` to `Get Active Users` so the LIST empty-state branch fires (T2 — today admin gets silence); (4) bump remaining UNBLOCK Postgres node(s) v2.5→v2.6 (T11); (5) renumber WF-11.pseudo trigger-first (P3). Then **BMX-R15-WF47** (WF-47, `2U7mxHMyqA41ROKX`, Surgical / XS): add `alwaysOutputData:true` to `Update User Status to opted_out` so pre-onboarding STOP (zero-row UPDATE) still sends the opt-out confirmation (T2, pseudo Step 3 mandated); + sync WF-47.pseudo Step 4 to keep the live `(phone: <number>)` fragment in the admin opt-out notice (keep-live decision, no live change).
+
+## Blockers
+None blocking. WF-22 Flow-v2 cutover (TD-PGF-01B Step 4) remains pending on the user publishing Flow v2 in Meta + sharing the new published Flow ID — until then live form is v1 and `email_address` parses as NULL by design (Batch 14's parse is forward-compatible, no action needed). T3 WF-22 create-failure-swallow HIGH deferred to TD-NEW-035. Plugin improvement to flush at Batch 18 (already in `followups.md`): "Out-of-core field sourcing" — note BMX-R15-WF11 change 1 is a fresh validation of exactly this pattern (read `id`/`name` from the WF-10 command envelope instead of a redundant re-SELECT).
+
+## Changed Reference Values
+WF-22 versionId `ae7133fa-4163-4b3b-90f4-666dcb967998`. Backup: `archive/backups/dr8QM0m92Ml8MvIh-2026-05-31-00-14.json`.
