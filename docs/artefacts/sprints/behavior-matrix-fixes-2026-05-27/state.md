@@ -39,7 +39,7 @@
 | BMX-P4-WF26 | ✅ done | 9 | P0 | WF-26 | BMX-P3-WF25 (hard) |
 | BMX-P4-WF45 | ✅ done | 9 | P0 | WF-45 | BMX-P1-PSEUDO (hard) |
 | BMX-P4-ACTIVATE | ✅ done | 9 | P0 | WF-26 | BMX-P4-WF26 (hard) |
-| BMX-P5-DRIFT | ⬜ pending | 10 | P0 | — | BMX-P4-ACTIVATE (hard), BMX-P4-WF45 (hard) |
+| BMX-P5-DRIFT | ✅ done | 10 | P0 | — | BMX-P4-ACTIVATE (hard), BMX-P4-WF45 (hard) |
 | BMX-P5-MATRIX | ⬜ pending | 10 | P0 | — | BMX-P5-DRIFT (hard) |
 | TD-BMX-02 | ⚪ obsolete | — | P0 | WF-01 | — |
 | TD-BMX-03 | ⚪ obsolete | — | P1 | WF-20 | — |
@@ -523,16 +523,20 @@ Toggle WF-26 `active=true` (confirmed `active=false` in live 2026-05-29; registr
 
 ## BMX-P5-DRIFT — pseudo↔md drift-check + regenerate AS-IS .md (safety-net §8.2 Phase 5)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-30
+**Completed:** 2026-05-30
 **Priority:** P0 | **Batch:** 10
-**Change type:** Operational (doc)
-**Workflows:** —
+**Change type:** Operational (doc) + audit
+**Workflows:** — (audit covered all 31)
 **Depends on:** BMX-P4-ACTIVATE (hard), BMX-P4-WF45 (hard)
 **Size:** S
 **Estimated tokens:** ~25K
 **Estimated effort:** ~45 min
 
 Run `pseudo-md-drift-check` for all changed workflows; regenerate AS-IS `.md` from live via `generate-workflow-md`. Confirms the live n8n state matches the revised `.pseudo` design after all builds land. Depends on all Phase 2–4 builds being complete (Phase-4 leaves used as proxy hard deps).
+
+**Build outcome (2026-05-30):** Executed as a user-directed read-only audit (scratch-only generation; no live/.md/.pseudo modified during the audit). Fresh `.md` generated from freshly-downloaded live JSON (31 wf) vs fresh Git `.pseudo` (31), split into **sprint-group (17)** + **existing-group (14)**, audited by 11 parallel read-only Sonnet sub-agents (all ≤219s under the 300s cap). Covered drift, data-contract compliance, and pseudo-convention consistency. Deliverable: `BMX-P5-DRIFT-report.md` (PARTs A–E incl. live-verification verdicts). Fresh `.md` for all 31 checked into `docs/pseudocode/` (the regen deliverable); `workflows/*.json` left untouched (0 functional diffs vs live — phantom-diff avoidance); `.pseudo` untouched (read-only audit). **Confirmed HIGH (sprint-group, deferred to a follow-up fix session):** WF-31 + WF-43 pass `messageText` (absent from the WF-02 envelope) to `Call WF-25` which classifies `messageContent` → both misclassify free-form text; root cause is WF-25's missing entry-guard. **False positive withdrawn:** empty `defineBelow value:{}` mappings (standard passthrough). **Existing-group HIGH (out of BMX scope):** WF-33 `verified`/`approved`, WF-22 `email_address` NULL, WF-11 BLOCK-reason/SQL. Fixes + BMX-P5-MATRIX handed to a fresh session (see `handoffs/handoff-batch-10-drift-audit.md`).
 
 ## BMX-P5-MATRIX — TD-BMX-07 behavior-matrix re-verification (exit gate)
 
