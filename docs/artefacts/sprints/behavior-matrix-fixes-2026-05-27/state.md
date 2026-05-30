@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/sprints/behavior-matrix-fixes-2026-05-27/tasks.md
 **Input hash:** 5e7e3db0999e1128ce39970bc1075716120bb3cf87f7067616220f7653ff7f54
 **Planned at:** 2026-05-29T07:53:18Z
-**Last updated:** 2026-05-29T22:59:05Z
+**Last updated:** 2026-05-30T02:41:16Z
 **Planning complete:** true
 
 **Reconciled scope:** Planned against the tasks.md RECONCILIATION banner (2026-05-29), NOT the original 7 TD-BMX item blocks. The redesign is defined across two companion specs — `docs/artefacts/specs/2026-05-29-bmx-06-new-contact-flow-design.md` (new + pre-form) and `docs/artefacts/specs/2026-05-29-existing-user-safety-net-design.md` (existing + opted_out + BMX-05). The original TD-BMX-01..07 items are decomposed into the build units of the cross-spec **Phase 0→5 build sequence** (safety-net spec §8.2). User confirmed phase-mapped granularity (19 build units) on 2026-05-29.
@@ -36,9 +36,9 @@
 | BMX-P3-WF44 | ✅ done | 8 | P0 | WF-44 | BMX-P3-WF25 (soft) |
 | BMX-P3-WF20 | ✅ done | 8 | P0 | WF-20 | BMX-P1-PSEUDO (hard) |
 | BMX-P3-WF46 | ✅ done | 8 | P0 | WF-46 | BMX-P3-WF25 (hard), BMX-P3-HANDLERS (hard) |
-| BMX-P4-WF26 | ⬜ pending | 9 | P0 | WF-26 | BMX-P3-WF25 (hard) |
-| BMX-P4-WF45 | ⬜ pending | 9 | P0 | WF-45 | BMX-P1-PSEUDO (hard) |
-| BMX-P4-ACTIVATE | ⬜ pending | 9 | P0 | WF-26 | BMX-P4-WF26 (hard) |
+| BMX-P4-WF26 | ✅ done | 9 | P0 | WF-26 | BMX-P3-WF25 (hard) |
+| BMX-P4-WF45 | ✅ done | 9 | P0 | WF-45 | BMX-P1-PSEUDO (hard) |
+| BMX-P4-ACTIVATE | ✅ done | 9 | P0 | WF-26 | BMX-P4-WF26 (hard) |
 | BMX-P5-DRIFT | ⬜ pending | 10 | P0 | — | BMX-P4-ACTIVATE (hard), BMX-P4-WF45 (hard) |
 | BMX-P5-MATRIX | ⬜ pending | 10 | P0 | — | BMX-P5-DRIFT (hard) |
 | TD-BMX-02 | ⚪ obsolete | — | P0 | WF-01 | — |
@@ -118,6 +118,8 @@
 - **Description:** WF-26 refinement (drop welcome-back; rewire Refresh Envelope → Call WF-02 so it inherits the WF-25 safety net) → WF-45 4-branch state guard (TD-BMX-01; independent, note dead pre-form branch) → activate WF-26 + smoke-test opted-out re-engagement (TD-BMX-04). Within-batch order: WF-26-refine BEFORE activate.
 - **Estimated size:** M
 - **Estimated tokens:** ~77K
+- **Execution plan (recorded 2026-05-30T00:44:23Z by build-sprint Step 2a):** Order WF-26 → WF-45 → ACTIVATE (WF-26-refine-before-activate mandated). No Mode-D (all production-affecting requiring judgment; WF-45 carries a copy decision point). (1) **BMX-P4-WF26 — Mode A** full build-workflow inline: structural node-delete (2) + edge rewire on critical opted_out re-engagement path; connection-target rewiring care (WF-02 rename-target lesson). (2) **BMX-P4-WF45 — Mode A** full build-workflow inline: multi-node state-guard insertion + IF-chain reshape; copy subject to user review → surface as needs-decision at build. (3) **BMX-P4-ACTIVATE — Mode B / Operational**: simple `active=true` toggle + registry drift correction; real-phone smoke test coordinates with Batch-10 BMX-P5-MATRIX (consistent with all prior builds' "live end-to-end deferred to Batch 10 smoke" — users table empty, no test phone wired).
+- **Post-batch regression (2026-05-30T02:41Z — PASS):** Dependency map rebuilt — **79→78 edges** (WF-26→WF-50 dropped by the refine; WF-45's 3 new Call WF-50 nodes dedupe to the pre-existing WF-45→WF-50 edge → net -1). Touched-workflow edges match design exactly: WF-26 = parent {WF-01}, child {WF-02} (WF-50 gone); WF-45 = parents {WF-43, WF-20} (WF-44 correctly absent — retired its WF-45 call in Batch 8), child {WF-50}. **All touched IDs unchanged → no caller repoint.** Sibling analysis: WF-26's "lift opted_out + re-route" pattern is unique (no sibling to regress); WF-45's change is self-contained/additive — the only shared dependency is WF-50, whose contract WF-45 emits canonically (unchanged), and structural siblings (WF-21/23 Code-classifier→IF-chain, WF-25 Switch) are unaffected. Postgres sibling sanity on WF-45's own nodes: `Load User Record` SELECT has `=` prefix + aod=true + snake_case columns (id/name/phone_number/status all in live `chinmay_astro.users`); `Set status=payment_pending` UPDATE aod=true (keeper). Whole-`workflows/` lint **exit 0** — zero hard rejects across all 31 (161 advisory: Step-5g FP on internal `throw new Error('WF-XX…')` exception strings + pre-existing Contract-First upstream-not-Set). **No strict findings.** Adjacent (not blocking, covered by existing initiatives — not separately logged): `Build Setup Message` Code upstream of `Call WF-50 (Setup)` is a Contract-First advisory, consistent with the project-wide interactive-payload-via-Code pattern (WF-21/23/45) under the multi-sprint Contract-First initiative; keeper `Send Payment Instructions` missing `cachedResultName` (UI-cosmetic). Real-phone opted_out smoke (S8) deferred to Batch-10 BMX-P5-MATRIX exit gate.
 
 ## Batch 10 — Phase 5 · Verify (drift-check + matrix re-verification)
 
@@ -458,8 +460,15 @@ WF-25 (and handlers) no longer call WF-46 — blocking now flows through U2 / un
 
 ## BMX-P4-WF26 — WF-26 refine: drop welcome-back, inherit safety net (safety-net §6 decision #9)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-30T00:44:23Z
+**Completed:** 2026-05-30T00:53:05Z
+**Actual tokens:** ~25K
+**Actual effort:** ~9 min
+**Estimate delta:** on-bucket (planned S ~22K, actual ~25K)
 **Priority:** P0 | **Batch:** 9
+
+**Build outcome (2026-05-30T00:53:05Z):** jq-on-disk transform (Mode A, Step 5e), same ID `tKjwTYF6EER8ED3y`, 7→5 nodes, active=false (activation deferred to BMX-P4-ACTIVATE). **Removed** `Build Welcome Payload` (Set v3.4) + `Call WF-50 Welcome Back` (exec v1.2); **rewired** `Refresh Envelope Status`.main[0] from the parallel fan-out [Build Welcome, Call WF-02] down to [Call WF-02 Re-Route] only. Linear chain now Trigger→Validate Inputs→Update User Status→Refresh Envelope Status→Call WF-02 Re-Route — matches WF-26.pseudo Steps 1-4 exactly (no separate welcome-back; re-engagement runs the full WF-43→WF-25 safety net). `Refresh Envelope Status` left untouched (Set v3.4, reconstructs the full 13-field §2.1 envelope explicitly with `user.status='consultation_closed'` → WF-02 receives complete envelope despite includeOtherFields:false). **Impact analysis:** single parent WF-01 (routes to WF-26, does not consume return — no upstream break); children WF-50 (retired) + WF-02 (kept, contract preserved — node + upstream Set untouched); no siblings (pattern unique). **Verification:** pre-PUT dangling scan 0 refs to both removed names; post-PUT dangling re-scan 0 refs; lint hook exit 0; MCP strict-validate `valid:true`, 0 errors, 7 warnings (all FP/floor/tech-deferred — Validate Inputs Code-heuristic FPs; Update User Status pg-2.5 + Call WF-02 exec-1.2 typeVersion-floor advisories on untouched keepers; DB/error-handling advisories deferred to tech-error sprint). **Adjacent (carried, not fixed — out of scope):** `Call WF-02 Re-Route` keeper lacks `cachedResultName` (advisory, UI-cosmetic only, pre-existing — not introduced by this change). Backup: `archive/backups/tKjwTYF6EER8ED3y-2026-05-30-10-48.json`. Live end-to-end opted-out re-engagement deferred to BMX-P4-ACTIVATE + Batch-10 smoke.
 **Change type:** Structural (partial edit)
 **Workflows:** WF-26
 **n8n IDs:** `tKjwTYF6EER8ED3y`
@@ -472,8 +481,16 @@ Delete `Build Welcome Payload` + `Call WF-50 Welcome Back` nodes; rewire `Refres
 
 ## BMX-P4-WF45 — WF-45 status-regression state guard (TD-BMX-01, safety-net §2)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-30T00:53:05Z
+**Completed:** 2026-05-30T02:06:17Z
+**Actual tokens:** ~55K
+**Actual effort:** ~30 min (active; incl. copy decision round-trip)
+**Estimate delta:** +1 bucket (planned M ~35K, actual ~55K — copy sign-off round-trip + 8-node author via Python script + per-node strict probe)
+**Decision made (copy verbatim sign-off, 2026-05-30T02:0xZ):** User approved: (1) **happy-path = pseudo wording** (state-neutral "Your birth details are already on file…" + ₹500 UPI button, button id `payment_completed` title "Payment Completed") over the live "previous consultation is complete" copy — chosen because the happy path now fires for payment_pending/consultation_closed/re-entry, not just completed consultations; (2) **3 new guard messages approved as drafted** (under-review / active-consult / no-record-setup, all business-tone). Pseudo Steps 4-6 updated with the approved verbatim copy in the same batch (pseudocode-first sync).
 **Priority:** P0 | **Batch:** 9
+
+**Build outcome (2026-05-30T02:06:17Z):** jq-on-disk (Python build script, Mode A, Step 5e), same ID `MUG7rPgSHc7UtAE9`, 5→13 nodes, active=true. **5 keepers preserved by name:** trigger (v1, untouched), `Load User Record` (SELECT widened: added `status` column; aod=true, op=executeQuery — unchanged otherwise), `Set status=payment_pending` (UPDATE keeper, repositioned), `Prepare WF-50 Payload (Rebook Payment)` (Code — **copy updated to approved pseudo wording**, repositioned), `Send Payment Instructions` (WF-50 call keeper, repositioned). **8 new nodes:** `Classify Rebook State` (Code v2 — reads Load User Record output + trigger phoneNumber; routeClass ∈ {setup,under_review,active,happy}; no-row→setup, payment_submitted→under_review, consultation_active→active, else→happy) → `Route by State` (Switch v3, 4 rule outputs setup/under_review/active/happy) → setup: `Build Setup Message` (Code, interactive Flow form, flowId 2260297164474475 reused from WF-21) → `Call WF-50 (Setup)`; under_review: `Build Under-Review Message` (Set v3.4 contract-emit text) → `Call WF-50 (Under Review)`; active: `Build Active Message` (Set v3.4 contract-emit text) → `Call WF-50 (Active)`; happy (output 3) → existing keeper chain Set status=payment_pending → Prepare WF-50 Payload → Send Payment Instructions. All 3 new `Call WF-50` exec v1.2 canonical (defineBelow+value:{}, cachedResultName "WF-50 Send WhatsApp", onError=continueRegularOutput fire-and-forget). **typeVersion floor:** new types not in live WF-45 (Set, Switch) set to project floor — Set v3.4 (44/44 project), Switch v3 (WF-25 floor, NOT auto-bumped to 3.4); Code v2 / exec v1.2 match live. **Verification:** lint hook exit 0; MCP strict-validate `valid:true`, 0 errors, 17 warnings (all FP/floor/tech-deferred: typeVersion-floor advisories ×8 on keepers+new-at-floor; Code named-ref "doesn't reference input"/"can throw" FPs; **Route by State main[1]-as-error-output FP** [main[1] is the under_review rule output, not an error port]; DB-without-error-handling on keeper Postgres → tech-error sprint); Step 6b per-node strict probe on modified Postgres (`Load User Record`, valid:true — only the accepted `{{ }}`-interpolation SQL-injection advisory) + new exec node (valid:true, 0 warnings) → **no operation-default trap**; no nodes removed/renamed → Step 6a skipped. **Pseudo updated** (WF-45.pseudo Steps 4-6, approved verbatim copy) in same batch per pseudocode-first sync. **Adjacent (carried, not fixed — out of scope):** keeper `Send Payment Instructions` lacks `cachedResultName` (advisory, UI-cosmetic, pre-existing — the 3 new exec nodes DO carry it). Backup: `archive/backups/MUG7rPgSHc7UtAE9-2026-05-30-11-01.json`. Live end-to-end (each branch + Gemini-free) deferred to Batch-10 smoke (users table empty; happy-path is the only production-exercised branch pre-go-live).
 **Change type:** Structural
 **Workflows:** WF-45
 **Depends on:** BMX-P1-PSEUDO (hard)
@@ -485,8 +502,15 @@ Add a state-classifier guard at the head of WF-45 (before any UPDATE), branching
 
 ## BMX-P4-ACTIVATE — Activate WF-26 + smoke-test opted-out re-engagement (TD-BMX-04)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-30T02:06:17Z
+**Completed:** 2026-05-30T02:41:16Z
+**Actual tokens:** ~12K
+**Actual effort:** ~6 min
+**Estimate delta:** on-bucket (planned S ~20K, actual ~12K)
 **Priority:** P0 | **Batch:** 9
+
+**Build outcome (2026-05-30T02:41:16Z):** WF-26 (`tKjwTYF6EER8ED3y`) activated via n8n `POST /workflows/{id}/activate` → HTTP 200, `active=true`; fresh GET re-confirmed `active=true` (5 nodes). Resolves the TD-BMX-04 drift (live was `active=false` while registry said "🟢 Active"). Registry corrected to 🟢 Active with the activation provenance. Workflow JSON re-exported (active flag). **Structural readiness verified** (substitute for live smoke this session): WF-01 `Route Opted-Out to WF-26` edge intact (WF-26 reachable from the opted_out branch); WF-26 chain linear & orphan-free (Trigger→Validate Inputs→Update User Status→Refresh Envelope Status→Call WF-02 Re-Route) → WF-02 → WF-43 → WF-25 safety net. **Live real-phone smoke DEFERRED to Batch-10 BMX-P5-MATRIX (S8 cells)** — no test phone wired + users table empty this session, identical deferral to every Phase-2/3 build in this sprint (WF-01/21/23/25/handlers all deferred live end-to-end to Batch-10 smoke). BMX-P5-MATRIX is the sprint exit gate and explicitly walks S8 (opted_out re-engagement) via `smoke-test` + `monitor-test-run`; the opted_out re-engagement test (opted_out phone sends "Hi" → WF-01 opted_out branch → WF-26 → WF-02 re-route → WF-25 classification → contextual reply; `users.status` opted_out→consultation_closed) runs there with a real phone. Reset test phone to opted_out before that run.
 **Change type:** Operational
 **Workflows:** WF-26
 **n8n IDs:** `tKjwTYF6EER8ED3y`
