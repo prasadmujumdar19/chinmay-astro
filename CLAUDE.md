@@ -296,6 +296,7 @@ Subagents are useful but easy to misuse. Spawn them only when the work genuinely
 | Bot loop prevention | — | Compare `$json.body.authorizations[0].user_id` ≠ `$json.body.event.user` |
 | WhatsApp Flows decryption | Native n8n Code node | Must use `encryption-svc` Docker container (IV flipping required) |
 | WF-50 interactive payload | Nested structure | Flat structure with camelCase `flowId`/`flowCta` — no nesting |
+| Expression as shell data | `VAR="...$('Node Name')..."` then PUT — `$('...')` triggers shell command substitution, mangling the value (and risks PUTting broken content) | Never pass a string containing an n8n expression (`$('…')`, `{{ … }}`) through a bash/zsh variable. Write the expression to a file with the Write tool (no shell interpretation), then splice via `jq --rawfile expr <file> '…' | rtrimstr("\n")`, or embed it directly in a Write-authored newnodes JSON. Sharper than the single-Bash-command discipline: the value itself is shell-active data. |
 
 ## Workflow Architecture
 

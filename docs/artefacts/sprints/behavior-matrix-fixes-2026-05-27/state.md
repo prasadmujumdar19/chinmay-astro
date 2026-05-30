@@ -61,7 +61,7 @@
 | BMX-R16-PSEUDO | ✅ done | 16 | P2 | WF-00, WF-01, WF-10, WF-23, WF-41, WF-42 (pseudo) | — |
 | BMX-P5-MATRIX | 🔵 in-progress | 17 | P0 | — | BMX-R11-WF30, BMX-R11-WF31, BMX-R11-WF43, BMX-R12-WF25, BMX-R13-WF34, BMX-R13-WF33 (hard) |
 | BMX-P8-DOCS | ✅ done | 18 | P2 | — | — |
-| BMX-P8-PLUGIN | ⬜ pending | 18 | P2 | — | — |
+| BMX-P8-PLUGIN | ✅ done | 18 | P2 | — | — |
 | TD-BMX-02 | ⚪ obsolete | — | P0 | WF-01 | — |
 | TD-BMX-03 | ⚪ obsolete | — | P1 | WF-20 | — |
 
@@ -996,11 +996,18 @@ Carried from Batches 5–10 (flagged repeatedly, deferred to sprint close). CLAU
 
 ## BMX-P8-PLUGIN — Flush carried plugin improvements (sprint-close)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P2 | **Batch:** 18
 **Change type:** Plugin (methodology)
 **Workflows:** —
 **Depends on:** —
+**Started:** 2026-05-30T16:24:09Z
+**Completed:** 2026-05-30T16:38:58Z
+**Actual tokens:** ~120K
+**Actual effort:** ~15 min
+**Estimate delta:** +1 bucket (planned M ~30K, actual ~120K = L-band) — 12 distinct skill-prose edits across 8 files + version-bump + cache-roll; per-file Read+verify+Edit ceremony dominated. Single-bump directive saved the 12× CHANGELOG/version ceremony that a per-improvement flush would have cost.
+
+Flushed all 12 carried improvements under a single minor bump 1.34.1 → 1.35.0 (operator directive: one version). Plugin committed/pushed @ `3a6e867` (github.com/prasadmujumdar19/n8n-whatsapp-methodology); active cache synced + rolled 1.34.1→1.35.0 (real dir 1.35.0, back-compat symlink 1.34.1→1.35.0; installed_plugins.json + marketplace cache aligned). Script fixes verified: lint-workflows.py Step-5g regex (8/8 assignment-vs-comparison test cases pass; py_compile OK); assert-md-fresh.sh name self-check (bash -n OK). The 13th note (expression-as-shell-var) applied to project `CLAUDE.md` n8n Expression Gotchas table — NOT the plugin (committed separately with the sprint changeset).
 **Size:** M
 **Estimated tokens:** ~30K
 **Estimated effort:** ~1 hr
