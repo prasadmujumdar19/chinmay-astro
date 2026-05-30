@@ -50,7 +50,7 @@ Step 3: Update user record — opt the user out unconditionally and clear any ac
 Step 4: Check: slack_channel_id (from Step 3 RETURNING) IS NOT NULL?
   - If YES → call WF-51 with:
       channelId = <slack_channel_id>
-      messageText = "⚠️ User has opted out via STOP. This consultation will not progress further. (Channel preserved per DR-10 in case of REBOOK.)"
+      messageText = "⚠️ User has opted out via STOP (phone: <phoneNumber>). This consultation will not progress further. (Channel preserved per DR-10 in case of REBOOK.)"
     Then go to Step 5.
   - If NO (user opted out before form submission, so no channel was ever created) → go to Step 5.
 
@@ -68,3 +68,4 @@ Step 6: End.
 - Pre-2026-05-21 design held STOP during consultation_active (sent a "hold" message and made no state change, asking the user to re-send STOP after the consult closed). That behaviour was non-compliant with standard STOP semantics and produced poor UX (silent on a second STOP because of broken queryReplacement; see TD-B). The 2026-05-21 redesign makes STOP unconditional.
 - The Slack notice in Step 4 informs the astrologer (Chinmay) that an active conversation has ended via user opt-out. For pre-form-submission users (no slack_channel_id), nothing is posted because there is no consult channel yet.
 - The `consultations.closed_by='user_opted_out'` literal distinguishes opt-out-driven closes from admin-driven closes (`closed_by='admin'` per WF-42). Column is varchar(100), no CHECK constraint.
+- Step 4 Slack notice copy — `(phone: <phoneNumber>)` fragment (keep-live decision, BMX-R15 2026-05-30): the live `Prepare WF-51 Payload (Opt-out Notice)` Code node includes the opting-out user's phone number inline; the phone is useful to the admin (Chinmay) for context, so the live wording is kept and this pseudo was synced to match (no live change). Phone numbers are acceptable admin-facing diagnostic content per build-workflow Step 5g.

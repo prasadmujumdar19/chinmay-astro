@@ -56,8 +56,8 @@
 | BMX-R13-WF33 | ✅ done | 13 | P1 | WF-33 | — |
 | BMX-R13-WF32 | ✅ done | 13 | P2 | WF-32 | — |
 | BMX-R14-WF22 | ✅ done | 14 | P1 | WF-22 | — |
-| BMX-R15-WF11 | ⬜ pending | 15 | P1 | WF-11 | — |
-| BMX-R15-WF47 | ⬜ pending | 15 | P1 | WF-47 | — |
+| BMX-R15-WF11 | ✅ done | 15 | P1 | WF-11 | — |
+| BMX-R15-WF47 | ✅ done | 15 | P1 | WF-47 | — |
 | BMX-R16-PSEUDO | ⬜ pending | 16 | P2 | WF-00, WF-01, WF-10, WF-23, WF-41, WF-42 (pseudo) | — |
 | BMX-P5-MATRIX | ⬜ pending | 17 | P0 | — | BMX-R11-WF30, BMX-R11-WF31, BMX-R11-WF43, BMX-R12-WF25, BMX-R13-WF34, BMX-R13-WF33 (hard) |
 | BMX-P8-DOCS | ⬜ pending | 18 | P2 | — | — |
@@ -191,6 +191,7 @@
 
 ## Batch 15 — Admin + opt-out · WF-11 / WF-47
 
+- **Post-batch regression (2026-05-30T14:49:01Z — PASS):** Dependency map rebuilt — **78 edges (stable)**; WF-11 change removed only an internal Postgres node (`Lookup Blocked User`) + rewired one connection, touched no Execute Workflow node, so WF-11's caller (WF-10) and callees (WF-33/34/42/46/50/51) are unchanged. **Critical contract check — WF-10→WF-11 `user.name` (the field my UNBLOCK change now reads from the envelope): VERIFIED supplied.** The node feeding `Call WF-11` is `Build WF-10 Command Envelope` (Code), which merges `user: {id, name, phone_number, status, slack_channel_id}` from WF-10's `Load User Status` row into the §2.2 envelope — satisfying both WF-11's `Validate Inputs` guard (requires `user`) and the UNBLOCK confirmation's name source. (Initial alarm from inspecting the intermediate `Build WF-11 Payload` Set node — which has `includeOtherFields:false` and no `user` — was resolved by inspecting the real upstream Code node per the passthrough-caller caveat.) Corpus Postgres sanity sweep across all 31 exports: `=`-prefix **clean**, SELECT-`alwaysOutputData` **clean**. Only T5 string-interpolation hit = **WF-45 Rebook Handler** (`Load User Record`, `Set status=payment_pending`) — already operator-confirmed **deferred to FU-7-DEFERRED** (state.md scope line; Batch-9 regression already logged these as accepted keepers). **No strict findings; no new adjacent findings to log.** Live UNBLOCK end-to-end deferred to Batch-17 BMX-P5-MATRIX exit gate (users table empty, no test phone wired — consistent with all prior batches).
 - **Items:** 2
 - **Description:** WF-11 command parser: remove the deprecated `admin_actions` INSERT from the UNBLOCK path (TD-NEW-026 WF-11 step — leaves zero live writers; state+audit already captured in users/messages) and the now-pointless re-SELECT, reading id/name from the envelope; parameterize the remaining UNBLOCK UPDATE (T5); add alwaysOutputData to the LIST query so a quiet system still gets the "nothing pending" reply (T2 — designed-empty case); align Postgres typeVersion (T11); trigger-first pseudo numbering (P3). WF-47 unsubscribe: add alwaysOutputData to the opt-out UPDATE so a pre-onboarding STOP still acknowledges (T2 — pseudo-mandated) + sync the (kept-live) opt-out copy into pseudo. Two different workflows.
 - **Estimated size:** M
@@ -887,8 +888,14 @@ Invoke `build-workflow`. **NOTE:** the WF-22 create-failure-swallow HIGH (T3) is
 
 ## BMX-R15-WF11 — WF-11 drop admin_actions write + UNBLOCK SQL params + LIST empty-state + typeVersion + pseudo
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P1 | **Batch:** 15
+**Started:** 2026-05-30T14:29:10Z
+**Completed:** 2026-05-30T14:41:23Z
+**Actual tokens:** ~32K
+**Actual effort:** ~12 min
+**Estimate delta:** on-bucket (planned M ~30K, actual ~32K)
+**Notes (execution):** Changes 1,2,4,5 applied; change 3 (LIST `alwaysOutputData`) was a **no-op — already satisfied in live** (`Get Active Users` already aod:true + tv2.6; audit drift, surfaced by Step-3 pre-check). Live edits via jq-on-disk → curl PUT: deleted `Lookup Blocked User`, rewired Switch UNBLOCK→`Unblock User`, UPDATE-only parameterized `$1`+queryReplacement array, `Unblock User` tv2.5→2.6, `Confirm User Unblocked` name from envelope `user` object. 19→18 nodes. Verified: MCP valid (0 err), `Unblock User` strict node-validate 0/0, lint exit 0, dangling-ref scan clean. Pseudo renumbered trigger-first. Backup `GoTYo0GS2y8qjjkw-2026-05-31-00-37.json`, versionId `b07c260f`. Live UNBLOCK end-to-end deferred to Batch-17 matrix re-walk.
 **Change type:** Structural
 **Workflows:** WF-11
 **n8n IDs:** `GoTYo0GS2y8qjjkw`
@@ -909,9 +916,16 @@ Invoke `build-workflow`.
 
 ## BMX-R15-WF47 — WF-47 opt-out alwaysOutputData (pre-onboarding STOP ack) + copy pseudo-sync
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P1 | **Batch:** 15
-**Change type:** Surgical
+**Started:** 2026-05-30T14:42:05Z
+**Completed:** 2026-05-30T14:43:17Z
+**Actual tokens:** ~9K
+**Actual effort:** ~2 min
+**Estimate delta:** −1 bucket (planned XS ~12K, actual ~9K — both live changes were no-ops, pure pseudo edit)
+**Change type:** Documentation (pseudo only — reclassified from Surgical: zero live mutation)
+**Notes (execution):** Change 1 (add `alwaysOutputData:true` to `Update User Status to opted_out`) was a **no-op — already satisfied in live** (node already aod:true, added SP-02 May 2026 per pseudo Step 3; audit drift, same class as WF-11 change 3). Change 2 = pseudo-only: WF-47.pseudo Step 4 messageText synced to include the kept-live `(phone: <phoneNumber>)` fragment (the live `Prepare WF-51 Payload (Opt-out Notice)` Code node carries it; keep-live decision per Section-1 #9 — phone is useful to admin). Added a Notes bullet recording the decision. No live workflow edit, no backup/export/PUT. WF-47 Postgres nodes remain tv2.5 (T11 typeVersion was WF-11-scoped only; not in this item).
+**Change type (orig):** Surgical
 **Workflows:** WF-47
 **n8n IDs:** `2U7mxHMyqA41ROKX`
 **Depends on:** —
