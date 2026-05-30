@@ -93,3 +93,11 @@ This session ran a successful 11-agent parallel read-only audit (Sonnet, backgro
 - **Fix:** tighten the regex so it does not match when the `=` is part of a `==` / `===` comparison (e.g. negative-lookahead/lookbehind on `=`, or require the matched RHS not begin with `=`). Kills the FP class project-wide for every guard that compares `messageType`/`userStatus`/`pendingUser`/`interactiveType`, rather than requiring per-node `lint-allow: message-tone-bypass` debt.
 - **Priority hint:** low–medium (false-positive reduction; reduces advisory noise that masks genuine Step-5g hits). Flush via `flush-plugin-improvements` at sprint boundary (BMX-P8-PLUGIN, Batch 18).
 - Backing: build-workflow Step 5g lint enforcement; [[feedback_pseudo_tech_separation]] (validation logic ≠ delivered copy).
+
+## [2026-05-30] — Plugin improvement (Batch 12) — handoff-before-commit ordering
+
+- **Pattern for plugin:** at a batch boundary / session end, the handoff file must be written BEFORE the commit/push so it is included in the same commit. Current `build-sprint` Step 4.6 (batch boundary) and Step 4a (70% context) sequence commit/push FIRST, then invoke the `handoff` skill — which leaves the handoff file uncommitted in the working dir (it only rides along in the NEXT batch's commit). Since GitHub is ground-truth (working dir has no local .git), a fresh clone is then missing the most recent handoff.
+- **Surfaced by:** BMX-R12-WF25 — committed/pushed @ `0c67e1b`, then wrote `handoff-batch12-…md`, leaving it uncommitted (operator-flagged).
+- **Fix:** flip the order in `build-sprint` Steps 4.6 + 4a — invoke `handoff` FIRST, then run the commit/push procedure with the new handoff file in the staged set. Update the `handoff` skill's Step-3 table likewise (write handoff → commit including handoff → continue/sign-off).
+- **Priority hint:** medium (resume-correctness across sessions; ensures the latest handoff is always in ground-truth). Flush via `flush-plugin-improvements` at sprint boundary (BMX-P8-PLUGIN, Batch 18).
+- Backing: [[feedback_handoff_before_commit]], [[feedback_github_ground_truth]], [[feedback_working_dir_doc_commits]].
