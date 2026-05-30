@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/sprints/behavior-matrix-fixes-2026-05-27/tasks.md
 **Input hash:** 5e7e3db0999e1128ce39970bc1075716120bb3cf87f7067616220f7653ff7f54
 **Planned at:** 2026-05-29T07:53:18Z
-**Last updated:** 2026-05-30T02:41:16Z
+**Last updated:** 2026-05-30T07:08:27Z
 **Planning complete:** true
 
 **Reconciled scope:** Planned against the tasks.md RECONCILIATION banner (2026-05-29), NOT the original 7 TD-BMX item blocks. The redesign is defined across two companion specs — `docs/artefacts/specs/2026-05-29-bmx-06-new-contact-flow-design.md` (new + pre-form) and `docs/artefacts/specs/2026-05-29-existing-user-safety-net-design.md` (existing + opted_out + BMX-05). The original TD-BMX-01..07 items are decomposed into the build units of the cross-spec **Phase 0→5 build sequence** (safety-net spec §8.2). User confirmed phase-mapped granularity (19 build units) on 2026-05-29.
@@ -12,9 +12,11 @@
 
 **Dependency conflicts found:** — none. The phasing is internally consistent; cross-item edges are hard build dependencies (DB+U1/U2/U3 before any caller · WF-25 before its handlers · WF-26-refine before WF-26-activate · pseudo-first before any n8n edit), not priority inversions.
 
-**Priority adjustments confirmed:** TD-BMX-05 (WF-20 STOP-alias additions) was originally P1, now folded into the P0 existing-user safety-net redesign and co-located in its Phase-3 batch (spec decision #6). Treated as P0 for batching so no priority tiers are mixed within a batch. Matrix re-verification (TD-BMX-07, originally 🟢 EXIT) recorded as P0 (blocking exit gate) for lint-format compliance; it remains the sprint exit gate. **Batching is phase-driven, not priority-flattened**, per the explicit SEQUENCING directive in tasks.md — build-sprint must follow batch order 1→10.
+**Priority adjustments confirmed:** TD-BMX-05 (WF-20 STOP-alias additions) was originally P1, now folded into the P0 existing-user safety-net redesign and co-located in its Phase-3 batch (spec decision #6). Treated as P0 for batching so no priority tiers are mixed within a batch. Matrix re-verification (TD-BMX-07, originally 🟢 EXIT) recorded as P0 (blocking exit gate) for lint-format compliance; it remains the sprint exit gate. **Batching is phase-driven, not priority-flattened**, per the explicit SEQUENCING directive in tasks.md — build-sprint must follow batch order 1→17 (see the Remediation-extension note below for Batches 11–17).
 
 **Excluded from execution:** Per tasks.md "Items intentionally excluded": U3 (pending_users leak on STOP pre-form — planned daily-maintenance WF post-go-live), U4 (form re-submit overwrites DOB — impossible per Meta; matrix → N/A), U5 (media during consultation_active — post-go-live build), U6 (stale Payment Completed tap — won't-fix), U7 (generic HELP menu in NULL-status — auto-covered). Not picked up by this sprint. Additionally, the as-written **TD-BMX-02** and **TD-BMX-03** task blocks are marked ⚪ obsolete below (their target behavior is delivered by the BMX-06 / safety-net rebuilds, not by the original edits).
+
+**Remediation extension (Batches 11–17, added 2026-05-30):** Batch 10 was the Phase-5 pseudo↔md drift-check (BMX-P5-DRIFT). Its `BMX-P5-DRIFT-report.md` surfaced fixable drift + data-contract findings; together with carried sprint follow-ups and the deferred behavior-matrix exit gate, these are organized into Phases 6–8 (Batches 11–17). User directed (2026-05-30) to remediate **ALL** findings under this sprint rather than spinning a new one — sprint-group (touched) AND existing-group (untouched) workflows, every severity. **Phase 6** (Batches 11–13) = sprint-group fixes, HIGH→LOW; **Phase 7** (Batches 14–16) = existing-group fixes (previously out-of-scope, now pulled in) + the BMX-P5-MATRIX exit gate, which is sequenced LAST among functional work (Batch 16) so it re-verifies the post-remediation final state; **Phase 8** (Batch 17) = CLAUDE.md/registry doc fixes + plugin-improvement flush. Batch order is dependency/phase-driven (build-sprint follows 1→17); priority tiers are not mixed within a batch. **SEQUENCING directive (binding on build-sprint):** execute strictly in ascending batch-number order 11→12→13→14→15→16→17 — the per-item `**Priority:**` labels are informational only and MUST NOT trigger any global "all-P0-before-P1" reordering. In particular, BMX-P5-MATRIX (P0, Batch 16) is intentionally sequenced AFTER the P1/P2 fix batches 12–15 so it re-verifies the post-remediation final state; it must NOT be pulled ahead of them despite its P0 label. This mirrors the original tasks.md directive that kept Batches 1→10 in phase order rather than priority order.
 
 ---
 
@@ -40,7 +42,24 @@
 | BMX-P4-WF45 | ✅ done | 9 | P0 | WF-45 | BMX-P1-PSEUDO (hard) |
 | BMX-P4-ACTIVATE | ✅ done | 9 | P0 | WF-26 | BMX-P4-WF26 (hard) |
 | BMX-P5-DRIFT | ✅ done | 10 | P0 | — | BMX-P4-ACTIVATE (hard), BMX-P4-WF45 (hard) |
-| BMX-P5-MATRIX | ⬜ pending | 10 | P0 | — | BMX-P5-DRIFT (hard) |
+| BMX-P5-MATRIX | ⬜ pending | 16 | P0 | — | BMX-P5-DRIFT, BMX-P6-WF25, BMX-P6-WF43, BMX-P6-WF31 (hard) |
+| BMX-P6-WF43 | ⬜ pending | 11 | P0 | WF-43 | — |
+| BMX-P6-WF31 | ⬜ pending | 11 | P0 | WF-31 | — |
+| BMX-P6-WF25 | ⬜ pending | 11 | P0 | WF-25 | BMX-P6-WF43 (soft), BMX-P6-WF31 (soft) |
+| BMX-P6-WF45 | ⬜ pending | 12 | P1 | WF-45 | — |
+| BMX-P6-WF53 | ⬜ pending | 12 | P1 | WF-53 | — |
+| BMX-P6-WF61 | ⬜ pending | 12 | P1 | WF-61 | — |
+| BMX-P6-LOWFIX | ⬜ pending | 13 | P2 | WF-02, WF-20, WF-21, WF-26, WF-30 | — |
+| BMX-P6-PSEUDONORM | ⬜ pending | 13 | P2 | all (pseudo) | BMX-P6-LOWFIX (soft) |
+| BMX-P7-WF33 | 🟡 needs-decision | 14 | P1 | WF-33 | — |
+| BMX-P7-WF22 | ⬜ pending | 14 | P1 | WF-22 | — |
+| BMX-P7-WF11 | ⬜ pending | 14 | P1 | WF-11 | — |
+| BMX-P7-WF10 | ⬜ pending | 15 | P2 | WF-10 | — |
+| BMX-P7-WF47 | ⬜ pending | 15 | P2 | WF-47 | — |
+| BMX-P7-WF60 | ⬜ pending | 15 | P2 | WF-60 | — |
+| BMX-P7-WF32 | ⬜ pending | 15 | P2 | WF-32 | — |
+| BMX-P8-DOCS | ⬜ pending | 17 | P2 | — | — |
+| BMX-P8-PLUGIN | ⬜ pending | 17 | P2 | — | — |
 | TD-BMX-02 | ⚪ obsolete | — | P0 | WF-01 | — |
 | TD-BMX-03 | ⚪ obsolete | — | P1 | WF-20 | — |
 
@@ -121,12 +140,62 @@
 - **Execution plan (recorded 2026-05-30T00:44:23Z by build-sprint Step 2a):** Order WF-26 → WF-45 → ACTIVATE (WF-26-refine-before-activate mandated). No Mode-D (all production-affecting requiring judgment; WF-45 carries a copy decision point). (1) **BMX-P4-WF26 — Mode A** full build-workflow inline: structural node-delete (2) + edge rewire on critical opted_out re-engagement path; connection-target rewiring care (WF-02 rename-target lesson). (2) **BMX-P4-WF45 — Mode A** full build-workflow inline: multi-node state-guard insertion + IF-chain reshape; copy subject to user review → surface as needs-decision at build. (3) **BMX-P4-ACTIVATE — Mode B / Operational**: simple `active=true` toggle + registry drift correction; real-phone smoke test coordinates with Batch-10 BMX-P5-MATRIX (consistent with all prior builds' "live end-to-end deferred to Batch 10 smoke" — users table empty, no test phone wired).
 - **Post-batch regression (2026-05-30T02:41Z — PASS):** Dependency map rebuilt — **79→78 edges** (WF-26→WF-50 dropped by the refine; WF-45's 3 new Call WF-50 nodes dedupe to the pre-existing WF-45→WF-50 edge → net -1). Touched-workflow edges match design exactly: WF-26 = parent {WF-01}, child {WF-02} (WF-50 gone); WF-45 = parents {WF-43, WF-20} (WF-44 correctly absent — retired its WF-45 call in Batch 8), child {WF-50}. **All touched IDs unchanged → no caller repoint.** Sibling analysis: WF-26's "lift opted_out + re-route" pattern is unique (no sibling to regress); WF-45's change is self-contained/additive — the only shared dependency is WF-50, whose contract WF-45 emits canonically (unchanged), and structural siblings (WF-21/23 Code-classifier→IF-chain, WF-25 Switch) are unaffected. Postgres sibling sanity on WF-45's own nodes: `Load User Record` SELECT has `=` prefix + aod=true + snake_case columns (id/name/phone_number/status all in live `chinmay_astro.users`); `Set status=payment_pending` UPDATE aod=true (keeper). Whole-`workflows/` lint **exit 0** — zero hard rejects across all 31 (161 advisory: Step-5g FP on internal `throw new Error('WF-XX…')` exception strings + pre-existing Contract-First upstream-not-Set). **No strict findings.** Adjacent (not blocking, covered by existing initiatives — not separately logged): `Build Setup Message` Code upstream of `Call WF-50 (Setup)` is a Contract-First advisory, consistent with the project-wide interactive-payload-via-Code pattern (WF-21/23/45) under the multi-sprint Contract-First initiative; keeper `Send Payment Instructions` missing `cachedResultName` (UI-cosmetic). Real-phone opted_out smoke (S8) deferred to Batch-10 BMX-P5-MATRIX exit gate.
 
-## Batch 10 — Phase 5 · Verify (drift-check + matrix re-verification)
+## Batch 10 — Phase 5 · Verify (pseudo↔md drift-check + AS-IS .md regen)
+
+- **Items:** 1
+- **Description:** pseudo↔md drift-check + regenerate AS-IS `.md` from live for all 31 workflows once every Phase 2–4 build had landed — confirm live matches the revised `.pseudo` and surface any residual drift / data-contract / pseudo-convention findings. Deliverable: `BMX-P5-DRIFT-report.md`. (The behavior-matrix re-verification exit gate is tracked separately as BMX-P5-MATRIX in Batch 16, so it runs against the post-remediation final state.)
+- **Estimated size:** S
+- **Estimated tokens:** ~25K
+- **Completed at:** 2026-05-30 — see BMX-P5-DRIFT item block.
+
+## Batch 11 — Phase 6a · Classifier-contract HIGH fixes
+
+- **Items:** 3
+- **Description:** The three confirmed-HIGH sprint-group findings from BMX-P5-DRIFT (PART E live-verified) — the exit-gate blockers. WF-43 + WF-31 each pass key `messageText` to `Call WF-25`, but the WF-02/WF-01 envelope carries `messageContent` (no `messageText`) → WF-25 classifies `undefined` for all free-form text on the `consultation_closed` (WF-43) and `payment_submitted` (WF-31) paths. WF-25's `Prepare Intent Request` `||`-fallback (no entry-guard throw) is the structural root cause that masked the mis-key. **Within-batch order: WF-43 → WF-31 (key fixes) → WF-25 (add entry-guard) LAST**, so the new hard-fail guard is introduced only after both callers pass the correct key (avoids a transient runtime hard-fail; users table is empty pre-go-live regardless). Three different workflows → no same-workflow race. Must complete before BMX-P5-MATRIX (Batch 16) re-walks the affected S-cells.
+- **Estimated size:** M
+- **Estimated tokens:** ~64K
+
+## Batch 12 — Phase 6b · Sprint-group MED fixes
+
+- **Items:** 3
+- **Description:** The MED sprint-group drift/data-contract findings. WF-45 re-SELECTs core-envelope fields (`id,name,phone_number,status`) already forwarded by callers (envelope-first violation; pseudo-acknowledged but unjustified) + happy/non-happy WF-50 onError asymmetry. WF-53 entry guard doesn't validate the one required `context.source` field + the carried unconditional "the user has been told…" admin sentence fires even on `userFacing=false` (deferred live+pseudo fix from followups.md). WF-61 swallows a WF-51 Slack failure silently (`continueRegularOutput`) so it returns `blocked:true` with no admin alert delivered + entry guard `String()`-coerces `messageContent` without a type-check. Three different workflows.
+- **Estimated size:** M
+- **Estimated tokens:** ~72K
+
+## Batch 13 — Phase 6c · Sprint-group LOW live touch-ups + pseudo normalization
 
 - **Items:** 2
-- **Description:** pseudo↔md drift-check + regenerate AS-IS `.md` for all changed workflows → TD-BMX-07 behavior-matrix re-verification (walk the affected cells; update S8×G expectation — opted_out re-engages via WF-26, not zero-outbound). Sprint exit gate.
+- **Description:** The remaining LOW sprint-group items + the cross-cutting pseudo-convention normalization (BMX-P5-DRIFT PART C). BMX-P6-LOWFIX = small live edits across WF-02 (unconnected `Non-Text Blocked?` true-output + stale removed-route sticky-note), WF-20 (HELP `else` collapses pseudo's two defensive arms — restore null-status onboarding arm; trigger `v1`→`v1.1`), WF-21 (`Opt-Out/Rebook Alias?` `rightValue:={{ true }}` → canonical `operator:"true"`; `Build U1 Payload (Service)` omits `consultChannelId`), WF-26 (drop undeclared `isNewUser` over-emit into WF-02 re-route; add 0-affected-rows guard on the status UPDATE per pseudo), WF-30 (empty-`value:{}` passthrough vs explicit-map inconsistency; `convertFieldsToString` align). BMX-P6-PSEUDONORM = unify the contract-declaration block format + add explicit entry-guard lines for strict-envelope utilities, fix WF-31/WF-11 numbering anomalies, settle a footer convention, sync locked "Dr. Chinmay Mujumdar" copy into lagging `.pseudo` (esp. WF-23), and fold the pseudo-only LOW drift (WF-01 `pendingUser.id`, WF-62 Gemini-retry/`...input` spread) into the pseudo (live is truth — update pseudo, never the reverse).
+- **Estimated size:** L
+- **Estimated tokens:** ~72K
+
+## Batch 14 — Phase 7a · Existing-group HIGH fixes (previously out-of-scope)
+
+- **Items:** 3
+- **Description:** Pre-existing HIGH findings on untouched workflows, pulled into this sprint by user direction (2026-05-30). WF-33 writes `status='verified'` where pseudo says `'approved'` (**[RECONCILE]** — enters 🟡 needs-decision: is live `verified` correct + pseudo stale, or vice versa? any consumer querying `'approved'` misses live rows) + admin Slack notification under-populated vs pseudo (missing DOB/TOB/Place + the `CLOSE CHAT CONSULT` reminder — needs an envelope/SELECT change). WF-22 `Extract Form Data` never parses `email_address` from `response_json` yet the INSERT binds `$6 = $json.email_address` → **NULL email for every submission** (real data bug). WF-11 `Validate Inputs` only checks `typeof reason==='string'` not non-empty for BLOCK (contract §A.2 requires non-empty) + re-SELECTs envelope fields + uses string-interpolated SQL (`'{{ $json.phoneNumber }}'`) — parameterize to `$1`. Three different workflows.
 - **Estimated size:** M
-- **Estimated tokens:** ~65K
+- **Estimated tokens:** ~78K
+
+## Batch 15 — Phase 7b · Existing-group MED fixes
+
+- **Items:** 4
+- **Description:** Pre-existing MED findings on untouched workflows. WF-10 `Build WF-41 Payload` uses key `messageText` where pseudo names it `adminMessage` (downstream result still correct — align) + `Load User Status` SELECT wider than pseudo (sync pseudo to live). WF-47 `Prepare WF-51 Payload (Opt-out Notice)` embeds the phone number inline vs pseudo's phone-free copy (confirmed copy divergence; the empty-`defineBelow` mapping flag was a withdrawn false positive). WF-60 entry guard doesn't validate `content` (contract §B lists it always-required str|null) — caller omission passes silently; reconcile pseudo Inputs-vs-Algorithm internal inconsistency. WF-32 `Prepare User Confirmation` reads `phone_number`/`name` from the UPDATE RETURNING row rather than the envelope — pseudo specifies this (Step 7) so it's a pseudo-design envelope-first violation, not live drift (decide: forward envelope vs accept). Four different workflows; mostly surgical/doc.
+- **Estimated size:** M
+- **Estimated tokens:** ~60K
+
+## Batch 16 — Phase 7c · Behavior-matrix re-verification (sprint exit gate)
+
+- **Items:** 1
+- **Description:** BMX-P5-MATRIX — the TD-BMX-07 behavior-matrix exit gate, sequenced LAST among functional work so it re-walks the affected cells against the fully-remediated live state (after all Phase-6/7 fixes, esp. the WF-43/WF-31/WF-25 classifier-contract fixes that directly change S-cell behavior for `payment_submitted`/`consultation_closed`). Walk S1×E/F, S2×D/E, S4×D, S5×D, S7×G, S8×A–I, S10×E; update S8×G expectation (opted_out+media re-engages via WF-26, not zero-outbound); run the deferred real-phone opted_out smoke. Sprint cannot complete until all re-verified cells show ✅ and the matrix HTML is updated.
+- **Estimated size:** M
+- **Estimated tokens:** ~40K
+
+## Batch 17 — Phase 8 · Sprint close (docs + plugin flush)
+
+- **Items:** 2
+- **Description:** Sprint-close housekeeping carried across Batches 5–10. BMX-P8-DOCS = correct the CLAUDE.md "Key Credential IDs" WhatsApp Flow ID (`1408011897720771` → live `2260297164474475`, used by WF-21/23/45) + the stale duplicate in the workflow-registry legacy table. BMX-P8-PLUGIN = run `flush-plugin-improvements` over all carried notes in `followups.md` (handoff commit-agnostic phrasing; plan-sprint greenfield-pseudo-in-build-batch; consumer-contract acceptance gate; Step-6a connection-target scan; Set-node no-optional-chaining rule; contract-emit-Set-reads-`$('NamedNode')`-not-`$json`; terminal-Return-reads-canonical-upstream; sub-agent audit fan-out pattern; fast-enumeration drift-check mode) — applies by priority, bumps CHANGELOG, commits, syncs the active cache.
+- **Estimated size:** M
+- **Estimated tokens:** ~40K
 
 ---
 
@@ -541,15 +610,15 @@ Run `pseudo-md-drift-check` for all changed workflows; regenerate AS-IS `.md` fr
 ## BMX-P5-MATRIX — TD-BMX-07 behavior-matrix re-verification (exit gate)
 
 **Status:** ⬜ pending
-**Priority:** P0 | **Batch:** 10
+**Priority:** P0 | **Batch:** 16
 **Change type:** Verification
 **Workflows:** —
-**Depends on:** BMX-P5-DRIFT (hard)
+**Depends on:** BMX-P5-DRIFT (hard), BMX-P6-WF25 (hard), BMX-P6-WF43 (hard), BMX-P6-WF31 (hard)
 **Size:** M
 **Estimated tokens:** ~40K
 **Estimated effort:** ~1 hr
 
-Sprint exit gate. Walk the affected behavior-matrix cells (S1×E/F, S2×D/E, S4×D, S5×D, S7×G, S8×A–I, S10×E) using the existing `docs/artefacts/reviews/behavior-matrix-2026-05-27/index.html` as the test plan; confirm each moves to ✅ Working. **Update S8×G expectation** — opted_out+media now re-engages via WF-26 (NOT zero-outbound; the original TD-BMX-02 silent-reject expectation is obsolete per DR-4). Update the matrix HTML to post-fix state. Use `smoke-test` for execution + `monitor-test-run` for live observation. **Gate:** sprint cannot complete until all re-verified cells show ✅ and the HTML is updated.
+Sprint exit gate. **Sequenced to Batch 16 — last among functional work — so it re-walks the matrix against the fully-remediated live state** (all Phase-6/7 fixes landed). The hard deps are the classifier-contract fixes (WF-43/WF-31 mis-key + WF-25 entry-guard) that directly change S-cell behavior for `payment_submitted`/`consultation_closed`; re-walking those cells before the fix would test buggy behavior (BMX-P5-DRIFT PART E + batch-10 handoff). Walk the affected cells (S1×E/F, S2×D/E, S4×D, S5×D, S7×G, S8×A–I, S10×E) using the existing `docs/artefacts/reviews/behavior-matrix-2026-05-27/index.html` as the test plan; confirm each moves to ✅ Working. **Update S8×G expectation** — opted_out+media now re-engages via WF-26 (NOT zero-outbound; the original TD-BMX-02 silent-reject expectation is obsolete per DR-4). Update the matrix HTML to post-fix state. Use `smoke-test` for execution + `monitor-test-run` for live observation. Includes the deferred real-phone opted_out re-engagement smoke (reset a test phone to opted_out first). **Gate:** sprint cannot complete until all re-verified cells show ✅ and the HTML is updated.
 
 ## TD-BMX-02 — Reorder WF-01 security layers (Country → Blacklist → Non-Text) [as written]
 
@@ -572,3 +641,230 @@ Recorded for traceability only — not executed. See tasks.md RECONCILIATION ban
 **Depends on:** —
 
 Recorded for traceability only — not executed. See tasks.md RECONCILIATION banner + the ⚠️ SUPERSEDED note on the TD-BMX-03 block.
+
+## BMX-P6-WF43 — WF-43 wrong field key to WF-25 (BMX-P5-DRIFT HIGH)
+
+**Status:** ⬜ pending
+**Priority:** P0 | **Batch:** 11
+**Change type:** Surgical
+**Workflows:** WF-43
+**Depends on:** —
+**Size:** XS
+**Estimated tokens:** ~12K
+**Estimated effort:** ~20 min
+
+`Call WF-25 Intent Classifier` passes `messageText: {{ $json.messageText }}` (defineBelow, explicit), but the WF-01/WF-02 envelope carries top-level `messageContent` and no `messageText` → WF-25 `Prepare Intent Request` (which destructures `input.messageContent`) classifies `"undefined"` for **all free-form messages in `consultation_closed`**. Confirmed bug, BMX-P5-DRIFT PART E (live-verified). Fix = map `messageContent: {{ $json.messageContent }}` (WF-30/WF-40 already do this). Sync WF-43.pseudo if it isn't already on `messageContent`. Invoke `build-workflow`. Run before WF-25 entry-guard goes live (same batch).
+
+## BMX-P6-WF31 — WF-31 wrong field key to WF-25 + over-broad pass-through filter (BMX-P5-DRIFT HIGH+MED)
+
+**Status:** ⬜ pending
+**Priority:** P0 | **Batch:** 11
+**Change type:** Surgical
+**Workflows:** WF-31
+**Depends on:** —
+**Size:** S
+**Estimated tokens:** ~20K
+**Estimated effort:** ~30 min
+
+(1) **HIGH** — identical mis-key to WF-43: `Call WF-25` maps `messageText: {{ $json.messageText }}` → WF-25 misclassifies free-form text in `payment_submitted`. Newly confirmed in PART E (the audit had only flagged the 4-way filter). Fix = `messageContent: {{ $json.messageContent }}`. (2) **MED** — `Is Pass-Through Intent?` excludes 4 buckets (garbage / malicious_abusive / inappropriate / stop_intent) where pseudo Step 4 checks only `stop_intent` (WF-25 is contracted to terminate the other three internally); narrow the filter to match the hub contract. (3) **LOW** — `Call WF-25` uses `convertFieldsToString:true` vs WF-30's `false`; align. Sync WF-31.pseudo (incl. the Step-numbering Branch-A/B anomaly note — but that lands under BMX-P6-PSEUDONORM). Invoke `build-workflow`. Run before WF-25 entry-guard goes live (same batch).
+
+## BMX-P6-WF25 — WF-25 entry-guard hard-fail + drop undocumented nested-user fallback (BMX-P5-DRIFT HIGH, root cause)
+
+**Status:** ⬜ pending
+**Priority:** P0 | **Batch:** 11
+**Change type:** Structural (critical hub)
+**Workflows:** WF-25
+**n8n IDs:** `eTV1lUcYrXBg2q2T`
+**Depends on:** BMX-P6-WF43 (soft), BMX-P6-WF31 (soft)
+**Size:** M
+**Estimated tokens:** ~32K
+**Estimated effort:** ~1 hr
+
+Structural root cause that masked the WF-43/WF-31 mis-keys: `Prepare Intent Request` uses `||` fallbacks (`input.userStatus || input.user?.status || 'unknown'`) instead of an entry-guard Code node that throws on contract violation. contract-reference §B requires strict-envelope utilities to hard-fail. Add an entry-guard first node that validates the flat envelope (`phoneNumber`, `messageContent`, `userStatus`) and throws on violation; **remove the `input.user?.status` fallback** (an undeclared nested-`user` intake path that neither the pseudo's flat 6-field shape nor §C describes). Apply via jq+PUT on the SAME ID `eTV1lUcYrXBg2q2T` (5 callers reference it by ID — never mint a new ID); verify with re-fetch ([[feedback_n8n_mcp_nested_array_update]]). **Within-batch order: build LAST** (after WF-43 + WF-31 pass the correct `messageContent`) so the new hard-fail never sees a bad caller. Run consumer-contract acceptance check against all 5 callers (WF-30/31/40/43 + the WF-44-retired path). Sync WF-25.pseudo with the entry-guard line. Invoke `build-workflow`.
+
+## BMX-P6-WF45 — WF-45 forward envelope instead of re-SELECT + onError asymmetry (BMX-P5-DRIFT MED+LOW)
+
+**Status:** ⬜ pending
+**Priority:** P1 | **Batch:** 12
+**Change type:** Structural
+**Workflows:** WF-45
+**n8n IDs:** `MUG7rPgSHc7UtAE9`
+**Depends on:** —
+**Size:** M
+**Estimated tokens:** ~30K
+**Estimated effort:** ~1 hr
+
+(1) **MED** — `Load User Record` re-SELECTs `id, name, phone_number, status`, all four already in the WF-01 core envelope forwarded by callers WF-20/WF-43; `Prepare WF-50 Payload (Rebook Payment)` compounds it by reading name/phone from the re-queried row. Per the leaf no-re-SELECT / envelope-first rule, read from the envelope where the field exists; keep a SELECT only for genuinely out-of-core fields the guard needs (the `Classify Rebook State` guard added in Batch 9 needs `status` — keep just what the guard requires). (2) **LOW** — error-handling asymmetry: the 3 non-happy WF-50 calls set `continueRegularOutput` while the happy-path `Send Payment Instructions` uses default `stopWorkflow`; normalize the posture (decide intended fire-and-forget vs halt and apply uniformly). Sync WF-45.pseudo. Invoke `build-workflow`.
+
+## BMX-P6-WF53 — WF-53 context.source guard + userFacing-conditional admin sentence (BMX-P5-DRIFT MED + carried)
+
+**Status:** ⬜ pending
+**Priority:** P1 | **Batch:** 12
+**Change type:** Structural
+**Workflows:** WF-53
+**n8n IDs:** `ONzUJ1Lj9hIbUYT0`
+**Depends on:** —
+**Size:** S
+**Estimated tokens:** ~22K
+**Estimated effort:** ~45 min
+
+(1) **MED** — entry guard only checks `context` is a non-null object; contract-reference §C lists `source` as the one required field of `context`. A caller omitting `context.source` passes silently (and the alert text doesn't render it). Add `context.source` to the guard's hard-fail validation. (2) **Carried (followups.md, deferred live fix)** — the admin-alert closing sentence "The user has been told there's a technical hiccup and that the team will follow up." is emitted **unconditionally**, upstream of the `User-Facing?` IF; since U1 now HALTs on both branches, on a `userFacing=false` invocation the admin is told the user was notified when no apology was sent. Make the closing sentence conditional on `userFacing` inside the Build Admin Alert Code node (parametric, no flow impact). Still latent (no non-user-facing caller exists today) but fix now while in the workflow. Apply to **live + WF-53.pseudo together** (the pseudo currently documents the unconditional live behavior + a deferred-improvement note — update both). Invoke `build-workflow`.
+
+## BMX-P6-WF61 — WF-61 WF-51-failure handling + messageContent type-check (BMX-P5-DRIFT MED)
+
+**Status:** ⬜ pending
+**Priority:** P1 | **Batch:** 12
+**Change type:** Structural
+**Workflows:** WF-61
+**n8n IDs:** `9Zt23yt8k8PQSgji`
+**Depends on:** —
+**Size:** S
+**Estimated tokens:** ~20K
+**Estimated effort:** ~45 min
+
+(1) **MED** — `Call WF-51 Block Alert` has `onError: continueRegularOutput`; on a Slack failure U2 still returns `blocked:true` with **no admin alert delivered** and no record of the miss. Decide + implement the intended behavior (e.g. log the alert failure to `silent_drop`/WF-60 or surface it), and document it in WF-61.pseudo (currently unspecified). (2) **MED** — entry guard coerces `messageContent` via `String()` without a type-check (accepts a number); add an explicit type validation consistent with the other strict-envelope guards. Invoke `build-workflow`.
+
+## BMX-P6-LOWFIX — Sprint-group LOW live touch-ups (WF-02/20/21/26/30) (BMX-P5-DRIFT LOW)
+
+**Status:** ⬜ pending
+**Priority:** P2 | **Batch:** 13
+**Change type:** Surgical (batch across 5 workflows)
+**Workflows:** WF-02, WF-20, WF-21, WF-26, WF-30
+**Depends on:** —
+**Size:** S
+**Estimated tokens:** ~30K
+**Estimated effort:** ~1.5 hr
+
+Small genuine live edits from the LOW lists (one item, sequential per-workflow PUTs; no same-workflow race). **WF-02** — connect the `Non-Text Blocked?` true-output to an explicit End (currently silently unconnected vs pseudo's explicit End) + remove the stale sticky-note that still lists the removed `NEW_USER → WF-21` route. **WF-20** — HELP `else` fallback collapses pseudo Step 5's two defensive arms into one generic-menu ternary; restore the null-status → onboarding "Fill Details" arm so a null-status user gets onboarding re-entry, not the generic menu; bump trigger `v1`→`v1.1` (`inputSource:passthrough`) to match WF-01/02. **WF-21** — `Opt-Out/Rebook Alias?` `rightValue:={{ true }}` → canonical `operator:"true"` (match WF-23); `Build U1 Payload (Service)` add the omitted `consultChannelId` key (pseudo Step 9 passes `null`). **WF-26** — remove the undeclared `isNewUser` over-emit into the WF-02 re-route; add a 0-affected-rows guard on the status UPDATE (pseudo Step 2 says it halts). **WF-30** — align the empty-`value:{}` passthrough vs explicit-map inconsistency + `convertFieldsToString` with its sibling handlers. Sync each touched `.pseudo` where the change is functional. Invoke `build-workflow` (per-workflow backup/verify).
+
+## BMX-P6-PSEUDONORM — Pseudo-convention normalization + copy sync + pseudo-only LOW drift (BMX-P5-DRIFT PART C)
+
+**Status:** ⬜ pending
+**Priority:** P2 | **Batch:** 13
+**Change type:** Documentation (pseudo)
+**Workflows:** all (pseudo only)
+**Depends on:** BMX-P6-LOWFIX (soft)
+**Size:** L
+**Estimated tokens:** ~42K
+**Estimated effort:** ~2 hr
+
+Cross-cutting `.pseudo` normalization (BMX-P5-DRIFT PART C) — no live changes. (1) **Contract-declaration format** — unify on a single canonical contract block (the `## Inputs` Field|Type|Required|Used-by table form used by WF-22/47/52/60) across all 31, and add an explicit entry-guard line for every strict-envelope utility (WF-25/32/33 currently declare none). (2) **Numbering anomalies** — WF-31 embeds `(Branch A/B …)` labels inside the linear Step sequence; WF-11 numbers Validate as Step 1 before the trigger as Step 2; WF-00 (8a)/WF-10 (23a) lettered sub-steps — normalize to linear trigger-first numbering ([[feedback_pseudo_linear_numbering]]). (3) **Footer convention** — settle one project-wide footer (the `## Notes` style); WF-41's dated `History:` bullet is the odd one out. (4) **Copy-state sync** — sync the locked "Dr. Chinmay Mujumdar" copy into lagging `.pseudo` (esp. WF-23 still on draft "Dr. Chinmay"). (5) **Pseudo-only LOW drift** — fold into pseudo (live is truth, never reverse — [[feedback_pseudo_live_sync_per_batch]]): WF-01 `pendingUser.id` always-null note, WF-62 Gemini-retry `maxTries:3` + `...input` spread. Run `pseudo-md-drift-check` after. Regenerate `.md` only where live changed earlier this sprint (already done in Batch 10).
+
+## BMX-P7-WF33 — WF-33 payment status reconcile + admin Slack under-populated (BMX-P5-DRIFT existing-group HIGH)
+
+**Status:** 🟡 needs-decision
+**Priority:** P1 | **Batch:** 14
+**Change type:** Structural + DB-enum reconcile
+**Workflows:** WF-33
+**Depends on:** —
+**Size:** M
+**Estimated tokens:** ~32K
+**Estimated effort:** ~1 hr
+**Decision required:** `Update Payment Status` writes `status='verified'`; WF-33.pseudo Step 3 specifies `status='approved'`. Live and design disagree on the persisted enum value — any consumer querying `status='approved'` would miss live rows. **Decide which is canonical** (live `verified` correct + pseudo stale → update pseudo only; or pseudo `approved` correct → migrate live writes + any readers + existing rows). Resolve at build-time before touching live.
+
+Pre-existing existing-group HIGH (pulled in 2026-05-30). Two findings: (1) the payment-status enum reconcile above (**[RECONCILE]**, blocks until decided). (2) `Prepare WF-51 Payload` sends only name + phone + "consultation is now active"; pseudo Step 9 specifies a richer message incl. DOB/TOB/Place and the `CLOSE CHAT CONSULT <phone>` operator reminder — DOB/TOB/Place are out-of-core (correctly not re-SELECTed), so rendering them needs an envelope/SELECT change (decide minimal SELECT vs envelope extension at build). Invoke `build-workflow`; sync WF-33.pseudo.
+
+## BMX-P7-WF22 — WF-22 email_address never extracted → NULL insert (BMX-P5-DRIFT existing-group HIGH)
+
+**Status:** ⬜ pending
+**Priority:** P1 | **Batch:** 14
+**Change type:** Surgical (bug fix)
+**Workflows:** WF-22
+**Depends on:** —
+**Size:** S
+**Estimated tokens:** ~18K
+**Estimated effort:** ~30 min
+
+Real data bug: `Extract Form Data` does not parse `email_address` from `response_json`, yet `Create User Record` INSERT binds `$6 = $json.email_address` → **inserts NULL for every submission**, including Form-v2 payloads that include it. Pseudo Step 2 says it must be parsed. Fix = extract `email_address` in `Extract Form Data` so the existing INSERT binding resolves to the real value. Verify against a live Form-v2 `response_json` shape before/after. Invoke `build-workflow`; WF-22.pseudo already specifies the parse (confirm no pseudo change needed).
+
+## BMX-P7-WF11 — WF-11 BLOCK reason non-empty + parameterize SQL + re-SELECT (BMX-P5-DRIFT existing-group HIGH+MED)
+
+**Status:** ⬜ pending
+**Priority:** P1 | **Batch:** 14
+**Change type:** Structural
+**Workflows:** WF-11
+**n8n IDs:** `GoTYo0GS2y8qjjkw`
+**Depends on:** —
+**Size:** M
+**Estimated tokens:** ~30K
+**Estimated effort:** ~1 hr
+
+(1) **HIGH** — `Validate Inputs` only checks `typeof reason==='string'`; contract §A.2 + pseudo Step 1 require **non-empty** for `BLOCK`. An empty BLOCK reason passes the whole chain. Enforce non-empty. (2) **MED** — `Lookup Blocked User` uses string-interpolated SQL (`'{{ $json.phoneNumber }}'`) → injection surface (admin-controlled, but inconsistent with the parameterized pattern elsewhere); convert to parameterized `$1`. (3) **MED** — same node re-SELECTs `phone_number, status` (+ id/name) already present in the WF-10 command-envelope `user` object; drop the re-SELECT per the leaf no-re-SELECT rule (keep only out-of-core fields). **Do NOT touch** the `admin_actions` INSERT — known-deprecated, [[project_admin_actions_deprecated]] / TD-NEW-026, do not re-flag. Sync WF-11.pseudo (incl. its trigger-not-first numbering — handled under BMX-P6-PSEUDONORM). Invoke `build-workflow`.
+
+## BMX-P7-WF10 — WF-10 adminMessage key + SELECT drift (BMX-P5-DRIFT existing-group MED)
+
+**Status:** ⬜ pending
+**Priority:** P2 | **Batch:** 15
+**Change type:** Surgical
+**Workflows:** WF-10
+**Depends on:** —
+**Size:** S
+**Estimated tokens:** ~18K
+**Estimated effort:** ~30 min
+
+(1) `Build WF-41 Payload` uses key `messageText` where pseudo Step 23 names it `adminMessage` (end result still correct downstream) — align the key to the pseudo contract (or, if live is the agreed name, update pseudo; decide which is canonical). (2) `Load User Status` SELECT includes `current_consultation_id`, wider than pseudo Step 17 — live is ahead of pseudo; sync WF-10.pseudo to match live (live is truth). Invoke `build-workflow`.
+
+## BMX-P7-WF47 — WF-47 opt-out notice copy (phone-in-message) (BMX-P5-DRIFT existing-group MED)
+
+**Status:** ⬜ pending
+**Priority:** P2 | **Batch:** 15
+**Change type:** Surgical (copy)
+**Workflows:** WF-47
+**Depends on:** —
+**Size:** XS
+**Estimated tokens:** ~12K
+**Estimated effort:** ~20 min
+
+`Prepare WF-51 Payload (Opt-out Notice)` embeds the phone number inline in the admin notice; pseudo Step 4 copy has no phone. Confirmed copy divergence (the empty-`defineBelow value:{}` mapping flag on this workflow's WF-51/WF-50 calls was a **withdrawn false positive** — standard passthrough, do not change). Decide canonical copy (keep phone for operator convenience → update pseudo; or remove → update live) and align live+pseudo. Invoke `build-workflow`.
+
+## BMX-P7-WF60 — WF-60 content not validated (BMX-P5-DRIFT existing-group MED)
+
+**Status:** ⬜ pending
+**Priority:** P2 | **Batch:** 15
+**Change type:** Structural
+**Workflows:** WF-60
+**Depends on:** —
+**Size:** XS
+**Estimated tokens:** ~12K
+**Estimated effort:** ~30 min
+
+Entry guard checks `transport/direction/messageType` but not `content`, which contract-reference §B lists as always-required (str|null) — a caller omitting `content` passes the guard (resolved to null downstream). Pseudo's Inputs says "required" but its Algorithm Step 2 doesn't enforce it (internal pseudo inconsistency; live matches the weaker Algorithm). Add the `content` presence check to the guard and reconcile the pseudo Inputs-vs-Algorithm so both agree. Invoke `build-workflow`.
+
+## BMX-P7-WF32 — WF-32 RETURNING-row read vs envelope-first (BMX-P5-DRIFT existing-group MED)
+
+**Status:** ⬜ pending
+**Priority:** P2 | **Batch:** 15
+**Change type:** Structural (pseudo-design)
+**Workflows:** WF-32
+**Depends on:** —
+**Size:** S
+**Estimated tokens:** ~18K
+**Estimated effort:** ~30 min
+
+`Prepare User Confirmation` reads `phone_number`/`name` from the `Update User Status` RETURNING row rather than the envelope. This is **not live-vs-pseudo drift** — pseudo itself specifies it (Step 7) — but the pseudo design violates the envelope-first principle for those two fields. Decide: forward the envelope fields (and update both live + pseudo) or accept the RETURNING-row read as intentional (document the exception in pseudo). Lowest-risk existing-group item. Invoke `build-workflow` only if a live change is chosen.
+
+## BMX-P8-DOCS — CLAUDE.md + registry WhatsApp Flow ID drift (carried sprint-close)
+
+**Status:** ⬜ pending
+**Priority:** P2 | **Batch:** 17
+**Change type:** Documentation
+**Workflows:** —
+**Depends on:** —
+**Size:** XS
+**Estimated tokens:** ~10K
+**Estimated effort:** ~15 min
+
+Carried from Batches 5–10 (flagged repeatedly, deferred to sprint close). CLAUDE.md "Key Credential IDs" table lists WhatsApp Flow ID `1408011897720771`; the live value used by WF-21/23/45 is `2260297164474475`. Correct the CLAUDE.md entry + the stale duplicate in the workflow-registry legacy table (~line 343). Doc-only; verify the live value once more before editing. No workflow change.
+
+## BMX-P8-PLUGIN — Flush carried plugin improvements (sprint-close)
+
+**Status:** ⬜ pending
+**Priority:** P2 | **Batch:** 17
+**Change type:** Plugin (methodology)
+**Workflows:** —
+**Depends on:** —
+**Size:** M
+**Estimated tokens:** ~30K
+**Estimated effort:** ~1 hr
+
+Run `flush-plugin-improvements` over all carried notes in `followups.md` (deferred per [[feedback_plugin_improvement_timing]] — flush at sprint boundary by priority, not mid-batch). Candidates: handoff commit-agnostic phrasing (low); plan-sprint greenfield-pseudo-in-build-batch (med); consumer-contract acceptance gate at build-workflow Step 6 + impact-analysis Step 3 (med); build-workflow Step-6a connection-target scan (med); Set-node no-optional-chaining rule (med); contract-emit Set downstream of exec must read `$('NamedNode')` not `$json` (med); terminal Return in send-then-return reads canonical upstream not `$input.first()` (med); sub-agent audit fan-out pattern + N≥5 completion-notification monitoring + Sonnet-justified-audit example for dispatching-subagents (med); fast-enumeration drift-check mode for pseudo-md-drift-check (low). The expression-as-shell-var hazard is a CLAUDE.md candidate (not plugin) — route accordingly. Applies each by priority, bumps CHANGELOG, commits, syncs the active cache. Last item of the sprint.
