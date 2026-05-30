@@ -48,9 +48,9 @@
 | BMX-P4-WF45 | ✅ done | 9 | P0 | WF-45 | BMX-P1-PSEUDO (hard) |
 | BMX-P4-ACTIVATE | ✅ done | 9 | P0 | WF-26 | BMX-P4-WF26 (hard) |
 | BMX-P5-DRIFT | ✅ done | 10 | P0 | — | BMX-P4-ACTIVATE (hard), BMX-P4-WF45 (hard) |
-| BMX-R11-WF30 | ⬜ pending | 11 | P0 | WF-30 | — |
-| BMX-R11-WF31 | ⬜ pending | 11 | P0 | WF-31 | — |
-| BMX-R11-WF43 | ⬜ pending | 11 | P0 | WF-43 | — |
+| BMX-R11-WF30 | ✅ done | 11 | P0 | WF-30 | — |
+| BMX-R11-WF31 | ✅ done | 11 | P0 | WF-31 | — |
+| BMX-R11-WF43 | ✅ done | 11 | P0 | WF-43 | — |
 | BMX-R12-WF25 | ⬜ pending | 12 | P0 | WF-25 | BMX-R11-WF30, BMX-R11-WF31, BMX-R11-WF43 (hard) |
 | BMX-R13-WF34 | ⬜ pending | 13 | P1 | WF-34 | — |
 | BMX-R13-WF33 | ⬜ pending | 13 | P1 | WF-33 | — |
@@ -156,6 +156,9 @@
 - **Description:** The three free-form-text handlers that pass a broken payload to the WF-25 intent classifier (Section-1 mis-key, live-confirmed). Each maps key `messageText` (absent from the WF-01/WF-02 envelope) plus `userId`/`userStatus` read from non-existent top-level fields → WF-25 classifies an empty message with no identity for every free-form message in payment_pending (WF-30), payment_submitted (WF-31), consultation_closed (WF-43). Uniform 3-field fix across all three (drop `messageText` → add `messageContent`; `userId`←`user.id`; `userStatus`←`user.status` — matches the working WF-40 template). Per-workflow ride-alongs: WF-31 also gets payment-lookup SQL parameterization + under-review-copy pseudo-sync + Branch-A/B pseudo cleanup; all three get the trigger v1→v1.1 passthrough bump. Three different workflows → no same-workflow race. **Must complete before Batch 12 (WF-25 entry-guard) and before Batch 17 (matrix re-walk).**
 - **Estimated size:** S
 - **Estimated tokens:** ~40K
+- **Execution plan (recorded 2026-05-30 by build-sprint Step 2a):** Mode C — Batch Surgical (build-workflow Step 5d). The Call-WF-25 mapping fix + trigger v1→v1.1 passthrough bump are byte-identical across all three; WF-31 adds surgical ride-alongs (SQL param) + doc-only pseudo edits. jq-on-disk + curl PUT per workflow (one lint pass each). Three different workflows → siblings may apply in any order; none Mode-D-eligible (non-parametric data-contract change to WF-25 + pseudo-sync judgment).
+- **Post-batch regression (2026-05-30T12:33Z — PASS):** Dependency map rebuilt (78 edges). WF-25 caller set = {WF-30, WF-31, WF-40, WF-43} (WF-44 correctly absent — Batch 8 stripped its WF-25 call). The one un-touched sibling, **WF-40 (reference template), already correct** — trigger v1.1 passthrough + mapping reads `user.id`/`user.status`/`messageContent` (verified pre-fix). Postgres sibling sweep across all workflows: **zero** non-parameterized `user_id = {{` interpolations remain (WF-31 was the only one, now `$1`); **zero** SELECT nodes missing `alwaysOutputData`. No strict findings. **Adjacent (logged followups.md, accepted-pending-review):** WF-30/31/43 now read the envelope via relative `$json.*` while WF-40 uses absolute `$('When Executed…').item.json.*`; both resolve identically given verified topology (Call WF-25 fed by trigger directly in WF-30/31, by pass-through IF in WF-43) — read-source convention divergence, not a defect. Live end-to-end deferred to Batch 17 matrix re-walk.
+- **Ground-truth (2026-05-30, pre-mutation):** WF-01 `Classify & Build Envelope` Code node IS the §2.1 envelope source — emits top-level `phoneNumber`, `messageContent`, and `user.{id,name,status,slack_channel_id,...}`; **NO `messageText`, NO top-level `userId`/`userStatus`.** WF-02 Route Switch passes the raw envelope to the handlers (no contract-emit Set). Confirms the mis-key (old mapping read 3 undefined fields) AND that the planned NEW mapping (read `messageContent`/`user.id`/`user.status`) is correct. Step 2a pseudo obligation: WF-25.pseudo line 6 already declares the canonical contract (end-state locked Batch 3) → this is implementation-to-match. WF-43.pseudo already correct (Step 8 uses `user.id`/`user.status`, no legacy fields) → no sync. WF-30/31.pseudo are stale (document the broken `messageContent: messageText` mapping + false "plus messageText/userId/userStatus" Inputs claim) → synced this batch.
 
 ## Batch 12 — Classifier hub · WF-25 (HIGH)
 
@@ -653,7 +656,13 @@ Recorded for traceability only — not executed. See tasks.md RECONCILIATION ban
 
 ## BMX-R11-WF30 — WF-30 fix WF-25 caller payload + trigger version
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-30T12:27:58Z
+**Completed:** 2026-05-30T12:31:15Z
+**Actual tokens:** ~14K
+**Actual effort:** ~3 min
+**Estimate delta:** on-bucket (planned XS ~12K, actual ~14K)
+**Verification:** mapping fixed (messageContent + user.id/user.status, messageText dropped); trigger v1→1.1 passthrough live-confirmed; lint exit 0; validate runtime valid:true errorCount:0 (warnings all pre-existing tv-floor/cachedResultName). Pseudo synced (Inputs + Step 1 + Step 2 mapping). No nodes removed → 6a skipped; no operation-default node → 6b clear.
 **Priority:** P0 | **Batch:** 11
 **Change type:** Surgical
 **Workflows:** WF-30
@@ -675,7 +684,13 @@ Sync WF-30.pseudo only if it references the old keys (live is truth). Invoke `bu
 
 ## BMX-R11-WF31 — WF-31 fix WF-25 caller payload + payment-lookup SQL + copy/pseudo + trigger
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-30T12:27:58Z
+**Completed:** 2026-05-30T12:32:39Z
+**Actual tokens:** ~22K
+**Actual effort:** ~5 min
+**Estimate delta:** on-bucket (planned S ~24K, actual ~22K)
+**Verification:** (1) mapping fix live-confirmed (messageContent + user.id/user.status, messageText dropped); (2) Load Latest Payment parameterized → `WHERE user_id = $1` + `queryReplacement: ={{ [$('When Executed...').item.json.user.id] }}`, operation=executeQuery explicit, aod:true preserved, no `{{ }}` left in query so no `=` prefix needed; (3) under-review copy KEPT live (bold + blank lines), pseudo Step 8 synced verbatim; (4) trigger v1→1.1 passthrough; (5) pseudo P3 — standalone (Branch A/B) labels removed → inline [Branch] tags, steps linear 1–11; Inputs + Step 1 + Step 3 mapping synced. lint exit 0; validate runtime valid:true errorCount:0. No nodes removed → 6a skipped; Postgres operation explicit → 6b clear.
 **Priority:** P0 | **Batch:** 11
 **Change type:** Surgical
 **Workflows:** WF-31
@@ -699,7 +714,13 @@ Invoke `build-workflow`. **Must complete before BMX-R12-WF25.**
 
 ## BMX-R11-WF43 — WF-43 fix WF-25 caller payload + trigger version
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-30T12:27:58Z
+**Completed:** 2026-05-30T12:31:15Z
+**Actual tokens:** ~10K
+**Actual effort:** ~3 min
+**Estimate delta:** on-bucket (planned XS ~12K, actual ~10K)
+**Verification:** identical mapping fix + trigger v1→1.1 passthrough live-confirmed; lint exit 0; validate runtime valid:true errorCount:0. Pseudo already correct (Step 8 used `user.id`/`user.status`, Inputs had no legacy fields) → no sync needed, matching plan. Call WF-25 fed by pass-through `Is Button Reply?` IF → `$json` envelope resolves. No nodes removed → 6a skipped.
 **Priority:** P0 | **Batch:** 11
 **Change type:** Surgical
 **Workflows:** WF-43

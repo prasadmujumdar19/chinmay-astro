@@ -3,7 +3,7 @@ WF-31 — Payment Submitted Handler
 ## Summary
 
 - Purpose: Thin state handler for `payment_submitted` user text. Two parallel branches: Branch A classifies via WF-25 and replies (Gemini contextual reply for general enquiry, canned "under review" reassurance otherwise); Branch B unconditionally relays every inbound message into the user's consult Slack channel (tagged with time-since-paid). stop_intent needs no Branch-A extra (WF-25 sent the clarifier); garbage / abuse terminate inside WF-25.
-- Inputs (WF-01 canonical envelope §2.1): `phoneNumber` (top-level), `messageContent`, `user.{id, name, status, slack_channel_id}`, plus `messageText`, `userId`, `userStatus`. `user.slack_channel_id` drives the Branch-B relay (no DB re-fetch).
+- Inputs (WF-01 canonical envelope §2.1, received via trigger passthrough): `phoneNumber` (top-level), `messageContent`, `user.{id, name, status, slack_channel_id}`. (The envelope carries no `messageText`/top-level `userId`/`userStatus` — those are read off `user.*` and `messageContent`.) `user.slack_channel_id` drives the Branch-B relay (no DB re-fetch).
 - Outputs: Branch A — a Gemini reply or canned "under review" reassurance via WF-50. Branch B — a Slack relay of the user message into the consult channel (always).
 - State Transitions: none.
 - Calls Sub-Workflows: WF-25 (Intent Classifier + Safety-Net Hub), WF-53 (U1 — on the local Gemini reply's failure), WF-50 (Send WhatsApp), WF-51 (Send Slack — Branch B relay).
@@ -19,11 +19,9 @@ WF-31 — Payment Submitted Handler
 
 ## Algorithm
 
-Step 1: Start — triggered by WF-02 with the WF-01 canonical envelope plus `{ messageText, userId, userStatus }`. Read `phoneNumber` and `user.slack_channel_id` from the envelope.
+Step 1: Start — triggered by WF-02 with the WF-01 canonical envelope (trigger passthrough). Read `phoneNumber` and `user.slack_channel_id` from the envelope.
 Step 2: Fan out in parallel from the trigger: Branch A → Step 3 (intent + reply); Branch B → Step 9 (Slack relay).
-
-(Branch A — user reply)
-Step 3: Call WF-25 with `{ phoneNumber, userId, messageContent: messageText, userStatus, userName: user.name, slackChannelId: user.slack_channel_id }`. Receive `intentResult`. (Garbage / abuse / Gemini-failure terminate inside WF-25; control does not return for those.)
+Step 3: Call WF-25 with `{ phoneNumber, userId: user.id, messageContent, userStatus: user.status, userName: user.name, slackChannelId: user.slack_channel_id }`. Receive `intentResult`. (Garbage / abuse / Gemini-failure terminate inside WF-25; control does not return for those.) [Branch A — user reply]
 Step 4: Check: `intentResult == 'stop_intent'`?
   - If YES → End of Branch A (WF-25 already sent the clarifier; no extra).
   - If NO → go to Step 5.
@@ -32,9 +30,8 @@ Step 5: Check: `intentResult == 'general_enquiry'`?
   - If NO → go to Step 8.
 Step 6: Build a Gemini prompt for a brief, warm reply with the payment-submitted stage cue ("payment is being reviewed by Dr. Chinmay") + an email callout, append the user's message, then POST to Gemini (gemini-2.5-flash-lite, temperature=0.3). On Gemini failure → go to Step 7. On success → extract the reply (fallback default), call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <reply> }`. End of Branch A.
 Step 7: Gemini failure — call U1 with `{ phoneNumber, userFacing: true, consultChannelId: user.slack_channel_id, context: { source: 'WF-31', userName: user.name, userStateText: 'payment under review', userMessage: messageContent, errorDetail: <summary> } }`. End of Branch A.
-Step 8: Build the canned "under review" reassurance: "⏳ Your payment is currently under review. Chinmay will verify it and get back to you shortly (usually within a few hours). You don't need to do anything else right now. If you have any questions, feel free to ask!" Call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <message> }`. End of Branch A.
+Step 8: Build the canned "under review" reassurance (verbatim live copy — bold first line, blank-line paragraph breaks): "⏳ *Your payment is currently under review.*\n\nChinmay will verify it and get back to you shortly (usually within a few hours). You don't need to do anything else right now.\n\nIf you have any questions, feel free to ask!" Call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <message> }`. End of Branch A.
 
-(Branch B — relay user message into the consult Slack channel)
-Step 9: SELECT created_at FROM chinmay_astro.payments WHERE user_id = user.id ORDER BY id DESC LIMIT 1 (most recent payment). If no row, treat elapsed as `?`.
+Step 9: SELECT created_at FROM chinmay_astro.payments WHERE user_id = user.id ORDER BY id DESC LIMIT 1 (most recent payment). If no row, treat elapsed as `?`. [Branch B — Slack relay]
 Step 10: Compute elapsed-since-paid as a human string: `< 60 min` → "{n} min ago"; `< 24 h` → "{n} h ago"; else "{n} d ago".
 Step 11: Build the relay payload: `{ channelId: user.slack_channel_id, messageText: "⏱ Paid {elapsed} · 💬 *Message from {user.name or phoneNumber} (payment under review):*\n>{messageContent}" }`. Call WF-51. End of Branch B.

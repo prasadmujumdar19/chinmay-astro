@@ -77,3 +77,11 @@ This session ran a successful 11-agent parallel read-only audit (Sonnet, backgro
 - **Fix:** when a hard dep is a contract coupling (entry-guard validates a caller payload; consumer reads a producer envelope), plan-sprint should (a) define the shared contract once, (b) embed it verbatim in BOTH the producer item ("emit exactly this") and the consumer/guard item ("require exactly this — your dependency already emits it"), and (c) build-sprint should, on item pickup, verify the hard-dep items are `done` AND surface the embedded contract before authoring. Mitigated manually in this sprint by restating the contract inline in the WF-25 item + a hard dep on WF-30/31/43.
 - **Priority hint:** medium (correctness-of-build across sessions; the data-contract discipline depends on this not drifting). Flush via `flush-plugin-improvements` at sprint boundary.
 - Backing memory: [[feedback_data_contract_discipline]], [[feedback_lock_decisions_in_plan]].
+
+## [2026-05-30] — Post-batch P0 (Batch 11) regression — adjacent finding
+
+- **WF-30 / WF-31 / WF-43** (Call WF-25 Intent Classifier mapping): read the trigger-passthrough envelope via relative `$json.user.id` / `$json.messageContent` / `$json.user.status`, whereas the reference sibling **WF-40** uses the absolute trigger reference `$('When Executed by Another Workflow').item.json.user.id`.
+  - Found while verifying sibling of: BMX-R11-WF30/WF31/WF43.
+  - **Classification:** adjacent (read-source convention divergence, not a defect). Both forms resolve identically given the verified topology — Call WF-25 is fed directly by the trigger in WF-30/31, and by a pass-through `Is Button Reply?` IF in WF-43, so `$json` at that node IS the trigger envelope. Plan specified the relative `$json` literal (operator-locked); implemented as specified.
+  - **Decision:** accepted-pending-review. The absolute trigger-reference form (WF-40 style) is more refactor-robust if an intermediate reshaping node is ever inserted upstream of Call WF-25. Per build-workflow's read-source-convention guidance, the right resolution is a `.pseudo` Notes annotation declaring the preferred form + deferring live cleanup to next functional touch — NOT a live edit now. No action this sprint.
+  - **Priority hint:** low.

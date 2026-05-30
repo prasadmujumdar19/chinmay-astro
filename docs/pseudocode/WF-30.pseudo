@@ -3,7 +3,7 @@ WF-30 — Payment Pending Handler
 ## Summary
 
 - Purpose: Thin state handler for `payment_pending` user text. Classifies via WF-25 (which owns all safety actions), then does its one stage-specific job: a Gemini contextual reply for general enquiries, or a canned payment reminder for other pass-through intents. stop_intent needs no extra action (WF-25 already sent the clarifier); garbage / abuse terminate inside WF-25.
-- Inputs (WF-01 canonical envelope §2.1): `phoneNumber` (top-level), `messageContent`, `user.{id, name, status, slack_channel_id}`, plus `messageText`, `userId`, `userStatus` passed by WF-02.
+- Inputs (WF-01 canonical envelope §2.1, received via trigger passthrough): `phoneNumber` (top-level), `messageContent`, `user.{id, name, status, slack_channel_id}`. (The envelope carries no `messageText`/top-level `userId`/`userStatus` — those are read off `user.*` and `messageContent`.)
 - Outputs: a Gemini-generated WhatsApp reply (general_enquiry) or a canned payment reminder (other pass-through). No output for stop_intent / garbage / abuse (handled in WF-25).
 - State Transitions: none.
 - Calls Sub-Workflows: WF-25 (Intent Classifier + Safety-Net Hub), WF-53 (U1 — on the local Gemini reply's failure), WF-50 (Send WhatsApp).
@@ -18,8 +18,8 @@ WF-30 — Payment Pending Handler
 
 ## Algorithm
 
-Step 1: Start — triggered by WF-02 with the WF-01 canonical envelope plus `{ messageText, userId, userStatus }`. Read `phoneNumber` from the top-level envelope field.
-Step 2: Call WF-25 with `{ phoneNumber, userId, messageContent: messageText, userStatus, userName: user.name, slackChannelId: user.slack_channel_id }`. Receive `intentResult`. (If WF-25 hits a Gemini failure or handles garbage/abuse, it halts/terminates inside itself and control does not return here.)
+Step 1: Start — triggered by WF-02 with the WF-01 canonical envelope (trigger passthrough). Read `phoneNumber` from the top-level envelope field.
+Step 2: Call WF-25 with `{ phoneNumber, userId: user.id, messageContent, userStatus: user.status, userName: user.name, slackChannelId: user.slack_channel_id }`. Receive `intentResult`. (If WF-25 hits a Gemini failure or handles garbage/abuse, it halts/terminates inside itself and control does not return here.)
 Step 3: Check: `intentResult == 'stop_intent'`?
   - If YES → End (WF-25 already sent the clarifier; no stage-specific extra for payment_pending).
   - If NO → go to Step 4.
