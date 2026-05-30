@@ -3,7 +3,7 @@ WF-25 — Intent Classifier + Safety-Net Hub
 ## Summary
 
 - Purpose: The existing-user classifier AND the centralized safety net. WF-25 classifies the message (8 buckets), and owns the cross-stage safety actions — stop_intent clarifier, garbage warning + counting, abuse block, and Gemini-failure handling — so the state handlers (WF-30/31/40/43) stay thin and stage-specific. Leniency varies by `userStatus` (it receives it).
-- Inputs: `{ phoneNumber, userId, messageContent, userStatus, userName, slackChannelId }`.
+- Inputs: see the `## Inputs` section below — a strict, entry-guarded envelope (no silent fallback).
 - Callers (post-BMX-06): WF-30, WF-31, WF-40, WF-43 — existing-user only (WF-23 now uses U3). So `userStatus ∈ { payment_pending, payment_submitted, consultation_active, consultation_closed }`.
 - Outputs: see per-branch returns. WF-25 returns to the caller ONLY on pass-through, stop_intent, and the consultation_active-garbage-not-blocked (D4) path; garbage (other stages), garbage-blocked, abuse, and Gemini-failure all terminate inside WF-25 with no return.
 - State Transitions: none directly. U2 (called for garbage at threshold + abuse) sets `status='blocked'`.
@@ -20,26 +20,45 @@ WF-25 — Intent Classifier + Safety-Net Hub
   - **D5 — stop_intent clarifier is sent by WF-25, then WF-25 RETURNS** `intentResult=stop_intent` so the caller still does its stage-specific action (e.g. WF-40 relays; WF-31 Branch B relays). This removes the old WF-43 auto-unsubscribe inconsistency.
   - **Return-contract (verified against callers):** the no-return branches are safe — WF-30/WF-43 take no action on garbage beyond WF-25's warning; WF-31's relay is its independent parallel Branch B; only WF-40 needs the message back, which the D4 branch provides.
   - Classification prompt is UNCHANGED (8 buckets). Copy is REUSE-EXISTING — verify verbatim at build (safety-net §9).
+  - **Entry-guard (added 2026-05-30, BMX-R12-WF25):** the first node hard-fails on a malformed envelope (any missing/empty required field), replacing the prior silent `||`-fallback degradation that masked the caller mis-key. The guard's required-field set IS the contract the callers now emit (see `## Inputs`).
+
+---
+
+## Inputs
+
+The caller (an existing-user state handler) emits a flat envelope. The first node is an entry-guard that hard-fails on any malformed envelope (a missing or empty required field) — there is no silent fallback, and no undeclared nested-intake path (e.g. the old `user.status` fallback is removed).
+
+| Field | Type | Required | Source (caller emits) |
+|-------|------|----------|-----------------------|
+| `phoneNumber` | string, non-empty | yes | `$json.phoneNumber` |
+| `userId` | present | yes | `($json.user \|\| {}).id` |
+| `messageContent` | string | yes | `$json.messageContent` |
+| `userStatus` | present | yes | `($json.user \|\| {}).status` |
+| `userName` | string | no | `($json.user \|\| {}).name` |
+| `slackChannelId` | string | no | `($json.user \|\| {}).slack_channel_id` |
+
+Callers (post-BMX-06): WF-30, WF-31, WF-40, WF-43 — existing-user only (WF-23 now uses U3). So `userStatus ∈ { payment_pending, payment_submitted, consultation_active, consultation_closed }`.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — triggered by a caller with `{ phoneNumber, userId, messageContent, userStatus, userName, slackChannelId }`.
-Step 2: Build the Gemini classification request — the existing 8-bucket prompt (wants_consultation, general_enquiry, rebook_intent, feedback_intent, stop_intent, garbage, malicious_abusive, inappropriate), with `userStatus` as context; deterministic config (temperature=0, short output).
-Step 3: POST the request to Gemini (gemini-2.5-flash-lite). On Gemini failure → go to Step 4. On success → go to Step 5.
-Step 4: Gemini failure — call U1 with `{ phoneNumber, userFacing: true, consultChannelId: slackChannelId, context: { source: 'WF-25', userName, userStateText: <userStatus in plain English>, userMessage: messageContent, errorDetail: <summary> } }`. U1 apologises + alerts admin + HALTS, so WF-25 terminates and the caller's turn ends. End — no return.
-Step 5: Parse the Gemini response → trim + lowercase. If it matches one of the 8 buckets, use it; else status-aware fallback (`consultation_closed → feedback_intent`; otherwise `general_enquiry`). Set `intentResult`.
-Step 6: Route on `intentResult`:
-  - pass-through { wants_consultation, general_enquiry, rebook_intent, feedback_intent } → go to Step 11 (return).
-  - stop_intent → go to Step 7.
-  - garbage → go to Step 9.
-  - malicious_abusive | inappropriate → go to Step 10.
-Step 7: Build the stop_intent clarifier (reuse live copy: "This is an automated message from Chinmay Astro — we noticed your message mentioned STOP or unsubscribing. If this was unrelated, please ignore. If you do want to opt out of this service, simply send STOP at any time.").
-Step 8: Call WF-50 to send the clarifier. Then go to Step 11 (return `intentResult=stop_intent` so the caller does its stage-specific extra, e.g. relay).
-Step 9: Garbage — call U2 with `{ phoneNumber, messageType: 'text', reason: 'garbage', messageContent, blockThreshold: 10, blockReason: 'threshold_garbage' }`. Receive `{ blocked }`. Then:
+Step 1: Start — triggered by a caller with the envelope described in `## Inputs`.
+Step 2: Validate inputs (entry-guard) — hard-fail if any REQUIRED field (`phoneNumber`, `userId`, `messageContent`, `userStatus`) is missing or empty. On violation, raise an error so the workflow terminates and the caller's turn ends (no defaulted intent, no silent fallback). On success, pass the envelope through unchanged.
+Step 3: Build the Gemini classification request — the existing 8-bucket prompt (wants_consultation, general_enquiry, rebook_intent, feedback_intent, stop_intent, garbage, malicious_abusive, inappropriate), with `userStatus` as context; deterministic config (temperature=0, short output).
+Step 4: POST the request to Gemini (gemini-2.5-flash-lite). On Gemini failure → go to Step 5. On success → go to Step 6.
+Step 5: Gemini failure — call U1 with `{ phoneNumber, userFacing: true, consultChannelId: slackChannelId, context: { source: 'WF-25', userName, userStateText: <userStatus in plain English>, userMessage: messageContent, errorDetail: <summary> } }`. U1 apologises + alerts admin + HALTS, so WF-25 terminates and the caller's turn ends. End — no return.
+Step 6: Parse the Gemini response → trim + lowercase. If it matches one of the 8 buckets, use it; else status-aware fallback (`consultation_closed → feedback_intent`; otherwise `general_enquiry`). Set `intentResult`.
+Step 7: Route on `intentResult`:
+  - pass-through { wants_consultation, general_enquiry, rebook_intent, feedback_intent } → go to Step 12 (return).
+  - stop_intent → go to Step 8.
+  - garbage → go to Step 10.
+  - malicious_abusive | inappropriate → go to Step 11.
+Step 8: Build the stop_intent clarifier (reuse live copy: "This is an automated message from Chinmay Astro — we noticed your message mentioned STOP or unsubscribing. If this was unrelated, please ignore. If you do want to opt out of this service, simply send STOP at any time.").
+Step 9: Call WF-50 to send the clarifier. Then go to Step 12 (return `intentResult=stop_intent` so the caller does its stage-specific extra, e.g. relay).
+Step 10: Garbage — call U2 with `{ phoneNumber, messageType: 'text', reason: 'garbage', messageContent, blockThreshold: 10, blockReason: 'threshold_garbage' }`. Receive `{ blocked }`. Then:
   - If `blocked == true` → End — no return (U2 already sent the block alert; silent).
-  - Else if `blocked == false` AND `userStatus == 'consultation_active'` → go to Step 11 (D4 — return; WF-40 relays; no warning to the user).
+  - Else if `blocked == false` AND `userStatus == 'consultation_active'` → go to Step 12 (D4 — return; WF-40 relays; no warning to the user).
   - Else → send the gentle garbage warning via WF-50 ("⚠️ Your message could not be understood. Please send a clear question about our astrology consultation service."). End — no return, no admin notify.
-Step 10: Abuse — call U2 with `{ phoneNumber, messageType: 'text', reason: 'abuse', messageContent, blockThreshold: 1, blockReason: 'abuse' }`. U2 sets `status='blocked'` (`blocked_reason='abuse'`, `blocked_at=NOW()`, `blocked_by='WF-61'`) + posts the admin alert (embedding the message). No user reply. End — no return.
-Step 11: Return to the caller — the original input merged with `{ intentResult }`.
+Step 11: Abuse — call U2 with `{ phoneNumber, messageType: 'text', reason: 'abuse', messageContent, blockThreshold: 1, blockReason: 'abuse' }`. U2 sets `status='blocked'` (`blocked_reason='abuse'`, `blocked_at=NOW()`, `blocked_by='WF-61'`) + posts the admin alert (embedding the message). No user reply. End — no return.
+Step 12: Return to the caller — the original input merged with `{ intentResult }`.
