@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/sprints/behavior-matrix-fixes-2026-05-27/tasks.md
 **Input hash:** 5e7e3db0999e1128ce39970bc1075716120bb3cf87f7067616220f7653ff7f54
 **Planned at:** 2026-05-29T07:53:18Z
-**Last updated:** 2026-05-30T11:37:09Z
+**Last updated:** 2026-05-30T14:04:00Z
 **Planning complete:** true
 
 **Reconciled scope:** Planned against the tasks.md RECONCILIATION banner (2026-05-29), NOT the original 7 TD-BMX item blocks. The redesign is defined across two companion specs — `docs/artefacts/specs/2026-05-29-bmx-06-new-contact-flow-design.md` (new + pre-form) and `docs/artefacts/specs/2026-05-29-existing-user-safety-net-design.md` (existing + opted_out + BMX-05). The original TD-BMX-01..07 items are decomposed into the build units of the cross-spec **Phase 0→5 build sequence** (safety-net spec §8.2). User confirmed phase-mapped granularity (19 build units) on 2026-05-29.
@@ -52,9 +52,9 @@
 | BMX-R11-WF31 | ✅ done | 11 | P0 | WF-31 | — |
 | BMX-R11-WF43 | ✅ done | 11 | P0 | WF-43 | — |
 | BMX-R12-WF25 | ✅ done | 12 | P0 | WF-25 | BMX-R11-WF30, BMX-R11-WF31, BMX-R11-WF43 (hard) |
-| BMX-R13-WF34 | ⬜ pending | 13 | P1 | WF-34 | — |
-| BMX-R13-WF33 | ⬜ pending | 13 | P1 | WF-33 | — |
-| BMX-R13-WF32 | ⬜ pending | 13 | P2 | WF-32 | — |
+| BMX-R13-WF34 | ✅ done | 13 | P1 | WF-34 | — |
+| BMX-R13-WF33 | ✅ done | 13 | P1 | WF-33 | — |
+| BMX-R13-WF32 | ✅ done | 13 | P2 | WF-32 | — |
 | BMX-R14-WF22 | ⬜ pending | 14 | P1 | WF-22 | — |
 | BMX-R15-WF11 | ⬜ pending | 15 | P1 | WF-11 | — |
 | BMX-R15-WF47 | ⬜ pending | 15 | P1 | WF-47 | — |
@@ -178,6 +178,8 @@
 - **Description:** The payment approval/rejection/confirmation family. WF-34: fix the double-nested WF-50 payload so the rejection message to the user actually sends (Section-1 HIGH). WF-33: restore the richer admin activation notice (DOB/TOB/Place + CLOSE-CHAT reminder per pseudo Step 9, via a minimal SELECT) + convert 3 param-lists to array form (T9) + pseudo status='verified' & command/subCommand Inputs (Section-1 pseudo-lag). WF-32: convert the payment-insert param-list to array form (T9). Mixed priority by design (group-by-workflow) — build-sprint follows batch order, not priority.
 - **Estimated size:** M
 - **Estimated tokens:** ~55K
+- **Post-batch regression (2026-05-30T14:04Z — PASS):** Dependency map rebuilt — **78 edges, unchanged from Batch 12** (all 3 edits were intra-node: jsCode + queryReplacement; zero topology change → no caller repoint, all IDs unchanged). **WF-34 bug-class sibling sweep:** scanned every live Code node across all 31 workflows for the double-nested `[{json:{json:…}}]` return signature → **zero other instances** (WF-34 was the sole occurrence; every other WF-50 caller already single-nested). **T9 landscape sweep:** only remaining non-array comma-joined `queryReplacement` is WF-22 `Save Slack Channel ID` — exactly the scheduled Batch-14 item, not a regression. **Whole-`workflows/` lint exit 0 — zero hard rejects** across all 31; **162 advisory, unchanged from Batch 12** → Batch 13 introduced no new findings (WF-33 richer-notice copy is clean business-tone: no WF-XX/DB-jargon; the listed Step-5g hits are all pre-existing internal `throw new Error('WF-…')` validation strings + `context.source:'WF-…'` routing metadata — the accepted-FP class from Batch 9/12). All 4 WF-33 Postgres nodes op=executeQuery+aod=true. **No strict findings. No new adjacent findings.** (The WF-33 read-from-RETURNING-* node-placement choice is documented in its build note, not a defect.) Live payment-family end-to-end (APPROVE/REJECT) deferred to Batch-17 matrix re-walk (users table empty).
+- **Execution plan (recorded 2026-05-30T13:51:20Z by build-sprint Step 2a):** 3 items, mixed change types (WF-33 Structural) → assess ran. No same-workflow siblings (3 distinct WFs); no Mode-D (all production payment-path, judgment required per [[feedback_sprint_parallelism]]). Order WF-34 → WF-33 → WF-32 (HIGH bug-fix first; any order safe). (1) **BMX-R13-WF34 — Mode A** full build-workflow inline: surgical rejection-payload un-nest; must read exact current `Prepare Rejection Message` return + precise wrapper removal on the payment-reject path. (2) **BMX-R13-WF33 — Mode A** full build-workflow inline: Structural — minimal SELECT node add + placement judgment + richer-notice copy + 3 param-list→array (T9) + pseudo sync. (3) **BMX-R13-WF32 — Mode B** inline-inherit: XS deterministic single `queryReplacement` array-form swap (same T9 shape already applied in WF-31 family); full backup/change/lint/state discipline, no Skill reload.
 
 ## Batch 14 — Onboarding · WF-22
 
@@ -782,8 +784,14 @@ Apply via jq+PUT on the SAME ID `eTV1lUcYrXBg2q2T` (5 callers reference it by ID
 
 ## BMX-R13-WF34 — WF-34 fix double-nested rejection payload (rejection message never sends)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-30T13:51:20Z
+**Completed:** 2026-05-30T13:55:11Z
+**Actual tokens:** ~18K
+**Actual effort:** ~4 min
+**Estimate delta:** on-bucket (planned S ~18K, actual ~18K)
 **Priority:** P1 | **Batch:** 13
+**Build note:** Surgical/parametric. Live `Prepare Rejection Message` returned double-nested `[{json:{json:{...}}}]` → WF-50 passthrough guard read `$json.phoneNumber`=undefined (silent drop). Removed inner `json:` wrapper. WF-34.pseudo Step 5 already documented the correct single-level shape → implementation-to-match-design, no pseudo change. 8 nodes unchanged. Lint exit 0. Backup `se82n3MUQ9xE5aEr-2026-05-30-23-53.json`; versionId `4fb0c4f9`. Live end-to-end (admin REJECT) deferred to Batch-17 matrix re-walk (users table empty).
 **Change type:** Surgical (bug fix)
 **Workflows:** WF-34
 **n8n IDs:** `se82n3MUQ9xE5aEr`
@@ -796,8 +804,14 @@ When the admin REJECTs a payment, the user's rejection/retry WhatsApp message ne
 
 ## BMX-R13-WF33 — WF-33 richer admin activation notice + param-lists + pseudo-lag
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-30T13:55:11Z
+**Completed:** 2026-05-30T14:01:02Z
+**Actual tokens:** ~34K
+**Actual effort:** ~6 min
+**Estimate delta:** on-bucket (planned M ~32K, actual ~34K)
 **Priority:** P1 | **Batch:** 13
+**Build note — node-placement deviation (within build-workflow delegated scope):** Plan said "add a minimal SELECT for DOB/TOB/Place; build-workflow decides exact node placement." Live audit found those 3 out-of-core fields (`date_of_birth`/`time_of_birth`/`place_of_birth`, confirmed in `chinmay_astro.users`) are already returned by the existing `Update User Status` node (pseudo Step 4 `UPDATE … users … RETURNING *`), which sits upstream of `Prepare WF-51 Payload (Notify Admin)` on the linear path. **So NO new SELECT node was added** — the richer-notice Code reads them from `$('Update User Status')`. Smaller blast radius, no extra DB round-trip, fully consistent with the pseudo design (Step 4 RETURNING * is the source). (1) Richer admin notice restored per pseudo Step 9 (one-liner → full "Consultation Activated" with DOB/TOB/Place + `CLOSE CHAT CONSULT <phone>` reminder; missing→"N/A"). (2) T9: 3 queryReplacements (`Update Payment Status`/`Create Consultation Record`/`Update User Consultation Id`) → JS-array form, no live behavior change. (3) Pseudo synced: Step 3 `approved`→`verified`, Inputs/Step 1 document `command`/`subCommand`, Step 9 annotated with DOB/TOB/Place read-source. 10 nodes unchanged. Lint exit 0; 4 PG nodes op=executeQuery+aod=true. Backup `NcHZedq9ycnAQ9SW-2026-05-30-23-58.json`; versionId `30d61e11`. Live APPROVE end-to-end deferred to Batch-17 matrix re-walk.
 **Change type:** Structural
 **Workflows:** WF-33
 **n8n IDs:** `NcHZedq9ycnAQ9SW`
@@ -819,8 +833,14 @@ Invoke `build-workflow`. (The second-APPROVE zero-row case (T2) is deferred to F
 
 ## BMX-R13-WF32 — WF-32 payment-insert param-list → array form
 
-**Status:** ⬜ pending
+**Status:** ✅ done
+**Started:** 2026-05-30T14:01:02Z
+**Completed:** 2026-05-30T14:02:57Z
+**Actual tokens:** ~11K
+**Actual effort:** ~2 min
+**Estimate delta:** on-bucket (planned XS ~12K, actual ~11K)
 **Priority:** P2 | **Batch:** 13
+**Build note:** Mode B inline-inherit. Surgical/parametric — `Create Payment Record` `queryReplacement` comma-joined → JS-array form `={{ [$json.user.id, 500, "INR", "pending_verification", "gpay"] }}`; sibling `largeNumbersOutput:"text"` preserved. No comma-bearing values today → no live behavior change; no pseudo change. op=executeQuery, aod=true. Lint exit 0. Backup `emUOLWVZiNVxcOe3-2026-05-31-00-01.json`; versionId `3b8d0b27`.
 **Change type:** Surgical
 **Workflows:** WF-32
 **n8n IDs:** `emUOLWVZiNVxcOe3`

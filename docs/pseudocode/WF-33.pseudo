@@ -2,7 +2,7 @@ WF-33 — Payment Approval Processor
 
 ## Summary
 
-- Inputs: WF-10 §2.2 Command Envelope — { commandType, phoneNumber, reason, adminUserId, channelId, channelName, messageText, user:{id, name, phone_number, status, slack_channel_id} } — triggered by WF-11 command parser when admin sends "APPROVE PAYMENT <phone>"
+- Inputs: WF-11 command parser delivers { command, subCommand, phoneNumber, reason, adminUserId, channelId, channelName, messageText, user:{id, name, phone_number, status, slack_channel_id} } — triggered when admin sends "APPROVE PAYMENT <phone>". (WF-11 splits the WF-10 §2.2 `commandType` into `command`="APPROVE" + `subCommand`="PAYMENT"; WF-33's `Extract Command Data` reads `command`/`subCommand`, not `commandType`.)
 - Outputs: Payment row marked approved; user status moved to consultation_active; new consultations row; user.current_consultation_id set; WhatsApp template "consultation_activated" sent to user; Slack confirmation posted to user's consult channel via WF-51. If user is in wrong state, only a Slack warning is posted via WF-51.
 - State Transitions: payment_submitted → consultation_active (only if user is currently payment_submitted)
 - Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack). Does NOT call WF-52 — channel already exists (created at WF-22).
@@ -15,13 +15,13 @@ WF-33 — Payment Approval Processor
 
 ## Algorithm
 
-Step 1: Start — Triggered by WF-11 with §2.2 Command Envelope: { commandType, phoneNumber, reason, adminUserId, channelId, channelName, messageText, user:{id, name, phone_number, status, slack_channel_id} }.
+Step 1: Start — Triggered by WF-11 with: { command, subCommand, phoneNumber, reason, adminUserId, channelId, channelName, messageText, user:{id, name, phone_number, status, slack_channel_id} }.
 Step 2: Extract command data: keep phoneNumber, adminUserId, command, subCommand from envelope.
-Step 3: UPDATE chinmay_astro.payments SET status='approved', verified_at=NOW(), verified_by=adminUserId WHERE user_id=user.id AND status='pending_verification' RETURNING id. Capture payment.id. (user.id read from §2.2 envelope.)
+Step 3: UPDATE chinmay_astro.payments SET status='verified', verified_at=NOW(), verified_by=adminUserId WHERE user_id=user.id AND status='pending_verification' RETURNING id. Capture payment.id. (user.id read from §2.2 envelope. Status value is 'verified' — the canonical payment status; no consumer queries the legacy 'approved'.)
 Step 4: UPDATE chinmay_astro.users SET status='consultation_active', updated_at=NOW() WHERE id=user.id RETURNING *. (user.id read from §2.2 envelope.)
 Step 5: INSERT INTO chinmay_astro.consultations (user_id, payment_id, status, started_at) VALUES (user.id, payment.id, 'active', NOW()) RETURNING *. Capture consultation.id. (user.id read from §2.2 envelope.)
 Step 6: UPDATE chinmay_astro.users SET current_consultation_id=consultation.id, updated_at=NOW() WHERE id=user.id RETURNING *.
 Step 7: Build user activation message: phoneNumber = user.phone_number (from §2.2 envelope); messageType=template; templateName="consultation_activated"; templateParams=[user.name (from §2.2 envelope)].
 Step 8: Call WF-50 with the template payload (WhatsApp template message to user).
-Step 9: Call WF-51 with channelId=user.slack_channel_id (from §2.2 envelope), messageText="✅ Consultation Activated — User: <name>, Phone: +<phone_number>, DOB: <date_of_birth>, TOB: <time_of_birth>, Place: <place_of_birth>. User has been notified. They can now send their questions. To close consultation when done, type: CLOSE CHAT CONSULT <phone_number>".
+Step 9: Call WF-51 with channelId=user.slack_channel_id (from §2.2 envelope), messageText="✅ Consultation Activated — User: <name>, Phone: +<phone_number>, DOB: <date_of_birth>, TOB: <time_of_birth>, Place: <place_of_birth>. User has been notified. They can now send their questions. To close consultation when done, type: CLOSE CHAT CONSULT <phone_number>". (name/phone_number from §2.2 envelope user object; date_of_birth/time_of_birth/place_of_birth read from Step 4's `RETURNING *` user row — these out-of-core fields are not in the envelope, so no separate SELECT is added. Missing values render as "N/A".)
 Step 10: End.
