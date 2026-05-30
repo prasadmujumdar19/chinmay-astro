@@ -6,6 +6,9 @@ WF-42 — Consultation Closer
 - Outputs: consultations row closed, users row updated, WhatsApp feedback/rebook prompt sent (2 buttons), Slack confirmation in consult channel
 - State Transitions: consultation_active → consultation_closed
 - Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack via Notify Admin in Slack node)
+
+## Notes
+
 - **Design rule (DR-10):** Slack channel is NOT archived — same channel is reused on rebook (WF-45 reads existing slack_channel_id from DB). Channel archival/deletion is a separate post-MVP maintenance workflow.
 - **Trust-mode input (SP-03):** Input is pre-validated by WF-10's centralized gate — user exists, is in `consultation_active` state, and phone-in-command matches channel-derived phone. WF-42 does NOT re-validate. The historical `Load User by Phone` SELECT is removed: all required fields (id, name, phone_number, slack_channel_id) are provided in the §2.2 Command Envelope `user` object.
 

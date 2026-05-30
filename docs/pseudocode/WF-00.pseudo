@@ -2,7 +2,18 @@ WF-00 — Webhook Receiver
 
 ## Summary
 
-- Inputs: Inbound WhatsApp webhook POST (Meta payload) at path /whatsapp-astro-webhook
+- Inputs: Inbound WhatsApp webhook POST (Meta payload) at path `/whatsapp-astro-webhook`. After parsing (Step 2), WF-00 emits the canonical parsed-message payload it forwards downstream (WF-01 router, WF-60 logger):
+  - `messageId` — string, **required**. Meta message id; the dedup key.
+  - `timestamp` — string, **required**. Meta message timestamp (epoch seconds, as string).
+  - `phoneNumber` — string, **required**. Sender MSISDN, digits only (no `+`).
+  - `phoneNumberFormatted` — string, **required**. `+`-prefixed E.164 (`'+' + phoneNumber`).
+  - `messageType` — string, **required**. `text` | `interactive` | other (`image` / `audio` / …).
+  - `messageContent` — string, **required**. Text body, or interactive id (`button_reply.id` / `list_reply.id` / `nfm_reply.response_json`), or a `[TYPE]` bracket for other media.
+  - `messageContentUpper` — string, **required**. `messageContent.toUpperCase().trim()` (downstream keyword matching).
+  - `interactiveLabel` — string, *optional*. Display title for interactive button/list replies; `null` for `nfm_reply` and non-interactive types.
+  - `contactName` — string, *optional*. WhatsApp profile name; `null` if absent.
+  - `rawMessage` — object, **required**. The raw Meta `message` object (carried for audit / re-parse).
+  - `metadata` — object, **required**. `{ phoneNumberId, displayPhoneNumber }` from `value.metadata`.
 - Outputs: HTTP 200 response to Meta ({status: "processed"} or {status: "skipped"}); message ID recorded in Chinmay-Astro-Messages data table for dedup
 - State Transitions: none
 - Calls Sub-Workflows: WF-60 (inbound logging, direction='inbound'), WF-01 (Message Router)

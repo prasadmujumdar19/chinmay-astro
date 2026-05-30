@@ -58,7 +58,7 @@
 | BMX-R14-WF22 | ✅ done | 14 | P1 | WF-22 | — |
 | BMX-R15-WF11 | ✅ done | 15 | P1 | WF-11 | — |
 | BMX-R15-WF47 | ✅ done | 15 | P1 | WF-47 | — |
-| BMX-R16-PSEUDO | ⬜ pending | 16 | P2 | WF-00, WF-01, WF-10, WF-23, WF-41, WF-42 (pseudo) | — |
+| BMX-R16-PSEUDO | ✅ done | 16 | P2 | WF-00, WF-01, WF-10, WF-23, WF-41, WF-42 (pseudo) | — |
 | BMX-P5-MATRIX | ⬜ pending | 17 | P0 | — | BMX-R11-WF30, BMX-R11-WF31, BMX-R11-WF43, BMX-R12-WF25, BMX-R13-WF34, BMX-R13-WF33 (hard) |
 | BMX-P8-DOCS | ⬜ pending | 18 | P2 | — | — |
 | BMX-P8-PLUGIN | ⬜ pending | 18 | P2 | — | — |
@@ -942,8 +942,14 @@ Invoke `build-workflow`.
 
 ## BMX-R16-PSEUDO — pseudo-only convention + copy sync (WF-00/01/10/23/41/42)
 
-**Status:** ⬜ pending
+**Status:** ✅ done
 **Priority:** P2 | **Batch:** 16
+**Started:** 2026-05-30T14:55:06Z
+**Completed:** 2026-05-30T15:05:52Z
+**Actual tokens:** ~34K
+**Actual effort:** ~11 min
+**Estimate delta:** on-bucket (planned S ~28K, actual ~34K = S-band)
+**Execution note:** All six edits applied per the audit's explicit per-file instructions. Two executor judgment calls, both lower-blast-radius and convention-faithful: (1) WF-10 Step 23a was *folded into* Step 23 (the audit's offered alternative) rather than renumbered — renumbering would have cascaded 7 step headers + ~10 GOTO/prose refs (Steps 25→26…30→31; refs at lines 38/89/95/102/107/108/118/136); folding eliminated the lettered step with zero downstream churn. The WF-41 cross-ref "(Step 23a in WF-10.pseudo)" was updated to "Step 23" as a consequence. (2) WF-01 `## Inputs` and WF-42 `## Notes` H2 blocks were placed after `## Summary`, before the `---`/`## Algorithm` separator, mirroring the WF-52 structure (Summary → Inputs → Notes → --- → Algorithm). The audit's "match WF-34/40/43 footer convention" citation was imprecise — those three actually use a `- **Notes:**` Summary sub-bullet — but the actionable directive ("`## Notes`/`## Inputs` header") matches the real H2 convention used by WF-47/52/60, which I followed. WF-00 stayed a Summary bullet per the audit's explicit "`## Summary` Inputs bullet" wording; enumerated fields grounded in live "Parse Webhook" emit (incl. `messageContentUpper`, which the audit's illustrative list omitted but live emits and WF-01 consumes). WF-23 copy verified verbatim against WF-23.md (live uses "Dr. Chinmay Mujumdar"). Drift check: focused pseudo↔md confirmation (not full multi-agent D1–D9 sweep) — all six `.md` confirmed fresh vs live, all six previously-flagged drift dimensions resolved, no new drift possible from doc-only edits.
 **Change type:** Documentation (pseudo only)
 **Workflows:** WF-00, WF-01, WF-10, WF-23, WF-41, WF-42
 **Depends on:** —

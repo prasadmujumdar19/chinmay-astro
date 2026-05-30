@@ -3,7 +3,7 @@ WF-01 — Identity & Security Gate
 ## Summary
 
 - Purpose: First-stage triage for every inbound message from WF-00. WF-01 is now an identity/security gate ONLY — no messageType branching. It decides one of: silent-reject (foreign country), silent-drop (already blocked), route to re-engagement (opted_out), route to brand-new handler, or route to the state router (anyone with a record).
-- Inputs: Parsed WhatsApp message payload from WF-00 (phoneNumber, phoneNumberFormatted, messageType, messageContent, rawMessage, contactName, etc.).
+- Inputs: parsed WhatsApp message payload from WF-00 — structured block below.
 - Outputs: Either a silent reject (country), a silent drop (blocked), a call to WF-26 (opted_out re-engagement), a call to WF-21 (brand-new, no record), or a call to WF-02 (has a `users` row OR a `pending_users` row). Every downstream call carries the canonical core envelope (design.md §2.1).
 - **Envelope emission (data-contract-discipline §2.1):** every output branch that calls a downstream workflow (WF-02, WF-26, WF-21) emits the canonical core envelope `{ phoneNumber, messageType, messageContent, user:{id, phone_number, name, status, slack_channel_id, current_consultation_id} | null, pendingUser:{id, contact_name} | null }`, so leaves read these fields without re-SELECTing.
 - State Transitions: none (read-only; does not mutate user state).
@@ -15,6 +15,21 @@ WF-01 — Identity & Security Gate
   - Block lookup is now the UNIFIED `status='blocked'` gate (the prior "blacklisted" coinage is gone; one terminal block state across admin BLOCK, abuse, and threshold auto-block).
   - Brand-new users route to WF-21 DIRECTLY (they no longer pass through WF-02).
 - **Note — country filter:** the live allow-list is `{91 India, 61 Australia}` (Australia is the operator's region). The BMX-06 §5 shorthand "non-+91 → reject" is not intended to drop Australia; the live two-country allow-list is preserved.
+
+## Inputs
+
+**Parsed WhatsApp message payload from WF-00 (the WF-00 emit contract — Step 2 of WF-00.pseudo):**
+- `phoneNumber` — string, required. Sender MSISDN, digits only. Used for the Step-4 status lookup.
+- `phoneNumberFormatted` — string, required. `+`-prefixed E.164. Used for the Step-2 country filter.
+- `messageType` — string, required. `text` | `interactive` | other. Forwarded into downstream envelopes.
+- `messageContent` — string, required. Text body / interactive id / `[TYPE]` bracket. Forwarded into downstream envelopes.
+- `messageContentUpper` — string, required. Uppercased-trimmed `messageContent`; consumed by `Classify & Build Envelope`.
+- `messageId` — string, required. Meta message id; carried into downstream envelopes / logging.
+- `timestamp` — string, required. Meta message timestamp; carried by `Classify & Build Envelope`.
+- `interactiveLabel` — string, optional. Interactive display title; `null` otherwise.
+- `contactName` — string, optional. WhatsApp profile name; `null` if absent.
+- `rawMessage` — object, required. Raw Meta `message` object.
+- `metadata` — object, required. `{ phoneNumberId, displayPhoneNumber }`; consumed by `Classify & Build Envelope`.
 
 ---
 

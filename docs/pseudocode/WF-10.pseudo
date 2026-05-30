@@ -124,11 +124,9 @@ Step 21: Dispatch Switch:
 
 Step 22: Build WF-11 input payload (Set node — `Build WF-11 Payload`): {messageText, adminUserId, channelId, channelName, commandType, phoneNumber: typedPhone, reason}. Then run the canonical Command Envelope build (`Build WF-10 Command Envelope` Code node, per design.md §2.2) — read the resolved user row from Step 17's `Load User Status` and emit `user: {id, name, phone_number, status, slack_channel_id}` (a closed object — only Phase-1 envelope fields). Call WF-11 (Command Parser). End. WF-11 trusts input — no re-parsing, no re-validation. `commandType` is the canonical-form keyword (APPROVE_PAYMENT, etc.) that WF-11's Switch reads directly; `phoneNumber` is the validated typed phone forwarded to WF-33/34/42/46; `reason` is captured for BLOCK's confirmation message; `user` is the canonical Command Envelope user object. This is the centralized-trust contract — WF-10 owns parsing and validation; WF-11 owns dispatch and response formatting.
 
-Step 23: Build WF-41 Payload (Set node) — emit {
-    phoneNumber: $('Load User Status').item.json.phone_number,
-    adminMessage: $('Classify User Channel Message').item.json.messageText
-  }.
-Step 23a: Build WF-10 Relay Envelope (Code node, per design.md §2.2) — read the resolved user row from Step 17's `Load User Status` and emit the canonical Relay Envelope: `{ phoneNumber, messageText: <adminMessage from Step 23>, user:{id, name, phone_number, status, slack_channel_id, current_consultation_id}, adminUserId, channelId, channelName }`.
+Step 23: Build the WF-41 relay payload, then the canonical Relay Envelope (two nodes in sequence):
+  - `Build WF-41 Payload` (Set node) — emit { phoneNumber: $('Load User Status').item.json.phone_number, adminMessage: $('Classify User Channel Message').item.json.messageText }.
+  - `Build WF-10 Relay Envelope` (Code node, per design.md §2.2) — read the resolved user row from Step 17's `Load User Status` and emit the canonical Relay Envelope: `{ phoneNumber, messageText: <adminMessage from the Set node above>, user:{id, name, phone_number, status, slack_channel_id, current_consultation_id}, adminUserId, channelId, channelName }`.
 Step 24: Call WF-41 (Admin → User Relay). End.
 
 ---

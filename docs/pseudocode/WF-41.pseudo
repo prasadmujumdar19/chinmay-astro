@@ -2,7 +2,7 @@ WF-41 — Admin → User Relay
 
 ## Summary
 
-- Inputs: WF-10 Relay Envelope (design.md §2.2): { phoneNumber, messageText, user:{id,name,phone_number,status,slack_channel_id,current_consultation_id}, adminUserId, channelId, channelName } — carried verbatim from WF-10's `Build WF-10 Relay Envelope` Code node (Step 23a in WF-10.pseudo). No re-derivation needed.
+- Inputs: WF-10 Relay Envelope (design.md §2.2): { phoneNumber, messageText, user:{id,name,phone_number,status,slack_channel_id,current_consultation_id}, adminUserId, channelId, channelName } — carried verbatim from WF-10's `Build WF-10 Relay Envelope` Code node (Step 23 in WF-10.pseudo). No re-derivation needed.
 - Outputs: WhatsApp text to user via WF-50
 - State Transitions: none
 - Calls Sub-Workflows: WF-50 (Send WhatsApp)
@@ -10,10 +10,6 @@ WF-41 — Admin → User Relay
   - WF-41 is intentionally single-direction (admin → user). The reverse direction (user's WhatsApp message → admin's Slack channel) is handled by **WF-40 User → Admin Relay** (called from WF-02 via the `RELAY` route). Do not re-introduce WA→Slack handling here.
   - Caller contract: WF-10 has already (a) looked up the user by `slack_channel_id`, (b) verified `status == 'consultation_active'`, and (c) shaped the canonical Relay Envelope via the `Build WF-10 Relay Envelope` Code node (design.md §2.2). WF-41 does NOT re-query users or re-derive phone — that would be redundant work and a duplicated state-precondition surface.
   - **Field name:** the admin's message body arrives as `messageText` in the Relay Envelope (canonical per §2.2). WF-41 maps it to `messageContent` when calling WF-50 (canonical WF-50 text variant per design.md §2.3).
-  - History:
-    - A prior design carried a `whatsapp_to_slack` branch with direction detection (Detect Direction / Route by Direction / Prepare Channel Lookup / Post to Slack Channel). That branch was orphaned after WF-40 took over the WA→Slack relay, and was removed on 2026-05-20 (TD-003 F5) to align this workflow with its single-direction purpose.
-    - On 2026-05-22 (SP-01) the redundant phone-extraction (Extract Phone from Channel Code node) and re-lookup (Load User by Phone Postgres node) were removed. The caller (WF-10) now supplies the resolved `phoneNumber` directly, and verifies `consultation_active` upstream. Down from 5 → 3 nodes.
-    - On 2026-05-25 (data-contract Phase 1, sub-14) the Inputs block was updated to declare the WF-10 Relay Envelope shape (§2.2), and Step 2 was updated to read `messageText` (Relay Envelope canonical field) instead of the legacy `adminMessage` field from the pre-envelope WF-10 payload.
 
 ---
 
