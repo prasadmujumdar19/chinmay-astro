@@ -118,3 +118,87 @@ Decrypted form payload (nfm_reply.response_json, plaintext): `{full_name:"Abcs d
 
 ### Open / deferred
 - **BUG-04 (eager pattern error markers)** — STILL PRESENT after the `(...)?` pattern wrap (operator re-tested, markers still show on open); operator chose to defer ("move on for now"). Not resolved. Revisit: the pattern-optional approach did not suppress the eager display → likely WhatsApp validates `required` fields eagerly regardless of pattern. Candidate next step: research Form-level `error-messages` / whether removing `pattern` (keep helper-text + validate server-side) is the only way; or accept as minor cosmetic. NON-BLOCKING for the journey.
+
+### Tick — 2026-05-31T01:46:44Z (BUG-05 re-test — form submission, runs 2462–2472) ✅ PASS
+**Trigger:** operator re-submitted the form after the BUG-05 (consent-boolean) fix; got the WA payment-instructions response back.
+**New executions (form-submit burst):** all success — WF-00 (2462) → WF-60 (2463) → WF-01 (2464) → WF-02 (2465) → **WF-22 `dr8QM0m92Ml8MvIh` (2466) SUCCESS** → WF-52 channel mgr `IO5BZLUxuVmjzk5I` (2467) → WF-50 `BUVun38WEKb12zg9` (2468, payment instructions) → WF-60 (2469) → WF-00 callbacks (2470–2472). (Preceding burst 2450–2461 was the pre-form "Hi" re-send via WF-23 → WF-50 form delivery.)
+**WF-22 (2466):** ran clean — no `consent.includes is not a function` throw. **BUG-05 fix live-confirmed.**
+**DB delta:** `chinmay_astro.users` row CREATED @ 01:45:49 → `61466927921 / "Abcd shejej"`, status **`payment_pending`**, `slack_channel_id=C0B567A175W`, DOB/time/place persisted. (No `consent` column in schema — consent is consumed in-flow, not stored; query for it errored harmlessly.)
+**Slack:** WF-52 **reused** existing `consult-61466927921` channel `C0B567A175W` (history shows prior `APPROVE PAYMENT 61466927921` runs) — correct per Design Rule #10 (never archived, reused across rebookings). No WF-51 post on form-submit (onboarding→Chinmay notification fires at payment, not form submit) — expected.
+**Cross-check vs expected:** ✅ users row (payment_pending) ✅ Slack channel present ✅ payment instructions delivered to handset. **All green — last front-of-funnel blocker cleared.**
+**Next:** operator taps "Payment Completed" → expect status payment_pending→payment_submitted + WF-51 onboarding/payment notice to Chinmay's channel.
+
+### Tick — 2026-05-31T01:49Z ("Payment Completed" tapped, runs 2473–2485) ✅ PASS
+**Trigger:** operator tapped the "Payment Completed" interactive button; got WA ack back.
+**New executions:** all success — WF-00 (2473) → WF-60 (2474) → WF-01 (2475) → WF-02 (2476) → payment handler `emUOLWVZiNVxcOe3` (2477) → WF-50 WA ack (2478) → WF-60 (2479) → **WF-51 `wlZRK0YxnhP0b2RL` Slack sender (2480)** → WF-60 (2481) → WF-00/logger trailers (2482–2485, incl. `wMh0oBRtJbvhLgOf`).
+**DB delta:** `users.status` **`payment_pending` → `payment_submitted`** @ 01:48:51; payments row created (Payment ID 22).
+**Slack:** WF-51 posted to `consult-61466927921` (`C0B567A175W`): "🔔 *New Payment Submission* — User: Abcd shejej · Phone: +61466927921 · Amount: ₹500 · Payment ID: 22 · `APPROVE PAYMENT 61466927921`". Business-language copy, correct APPROVE prompt. ✅
+**Cross-check vs expected:** ✅ state transition ✅ WF-51 review notice with APPROVE prompt ✅ user WA ack. All green.
+**Next:** operator runs `APPROVE PAYMENT 61466927921` in Slack → expect status payment_submitted→consultation_active + WF-52 invites bot/activates channel + WA "consultation active" to user.
+
+### Tick — 2026-05-31T01:50Z (`APPROVE PAYMENT 61466927921`, runs 2486–2497) ✅ PASS
+**Trigger:** operator ran `APPROVE PAYMENT 61466927921` in the consult channel; user got the "consultation active" WA message.
+**New executions:** all success — admin/logger (2486) → admin cmd handler `GoTYo0GS2y8qjjkw` (2487) → approve handler `NcHZedq9ycnAQ9SW` (2488) → WF-50 WA active msg (2489) → WF-60 (2490) → WF-51 Slack confirm `wlZRK0YxnhP0b2RL` (2491) → loggers/callbacks (2492–2497).
+**DB delta:** `users.status` **`payment_submitted` → `consultation_active`** @ 01:50:19; `current_consultation_id=17`; `consultations` row 17 **status=active**.
+**Cross-check vs expected:** ✅ state transition ✅ consultation opened ✅ WA active message ✅ Slack approval confirm. All green.
+**Next:** operator runs `CLOSE 61466927921` (or CLOSE CONSULT) in Slack → expect status consultation_active→consultation_closed + consultation row closed + WA close message.
+
+### Tick — 2026-05-31T01:51Z (`CLOSE 61466927921`, runs 2498–2509) ✅ PASS
+**Trigger:** operator ran CLOSE in the consult channel; user got the close message.
+**New executions:** all success — admin/logger (2498) → admin cmd handler `GoTYo0GS2y8qjjkw` (2499) → close handler `fx70vqyJtRdF2DgR` (2500) → WF-50 WA close msg (2501) → WF-60 (2502) → WF-51 Slack confirm `wlZRK0YxnhP0b2RL` (2503) → loggers/callbacks (2504–2509).
+**DB delta:** `users.status` **`consultation_active` → `consultation_closed`** @ 01:51:42; `current_consultation_id` cleared to NULL; `consultations` row 17 **status=closed**. Channel `C0B567A175W` NOT archived (Design Rule #10 — confirmed reused throughout).
+**Cross-check vs expected:** ✅ state transition ✅ consultation closed + current_consultation_id cleared ✅ WA close message ✅ Slack confirm ✅ channel retained. All green.
+**Milestone:** full onboarding → payment → approve → consult → close journey proven live end-to-end against the post-remediation state. Front-of-funnel + lifecycle all PASS.
+**Next:** S8 setup — operator sends STOP from handset → expect status consultation_closed→opted_out + STOP confirmation. Then the 7 S8 re-engagement cells (re-STOP before each non-STOP cell, since the first re-engagement lifts opted_out).
+
+---
+
+## S8 opted_out re-engagement cells (the exit-gate acceptance subset)
+
+Choreography: any message while opted_out lifts → consultation_closed (re-engage), so re-STOP before each non-STOP cell. Order: STOP-cell (C) first, REBOOK-cell (D, lands payment_pending) last.
+
+### S8 setup — STOP (consultation_closed → opted_out), runs 2510–2523 ✅ PASS
+**Trigger:** operator sent STOP; got STOP ack on WA.
+**Chain:** WF-00 (2510) → WF-60 (2511) → WF-01 (2512) → WF-02 (2513) → opt-out handler `LgIDj1v4ZbCPlX25` (2514) → `2U7mxHMyqA41ROKX` (2515) → WF-51 Slack (2516) → WF-60 (2517) → WF-50 WA STOP ack (2518) → trailers. All success.
+**DB:** `users.status` **`consultation_closed` → `opted_out`** @ 01:55:06. (Design Rule 4: STOP → opted_out, user-initiated.)
+**Cross-check:** ✅ opted_out transition ✅ STOP ack delivered. Ready for S8 cells.
+
+### S8×C — STOP while opted_out, runs 2524–2538 ✅ PASS
+**Trigger:** operator sent STOP again (already opted_out).
+**Chain:** WF-00 (2524) → WF-60 (2525) → WF-01 (2526) → **WF-26 re-engage `tKjwTYF6EER8ED3y` (2527, silent lift)** → WF-02 re-route (2528) → opt-out/STOP handler `LgIDj1v4ZbCPlX25` (2529) → `2U7mxHMyqA41ROKX` (2530) → WF-51 (2531) → WF-60 (2532) → WF-50 WA (2533) → trailers. All success.
+**DB:** `users.status` stays **`opted_out`** @ 01:56:23 (WF-26 lifted to consultation_closed, STOP intercept in re-routed flow re-opted-out — net opted_out). Matches S8×C expectation (DR: re-engage/status-lift, then STOP semantics).
+**Messages (verified single outbound):** inbound "STOP"; ONE outbound WA text "You have been unsubscribed from Chinmay Astro…" + one Slack notice "⚠️ User has opted out via STOP". **No welcome-back interstitial** despite WF-26 transit — silent lift correct.
+**Cross-check:** ✅ stays opted_out ✅ single STOP/unsubscribe ack ✅ no spurious welcome ✅ not mis-routed. **PASS.**
+
+### S8×A — "Hi" greeting while opted_out, runs 2539–2551 ⚠️ WIRING PASS / COPY FINDING (BUG-06)
+**Trigger:** operator sent "Hi"; got a reply but flagged it as inappropriate for a re-engaging user.
+**Chain:** WF-00 (2539) → WF-60 (2540) → WF-01 (2541) → WF-26 Re-Engaged Handler `tKjwTYF6EER8ED3y` (2542, lift) → WF-02 `PubCsNTOspF3xqXZ` (2543) → WF-20 Keyword Handler `LgIDj1v4ZbCPlX25` (2544, no kw match) → WF-43 Post-Consultation Handler `3va0M06kijgyLejf` (2545) → WF-25 Intent Classifier `eTV1lUcYrXBg2q2T` (2546) → WF-50 WA (2547) → trailers. All success.
+**DB:** `users.status` **`opted_out` → `consultation_closed`** @ 01:58:26 (re-engage lift correct).
+**Reply sent (WF-43 Gemini):** "Hello there! It was a pleasure speaking with you about your Vedic astrology consultation with Dr. Chinmay. Please feel free to reach out here on WhatsApp or email chinmay_astro@gmail.com if any further questions or thoughts come to mind."
+**Structural verdict:** ✅ re-engage lift + contextual reply same turn (matches S8×A wiring expectation).
+**[finding] BUG-06 — WF-43 (`3va0M06kijgyLejf`) `Prepare Gemini Response Prompt` mis-frames re-engagement.** Prompt hard-codes "The user has completed their consultation… Answer their question…". Two issues: (1) a bare greeting has no question → Gemini emits a backward-looking farewell, not a welcome-back; (2) copy invites free "follow up here for anything else" with no pointer to REBOOK (paid ₹500 path) — possible monetization leak for re-engaging users. Affects S8×A and S8×B (and any closed-user greeting). Root cause is the static prompt framing in one Code node. **Decision pending (operator + Chinmay):** fix-in-sprint (rewrite prompt: greeting-aware + welcome-back + REBOOK CTA) vs defer-as-followup vs broader product call on free-follow-up policy. Wiring is sound; this is copy/product, not structural.
+
+### Fix — BUG-06 (build-workflow, Batch Surgical / parametric) — 2026-05-31T12:56Z
+**Systemic audit first (operator-directed):** traced what actually reaches each of the 5 Gemini response-generators, upstream routing included. Findings: WF-21/23 (WF-62 classifier + `Apply Fail-Open` → `Route: Service?`) only ever receive `service_related_question` → **correctly scoped, no change**. WF-25 internally neutralizes garbage/abuse/inappropriate/stop (U2 counters / silent-block / stop-clarifier) and returns ONLY safe buckets → so the WF-25-based handlers' Gemini nodes receive: WF-30/31 = `general_enquiry` only (gated by `Is General Enquiry?`); WF-43 = `general_enquiry` + `wants_consultation` (catch-all after rebook/feedback/stop IFs). Greeting "Hi" lands in `general_enquiry` (WF-25 merges greetings+questions), which is why it reached the "answer their question" prompt.
+**Fix (3 handlers, same shape):** rewrote each `Prepare Gemini Response Prompt` (Code node) to be greeting-aware ("their message may be a greeting or a question — respond naturally"). WF-43 (`3va0M06kijgyLejf`): welcome-back framing + REBOOK CTA, dropped "just completed your consultation" + email callout. WF-30 (`gGJBY5fJha0Let8I`): kept ₹500 pay-nudge + email. WF-31 (`HB8nXudAtk9iXz7C`): kept payment-under-review reassurance + email. Approved copy verbatim.
+**Discipline:** backups `archive/backups/{3va0M06kijgyLejf,gGJBY5fJha0Let8I,HB8nXudAtk9iXz7C}-2026-05-31-12-56.json`; applied via `updateNode` (avoids shell-escaping ₹/em-dash/backtick); re-fetch verified all 3 carry `may be a greeting` + stage marker; Code-node return shape `return [{json}]` correct (no lint risk); no nodes removed/renamed (6a n/a), output shape unchanged (6c n/a), Code-only (6b n/a). Pseudo synced: WF-43.pseudo Step 12, WF-30.pseudo Step 5, WF-31.pseudo Step 6. Exports refreshed, secrets clean. **Commit held** pending operator check + post-smoke. WF-43/30/31 `.md` → sprint-end regen list.
+**Post-MVP nuance** (opted_out-reengaged vs standard consultation_closed wooing) logged to `followups.md` — explicitly deferred by operator as overengineering for first roll-out.
+**Status:** awaiting live re-test — re-run S8×A through the new WF-43 prompt.
+
+### Tick — 2026-05-31 (BUG-06 fix re-test) ✅ S8×A + S8×B PASS
+**Trigger:** operator sent STOP ×3 followed by different messages ("Hi" greeting, a free-form question, and a "do you have my details?" probe), exercising the new WF-43 prompt via the opted_out→re-engage path.
+**Result (operator-confirmed):** Gemini responses are now relevant and appropriate — greeting gets a warm welcome-back (no more "pleasure speaking with you" farewell), question is answered. **BUG-06 fix verified live.** S8×A (greeting) and S8×B (free-form question) both PASS.
+**Nuance surfaced (NOT a bug):** an opted_out user asking "Do you already have my details?" → Gemini correctly answers "yes, we do" (data is retained today). User raised the data-retention/compliance angle; agreed it's accurate for MVP and the nuanced opted_out-vs-closed treatment + retention policy/deletion job are a combined post-MVP workstream (logged to `followups.md` 2026-05-31). No MVP fix.
+
+### S8 acceptance subset — progress (3 of 7 confirmed)
+| Cell | Status |
+|------|--------|
+| S8×A "Hi" greeting | ✅ PASS (post BUG-06 fix) |
+| S8×B free-form question | ✅ PASS (post BUG-06 fix) |
+| S8×C STOP while opted_out | ✅ PASS |
+| S8×D REBOOK keyword | ⏳ not yet tested |
+| S8×E HELP keyword | ⏳ not yet tested |
+| S8×F reserved-looking kw | ⏳ not yet tested |
+| S8×I "Payment Completed" button | ⏳ not yet tested |
+
+**Remaining:** S8×D/E/F/I (keyword + button paths — branch BEFORE Gemini, unaffected by BUG-06; need live verification per gate). Then matrix HTML static-verdict update + S8×G expectation rewrite (re-engage via WF-26, DR-4) + gate close.

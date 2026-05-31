@@ -150,3 +150,35 @@ Full-matrix regression (9 Opus row-agents tracing all 81 cells against fresh pos
 - **Why it worked:** row-grouping shares the entry-path context (WF-01 routes by status), so each agent reads a coherent slice; structured schema makes synthesis a pure data operation (no prose parsing); adversarial main-thread re-verification of the 2 🛑 claims against live `.md` caught nothing false but is the right discipline.
 - **Proposed:** consider a reusable skill analogous to `bmx-drift-rerun-opus` (which does D1–D9 drift with Opus) — e.g. `bmx-matrix-regression-opus` — parameterized by the matrix HTML + state→handler map. Flush via `flush-plugin-improvements` at BMX-P8-PLUGIN.
 - Backing: [[feedback_plugin_improvement_timing]] (note mid-batch, flush at boundary).
+
+## [2026-05-31] — Post-MVP workstream: data-retention policy + deletion job + WF-43 opted_out-vs-closed awareness
+
+**This is one combined workstream — a UX nuance and a data-governance gap that converge on the same WF-43 branch.**
+
+### Part 1 — WF-43 tone nuance (opted_out-reengaged vs standard consultation_closed)
+- **Target:** WF-43 Post-Consultation Handler (`3va0M06kijgyLejf`) — `Prepare Gemini Response Prompt` (and the upstream routing/context it receives).
+- **Observed during:** BMX-P5-MATRIX S8 live smoke (BUG-06 investigation). When an `opted_out` user messages again, the flow flips them to `consultation_closed` (WF-26 lift) and routes them through WF-43 identically to a genuine post-consultation user.
+- **Nuance (user, 2026-05-31):** the two populations *look* the same flow-wise but warrant different tone. **Opted_out-reengaged** users (who may never have actually consulted — they could have opted out pre-consultation) should be **actively wooed back**. **Standard consultation_closed** users need only a **light nudge**. The current single WF-43 treatment can't tell them apart.
+- **Proposed:** detect whether the user's *previous* status was `opted_out` (we just flipped via WF-26) vs arrived through the standard funnel, and vary warmth/woo accordingly. Likely needs WF-26/WF-02 to pass a "came_from_opted_out" signal into WF-43's context, since by the time WF-43 runs the status is already `consultation_closed`.
+
+### Part 2 — Data-retention policy + deletion job (the governance driver)
+- **Trigger scenario (user, 2026-05-31):** an opted_out user re-engaging asked Gemini "Do you already have my details?" and got "yes, we do." Factually correct for today's implementation (data is retained), but it surfaced a retention-compliance question.
+- **The tension:** data-protection law (India **DPDP Act 2023**) expects data minimization / erasure once purpose is served; but Meta/WhatsApp mandates honoring opt-outs, which *requires* retaining a suppression record. Deleting everything would break the ability to keep them unsubscribed; keeping everything indefinitely with no policy is the actual exposure.
+- **Resolution (agreed) — tiered retention, NOT delete-vs-keep binary:**
+  - **Keep a minimal suppression record** (`phone_number + opted_out flag + timestamp`) indefinitely — this is the do-not-contact list; retaining it is permitted/required to honor the opt-out (GDPR Art.17(3) suppression carve-out; DPDP legal-obligation retention).
+  - **Delete the rich PII** (name, DOB, time/place of birth, consultation transcripts) after a defined retention window — no ongoing purpose once the relationship ends.
+  - **STOP ≠ erasure request.** STOP = withdraw consent to be messaged (honor by suppressing). A separate explicit "delete my data" request is the erasure trigger. So retaining data post-STOP is not inherently a breach *if* there's a lawful basis + defined period + privacy-notice disclosure.
+  - **Re-marketing caveat:** a suppression list exists to **exclude** opted-out users from campaigns, never to enable reaching them. Deliberately messaging opted-out users is the breach regardless of data held. User-initiated re-engagement (WF-26) is fine.
+- **MVP decision (user, 2026-05-31): KEEP data as-is, no deletion, Gemini's current "yes we have your details" answer is accurate and stays.** No retention job exists yet; deleting prematurely risks doing it wrong; Meta needs the record. The gap is organizational (no policy/job), not a wrong WF-43 reply.
+
+### Convergence — why these are one workstream
+Once a retention/deletion job exists, an opted_out user re-engaging *after* the window genuinely **won't** have birth details on file → WF-43 should treat them as needing **full re-onboarding** (woo + re-collect the form), and Gemini should honestly say "we'd need your details again." A *recent* consultation_closed user (within window) still has details → light nudge, rebook reuses them. So Part 1's "branch on came_from_opted_out" becomes "branch on **do we still hold this user's details?**" — downstream of Part 2's deletion job.
+
+### Post-MVP action list
+1. Write a **data-retention policy** (what's kept, what's deleted, after how long) — get legal sign-off on the period under DPDP + Meta WhatsApp Business policy.
+2. Build a **retention/deletion job** purging birth/consultation PII after the window while preserving the suppression record.
+3. Confirm the onboarding **privacy notice** (policy URL already linked at onboarding) discloses retention.
+4. **WF-43 nuance** (Part 1) becomes downstream of #2 — branch on "do we still hold this user's details?" rather than guessing.
+
+- **Explicitly deferred:** user judged the whole workstream **overengineering for the first smaller roll-out**. MVP ships the BUG-06 greeting-aware + REBOOK CTA fix (same copy for both populations, data retained, Gemini answer accurate). Revisit after first roll-out.
+- **Priority hint:** low for the UX nuance (Part 1); **medium for the retention policy/job (Part 2)** — it's a compliance posture item, not just UX, and should be scheduled before any scale-up or marketing activity. Not a *blocker* for the first small roll-out per user decision. **Not legal advice — confirm retention period + DPDP/Meta specifics with counsel.**
