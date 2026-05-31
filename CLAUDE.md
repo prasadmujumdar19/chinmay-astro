@@ -329,7 +329,7 @@ These are business and architectural invariants. Where a rule references a workf
 
 3a. **Channel scope of admin commands (added 2026-05-17):**
     - **User-targeted commands** (those carrying a `<phone>` argument: APPROVE PAYMENT, REJECT, CLOSE CHAT CONSULT, BLOCK, UNBLOCK) are accepted ONLY in the user's `consult-{phone}` channel. The listener rejects them elsewhere with a polite reminder.
-    - **Admin-wide commands** (no phone argument: LIST, STATS, HELP) work in ANY channel.
+    - **Admin-wide commands** (no phone argument: LIST, STATS, HELP) are accepted ONLY in the `chinmay-admin-commands` channel. Typed in a `consult-{phone}` channel they are rejected with an alert pointing the admin to `chinmay-admin-commands` (DR-13 / SP-03, the WF-10 centralized validation gate — supersedes the earlier "any channel" wording; verified live 2026-05-31).
     - The keyword parser accepts standard aliases: `APPROVE` ≡ `APPROVE PAYMENT`; `REJECT` ≡ `REJECT PAYMENT`; `CLOSE` ≡ `CLOSE CONSULT` ≡ `CLOSE CONSULTATION` ≡ `CLOSE CHAT CONSULT`.
 
 4. **`opted_out` ≠ `blocked`.** STOP keyword → `opted_out` (user-initiated; user re-engages automatically by sending any message). Admin BLOCK → `blocked` (admin/system action; requires explicit admin UNBLOCK). The router treats these as distinct states with different re-entry semantics.
