@@ -2,6 +2,7 @@
 
 **Created:** 2026-05-16
 **Last reordered:** 2026-05-27 (post-MVP triage — promoted 5 items to Tier 1 pre-go-live)
+**Last appended:** 2026-05-31 (sprint `behavior-matrix-fixes-2026-05-27` close — added TD-NEW-036…-041 from the S8/D7 smoke + safety-net deferrals)
 **Source:** docs/Tech_Debt_2026-05-14.md (carry-forward items) + .methodology/sprint-tech-debt-2026-05-14-followups.md (deferred decisions) + subsequent sprint follow-ups.
 **Scope:** All items NOT already in docs/sprint-tech-debt-2026-05-16-before-MVP.md.
 
@@ -257,6 +258,32 @@ Concrete evidence from this sprint: WF-51 and WF-60 pseudos were both significan
 
 ---
 
+### TD-NEW-036 · WF-30 / WF-31 off-topic counting (D6 consistency with WF-43)
+
+**Source:** Safety-net design spec §12.7 + `behavior-matrix-fixes-2026-05-27` BUG-06b. Deferred 2026-05-31.
+**Finding:** BUG-06b added off-topic-but-legitimate counting/blocking (D6) to WF-43's `general_enquiry` Gemini pass-through — off-topic messages are now logged + counted + blockable via U2/WF-61 (`reason='off_topic'`, threshold 10). The **same uncounted pass-through-Gemini vector still exists in the payment-stage handlers** WF-30 (`payment_pending`) and WF-31 (`payment_submitted`): a user can send unbounded off-topic chatter that hits Gemini without being counted toward the abuse threshold.
+
+**Fix:** Mirror the WF-43 D6 pattern in WF-30/31 — after the Gemini response, branch on `valid_user_message===false` → call U2/WF-61 with `reason='off_topic'`, threshold 10, then send the graceful redirect (or end silently if blocked). Reuse WF-43's `Off-Topic?` → `Build U2 Off-Topic Payload` → `Call U2` → `Blocked by U2?` sub-chain.
+
+**Why deferred:** Payment-stage users are invested (lower abuse risk than post-consult); WF-43 closes the largest vector. Revisit when WF-30/31 prompts are next touched, or before scale-up.
+
+**Original priority:** 🟡 P2 (cost-control / consistency) · **Session type:** n8n session
+
+---
+
+### TD-NEW-037 · WF-53 (U1) emits the user-facing sentence even for non-user-facing callers
+
+**Source:** `behavior-matrix-fixes-2026-05-27` followups.md §52 (BMX-P0-U1 build). Deferred 2026-05-29.
+**Finding:** U1 (`WF-53`, the Gemini-failure escalation utility) always includes the user-facing apology sentence in its output, regardless of the `userFacing` flag the caller passes. Harmless today because every live U1 caller IS user-facing — but the moment a non-user-facing U1 caller is introduced, it would leak a user-apology into an internal/admin path. Pseudo documents the always-included behavior + a deferred-improvement note pointing here.
+
+**Fix:** Make the user-facing sentence conditional on `userFacing===true` in **live + pseudo together** (the sync rule requires both). Low effort, single Code/Set branch.
+
+**Why deferred:** No non-user-facing U1 caller exists yet, so zero current impact. Apply when such a caller is introduced, or alongside the next WF-53 touch.
+
+**Original priority:** 🟡 P2 (latent contract bug) · **Session type:** n8n session
+
+---
+
 # Tier 4 — Needs Design Decision
 
 These items require scope discussion before `plan-sprint` can produce an actionable plan. Do NOT pick up directly — surface to user first.
@@ -302,6 +329,19 @@ These items require scope discussion before `plan-sprint` can produce an actiona
 
 ---
 
+### TD-NEW-038 · S10 — NULL / out-of-enum `users.status` hard-throws at the WF-02 data-contract guard
+
+**Source:** `behavior-matrix-fixes-2026-05-27` BMX-P5-MATRIX S10 row + followups.md §138. **PARKED post-MVP by operator 2026-05-30.**
+**Finding:** A `users` row whose `status` is NULL or a value outside the enum hard-throws at WF-02's data-contract guard (`WorkflowHasIssuesError`) — the entire S10 matrix row (8 cells) is 🛑. This is a regression introduced by the 2026-05-24 data-contract sprint, pre-dating this sprint. No normal flow produces a NULL/out-of-enum status (it's should-never-happen data corruption); failed executions remain visible in n8n execution history.
+
+**Decision required (if un-parked):** Should WF-02 (a) fail-loud as today (throw → visible in execution history), (b) route NULL/unknown status to a graceful admin-anomaly alert (like the SP-11 user-load gate pattern) and silent-drop, or (c) coerce unknown→a safe default state? Operator parked it because the trigger is data corruption, not a user-reachable path.
+
+**Why deferred:** Operator-accepted carve-out; the matrix exit gate (BMX-P5-MATRIX) closed with S10 explicitly excluded. Not a go-live blocker.
+
+**Original priority:** 🔵 Needs-Decision (parked) · **Session type:** n8n session
+
+---
+
 # Tier 5 — Functional Polish
 
 Improvements that should follow real-usage signal — pick up when actual data shows the bucket is too coarse or the response is too generic.
@@ -326,6 +366,32 @@ Improvements that should follow real-usage signal — pick up when actual data s
 **Related:** SP-04 (sprint inline-20260522-102910) introduced the stop_intent clarifier; this TD is the natural follow-on for the other 4 intents.
 
 **Original priority:** 🟡 P2 (functional polish) · **Session type:** n8n session
+
+---
+
+### TD-NEW-039 · WF-43 retention-tied re-engagement tone graduation (downstream of STATUS-TD-06)
+
+**Source:** `behavior-matrix-fixes-2026-05-27` followups.md §161 Part 1 (D7 convergence). The `wasOptedOut` MECHANISM shipped in BMX-D7; this is the remaining graduation.
+**Finding:** BMX-D7 gave WF-43 uniform re-engagement warmth for opted-out users (button → welcome-back; text → opted-out-aware Gemini prompt). The deeper nuance is still flat: an opted-out re-engager who **never actually consulted** (opted out pre-consultation) should be *actively wooed back* and re-onboarded; one whose **birth details were purged** by the future retention job (STATUS-TD-06 / WF-73) genuinely no longer has details on file → Gemini should honestly say "we'd need your details again" and re-collect the form; a *recent* closed user still has details → light nudge, rebook reuses them. Today all three get the same warmth and Gemini still answers "yes, we have your details."
+
+**Fix (post-MVP, downstream of STATUS-TD-06):** once the retention/deletion job exists, branch WF-43's re-engagement on "do we still hold this user's details?" rather than just `wasOptedOut` — woo + re-collect when purged, light nudge when retained. Keep the D7 gate as the structural hook.
+
+**Why deferred:** Genuinely downstream of the data-retention job (STATUS-TD-06) — meaningless until PII is actually purged after a window. Operator judged the whole retention+graduation workstream overengineering for the first roll-out.
+
+**Original priority:** 🟡 P2 (UX polish) · **Session type:** n8n session · **Depends on:** STATUS-TD-06 / WF-73
+
+---
+
+### TD-NEW-040 · WF-43 — unrecognized button from a (normal) closed user falls to the feedback-prompt catch-all
+
+**Source:** `behavior-matrix-fixes-2026-05-27` BMX-P5-MATRIX S6×I (matrix ⚠️). Surfaced during D7 button-cascade review.
+**Finding:** In WF-43's button cascade, any `button_reply.id` that is not `btn_done` or `btn_rebook` falls through to the **feedback-prompt** catch-all (Step 9). So a *normal* `consultation_closed` user who taps a stale "Payment Completed" button (or any other old button) gets "✍️ please share your feedback…" — a benign but mismatched response. (The opted-out variant is handled by the D7 gate; this is the non-opted-out residual.)
+
+**Fix (post-MVP):** add an explicit id check (or a small Switch) for known stale buttons (e.g. payment_completed) → route to a more appropriate response (e.g. "that consultation is already closed — reply REBOOK for a new reading") instead of the generic feedback prompt. Low effort.
+
+**Why deferred:** Contrived (a closed user tapping a stale payment button); response is benign. Pick up behind real-usage signal.
+
+**Original priority:** 🟢 P3 (edge polish) · **Session type:** n8n session
 
 ---
 
@@ -439,6 +505,19 @@ Each is a documentation-discipline edit: structured Inputs blocks missing per th
 
 ---
 
+### TD-NEW-041 · Eager pattern-error markers on WhatsApp Flow form fields (BUG-04)
+
+**Source:** `behavior-matrix-fixes-2026-05-27` live smoke 2026-05-31 (BUG-04). Operator said "move on for now" — cosmetic, non-blocking.
+**Finding:** The published Flow form (`collect-birth-details.json`, Flow ID `1137788551887662`) shows pattern-validation error markers on fields eagerly (before/while typing), even after the `(...)?` optional-pattern wrap. Cosmetic — submission still works; the markers just look like premature errors.
+
+**Fix (post-MVP):** revisit the field `pattern` / `error-message` config in the Flow JSON so validation markers only fire on a genuine invalid completed value, not eagerly. Test in the Flow builder preview + a live submission.
+
+**Why deferred:** Pure cosmetic; onboarding completes correctly. Operator explicitly deferred.
+
+**Original priority:** 🟢 P3 (cosmetic) · **Session type:** Flow JSON + Meta Flow builder
+
+---
+
 ## Summary Table (execution order)
 
 | # | Tier | ID | Issue | Original priority | Session type |
@@ -465,6 +544,12 @@ Each is a documentation-discipline edit: structured Inputs blocks missing per th
 | 19 | 6 — Hygiene | TD-NEW-021 | archive/backups/ 68 snapshots — needs tarring | 🟢 P3 | Git/local |
 | 20 | 6 — Hygiene | TD-NEW-023 | docs/.DS_Store committed to repo | 🟢 P3 | Git/local |
 | 21 | 6 — Hygiene | TD-NEW-025 | 3 stale deleted workflow JSONs in workflows/ | 🟢 P3 | Git/local |
+| 22 | 3 — Before volume | TD-NEW-036 | WF-30/31 off-topic counting (D6 consistency with WF-43) | 🟡 P2 | n8n session |
+| 23 | 3 — Before volume | TD-NEW-037 | WF-53 (U1) leaks user-facing sentence to non-user-facing callers | 🟡 P2 | n8n session |
+| 24 | 4 — Needs decision | TD-NEW-038 | S10 NULL/out-of-enum status hard-throws at WF-02 guard (PARKED) | 🔵 Needs-Decision | n8n session |
+| 25 | 5 — Functional polish | TD-NEW-039 | WF-43 retention-tied re-engagement tone graduation (dep STATUS-TD-06) | 🟡 P2 | n8n session |
+| 26 | 5 — Functional polish | TD-NEW-040 | WF-43 unrecognized button → feedback catch-all (S6×I) | 🟢 P3 | n8n session |
+| 27 | 6 — Hygiene | TD-NEW-041 | Eager pattern-error markers on Flow form fields (BUG-04) | 🟢 P3 | Flow JSON |
 
 ---
 
