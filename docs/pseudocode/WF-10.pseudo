@@ -25,7 +25,7 @@ WF-10 — Slack Admin Handler
     - UNBLOCK → blocked
     - Relay text (no command keyword in user channel) → consultation_active
   - Failure-mode messages use business language per [[feedback_admin_message_tone]] — no WF-XX names, no DB column jargon.
-  - **Free text in admin channel:** for MVP, replies with a brief "Type HELP for commands" prompt. Post-MVP enhancement: route free text in `chinmay-admin-commands` to a Gemini-powered assistant with admin-manual context. Tracked in sprint followups.md.
+  - **Free text in admin channel (PDF-01, 2026-05-31):** routed to a Gemini (`gemini-2.5-flash-lite`) operations assistant that answers Chinmay's ops + user-advice questions from a STATIC baked-in knowledge base (no DB lookup at PDF-01 scope), then posts the answer back to the SAME channel via WF-51. The assistant ADVISES ONLY — it never executes commands; structured `admin_wide` / `user_targeted` routing (Steps 12/13) is untouched. Off-topic questions get a polite in-domain decline (a SUCCESSFUL Gemini call, per the system prompt) — NOT the technical-glitch fallback. The glitch fallback is reserved for an actual Gemini API failure/timeout/non-200. Verbatim system prompt: `docs/artefacts/specs/2026-05-31-pdf-01-admin-assistant-gemini-prompt.txt`; design spec: `docs/artefacts/specs/2026-05-31-pdf-01-admin-assistant-gemini-design.md`. (PDF-02/PDF-03 will later extend this same Gemini node with current user-state + history context.)
 
 ---
 
@@ -70,11 +70,27 @@ Step 13: `Build Wrong-Channel Alert (Admin)` (Set node — canonical WF-51 shape
     channelId: $('Extract Required Fields').item.json.channel_id,
     messageText: "⚠️ `<commandHint>` is a user-targeted command. Please type it inside the user's `consult-<phone>` channel."
   }. Call WF-51 (`Call WF-51 (Wrong Channel Admin)`). End.
-Step 14: `Build Help Prompt` (Set node — canonical WF-51 shape per design.md §2.4): {
-    channelId: $('Extract Required Fields').item.json.channel_id,
-    messageText: "🤖 Type `HELP` to see available commands."
-  }. Call WF-51 (`Call WF-51 (Help Prompt)`). End.
-  [Post-MVP enhancement: route to Gemini-powered assistant — see followups.md.]
+Step 14: Free-text admin assistant (PDF-01). Chinmay typed free-form text in `chinmay-admin-commands` that is not a recognised command → answer it with a Gemini operations assistant and post the reply back to the SAME channel via WF-51. The admin's free text is read from `$('Classify Admin Channel Message').item.json.messageText` (original case — only an internal copy is uppercased for command matching). channelId for every WF-51 reply on this branch = `$('Extract Required Fields').item.json.channel_id` (always-executed; reuses the carried channel — never hardcodes the admin channel). Sub-steps:
+
+  Step 14a: `Build Gemini Request` (Code node). Compose the Gemini text: the verbatim STATIC system prompt (baked in from `docs/artefacts/specs/2026-05-31-pdf-01-admin-assistant-gemini-prompt.txt`) followed by Chinmay's message as the user turn. Output `{ geminiPrompt }`.
+
+  Step 14b: `Gemini Admin Assistant` (HTTP Request → `gemini-2.5-flash-lite:generateContent`, `googlePalmApi` credential, single text part, temperature 0.3). onError = continueRegularOutput (a Gemini outage must NOT dead-end the branch — the error item flows on to Step 14c). Single attempt, no retry storm (graceful fallback instead; Chinmay can re-ask). Plain-text reply expected (no responseMimeType=json) — the system prompt produces the answer (or the polite off-topic decline) directly.
+
+  Step 14c: `Extract Assistant Answer` (Code node). Robustly read `candidates[0].content.parts[0].text` with null-guards. Emit `{ channelId, geminiOk, answer }` where `geminiOk = (answer.length > 0)`. An API error (no `candidates`), a safety-block (no `parts`), or an empty reply all yield `geminiOk = false`. (Extraction done here, before the IF, so the IF branches on a clean boolean and never throws on a missing field.)
+
+  Step 14d: `Did Gemini Succeed?` (IF node) — `geminiOk == true`.
+    → TRUE  → Step 14e.
+    → FALSE → Step 14f.
+
+  Step 14e: `Build Assistant Reply Payload` (Set node — canonical WF-51 shape per design.md §2.4): {
+      channelId: $('Extract Required Fields').item.json.channel_id,
+      messageText: $('Extract Assistant Answer').item.json.answer
+    }. → Call WF-51 (`Call WF-51 (Assistant)`). End.
+
+  Step 14f: `Build Fallback Payload` (Set node — canonical WF-51 shape per design.md §2.4): {
+      channelId: $('Extract Required Fields').item.json.channel_id,
+      messageText: "⚠️ I hit a technical glitch and couldn't answer that — please try again in a moment."
+    }. → Call WF-51 (`Call WF-51 (Assistant)`). End. (Both 14e and 14f converge on the single `Call WF-51 (Assistant)` executeWorkflow node; both upstream payload nodes are contract-emit Set v3.4 emitting exactly {channelId, messageText}.)
 
 ---
 
