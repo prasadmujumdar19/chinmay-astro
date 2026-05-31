@@ -650,6 +650,7 @@ Sprint exit gate. **Sequenced to Batch 17 — last among functional work — so 
   - **S10×E (NULL-status forward-test) + S10 regression row (8 cells):** PARKED post-MVP by user (see followups.md). NULL/out-of-enum status hard-throws at WF-02 data-contract guard (regression from 2026-05-24 sprint, pre-dates this sprint). Agreed fix recorded; S10 marked 🛑 deferred-post-MVP; gate closes with this explicit user carve-out.
 - **Regression (~58 other cells):** clean — all trace ✅ working; ~28 "changed vs prior baseline" are stale-baseline-text refinements (agents documented each), NOT regressions. Only regression breakages = the parked S10 row.
 - **Remaining:** Phase 3 live real-phone opted_out re-engage smoke for the 7 ⚠️ S8 cells (user chose static-first → PAUSED for handset); then Phase 4 HTML update + gate close.
+- **Live smoke 2026-05-31 (IN PROGRESS, onboarding path):** clearing front-of-funnel blockers before the S8 cells. Bugs found+fixed: BUG-01 (WF-01 country filter), BUG-02 (test-account flow ID → new flow `1137788551887662`), BUG-02a (WF-50 flow_action_payload), BUG-03 (flow routing cycle), BUG-05 (WF-22 consent boolean); BUG-04 (eager form error markers) deferred non-blocking. S8 cells not yet reached. Full detail + log → `docs/artefacts/tests/smoke-bmx-s8-optedout-reengage-2026-05-31/`. Resume runbook → `handoffs/handoff-bmx-p5-matrix-smoke-onboarding-bugfixes.md`.
 
 ## TD-BMX-02 — Reorder WF-01 security layers (Country → Blacklist → Non-Text) [as written]
 

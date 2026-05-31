@@ -29,7 +29,7 @@ Step 3: Branch on the user's current state:
   - status == 'consultation_active' → go to Step 6 (active consult — ask to close first).
   - else (payment_pending / consultation_closed / opted_out-re-entry / unknown) → go to Step 7 (happy-path rebook).
 Step 4: Send a "let's get you set up" message + the WhatsApp Flow form CTA via WF-50. No UPDATE. End.
-  - Copy (LOCKED 2026-05-30, user-approved): body.text = "Welcome! 🙏 To book a consultation with Dr. Chinmay Mujumdar, please share your birth details using the form below to get started." + WhatsApp Flow form CTA (header "Birth Details Form", flowId 2260297164474475, CTA "Fill Details", policy URL chinmaymujumdar.com/privacy-policy) — same Flow params as WF-21/WF-23.
+  - Copy (LOCKED 2026-05-30, user-approved): body.text = "Welcome! 🙏 To book a consultation with Dr. Chinmay Mujumdar, please share your birth details using the form below to get started." + WhatsApp Flow form CTA (header "Birth Details Form", flowId 1137788551887662, CTA "Fill Details", policy URL chinmaymujumdar.com/privacy-policy) — same Flow params as WF-21/WF-23.
 Step 5: Send the under-review clarifier via WF-50. No UPDATE. End.
   - Copy (LOCKED 2026-05-30, user-approved): "Your payment is still being reviewed — please wait for confirmation before booking again. We'll be in touch shortly. 🙏"
 Step 6: Send the active-consultation clarifier via WF-50. No UPDATE. End.

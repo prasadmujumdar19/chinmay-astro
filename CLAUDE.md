@@ -368,7 +368,7 @@ For the workflow-level implementation of each transition, see `docs/workflow-reg
 | Postgres credential | `Zomqv5wsowQAhdGl` |
 | Slack credential | `WSds5JWe5b6N7myY` |
 | Slack admin channel | `C0A5B0ZE81E` (chinmay-admin-commands) |
-| WhatsApp Flow ID | `2260297164474475` |
+| WhatsApp Flow ID | `1137788551887662` |
 | WhatsApp Flow CTA | `"Fill Details"` |
 | Gemini model | `gemini-2.5-flash-lite` (2.0 deprecated; see `project_gemini_model.md`) |
 
