@@ -2,53 +2,67 @@ WF-43 — Post-Consultation Handler
 
 ## Summary
 
-- Purpose: Handles `consultation_closed` user activity. Interactive button taps route directly (done / rebook / feedback). Free-form text is classified via WF-25 (which owns the safety net), then routed: rebook → WF-45, feedback → WF-44, stop_intent → no extra (clarifier already sent by WF-25), else a Gemini contextual reply.
-- Inputs (WF-01 canonical envelope §2.1): `phoneNumber` (top-level), `messageType` (text|interactive), `messageContent`, `rawMessage` (for interactive payloads), `user.{id, status, current_consultation_id, slack_channel_id}`.
-- Outputs: routes to WF-44 / WF-45; a thank-you (btn_done) via WF-50 + Slack notification via WF-51; a feedback prompt; or a Gemini-generated reply.
+- Purpose: Handles `consultation_closed` user activity. Interactive button taps route directly (done / rebook / feedback). Free-form text is classified via WF-25 (which owns the safety net), then routed: rebook → WF-45, feedback → WF-44, stop_intent → no extra (clarifier already sent by WF-25), else a Gemini contextual reply. **Re-engaged opted-out users (`wasOptedOut=true`, set by WF-26 when an `opted_out` user is lifted to `consultation_closed` and re-routed) are handled distinctly — see D7.**
+- Inputs (WF-01 canonical envelope §2.1): `phoneNumber` (top-level), `messageType` (text|interactive), `messageContent`, `rawMessage` (for interactive payloads), `wasOptedOut` (boolean — true only when WF-26 lifted this user from `opted_out` this turn), `user.{id, status, current_consultation_id, slack_channel_id}`.
+- Outputs: routes to WF-44 / WF-45; a thank-you (btn_done) via WF-50 + Slack notification via WF-51; a feedback prompt; a welcome-back (re-engaged opted-out) via WF-50; or a Gemini-generated reply.
 - State Transitions: none directly (downstream WFs may transition).
 - Calls Sub-Workflows: WF-25 (Intent Classifier + Safety-Net Hub), WF-44 (Feedback Recorder), WF-45 (Rebook), WF-53 (U1 — on the local Gemini reply's failure), WF-61 (U2 — off-topic counting/block, safety-net §12/D6), WF-50 (Send WhatsApp), WF-51 (Send Slack — btn_done notification).
 - **Deltas vs the prior WF-43 (safety-net §6, D5):**
   - stop_intent NO LONGER auto-routes to WF-47 — WF-25 sends the clarifier and returns the intent; WF-43 takes no extra action on stop_intent (removes the live inconsistency + the false-positive unsubscribe risk).
   - REMOVED the inline Gemini-error halt-and-notify chain → on the general-reply Gemini failure, call U1.
   - **D6 (safety-net §12, 2026-05-31):** the general-reply Gemini now returns JSON `{ valid_user_message, response }`. Off-topic-but-legitimate messages (`valid_user_message=false`) — which WF-25 passes through as `general_enquiry` and were previously uncounted — are now logged + counted + blockable via U2/WF-61 (`reason='off_topic'`, `blockThreshold=10`, `blockReason='threshold_off_topic'`). Parse is fail-open (malformed/missing → treat as valid). Closes the previously-unbounded off-topic cost vector without a second classify call (the response Gemini emits the relevance flag for free).
-    - **Interplay with BUG-06c (§13):** D6 handles ONLY the legit pass-through buckets (`general_enquiry`/`wants_consultation`) that WF-25 returns. *Garbage* is handled + counted by WF-25 and stopped before Step 12 (WF-25 emits 0 items, §13) — so D6's off_topic check never sees garbage. The pre-§13 symptoms (a 2nd message on garbage + a null-content `off_topic` row + the garbage/off_topic double-count) are resolved by §13. The two amendments are complementary: §13 keeps garbage out; D6 counts the legit-but-off-topic remainder.
+    - **Interplay with BUG-06c (§13):** D6 handles ONLY the legit pass-through buckets (`general_enquiry`/`wants_consultation`) that WF-25 returns. *Garbage* is handled + counted by WF-25 and stopped before Step 13 (WF-25 emits 0 items, §13) — so D6's off_topic check never sees garbage. The pre-§13 symptoms (a 2nd message on garbage + a null-content `off_topic` row + the garbage/off_topic double-count) are resolved by §13. The two amendments are complementary: §13 keeps garbage out; D6 counts the legit-but-off-topic remainder.
+  - **D7 (re-engaged opted-out awareness, 2026-05-31):** WF-26 lifts an `opted_out` user to `consultation_closed` (no welcome message of its own — D-rule), sets `wasOptedOut=true`, and re-routes through WF-02 → WF-43. WF-43 then treated them byte-identically to a normal closed user, producing two wrong outcomes: (a) a stale **button** tap (e.g. an old `btn_done`) fired the post-consultation FAREWELL copy ("hope to see you again… reply STOP to unsubscribe") at someone who *just returned* — tonally backward; (b) a free-form **text** message got the generic returning-user Gemini reply with no acknowledgement that they had unsubscribed and are now back. D7 adds two `wasOptedOut` gates:
+    - **Button path:** any button tap when `wasOptedOut=true` is *necessarily stale* (it predates the opt-out), so the button cascade is short-circuited to a single welcome-back message inviting REBOOK (Steps 3–4). Original button semantics (done/rebook/feedback) are NOT honoured for a re-engaging user — they re-enter via REBOOK.
+    - **Text path:** the general-reply Gemini prompt has a `wasOptedOut=true` variant that tells the model the user previously opted out and is now resubscribed — Gemini welcomes them back AND answers/steers in ONE message (no separate send; no double-message). Both prompt variants converge on the same Gemini POST (Steps 14–17).
 - **Notes:**
-  - Interactive button cascade is unchanged.
+  - Interactive button cascade runs only for NON-opted-out users (D7 gate at Step 3); within that, the done/rebook/feedback cascade is unchanged.
+  - `wasOptedOut` is read from the trigger envelope (`$('When Executed by Another Workflow').first().json.wasOptedOut`) in both gates — robust against WF-25 dropping the field on the text path.
+  - **Read-source convention (D7, 2026-05-31):** the post-Gemini consumers `Extract Gemini Reply` (phoneNumber) and `Build U2 Off-Topic Payload` (messageContent) read from the trigger node `$('When Executed by Another Workflow')`, NOT from a prompt-build node. Because Step 14 forks to one of two prompt-build nodes, the OTHER never executes that turn — any `$('Prepare Gemini Response Prompt')` reference would throw "node hasn't been executed" on the opted-out branch. The trigger node always runs and carries both fields, so it is the only safe convergence source.
   - Copy reuse-existing — verify verbatim at build.
 
 ---
 
 ## Algorithm
 
-Step 1: Start — triggered by WF-02 for a `consultation_closed` user. Read the WF-01 canonical envelope.
+Step 1: Start — triggered by WF-02 for a `consultation_closed` user. Read the WF-01 canonical envelope (includes `wasOptedOut`).
 Step 2: Check: `messageType == 'interactive'` (a button reply)?
   - If YES → go to Step 3.
-  - If NO → go to Step 8.
-Step 3: Inspect `rawMessage.interactive.button_reply.id`:
-  - "btn_done" → go to Step 5.
-  - "btn_rebook" → go to Step 4.
-  - otherwise (btn_feedback or any other id) → go to Step 7.
-Step 4: Call WF-45 (Rebook) with `phoneNumber`, `userId`. End.
-Step 5: Send the close-thanks — call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: "Thank you for choosing Chinmay Astro. We hope to see you again — just send REBOOK whenever you're ready.\n\nYou can also email chinmay_astro@gmail.com anytime if you need anything we can't help with here, or reply STOP if you'd prefer to unsubscribe." }`.
-Step 6: Notify admin — call WF-51 with `{ channelId: user.slack_channel_id, messageText: "✅ User tapped \"Done, thanks\" — conversation closed. Channel stays open for any future rebook." }`. No state change. End.
-Step 7: Prompt for feedback — call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: "✍️ Thanks for choosing to share your feedback! Please type your thoughts about the consultation and send them — we appreciate every word!" }`. End.
-Step 8: Call WF-25 with `{ phoneNumber, userId: user.id, messageContent, userStatus: user.status, userName: user.name, slackChannelId: user.slack_channel_id }`. Receive `intentResult`. **Garbage / abuse do not continue here — mechanism (BUG-06c, safety-net §13):** WF-25 emits **0 items** (its Step 13 `Return Nothing`); this handler's `Call WF-25` has `alwaysOutputData=false`, so 0 items → Step 9 onward skip. So the only intents that reach the Gemini reply (Step 12) are the pass-through buckets (`general_enquiry` / `wants_consultation`) — NOT garbage. Before BUG-06c, WF-25 returned 1 item on garbage and this handler wrongly ran its Gemini reply on it (2nd message + a null-content `off_topic` count). Do not remove WF-25's `Return Nothing`. (Gemini-failure still terminates via U1's halt.)
-Step 9: Check: `intentResult == 'stop_intent'`?
-  - If YES → End (WF-25 already sent the clarifier; no extra — D5).
   - If NO → go to Step 10.
-Step 10: Check: `intentResult == 'rebook_intent'`?
-  - If YES → call WF-45 (Rebook) with `phoneNumber`, `userId`. End.
-  - If NO → go to Step 11.
-Step 11: Check: `intentResult == 'feedback_intent'`?
-  - If YES → call WF-44 (Feedback Recorder) with `phoneNumber`, `userId`, `messageContent`. End.
+Step 3: (D7 button gate) Check: `wasOptedOut === true`?
+  - If YES → go to Step 4 (re-engaged opted-out user — button is stale, send welcome-back).
+  - If NO → go to Step 5 (normal closed user — honour the button).
+Step 4: Send the re-engagement welcome-back — call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: "🙏 Welcome back to Chinmay Astro! Reply REBOOK whenever you're ready to start a new reading." }`. End.
+Step 5: Inspect `rawMessage.interactive.button_reply.id`:
+  - "btn_done" → go to Step 7.
+  - "btn_rebook" → go to Step 6.
+  - otherwise (btn_feedback or any other id) → go to Step 9.
+Step 6: Call WF-45 (Rebook) with `phoneNumber`, `userId`. End.
+Step 7: Send the close-thanks — call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: "Thank you for choosing Chinmay Astro. We hope to see you again — just send REBOOK whenever you're ready.\n\nYou can also email chinmay_astro@gmail.com anytime if you need anything we can't help with here, or reply STOP if you'd prefer to unsubscribe." }`.
+Step 8: Notify admin — call WF-51 with `{ channelId: user.slack_channel_id, messageText: "✅ User tapped \"Done, thanks\" — conversation closed. Channel stays open for any future rebook." }`. No state change. End.
+Step 9: Prompt for feedback — call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: "✍️ Thanks for choosing to share your feedback! Please type your thoughts about the consultation and send them — we appreciate every word!" }`. End.
+Step 10: Call WF-25 with `{ phoneNumber, userId: user.id, messageContent, userStatus: user.status, userName: user.name, slackChannelId: user.slack_channel_id }`. Receive `intentResult`. **Garbage / abuse do not continue here — mechanism (BUG-06c, safety-net §13):** WF-25 emits **0 items** (its Step 13 `Return Nothing`); this handler's `Call WF-25` has `alwaysOutputData=false`, so 0 items → Step 11 onward skip. So the only intents that reach the Gemini reply (Step 16) are the pass-through buckets (`general_enquiry` / `wants_consultation`) — NOT garbage. Before BUG-06c, WF-25 returned 1 item on garbage and this handler wrongly ran its Gemini reply on it (2nd message + a null-content `off_topic` count). Do not remove WF-25's `Return Nothing`. (Gemini-failure still terminates via U1's halt.)
+Step 11: Check: `intentResult == 'stop_intent'`?
+  - If YES → End (WF-25 already sent the clarifier; no extra — D5).
   - If NO → go to Step 12.
-Step 12: Build the general-reply Gemini prompt (safety-net §12.6 verbatim) — the prompt OPENS with the JSON mandate (front-loaded for determinism, D6c) then the greeting/question/off-topic-aware welcome-back guidance (answer any genuine question briefly; warmly steer re-engaging users to reply REBOOK for a new ₹500 reading; for off-topic-but-legitimate messages gently acknowledge + steer back; never tell a closed user to "confirm payment"). Append the user's message. POST to Gemini (gemini-2.5-flash-lite, temperature=0.3, `generationConfig.responseMimeType='application/json'`). On Gemini API failure → go to Step 17. On success → go to Step 13.
-Step 13: Parse the JSON response into `{ valid_user_message, response }`. **Fail-open (D6e):** if parsing fails or either field is missing/malformed, set `valid_user_message=true` and `response=` best-effort text (or a safe default welcome-back reply). Never block or silence a user on a parse glitch.
-Step 14: Check: `valid_user_message === false`?
-  - If NO (true / fail-open) → go to Step 16 (send the reply).
-  - If YES → go to Step 15.
-Step 15: (off-topic — count + block check, D6) Call U2/WF-61 with `{ phoneNumber, messageType: 'text', reason: 'off_topic', messageContent, blockThreshold: 10, blockReason: 'threshold_off_topic' }`. Receive `{ blocked }`.
+Step 12: Check: `intentResult == 'rebook_intent'`?
+  - If YES → call WF-45 (Rebook) with `phoneNumber`, `userId`. End.
+  - If NO → go to Step 13.
+Step 13: Check: `intentResult == 'feedback_intent'`?
+  - If YES → call WF-44 (Feedback Recorder) with `phoneNumber`, `userId`, `messageContent`. End.
+  - If NO → go to Step 14.
+Step 14: (D7 text gate) Check: `wasOptedOut === true`?
+  - If YES → go to Step 15 (build the opted-out-aware prompt variant).
+  - If NO → go to Step 16 (build the standard prompt).
+Step 15: Build the OPTED-OUT general-reply Gemini prompt — identical JSON mandate + guidance as Step 16, EXCEPT the context sentence tells the model this person previously opted out of messages and has now re-engaged (they are resubscribed): warmly welcome them back AND, in the same reply, answer any genuine question briefly or gently steer them to reply REBOOK for a new ₹500 reading. Emits `geminiPrompt` (same field/shape as Step 16). Go to Step 17.
+Step 16: Build the STANDARD general-reply Gemini prompt (safety-net §12.6 verbatim) — the prompt OPENS with the JSON mandate (front-loaded for determinism, D6c) then the greeting/question/off-topic-aware welcome-back guidance (answer any genuine question briefly; warmly steer re-engaging users to reply REBOOK for a new ₹500 reading; for off-topic-but-legitimate messages gently acknowledge + steer back; never tell a closed user to "confirm payment"). Append the user's message. Emits `geminiPrompt`. Go to Step 17.
+Step 17: POST the built prompt to Gemini (gemini-2.5-flash-lite, temperature=0.3, `generationConfig.responseMimeType='application/json'`). Both prompt variants (Steps 15, 16) converge here — exactly one item arrives, so the single-input HTTP node fires once. On Gemini API failure → go to Step 22. On success → go to Step 18.
+Step 18: Parse the JSON response into `{ valid_user_message, response }`. **Fail-open (D6e):** if parsing fails or either field is missing/malformed, set `valid_user_message=true` and `response=` best-effort text (or a safe default welcome-back reply). Never block or silence a user on a parse glitch.
+Step 19: Check: `valid_user_message === false`?
+  - If NO (true / fail-open) → go to Step 21 (send the reply).
+  - If YES → go to Step 20.
+Step 20: (off-topic — count + block check, D6) Call U2/WF-61 with `{ phoneNumber, messageType: 'text', reason: 'off_topic', messageContent, blockThreshold: 10, blockReason: 'threshold_off_topic' }`. Receive `{ blocked }`.
   - If `blocked === true` → End (silent — U2 already set `status=blocked` and sent the admin block alert; no reply, D6a).
-  - If `blocked === false` → go to Step 16 (still send the graceful redirect reply, D6a).
-Step 16: Send the reply — call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <response> }`. End.
-Step 17: Gemini API failure — call U1 with `{ phoneNumber, userFacing: true, consultChannelId: user.slack_channel_id, context: { source: 'WF-43', userName: user.name, userStateText: 'consultation completed', userMessage: messageContent, errorDetail: <summary> } }`. End.
+  - If `blocked === false` → go to Step 21 (still send the graceful redirect reply, D6a).
+Step 21: Send the reply — call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <response> }`. End.
+Step 22: Gemini API failure — call U1 with `{ phoneNumber, userFacing: true, consultChannelId: user.slack_channel_id, context: { source: 'WF-43', userName: user.name, userStateText: 'consultation completed', userMessage: messageContent, errorDetail: <summary> } }`. End.

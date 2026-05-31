@@ -59,7 +59,7 @@
 | BMX-R15-WF11 | ✅ done | 15 | P1 | WF-11 | — |
 | BMX-R15-WF47 | ✅ done | 15 | P1 | WF-47 | — |
 | BMX-R16-PSEUDO | ✅ done | 16 | P2 | WF-00, WF-01, WF-10, WF-23, WF-41, WF-42 (pseudo) | — |
-| BMX-P5-MATRIX | 🔵 in-progress | 17 | P0 | — | BMX-R11-WF30, BMX-R11-WF31, BMX-R11-WF43, BMX-R12-WF25, BMX-R13-WF34, BMX-R13-WF33 (hard) |
+| BMX-P5-MATRIX | ✅ done | 17 | P0 | WF-43 (D7) | BMX-R11-WF30, BMX-R11-WF31, BMX-R11-WF43, BMX-R12-WF25, BMX-R13-WF34, BMX-R13-WF33 (hard) |
 | BMX-P8-DOCS | ✅ done | 18 | P2 | — | — |
 | BMX-P8-PLUGIN | ✅ done | 18 | P2 | — | — |
 | TD-BMX-02 | ⚪ obsolete | — | P0 | WF-01 | — |
@@ -630,8 +630,10 @@ Run `pseudo-md-drift-check` for all changed workflows; regenerate AS-IS `.md` fr
 
 ## BMX-P5-MATRIX — TD-BMX-07 behavior-matrix re-verification (exit gate)
 
-**Status:** 🔵 in-progress
+**Status:** ✅ done
 **Priority:** P0 | **Batch:** 17
+**Completed:** 2026-05-31T08:34:08Z
+**Completion note:** All 7 S8 acceptance cells PASS (A–G + I; H is N/A form-resubmission). S8×I subsumed by the D7 button gate (id-agnostic, exec 2994). Matrix HTML updated to post-fix verdicts (S8 row → ✅; S8×G rewritten per DR-4; summary pills recounted W63/U5/B6/N7). The S8×I diagnosis surfaced a real WF-43 gap → **BMX-D7 enhancement** built+verified live (see SESSION 2 progress note + registry BMX-D7). S10 row remains 🛑 deferred-post-MVP (user-approved carve-out, pre-dates this sprint). **Deferred (not gate-blocking, tracked in followups.md):** 3 plugin-improvement flushes (report-the-chain → monitor-test-run; return-[]-to-stop-caller → build-workflow; conditional-skip dangling-ref → build-workflow Step 6a) — flush in a dedicated `flush-plugin-improvements` session (plugin repo).
 **Change type:** Verification
 **Workflows:** —
 **Depends on:** BMX-R11-WF30 (hard), BMX-R11-WF31 (hard), BMX-R11-WF43 (hard), BMX-R12-WF25 (hard), BMX-R13-WF34 (hard), BMX-R13-WF33 (hard)
@@ -651,6 +653,7 @@ Sprint exit gate. **Sequenced to Batch 17 — last among functional work — so 
 - **Regression (~58 other cells):** clean — all trace ✅ working; ~28 "changed vs prior baseline" are stale-baseline-text refinements (agents documented each), NOT regressions. Only regression breakages = the parked S10 row.
 - **Remaining:** Phase 3 live real-phone opted_out re-engage smoke for the 7 ⚠️ S8 cells (user chose static-first → PAUSED for handset); then Phase 4 HTML update + gate close.
 - **Live smoke 2026-05-31 (IN PROGRESS):** Onboarding path cleared + full journey proven live end-to-end (onboard → pay → APPROVE → consult → CLOSE → STOP→opted_out). Bugs found+fixed: BUG-01 (WF-01 country filter), BUG-02 (test-account flow ID → new flow `1137788551887662`), BUG-02a (WF-50 flow_action_payload), BUG-03 (flow routing cycle), BUG-05 (WF-22 consent boolean), **BUG-06 (WF-43/30/31 Gemini prompts mis-framed greetings as "answer their question" → greeting-aware + REBOOK CTA, build-workflow Batch Surgical, pseudo synced, verified live)**; BUG-04 (eager form error markers) deferred non-blocking. **S8 acceptance: 3/7 cells PASS (S8×A greeting, S8×B question, S8×C STOP-while-opted_out); remaining S8×D/E/F/I (REBOOK/HELP/reserved-kw/Payment-Completed-button — keyword+button paths, unaffected by BUG-06).** Then matrix HTML static-verdict update + S8×G expectation rewrite + gate close. Combined post-MVP workstream logged (WF-43 opted_out-vs-closed nuance + data-retention policy/deletion job). Full detail + log → `docs/artefacts/tests/smoke-bmx-s8-optedout-reengage-2026-05-31/`.
+- **Live smoke 2026-05-31 SESSION 2 — S8 COMPLETE + D7 enhancement:** All 7 S8 acceptance cells now PASS. S8×E/F passed prior session (HELP, reserved-kw). This session: **S8×D REBOOK PASS** (opted_out+rebook-intent exec 3082→WF-45 3087 `Set status=payment_pending`; exact "REBOOK" keyword exec 3144→WF-45 3147 same — both reach payment_pending; keyword path is state-identical post-WF-26-lift). **S8×I subsumed by D7** — the D7 button gate fires for ANY interactive button when `opted_out` (id-agnostic) → welcome-back; exec 2994 (stale btn_rebook) proves it, so a stale Payment-Completed button resolves identically; no separate handset run needed. **D7 enhancement (WF-43 `3va0M06kijgyLejf`, +5 nodes 27→32, build-workflow full discipline):** the `btn_done`-after-opt-out diagnosis (farewell copy fired at a just-re-engaged user) generalized to wasOptedOut awareness — (a) button path: new `Is opted_out?` gate short-circuits ANY stale button to a welcome-back (Steps 3–4); (b) text path: new `Was optedOut?` gate routes to an opted-out-aware Gemini prompt that welcomes + answers in ONE message (Steps 14–17 converge). Pseudo revised (linear 1→22, D7 delta). Parse-bug found+fixed inline: `Extract Gemini Reply` + `Build U2 Off-Topic Payload` hard-referenced `$('Prepare Gemini Response Prompt')` which the opted-out branch skips → "node hasn't been executed"; repointed both to the always-run trigger node. Both paths verified live (button exec 2994, text exec 3135). Backups `archive/backups/3va0M06kijgyLejf-2026-05-31-18-06.json`. Remaining gate: matrix HTML + S8×G rewrite + .md regen + plugin flushes + gate close.
 
 ## TD-BMX-02 — Reorder WF-01 security layers (Country → Blacklist → Non-Text) [as written]
 

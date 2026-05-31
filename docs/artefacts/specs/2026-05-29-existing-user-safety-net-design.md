@@ -538,6 +538,15 @@ WF-43 Step 12 (the general-reply Gemini) changes from plain-text → **JSON outp
 >
 > User: ${messageContent}
 
+#### 12.6a Opted-out variant (BMX-D7, user-approved 2026-05-31)
+When the inbound envelope carries `wasOptedOut=true` (WF-26 lifted this user from `opted_out` to `consultation_closed` this turn), WF-43's `Was optedOut?` gate (pseudo Step 14) routes to a SECOND prompt node that is **identical to §12.6 verbatim except** the context sentence is replaced:
+
+| §12.6 standard | §12.6a opted-out variant |
+|----------------|--------------------------|
+| "This person has had a consultation with Dr. Chinmay before and is now reaching out again." | "This person previously opted out of our messages and has now re-engaged, so they are resubscribed — warmly welcome them back in your reply." |
+
+Everything else (JSON mandate, ₹500/GPay guidance, REBOOK steer, never-confirm-payment, no-bullets) is unchanged. Both prompt variants converge on the same Gemini POST → the model welcomes back AND answers in one message (no separate welcome send; no double-message). The button path uses no Gemini — a stale button while `opted_out` short-circuits to a fixed welcome-back ("🙏 Welcome back to Chinmay Astro! Reply REBOOK whenever you're ready to start a new reading."). Full design: WF-43.pseudo D7 + Steps 3–4, 14–17.
+
 ### 12.7 New open / parked item (adds to §10)
 - **WF-30 / WF-31 off-topic counting (consistency with D6)** — the same uncounted pass-through-Gemini vector
   exists in the payment-stage handlers. Deferred post-MVP (caveat D). Lower priority: payment-stage users are
