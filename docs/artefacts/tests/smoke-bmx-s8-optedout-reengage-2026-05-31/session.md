@@ -190,15 +190,46 @@ Choreography: any message while opted_out lifts → consultation_closed (re-enga
 **Result (operator-confirmed):** Gemini responses are now relevant and appropriate — greeting gets a warm welcome-back (no more "pleasure speaking with you" farewell), question is answered. **BUG-06 fix verified live.** S8×A (greeting) and S8×B (free-form question) both PASS.
 **Nuance surfaced (NOT a bug):** an opted_out user asking "Do you already have my details?" → Gemini correctly answers "yes, we do" (data is retained today). User raised the data-retention/compliance angle; agreed it's accurate for MVP and the nuanced opted_out-vs-closed treatment + retention policy/deletion job are a combined post-MVP workstream (logged to `followups.md` 2026-05-31). No MVP fix.
 
-### S8 acceptance subset — progress (3 of 7 confirmed)
+### S8×E — HELP keyword while opted_out, runs 2633–2657 ✅ PASS
+**Trigger:** operator sent STOP (→opted_out setup), then HELP; got HELP reply on WA.
+**STOP setup (2633–2646):** WF-00 (2633) → WF-60 (2634) → WF-01 (2635) → WF-02 (2636) → WF-20 keyword/opt-out `LgIDj1v4ZbCPlX25` (2637, STOP intercept) → `2U7mxHMyqA41ROKX` (2638) → WF-51 Slack (2639) → WF-60 (2640) → WF-50 WA STOP ack (2641) → trailers. No WF-26 (already consultation_closed → STOP straight to opt-out). DB → `opted_out`.
+**HELP chain (2647–2657):** WF-00 (2647) → WF-60 (2648) → WF-01 (2649) → **WF-26 Re-Engage `tKjwTYF6EER8ED3y` (2650, lift)** → WF-02 re-route (2651) → **WF-20 Keyword Handler `LgIDj1v4ZbCPlX25` (2652, HELP intercept)** → WF-50 WA (2653) → WF-60 (2654) → WF-00 callbacks (2655–2657). All success.
+**Branch point:** ✅ branched BEFORE Gemini — no WF-25/WF-43 in chain; HELP handled as keyword (unaffected by BUG-06, as predicted).
+**DB:** `users.status` **`opted_out` → `consultation_closed`** @ 03:26:04 (re-engage lift correct).
+**Messages (verified single outbound):** inbound "HELP"; ONE outbound WA text "Your consultation is complete. Type *REBOOK* to start a new one with Chinmay. 📋" — state-appropriate post-consultation HELP copy. No spurious welcome interstitial.
+**Cross-check:** ✅ re-engage lift ✅ HELP handled as keyword (pre-Gemini) ✅ single appropriate outbound ✅ not mis-routed. **PASS.**
+
+### S8×F — reserved-looking keyword ("APPROVE PAYMENT") while opted_out, runs 2658–2684 ✅ PASS
+**Trigger:** operator sent STOP (→opted_out setup), then the strongest reserved-kw test **"APPROVE PAYMENT"** (a real user-targeted admin command); got a contextual welcome-back reply on WA.
+**STOP setup (2658–2671):** WF-00 (2658) → WF-60 (2659) → WF-01 (2660) → WF-02 (2661) → WF-20 opt-out `LgIDj1v4ZbCPlX25` (2662) → `2U7mxHMyqA41ROKX` (2663) → WF-51 (2664) → WF-60 (2665) → WF-50 STOP ack (2666) → trailers. No WF-26 (consultation_closed → direct opt-out). DB → `opted_out`.
+**S8×F chain (2672–2684):** WF-00 (2672) → WF-60 (2673) → WF-01 (2674) → **WF-26 Re-Engage `tKjwTYF6EER8ED3y` (2675, lift)** → WF-02 re-route (2676) → WF-20 Keyword Handler `LgIDj1v4ZbCPlX25` (2677, **7ms passthrough — no STOP/HELP/REBOOK match**) → **WF-43 `3va0M06kijgyLejf` (2678) → WF-25 Intent Classifier `eTV1lUcYrXBg2q2T` (2679)** → WF-50 WA (2680) → WF-60 (2681) → WF-00 callbacks (2682–2684). All success.
+**NOT mistaken for admin command:** ✅ admin command handler `GoTYo0GS2y8qjjkw` **ABSENT** from the chain. Admin commands fire only from Slack channel events; an inbound WhatsApp user message never reaches the admin handler. "APPROVE PAYMENT" was treated as ordinary free-form text → intent classifier.
+**DB:** `users.status` **`opted_out` → `consultation_closed`** @ 03:28:20 (re-engage lift). **No approval, no `consultation_active`, no admin state change** — the command had zero admin effect.
+**Messages:** inbound "APPROVE PAYMENT"; ONE outbound WA welcome-back reply "Hello! It's great to hear from you again. To proceed with your consultation, please confirm your payment of ₹500 via GPay. Once confirmed, we'll be happy to schedule your session with Dr. Chinmay."
+**Cross-check:** ✅ re-engage lift ✅ NOT executed as admin command (no state change, no admin handler) ✅ routed as normal user text ✅ single contextual outbound. **PASS.**
+**[minor copy note — non-blocking]** WF-43 Gemini paraphrased the rebook path as "confirm your payment of ₹500 via GPay" rather than naming the *REBOOK* keyword explicitly (the post-BUG-06 prompt carries a REBOOK CTA; Gemini reworded it). Contextually reasonable for a re-engaging closed user; logged as an observation, not a gate failure.
+
+### S8 acceptance subset — progress (5 of 7 confirmed)
 | Cell | Status |
 |------|--------|
 | S8×A "Hi" greeting | ✅ PASS (post BUG-06 fix) |
 | S8×B free-form question | ✅ PASS (post BUG-06 fix) |
 | S8×C STOP while opted_out | ✅ PASS |
 | S8×D REBOOK keyword | ⏳ not yet tested |
-| S8×E HELP keyword | ⏳ not yet tested |
-| S8×F reserved-looking kw | ⏳ not yet tested |
+| S8×E HELP keyword | ✅ PASS (runs 2647–2657; pre-Gemini keyword path) |
+| S8×F reserved-looking kw | ✅ PASS ("APPROVE PAYMENT" runs 2672–2684; no admin handler, routed as user text) |
 | S8×I "Payment Completed" button | ⏳ not yet tested |
 
-**Remaining:** S8×D/E/F/I (keyword + button paths — branch BEFORE Gemini, unaffected by BUG-06; need live verification per gate). Then matrix HTML static-verdict update + S8×G expectation rewrite (re-engage via WF-26, DR-4) + gate close.
+**Remaining:** S8×D/I (keyword + button paths — branch BEFORE Gemini, unaffected; need live verification per gate). Then matrix HTML static-verdict update + S8×G expectation rewrite (re-engage via WF-26, DR-4) + gate close.
+
+---
+
+## Design detour — BUG-06b + BUG-06c (off-topic counting + systemic garbage double-message)
+
+Triggered by S8×F ("APPROVE PAYMENT") surfacing a WF-43 Gemini misframe, which the operator escalated into two design refinements. Full design authority: safety-net spec **§12 (BUG-06b / D6)** + **§13 (BUG-06c / D7)**; pseudo: WF-25 Step 13, WF-43 Steps 12–17. Registry has both entries (2026-05-31 section). Detailed reasoning + caveats live in the spec — this is the one-liner pointer per smoke-driven-fix-logging.
+
+- **BUG-06b (WF-43 `3va0M06kijgyLejf`):** the `general_enquiry` pass-through (greetings + off-topic-legit) bypassed U2 → unbounded Gemini cost. Fix: WF-43 general-reply Gemini returns JSON `{valid_user_message, response}` (responseMimeType=json, parse fail-open); `valid_user_message=false` → U2/WF-61 (`off_topic`, thr 10, `threshold_off_topic`) → blocked: silent / not-blocked: send redirect. 22→27 nodes. Live-validated: APPROVE PAYMENT → single graceful redirect (no "confirm payment" misfire) + 1 off_topic count; "Hi"/"I'd like to book it" → warm welcome-back (no regression).
+- **BUG-06c (WF-25 `eTV1lUcYrXBg2q2T`) — systemic:** WF-25's garbage/abuse branches dead-ended emitting 1 item, so n8n returned control to EVERY user-replying caller → WF-30 (reminder) / WF-31 (under-review) / WF-43 (off-topic redirect) each sent a 2nd message on garbage (+ WF-43 double-counted, which prematurely blocked the test phone at threshold). Root cause: spec §5's "no return — confirmed safe" was wrong (n8n always returns the terminal output). Fix: WF-25 `Return Nothing` (`return []`) node fed by `Call WF-50 (Garbage Warning)` + `End — Garbage Blocked` + `Call U2 (Abuse)` → callers (`alwaysOutputData=false`) skip downstream. 20→21 nodes. D4 active-garbage relay (WF-40) untouched; abuse stays no-relay (D3); Gemini-fail still halts via U1. **0-items→caller-skip behavior empirically validated** on a throwaway caller/sub pair before touching WF-25. Caller pseudos (WF-30/31/40/43) annotated with the mechanism so the `Return Nothing` node isn't removed in future.
+- **Doc consistency sweep:** safety-net §5 corrected; §12/§13 cross-referenced; WF-25 + WF-30/31/40/43 pseudos annotated; registry updated; followups + plugin-pattern note logged. Historical handoffs/old-sprint archives left as audit trail (not rewritten).
+- **Test user recovery:** 61466927921 was auto-blocked (`threshold_off_topic`) during the BUG-06c repro; recovered 2026-05-31 (status→consultation_closed, blocked_* cleared, 10 test silent_drop rows deleted) for a clean re-test baseline.
+- **Status:** BUG-06b + BUG-06c implemented + validated structurally; **live re-test of the BUG-06c garbage path pending** (Tokyo → expect 1 message only).

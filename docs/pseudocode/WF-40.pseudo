@@ -13,6 +13,7 @@ WF-40 — User → Admin Relay
 - **Notes:**
   - **D4 (active garbage):** a mid-consultation message misclassified as garbage must reach the human, not be hidden behind an automated warning. WF-25 returns it (not blocked) so WF-40 relays it. It is still logged + counted by U2.
   - **stop_intent:** WF-25 already sent the clarifier and returns the intent; WF-40 relays the original message so Chinmay sees it too.
+  - **abuse not relayed — mechanism (BUG-06c, safety-net §13):** WF-25 emits **0 items** on abuse (its Step 13 `Return Nothing`); WF-40's `Call WF-25` has `alwaysOutputData=false`, so 0 items → `Format Slack` + `Call WF-51` skip → no relay (correct per D3; the block alert carries the content). A dead-end inside WF-25 alone would NOT stop the relay — do not remove WF-25's `Return Nothing`. (Active *garbage* is different: D4 routes it through WF-25's `Return to Caller`, so WF-40 DOES relay it.)
   - Inbound logging is handled upstream (WF-00 → WF-60); WF-40 does not log.
 
 ---

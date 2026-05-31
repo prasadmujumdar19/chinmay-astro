@@ -11,7 +11,7 @@ WF-30 — Payment Pending Handler
   - REMOVED the inline Gemini-error halt-and-notify chain (~12 nodes) → on the general-reply Gemini failure, call U1 instead.
   - REMOVED the in-handler stop_intent clarifier (now sent by WF-25).
 - **Notes:**
-  - WF-25 returns `intentResult` only for pass-through and stop_intent; garbage / abuse / Gemini-failure terminate inside WF-25 and do not return.
+  - WF-25 returns `intentResult` only for pass-through and stop_intent; garbage / abuse do not continue here. **Mechanism (BUG-06c, safety-net §13):** on garbage/abuse WF-25 emits **0 items** (its Step 13 `Return Nothing`); this handler's `Call WF-25` has `alwaysOutputData=false`, so 0 items → Step 3 onward skip. A dead-end inside WF-25 alone does NOT stop this handler — before BUG-06c it returned 1 item and this handler wrongly sent the canned payment reminder on garbage. Do not remove WF-25's `Return Nothing`.
   - Copy reuse-existing — verify verbatim at build.
 
 ---

@@ -182,3 +182,30 @@ Once a retention/deletion job exists, an opted_out user re-engaging *after* the 
 
 - **Explicitly deferred:** user judged the whole workstream **overengineering for the first smaller roll-out**. MVP ships the BUG-06 greeting-aware + REBOOK CTA fix (same copy for both populations, data retained, Gemini answer accurate). Revisit after first roll-out.
 - **Priority hint:** low for the UX nuance (Part 1); **medium for the retention policy/job (Part 2)** — it's a compliance posture item, not just UX, and should be scheduled before any scale-up or marketing activity. Not a *blocker* for the first small roll-out per user decision. **Not legal advice — confirm retention period + DPDP/Meta specifics with counsel.**
+
+---
+
+## [2026-05-31] — Plugin improvement (monitor-test-run): always report the workflow chain on tick verdicts
+
+- **Pattern (user, 2026-05-31):** when reporting a smoke/monitor tick as PASS/FAIL, ALWAYS include the workflow execution chain it traversed (WF-XX names + exec IDs in sequence). The user uses this to visualise the flow in their head and respond faster, without manually traversing the n8n UI. Omitting it forces a manual UI walk.
+- **Where:** `monitor-test-run` skill (plugin n8n-whatsapp-methodology) — add to the tick-reporting guidance. Methodology-level reporting principle → plugin skill (per principle-placement rule). Backed by a project memory for the user preference.
+- **Flush:** at batch/sprint boundary per plugin-improvement-timing rule.
+
+## [2026-05-31] — BUG-06b (WF-43 3va0M06kijgyLejf): off-topic legitimate message mis-handled by Gemini prompt
+
+- **Found:** S8×F live (run 2678–2680). Operator sent "APPROVE PAYMENT" (reserved-looking, non-garbage → WF-25 passed it through as general_enquiry). WF-43 Gemini prompt frames the message as only "greeting / general question / interest in another reading" — no bucket for off-topic-but-legitimate. Gemini latched onto "PAYMENT" + the ₹500/GPay factual anchor → "please confirm your payment of ₹500 via GPay", implying a pending payment for a closed user who must REBOOK first.
+- **Scope:** WF-43 ONLY. WF-30 (payment_pending) / WF-31 (payment_submitted) have a genuinely pending payment, so their payment framing is correct — do NOT change them. WF-25 hardening for keyword/garbage cases was ruled out in earlier design discussions; WF-25 already correctly classified this as legitimate. Fix is purely the WF-43 response prompt.
+- **Fix:** add an off-topic/unrelated-but-legitimate handling clause + explicitly forbid assuming payment intent / "confirm payment" (returning user must REBOOK before any payment). Proposed prompt under operator review 2026-05-31; implement on approval, re-test via S8×F.
+
+## [2026-05-31] — BUG-06c (WF-25 eTV1lUcYrXBg2q2T): systemic garbage/abuse double-message — FIXED
+
+- **Found:** S8 smoke, escalated from BUG-06b. WF-25's garbage/abuse branches dead-ended emitting 1 item; n8n always returns the terminal output to the caller, so EVERY user-replying caller (WF-30 reminder / WF-31 under-review / WF-43 off-topic redirect) sent a 2nd message on a garbage-classified message. WF-43 also double-counted (garbage by WF-25 + off_topic by WF-43, null content), which prematurely blocked the test phone at threshold-10.
+- **Root cause:** safety-net spec §5 "callers take no action on garbage — confirmed safe" was wrong. n8n has no "don't return to caller"; "no return" must be realized by emitting 0 items.
+- **Fix (Approach X, user-approved):** WF-25 `Return Nothing` node (`return []`) fed by the 3 internally-handled terminals (garbage-warning, garbage-blocked, abuse). Callers all `alwaysOutputData=false` → 0 items → downstream skips. D4 active-garbage relay (WF-40) untouched; abuse stays no-relay (D3); Gemini-fail unchanged (U1 halt). Empirically validated 0-items→caller-skip on a throwaway pair before touching WF-25. Design: spec §13. Backup `archive/backups/eTV1lUcYrXBg2q2T-2026-05-31-15-24.json`.
+- **Status:** implemented + validated structurally; live garbage re-test pending.
+
+## [2026-05-31] — Plugin improvement (build-workflow): "return [] to stop a caller" pattern
+
+- **Pattern:** to make a sub-workflow NOT let its caller resume after the `executeWorkflow` call, the sub must emit **0 items** (`return []` on that branch). A dead-ending branch does NOT stop the caller — n8n always hands the terminal node's output back, and the caller (if `alwaysOutputData=false`) resumes on 1 item. Validated 2026-05-31 (BUG-06c). Caller must have `alwaysOutputData=false` for the 0-items skip to work.
+- **Where:** `build-workflow` skill (sub-workflow return semantics / Step 5f area) + `docs/design.md`. Also worth a project memory (n8n executeWorkflow return-control semantics) — no prior `return []` precedent existed in chinmay-astro.
+- **Flush:** at batch/sprint boundary per plugin-improvement-timing rule.

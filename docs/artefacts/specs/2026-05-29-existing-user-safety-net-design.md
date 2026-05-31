@@ -193,6 +193,16 @@ action on a garbage message beyond WF-25's warning (no relay), and WF-31's relay
 (independent of WF-25's return), so none of these three stages needs control back. Only WF-40
 (consultation_active) requires the message returned, which the D4 branch provides.
 
+> ⛔ **CORRECTION (2026-05-31, BUG-06c — supersedes the paragraph above):** "terminate inside WF-25 with
+> NO return — confirmed safe" was **WRONG**. In n8n a sub-workflow ALWAYS hands its terminal node's output
+> back to the caller, which then resumes — a dead-ending branch does NOT stop the caller. So garbage/abuse
+> dead-ending at `Call WF-50 (Garbage Warning)` / `End — Garbage Blocked` / `Call U2 (Abuse)` each returned
+> 1 item, and **every** user-replying caller sent a SECOND message (WF-30 payment reminder, WF-31 under-review,
+> WF-43 off-topic redirect) — plus WF-43 double-counted via off_topic. Surfaced in S8 smoke (test 61466927921
+> blocked at threshold partly from this double-count). **Fix = §13:** those three terminals emit **0 items**
+> (`return []`) so the caller's chain (all callers `alwaysOutputData=false`) skips. The D4 active-garbage path
+> still returns (WF-40 relay preserved). This is the n8n-correct realization of the design's "no return" intent.
+
 ---
 
 ## 6. State handlers (TO-BE) — now thin
@@ -432,3 +442,154 @@ Full pre-redesign backup of **all 28 live workflows** taken before any edit:
 - [ ] User review of this spec.
 - [ ] Verbatim copy sign-off at build (§9).
 - [ ] BMX-06 amendments applied (§7).
+
+---
+
+## 12. AMENDMENT 2026-05-31 — D6: count off-topic-but-legitimate pass-through messages (BUG-06b)
+
+> **Status:** design **LOCKED** (user-approved 2026-05-31, during BMX-P5-MATRIX S8 smoke). Scope **WF-43 only**.
+> Implemented this session via build-workflow; `WF-43.pseudo` updated to match (pseudo-first). This amendment
+> is the **design authority** for the change — `state.md` carries only an item pointer.
+
+### 12.1 The gap (discovered in S8×F live smoke)
+The §1–§5 safety net routes **garbage / abuse / non-text** through U2 (WF-61) — logged to `silent_drop`,
+counted on the per-phone 30-day rolling total, blockable at threshold. But the **`general_enquiry`
+pass-through bucket bypasses U2 entirely**: WF-25 deliberately merges greetings *and* off-topic-but-non-garbage
+messages into `general_enquiry` (cheap classify, `maxOutputTokens=20`), returns pass-through to the caller,
+and the caller (WF-43) calls its own *response* Gemini to reply. That response path is **never counted and
+never blockable**.
+
+Consequence: a user can send off-topic-but-legitimate-looking messages indefinitely (e.g. the S8×F probe
+`"APPROVE PAYMENT"` — non-garbage, so WF-25 correctly classified it `general_enquiry`), each one burning a
+Gemini response call, with no rate ceiling. A real cost / toy-with-the-bot vector, open today.
+
+Two distinct defects surfaced on the same message:
+- **BUG-06b-i (copy):** the WF-43 response prompt only framed the message as *greeting / question / interest in
+  another reading* — no "off-topic" bucket — so Gemini latched onto the word "PAYMENT" + the ₹500/GPay anchor
+  and replied *"please confirm your payment of ₹500 via GPay"*, implying a pending payment for a closed user
+  who must REBOOK first.
+- **BUG-06b-ii (no rate ceiling):** the cost vector above.
+
+> **See also §13 (BUG-06c), discovered while smoke-testing this fix:** D6 handles only the legit pass-through
+> buckets (`general_enquiry`/`wants_consultation`). A *garbage*-classified message used to also reach WF-43's
+> Gemini (WF-25 returned control on garbage) → 2nd message + a null-content `off_topic` double-count. §13 fixes
+> that at the source (WF-25 emits 0 items on garbage/abuse), so D6's off_topic check never sees garbage. The two
+> are complementary; neither supersedes the other.
+
+### 12.2 Why WF-43, not WF-25 (architecture note)
+§2 centralizes the safety net in WF-25, so the instinct is to detect off-topic there. Rejected, because:
+- WF-25's classify Gemini is intentionally cheap (`maxOutputTokens=20`, 8 buckets) and **merges** greetings +
+  off-topic into one `general_enquiry` bucket. Splitting "relevant" from "off-topic-legit" would need a
+  costlier extra distinction on every existing-user message at every stage.
+- WF-43's **response** Gemini already has to *read and understand* the message to reply. Having it **also**
+  emit a `valid_user_message` boolean is essentially free — no second model call. The relevance judgment
+  rides on a call we already make. This keeps the cheap classifier cheap and puts the richer judgment where
+  the rich (response) model already runs.
+
+This does NOT violate "centralize the net in WF-25": U2 (the actual log→count→block policy) is still the
+single shared mechanism. WF-43 only adds a *new trigger* into U2 — the same pattern WF-02/21/23/25 already use.
+
+### 12.3 Design (LOCKED)
+WF-43 Step 12 (the general-reply Gemini) changes from plain-text → **JSON output**:
+```json
+{ "valid_user_message": true|false, "response": "<2-3 sentence reply>" }
+```
+- `generationConfig.responseMimeType = "application/json"` on the HTTP node; the prompt **opens** with the
+  JSON mandate (front-loaded for determinism — D6c).
+- **Parse fail-open (D6e):** if the JSON is malformed or a field is missing, treat as
+  `valid_user_message = true` and fall back to a safe reply. A legitimate user is **never** blocked or
+  silenced on a parse glitch.
+- `valid_user_message === true` → send `response` via WF-50 (exactly as today).
+- `valid_user_message === false` → call **U2 / WF-61** (`9Zt23yt8k8PQSgji`):
+  `{ phoneNumber, messageType:'text', reason:'off_topic', messageContent, blockThreshold:10, blockReason:'threshold_off_topic' }`
+  → on `{ blocked }`:
+  - `blocked === true` → **END silent** (U2 already set `status=blocked` + sent the admin block alert). No reply.
+  - `blocked === false` → **still send `response`** via WF-50 (the graceful redirect) — D6a.
+- Gemini **API** failure (HTTP error, not a content-relevance signal) → U1 / WF-53, unchanged.
+- **No double-counting:** `general_enquiry` was never counted before, so this is the *first* count for the message.
+
+### 12.4 Decisions locked
+- **D6a — Send the redirect when not blocked.** Off-topic-but-under-threshold still gets the graceful
+  "steer back to the service" reply; the count happens silently in the background. The threshold only caps
+  *repeat* offenders. (Rejected: stay silent once counted — would make a real user's first off-topic message
+  look broken.)
+- **D6b — Reuse U2/WF-61 unchanged; `reason='off_topic'`, `blockReason='threshold_off_topic'`,
+  `blockThreshold=10`.** Distinct audit labels keep off-topic blocks separable from garbage blocks in the
+  admin alert + `users.blocked_reason`. Shares the per-phone 30-day `silent_drop` bucket with all other
+  reasons (lower-bar-wins, §4 — accepted bias). No schema change (U2 stores caller's labels verbatim).
+- **D6c — JSON mandate at the FRONT of the prompt** (user feedback — sticks better than a trailing instruction).
+- **D6d — Prompt rewritten** greeting/question/off-topic-aware + explicit guard "never assume the person wants
+  to pay or tell them to 'confirm payment'". Verbatim copy in §12.6.
+- **D6e — Parse fail-open** (see §12.3).
+
+### 12.5 Caveats & mitigations (on the record)
+| # | Caveat | Mitigation |
+|---|--------|------------|
+| A | gemini-2.5-flash-lite must emit valid JSON reliably | `responseMimeType=application/json` + front-loaded mandate + **fail-open** parse |
+| B | `off_topic` shares the 30-day bucket with garbage/non-text/abuse | Consistent with locked §4 (lower-bar-wins); accepted bias |
+| C | `valid_user_message` is Gemini's judgment — rare false-positive on an unusual-but-legit question | threshold 10 + 30-day window + fail-open ⇒ negligible user harm |
+| D | **Scope = WF-43 only.** WF-30 / WF-31 have the same pass-through-Gemini cost vector (`general_enquiry` reply); WF-40 has no own response Gemini (relays to Chinmay) so it is unaffected | **Deferred consistency item** (§12.7) — payment-stage users are financially invested ⇒ lower abuse risk; revisit post-MVP. Do NOT silently leave it unrecorded |
+| E | A blocked off-topic flooder with a `users` row needs admin UNBLOCK to return | Deliberate at threshold 10 (= sustained spam); consult Slack channel preserved (DR-10) |
+
+### 12.6 Content — WF-43 off-topic-aware JSON prompt (verbatim, user-approved 2026-05-31)
+> Respond with ONLY a JSON object — no text outside it — with exactly two fields: `valid_user_message` (boolean: true for a genuine greeting, an astrology- or service-related question, or genuine interest in another reading; false for off-topic or unrelated messages such as random words, bot-testing, stray commands, or irrelevant chatter — even when not abusive) and `response` (your reply, following the guidance below).
+>
+> You are a warm, concise assistant for Chinmay Astro, a Vedic astrology consultation service on WhatsApp run by Dr. Chinmay Mujumdar. This person has had a consultation with Dr. Chinmay before and is now reaching out again. Write the `response` in 2-3 short, friendly sentences. If they ask a genuine astrology- or service-related question, answer briefly and factually (don't invent prices or policies beyond: a new consultation is ₹500, paid via GPay, conducted over WhatsApp). If they greet you or seem genuinely interested in another reading, warmly welcome them back and invite them to start a new consultation by replying REBOOK. If their message is off-topic or unrelated to astrology and isn't a clear question or booking request, gently acknowledge it, steer back to what Chinmay Astro offers, and let them know they can reply REBOOK whenever they'd like a new reading. Never assume the person wants to pay or tell them to "confirm payment" — a returning user must reply REBOOK before any payment applies. Never use bullet points or list instructions.
+>
+> User: ${messageContent}
+
+### 12.7 New open / parked item (adds to §10)
+- **WF-30 / WF-31 off-topic counting (consistency with D6)** — the same uncounted pass-through-Gemini vector
+  exists in the payment-stage handlers. Deferred post-MVP (caveat D). Lower priority: payment-stage users are
+  invested. Revisit when WF-30/31 prompts are next touched, or before scale-up.
+
+---
+
+## 13. AMENDMENT 2026-05-31 — D7: WF-25 must emit 0 items on internally-handled branches (BUG-06c)
+
+> **Status:** design **LOCKED** (user-approved 2026-05-31, Approach X). Implemented this session in WF-25
+> (`eTV1lUcYrXBg2q2T`); `WF-25.pseudo` Step 13 added. Supersedes the §5 "no return — confirmed safe" claim
+> (corrected inline above).
+
+### 13.1 The defect (systemic, surfaced by BUG-06b smoke)
+The §5 return contract assumed garbage/abuse branches "terminate with NO return" and the callers therefore
+"take no action." **n8n has no such primitive** — `executeWorkflow` always hands the sub-workflow's terminal
+node output back to the caller, which resumes. So WF-25's garbage/abuse dead-ends (each emitting 1 item)
+caused **every user-replying caller to send a SECOND message** on any garbage-classified message:
+- WF-30 (`Is General Enquiry?` FALSE) → **Prepare Payment Reminder**
+- WF-31 (`Is General Enquiry?` FALSE) → **Prepare Under Review Message**
+- WF-43 (catch-all `else`) → Gemini → off-topic redirect (+ off_topic double-count vs WF-25's garbage count)
+
+WF-40 (consultation_active) is a relay (no user reply) and uses the D4 `Active Consultation? = TRUE →
+Return to Caller` path, so it is unaffected.
+
+Evidence: S8 smoke (2026-05-31). "How's weather in Tokyo" (WF-25 → `garbage`) produced 2 outbound messages
+(WF-25 warning + WF-43 redirect) and 2 `silent_drop` rows (`garbage` + `off_topic`-null). exec 2733 (WF-43)
+ran all 15 nodes incl. Gemini after WF-25's garbage dead-end. The off_topic double-count contributed to the
+test phone hitting the threshold-10 block prematurely (`blocked_reason=threshold_off_topic`).
+
+### 13.2 Why the absence of a `Return to Caller` node was misread
+WF-25 routes pass-through/stop/D4 into a `Return to Caller` node, but garbage-warning / garbage-blocked /
+abuse just dead-end. That visual asymmetry reasonably read as "no control returns" (cited repeatedly during
+the 2026-05-29 planning without pushback). The n8n truth: a dead-end still emits its last node's output to
+the caller. "No return" is real ONLY if the branch emits **0 items**.
+
+### 13.3 Fix (LOCKED — Approach X)
+Add a single **`Return Nothing`** Code node (`return []`) to WF-25; wire the three internally-handled terminals
+into it: `Call WF-50 (Garbage Warning)`, `End — Garbage Blocked (Silent)`, `Call U2 (Abuse)`. Every caller's
+`Call WF-25` node has `alwaysOutputData=false` (verified across WF-30/31/40/43), so 0 items → the caller's
+downstream chain does not execute. The D4 active-garbage path (`Active Consultation? = TRUE → Return to
+Caller`) is **untouched** — WF-40 still relays active-stage garbage to Chinmay. Abuse never relays (D3 — the
+content is embedded in U2's block alert), which `Return Nothing` preserves.
+
+One WF-25 change fixes WF-30/31/43 at once; **no change to WF-30/31/40/43 needed.** BUG-06b's WF-43 off_topic
+handling stays — it now only ever runs on legit `general_enquiry`/`wants_consultation` pass-through.
+
+### 13.4 New project pattern + caveats
+- **No prior `return []` precedent** in the codebase (the convention was "always return ≥1 item; caller
+  gates"). This is a net-new pattern — **document in the methodology plugin** (`build-workflow`: "to stop a
+  caller from resuming after a sub-workflow call, emit 0 items; a dead-end branch does NOT stop the caller").
+- **Lynchpin validated live** (2026-05-31): a sub-workflow returning `[]` makes the caller's `executeWorkflow`
+  (`alwaysOutputData=false`) skip its downstream chain. [to be ticked after live test]
+- **Gemini-failure (Step 5 / U1) path NOT in scope** — it terminates via U1's halt (error propagation), a
+  different mechanism. Flagged to verify separately that it doesn't let the caller resume.

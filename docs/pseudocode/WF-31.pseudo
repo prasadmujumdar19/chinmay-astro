@@ -13,6 +13,7 @@ WF-31 — Payment Submitted Handler
   - Branch B (unconditional Slack relay) is UNCHANGED — it relays every inbound (incl. stop_intent / garbage), independent of Branch A.
 - **Notes:**
   - Branches A and B run in parallel from the trigger; Branch B fires regardless of intent (and regardless of any Branch-A halt).
+  - **Branch A on garbage/abuse (BUG-06c, safety-net §13):** WF-25 emits **0 items** (its Step 13 `Return Nothing`); Branch A's `Call WF-25` has `alwaysOutputData=false`, so 0 items → Branch A's reply nodes skip. A dead-end inside WF-25 alone does NOT stop Branch A — before BUG-06c it returned 1 item and Branch A wrongly sent the canned "under review" reassurance on garbage. Do not remove WF-25's `Return Nothing`. (Branch B relay is independent and still fires.)
   - Copy reuse-existing — verify verbatim at build.
 
 ---
