@@ -1,0 +1,4 @@
+WF-11 Command Parser — DRIFT (1 finding)
+pseudo: GitHub main 51ffc97  |  md: live-regenerated 2026-05-31
+
+[D5·⚠️] Get Stats (STATS): pseudo Step 10/51 says pending_payments comes from payments status='pending_verification' | live(.md) counts chinmay_astro.users WHERE status='payment_submitted'. 'pending_verification' is not a live status — pseudo field description is stale; live semantics (count of payment_submitted users) is the truth.

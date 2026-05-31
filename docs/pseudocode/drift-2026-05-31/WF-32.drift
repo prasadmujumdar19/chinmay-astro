@@ -1,0 +1,5 @@
+WF-32 Payment Confirmation Receiver — DRIFT (2 findings)
+pseudo: GitHub main 51ffc97  |  md: live-regenerated 2026-05-31
+
+[D1·⚠️] Prepare User Confirmation: pseudo Step 7 copy has a single \n\n break (only before "In the meantime") | live(.md) inserts \n\n after nearly every sentence ("Thank you ${name}! \n\nYour payment confirmation has been received. \n\nWe'll verify...\n\nYou'll receive...\n\nIn the meantime..."). Same words, different line-break density.
+[D1·⚠️] Prepare Admin Notification: pseudo Step 9 copy is plain text ("🔔 New Payment Submission\nUser: <name>\nPhone: ...") | live(.md) uses Slack markdown bold + blank lines ("🔔 *New Payment Submission*\n\n*User:* ...\n*Phone:* ...\n\nPlease verify payment and run:\n`APPROVE PAYMENT <phone>`"). Same fields, markdown formatting not reflected in pseudo.

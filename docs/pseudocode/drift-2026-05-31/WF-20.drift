@@ -1,0 +1,4 @@
+WF-20 Keyword Handler — DRIFT (1 finding)
+pseudo: GitHub main 51ffc97  |  md: live-regenerated 2026-05-31
+
+[D1·⚠️] Send HELP Response (Step 5): pseudo enumerates 6 status arms incl. a distinct null/no-record arm with copy 'Welcome to Chinmay Astro. Tap the Fill Details button…' | live ternary has only 5 arms (payment_pending / payment_submitted / consultation_active / consultation_closed / else→generic REBOOK/STOP menu); a null status falls to the generic menu, not the welcome copy. Defensive-only arm per pseudo notes (new/pre-form users do not reach WF-20), so unreachable in practice.
