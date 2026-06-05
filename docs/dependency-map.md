@@ -1,5 +1,5 @@
 # Workflow Dependency Map
-Generated: 2026-05-31 00:44
+Generated: 2026-06-05 16:32
 
 ## Diagram
 ```mermaid
@@ -12,6 +12,7 @@ graph TD
   3va0M06kijgyLejf["WF-43 Post-Consultation Handler"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   3va0M06kijgyLejf["WF-43 Post-Consultation Handler"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   3va0M06kijgyLejf["WF-43 Post-Consultation Handler"] --> ONzUJ1Lj9hIbUYT0["WF-53 U1 Gemini Error Handler"]
+  3va0M06kijgyLejf["WF-43 Post-Consultation Handler"] --> 9Zt23yt8k8PQSgji["WF-61 U2 Silent-Drop & Escalate"]
   6PzJRZsF7k2d9hV7["WF-41 Admin -> User Relay"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   9Zt23yt8k8PQSgji["WF-61 U2 Silent-Drop & Escalate"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   BUVun38WEKb12zg9["WF-50 Send WhatsApp"] --> 6H75p935FpBVBQtV["WF-60 Message Logger"]
@@ -88,7 +89,7 @@ graph TD
 ```json
 {
   "2U7mxHMyqA41ROKX": { "name": "WF-47 Unsubscribe Handler", "calls": ["BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL"] },
-  "3va0M06kijgyLejf": { "name": "WF-43 Post-Consultation Handler", "calls": ["eTV1lUcYrXBg2q2T", "MUG7rPgSHc7UtAE9", "Du2CJ3OTohRFZYoA", "BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL", "ONzUJ1Lj9hIbUYT0"] },
+  "3va0M06kijgyLejf": { "name": "WF-43 Post-Consultation Handler", "calls": ["eTV1lUcYrXBg2q2T", "MUG7rPgSHc7UtAE9", "Du2CJ3OTohRFZYoA", "BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL", "ONzUJ1Lj9hIbUYT0", "9Zt23yt8k8PQSgji"] },
   "6PzJRZsF7k2d9hV7": { "name": "WF-41 Admin -> User Relay", "calls": ["BUVun38WEKb12zg9"] },
   "9Zt23yt8k8PQSgji": { "name": "WF-61 U2 Silent-Drop & Escalate", "calls": ["wlZRK0YxnhP0b2RL"] },
   "BUVun38WEKb12zg9": { "name": "WF-50 Send WhatsApp", "calls": ["6H75p935FpBVBQtV"] },

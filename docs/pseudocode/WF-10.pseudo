@@ -25,6 +25,7 @@ WF-10 — Slack Admin Handler
     - UNBLOCK → blocked
     - Relay text (no command keyword in user channel) → consultation_active
   - Failure-mode messages use business language per [[feedback_admin_message_tone]] — no WF-XX names, no DB column jargon.
+  - **Transcript-logging scope (PDF-08, partial — 2026-06-05):** The WF-60 message-logger side-branch still hangs off `Extract Required Fields` (Step 7), so it logs every genuine human-typed Slack message that passes the Step-5 gate — including the admin's own typed commands (APPROVE PAYMENT, CLOSE, etc.) in consult channels and admin-channel chatter. The Step-5 genuine-message gate removes channel-housekeeping/system rows from the transcript, but ADMIN-COMMAND exclusion from `chinmay_astro.messages` is DEFERRED (user decision Option B, 2026-06-05): the full fix would move the WF-60 logging onto the validated `relay_text` path so only genuine astrologer→customer consultation messages are persisted. Tracked under PDF-08 (still pending).
   - **Free text in admin channel (PDF-01, 2026-05-31):** routed to a Gemini (`gemini-2.5-flash-lite`) operations assistant that answers Chinmay's ops + user-advice questions from a STATIC baked-in knowledge base (no DB lookup at PDF-01 scope), then posts the answer back to the SAME channel via WF-51. The assistant ADVISES ONLY — it never executes commands; structured `admin_wide` / `user_targeted` routing (Steps 12/13) is untouched. Off-topic questions get a polite in-domain decline (a SUCCESSFUL Gemini call, per the system prompt) — NOT the technical-glitch fallback. The glitch fallback is reserved for an actual Gemini API failure/timeout/non-200. Verbatim system prompt: `docs/artefacts/specs/2026-05-31-pdf-01-admin-assistant-gemini-prompt.txt`; design spec: `docs/artefacts/specs/2026-05-31-pdf-01-admin-assistant-gemini-design.md`. (PDF-02/PDF-03 will later extend this same Gemini node with current user-state + history context.)
 
 ---
@@ -38,9 +39,13 @@ Step 2: Switch on body.type:
   - Anything else (fallback) → go to Step 30 (respond 200 fallback).
 Step 3: Respond 200 with {"challenge": body.challenge} (Slack endpoint verification). End.
 Step 4: Respond 200 OK immediately (acknowledge to Slack within 3s).
-Step 5: Check: body.authorizations[0].user_id != body.event.user (i.e., the message was sent by a human, not the bot itself)?
-  - If YES → go to Step 6.
-  - If NO (bot's own message) → End (loop prevention).
+Step 5: Genuine-message gate — process only deliberate human-typed Slack messages; silently drop every automatic/system event. Implemented as TWO IF nodes in series (both must pass to continue):
+  Step 5a: `Human Vs Bot Message?` (IF) — body.authorizations[0].user_id != body.event.user (the bot-loop guard: the event was authored by a human, not the bot itself).
+    - If TRUE → go to Step 5b.
+    - If FALSE (bot's own message) → End (loop prevention; intentional silent termination).
+  Step 5b: `Genuine Message?` (IF, PDF-06/07 2026-06-05) — ALL of: body.event.type == 'message' AND body.event.subtype is empty/absent AND body.event.bot_id is empty/absent.
+    - If TRUE → go to Step 6.
+    - If FALSE → End (intentional silent termination — `lint-allow: if-false-disconnect-bypass`). This drops channel-housekeeping and non-genuine events (member_joined_channel / channel_join / channel_leave / message_changed / message_deleted / other-bot posts) BEFORE any field extraction, channel routing, relay, admin-alert, or transcript-logging occurs. Slack was already acknowledged at Step 4, so dropping here is safe. This single gate is what prevents a non-genuine event from (i) being relayed to the customer (PDF-07, P0 customer leak), (ii) firing a false "message not relayed" admin alert (PDF-06, P1), and (iii) creating a join-line row in the consultation transcript (PDF-08, partial — admin-command exclusion from the transcript is deferred; see Notes).
 Step 6: Extract fields: channelId=body.event.channel, adminUserId=body.event.user, messageText=body.event.text, timestamp=body.event.ts.
 Step 7: Call Slack API channel.get on channelId to retrieve channel name. (Also: side-branch — `Build WF-60 Payload (Slack Inbound)` Code node emits canonical WF-60 shape per design.md §2.6: `{ transport: 'slack', direction: 'inbound', messageType: 'slack_text', content: message_text, slackChannelId: channel_id, slackMessageTs: timestamp, userId: null, consultationId: null, whatsappMessageId: null, phoneNumber: null, metadata: { transport, slackChannelId, slackUserId, slackMessageTs, channelName, timestamp } }` → Call WF-60 Message Logger. Fire-and-forget; does not gate downstream routing.)
 Step 8: Merge the channel info (id, name) with the extracted message fields (combine by id == channelId).
