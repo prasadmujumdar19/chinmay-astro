@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/sprints/pre-demo-minor-fixes-31May26/tasks.md
 **Input hash:** 6044e408324887164d261c2b46ed0e97048e19e54e40d185ea868637bbf7d3a6
 **Planned at:** 2026-05-31T11:19:25Z
-**Last updated:** 2026-06-05T06:45:27Z
+**Last updated:** 2026-06-07T07:18:01Z
 **Planning complete:** true
 **Rolling sprint:** TRUE — `_active` marker is USER-CONTROLLED. build-sprint MUST NOT remove `_active` on batch/queue exhaustion; report "current queue done, sprint still open (rolling)" and stop. Re-invocations of plan-sprint must be ADDITIVE (plan only new PDF-NN items into this file; never destructive full-replan). input_hash mismatch is EXPECTED and is NOT a replan signal. See tasks.md "ROLLING SPRINT" header for full lifecycle/concurrency rules.
 **Discover-current-state:** ran at 2026-05-31T11:19:25Z against live WF-10 (`wMh0oBRtJbvhLgOf`, 42 nodes). Result: PDF-01 condition CONFIRMED PRESENT — `Build Help Prompt` + `Call WF-51 (Help Prompt)` nodes and hardcoded "Type `HELP` to see available commands" line both still on the `free_text` branch; ZERO Gemini calls in WF-10. PDF-01 is genuinely pending, not obsolete. PDF-02/PDF-03 extend the not-yet-built PDF-01 → pending. No obsoletes detected.
@@ -31,10 +31,13 @@
 | PDF-03 | ⬜ pending | 3 | P2 | WF-10 | PDF-02 (hard) |
 | PDF-06 | 🟢 done | 4 | P1 | WF-10 | — (carrier of the WF-10 event-filter fix) |
 | PDF-07 | 🟢 done | 4 | P0 | WF-10 | PDF-06 (hard — same WF-10 fix) |
-| PDF-08 | ⬜ pending | 4 | P2 | WF-10 | PDF-06 (hard — same WF-10 fix) |
+| PDF-08 | ⚪ obsolete | 4 | P2 | WF-10 | PDF-06 (hard — same WF-10 fix) |
 | PDF-09 | 🟢 done | 5 | P2 | WF-20/30/31/32/42/44 | — |
-| PDF-05 | ⬜ pending | 6 | P0 | WF-30/31/43 | PDF-09 (soft) · Design gate |
-| PDF-04 | ⬜ pending | 6 | P0 | WF-30/31/43 | PDF-05 (hard — same fix), PDF-09 (soft) |
+| PDF-05 | 🟢 done | 6 | P0 | WF-30/31/43 | PDF-09 (soft) · Design gate |
+| PDF-04 | 🟢 done | 6 | P0 | WF-30/31/43 | PDF-05 (hard — same fix), PDF-09 (soft) |
+| PDF-10 | 🟢 done | 7 | P1 | WF-25 | PDF-04/05 (emerged in validation) |
+| PDF-11 | 🟢 done | 7 | P2 | WF-30/43 | PDF-04/05 (soft) |
+| PDF-12 | 🟢 done | 7 | P2 | WF-30 | PDF-11 (soft) |
 
 ## Batch 1 — P0
 
@@ -137,7 +140,7 @@ Hard dep on PDF-02 (contract coupling): builds on the user-resolution + "current
 
 ## Batch 4 — WF-10 Slack-event genuine-message filter (PDF-06 + PDF-07 + PDF-08) — NEXT ACTIONABLE
 
-- **Items:** 3 (PDF-06, PDF-07, PDF-08 — built as ONE WF-10 change)
+- **Items:** 3 (PDF-06 ✅, PDF-07 ✅ — built as ONE WF-10 change; PDF-08 ⚪ obsolete/won't-do 2026-06-06 — admin commands kept in transcript by design, see PDF-08 item)
 - **Description:** Single-root fix in WF-10 Slack Admin Handler (`wMh0oBRtJbvhLgOf`). WF-10 currently builds a relay envelope, an admin alert, and a WF-60 transcript-log entry for EVERY inbound Slack event in a consult channel — including channel-join / `member_joined_channel` / bot / system / admin-command events. Add a genuine-message classifier/guard so that ONLY a deliberate astrologer-typed consult-channel message (event.type=`message`, no `subtype`, real human `user`, not a bot, not an admin command) proceeds to the relay (`Call WF-41`), the "not relayed/wrong-state/phone-absent" admin alert, and the WF-60 transcript log. Non-genuine events are dropped silently from all three paths. Resolves: PDF-07 (no join/system event ever forwarded to the customer — P0 leak), PDF-06 (no false "message not relayed" admin alarms on channel open — P1), PDF-08 (transcript contains only real customer↔astrologer messages, not join lines or admin commands — P2).
 - **Execution note:** Runs NEXT per the 2026-06-04 user directive ("admin-side noise / low-hanging fruit first"), ahead of design-gated batches 2/3 and the P0 KB batch 6. Mixed priority is intentional & inseparable (see header note). build-sprint: re-fetch live WF-10 first (it was last changed by PDF-01); the relay/log branch is distinct from PDF-01's `free_text` admin-assistant branch.
 - **Change type:** Structural — single workflow (WF-10).
@@ -152,9 +155,9 @@ Hard dep on PDF-02 (contract coupling): builds on the user-resolution + "current
 - **Change type:** Surgical / parametric — multi-workflow (6), customer message strings. Batch Surgical (Step 5d), 6× curl PUT all 200.
 - **Estimated size:** S (planned) / M (actual — audit-driven)
 
-## Batch 6 — PDF-04 + PDF-05 grounded business-facts KB for customer replies (WF-30/31/43) — DESIGN-GATED, P0, sequenced last per user
+## Batch 6 — PDF-04 + PDF-05 grounded business-facts KB for customer replies (WF-30/31/43) — DONE (2026-06-06)
 
-- **Items:** 2 (PDF-05 root + PDF-04 symptom — built as ONE fix)
+- **Items:** 2 (PDF-05 root ✅ + PDF-04 symptom ✅ — built as ONE fix). Scope expanded 3→4 nodes (WF-43 opted-out prompt added per audit, user-approved). Design pass + build collapsed into one session; spec `docs/artefacts/specs/2026-06-06-pdf-04-05-grounded-business-facts-kb-design.md`.
 - **Description:** Give the customer-facing free-text LLM reply a single trusted set of business facts (offering = text-only consultation; price; what's included; explicitly NOT offered = video/phone) and a defer-to-astrologer rule for anything outside it. Apply the grounded KB + defer behaviour consistently to the `Prepare Gemini Response Prompt` of WF-30 (`gGJBY5fJha0Let8I`), WF-31 (`HB8nXudAtk9iXz7C`), and WF-43 (`3va0M06kijgyLejf`). Resolves PDF-04 (no fabricated services) and PDF-05 (no improvised/contradictory pricing). **Design-gated** — needs a brainstorm/design pass to author the KB content + defer rule (analogous to PDF-01's locked KB) BEFORE build. Soft dep on PDF-09 (same 3 workflows — let the cosmetic string swap land first, then re-fetch live).
 - **Change type:** Structural — multi-workflow (3, in lockstep). KB design pass first.
 - **Estimated size:** L
@@ -210,9 +213,12 @@ Hard contract coupling with PDF-06: both resolved by the single WF-10 genuine-me
 
 ## PDF-08 — Consultation transcript polluted with system/command entries
 
-**Status:** ⬜ pending
+**Status:** ⚪ obsolete
+**Obsolete at:** 2026-06-06T21:14:05Z
+**Obsolete reason:** WON'T DO — the remaining admin-command-exclusion scope is a non-issue by design. User decision (2026-06-06): the admin's typed commands (APPROVE PAYMENT, CLOSE, etc.) are a legitimate part of the admin↔user conversation and belong in the transcript. They form the audit trail that explains *how* the user reached their current status — excluding them would remove exactly the records that reconstruct the state history. The channel-housekeeping/system/join-line portion of PDF-08's original acceptance was already met by the Batch-4 `Genuine Message?` gate (shipped with PDF-06/07); that part stands. No WF-60 re-wire will be done. Future audits: do NOT re-flag admin commands in the transcript as pollution — they are kept deliberately. See memory [[project_pdf08_admin_commands_in_transcript]].
 **Priority:** P2 | **Batch:** 4
-**Decision made (2026-06-05, Option B):** User chose to defer the admin-command-exclusion portion of this item. The Batch-4 `Genuine Message?` gate (landed with PDF-06/07) already removes channel-housekeeping/system/join lines from the `chinmay_astro.messages` transcript — that PART of PDF-08's acceptance is met. The REMAINING work (exclude the admin's own typed commands APPROVE/CLOSE from the transcript) requires moving the WF-60 logging side-branch off `Extract Required Fields` onto the validated `relay_text` path so only genuine astrologer→customer consultation messages are persisted; the WF-60 Code node would re-read from `Classify User Channel Message` / `Extract Required Fields` (both always-executed on that branch). Deferred to a later batch to keep the pre-demo blast radius minimal. PDF-08 remains pending for this remaining scope.
+**Decision made (2026-06-05, Option B):** User chose to defer the admin-command-exclusion portion of this item. The Batch-4 `Genuine Message?` gate (landed with PDF-06/07) already removes channel-housekeeping/system/join lines from the `chinmay_astro.messages` transcript — that PART of PDF-08's acceptance is met. The REMAINING work (exclude the admin's own typed commands APPROVE/CLOSE from the transcript) requires moving the WF-60 logging side-branch off `Extract Required Fields` onto the validated `relay_text` path so only genuine astrologer→customer consultation messages are persisted; the WF-60 Code node would re-read from `Classify User Channel Message` / `Extract Required Fields` (both always-executed on that branch). Deferred to a later batch to keep the pre-demo blast radius minimal.
+**Decision superseded (2026-06-06):** The deferral above is now resolved as WON'T DO (see Obsolete reason). The remaining scope will not be built.
 **Change type:** Structural — single workflow (WF-10 `wMh0oBRtJbvhLgOf`), WF-60 logging branch.
 **Workflows:** WF-10
 **n8n IDs:** `wMh0oBRtJbvhLgOf`
@@ -254,17 +260,26 @@ Acceptance: ✅ a single correct form of the astrologer's name/title ("Dr. Chinm
 
 ## PDF-05 — Bot improvises service/pricing answers without a reliable source of truth
 
-**Status:** ⬜ pending
+**Status:** 🟢 done
+**Started:** 2026-06-06T21:14:05Z
+**Completed:** 2026-06-06T22:23:51Z
+**Actual tokens:** ~85K (design pass live trace of WF-25/30/31/43 routing + 4-node prompt authoring + Batch-Surgical build; design+build in one session)
+**Actual effort:** ~70 min (live routing trace, 5-point design Q&A, 4th-node scope decision, build + verify)
+**Estimate delta:** on-bucket (planned L ~50K build + separate design session; design+build collapsed into one session, ~85K combined)
 **Priority:** P0 | **Batch:** 6
 **Change type:** Structural — multi-workflow (WF-30/31/43, in lockstep), customer free-text Gemini-reply prompt.
 **Workflows:** WF-30, WF-31, WF-43
 **n8n IDs:** `gGJBY5fJha0Let8I` (WF-30), `HB8nXudAtk9iXz7C` (WF-31), `3va0M06kijgyLejf` (WF-43)
 **Depends on:** PDF-09 (soft — same 3 workflows; let the naming string swap land first)
-**Design gate:** true
+**Design gate:** false
+**Design locked at:** 2026-06-06
+**Design locked in:** docs/artefacts/specs/2026-06-06-pdf-04-05-grounded-business-facts-kb-design.md
 **Size:** L
 **Estimated tokens:** ~50K (build) + separate design session
 
-**Decision required / Design gate:** UNDESIGNED at plan time — a brainstorm/design pass MUST author the trusted business-facts KB (offering, price, inclusions, explicitly-not-offered list) and the defer-to-astrologer rule, then lock a design spec (analogous to PDF-01's locked KB), BEFORE build-sprint picks this up. build-sprint must refuse until Design gate is cleared to false with a `Design locked in` spec path.
+**Decision made (2026-06-06):** Design pass completed + locked (spec above). User decisions: text-only offering (audio/video/auto-pay "coming soon" only when asked); ₹500 plain (no "introductory"); ONE question/topic scope, multi-message at Dr. Chinmay's discretion until CLOSE; topic-gated defer rule (generic astrology answerable / personal → defer to Dr. Chinmay); single authored source (byte-identical block across nodes). **Scope expanded** from 3 → 4 nodes: audit found WF-43 `Prepare Gemini Prompt (Opted-Out)` with identical fabrication risk; user approved including it.
+
+**Build summary (2026-06-06):** Batch Surgical (build-workflow Step 5d). Grounded `KNOWN FACTS` block + 4-bucket topic-gated `HOW TO RESPOND` rules spliced into 4 `Prepare Gemini …` Code nodes across 3 workflows: WF-30 (1), WF-31 (1), WF-43 (2 — `Prepare Gemini Response Prompt` + `Prepare Gemini Prompt (Opted-Out)`, both keep their `valid_user_message` JSON wrapper + no-pay/REBOOK guard). Routing verified live first: each node reached only on WF-25 `general_enquiry`. jq --rawfile splice (code authored to .txt, never via shell var) → 3× curl PUT (all 200; WF-43 both edits in one PUT). Backups `archive/backups/<uuid>-2026-06-06-22-22.json`. Verified live: factsNodes 1/1/2, defer-line 1/1/2, node counts unchanged (12/15/32), all active; 4× `node --check` JS-OK; export + secrets scan clean. Acceptance (no-fabricated-service / consistent-price / personal-defer / off-topic-no-defer-line) to confirm at demo/smoke.
 
 Root item (PDF-04 is its symptom): the customer-facing free-text LLM reply (`Prepare Gemini Response Prompt` → `Gemini General Response` → `Extract Gemini Reply` → `Send …Reply via WF-50`) exists in WF-30/31/43 with NO grounded KB, so it improvises/contradicts itself on services & pricing. Inject the same trusted business-facts KB + defer rule into all three `Prepare Gemini Response Prompt` nodes consistently. Re-fetch each live workflow at build (post-PDF-09).
 
@@ -276,16 +291,75 @@ P0 but sequenced LAST of the new items per user directive (admin-side noise firs
 
 ## PDF-04 — Bot tells customers it offers services that don't exist
 
-**Status:** ⬜ pending
+**Status:** 🟢 done
+**Started:** 2026-06-06T21:14:05Z
+**Completed:** 2026-06-06T22:23:51Z
+**Actual tokens:** shared with PDF-05 (one grounded-KB fix across the 4 nodes)
+**Actual effort:** shared with PDF-05
+**Estimate delta:** shared Batch-6 change — on-bucket
 **Priority:** P0 | **Batch:** 6
 **Change type:** Structural — multi-workflow (WF-30/31/43), customer free-text Gemini-reply prompt. SAME fix as PDF-05.
 **Workflows:** WF-30, WF-31, WF-43
 **n8n IDs:** `gGJBY5fJha0Let8I` (WF-30), `HB8nXudAtk9iXz7C` (WF-31), `3va0M06kijgyLejf` (WF-43)
 **Depends on:** PDF-05 (hard — SAME grounded-KB fix; the "not-offered" list authored for PDF-05 is exactly what stops the "yes, we offer video consultations" fabrication), PDF-09 (soft — same workflows)
-**Design gate:** true (inherits PDF-05's design gate)
+**Design gate:** false (cleared with PDF-05)
+**Design locked in:** docs/artefacts/specs/2026-06-06-pdf-04-05-grounded-business-facts-kb-design.md
 **Size:** S (shared with PDF-05)
 **Estimated tokens:** ~8K (incremental share)
 
-Symptom of PDF-05: with no grounded KB the assistant asserted a non-existent video offering. The explicit "not offered = video/phone" entry in PDF-05's KB + the defer rule resolves this. No separate fix — verify the acceptance check against the same WF-30/31/43 change.
+Symptom of PDF-05: with no grounded KB the assistant asserted a non-existent video offering. Resolved by the same fix — the `KNOWN FACTS` "audio/video … NOT available yet — coming soon" entry + the "never invent beyond KNOWN FACTS" rule replace the old narrow "don't invent prices" guard, across all 4 nodes (incl. WF-43 opted-out). See PDF-05 build summary. Acceptance (no "yes, we offer it" for video/audio) to confirm at demo/smoke.
 
 Acceptance: asking about a service that isn't offered never yields a "yes, we offer it" answer; the bot states the actual offering plainly or defers to the astrologer. No fabricated services/capabilities in any automated customer reply.
+
+## Batch 7 — customer-reply UX hardening (emerged during PDF-04/05 live validation, 2026-06-07) — DONE
+
+- **Items:** 3 (PDF-10 WF-25 routing fix · PDF-11 button re-attach · PDF-12 payment-instruction consistency). All surfaced and built during the live test session for PDF-04/05; tested working on user 61466927921 before commit.
+- **Change type:** Structural (WF-25 prompt; WF-30/43 reply-payload nodes).
+
+## PDF-10 — WF-25 mis-routes service/non-text/astrology questions away from the grounded reply
+
+**Status:** 🟢 done
+**Started:** 2026-06-06T23:00:00Z
+**Completed:** 2026-06-06T23:10:00Z
+**Priority:** P1 | **Batch:** 7
+**Change type:** Structural — single workflow (WF-25 Intent Classifier `eTV1lUcYrXBg2q2T`), classifier prompt.
+**Workflows:** WF-25
+**n8n IDs:** `eTV1lUcYrXBg2q2T`
+**Depends on:** — (emerged during PDF-04/05 validation)
+**Design gate:** false
+
+Surfaced in validation: "How much is audio consultation and how do I get it" and "When will I get a job?" classified `wants_consultation` (the def's "or is asking about booking" clause) → routed to the canned payment reminder, bypassing the grounded Gemini KB reply (PDF-04/05). Fix (user-directed scope, 2026-06-06): narrowed `wants_consultation` to ONLY a clear intent to begin the text-based WhatsApp consultation; routed service/offering/pricing/how-to questions, non-text modality requests (audio/video/phone), and astrology-adjacent topics (gems/mantra/remedies/personal life questions) to `general_enquiry` → defer to the Gemini nodes.
+
+**Build summary:** edited `Prepare Intent Request` Code node (2 category defs). Impact analysis cleared all 4 callers: WF-30/31 improve (more questions reach grounded reply), WF-43 unaffected (both categories already → Gemini), WF-40 doesn't branch on intent category. Backup `archive/backups/eTV1lUcYrXBg2q2T-2026-06-06-22-22.json`. PUT 200; JS-OK; verified live — re-test of both messages now routes `general_enquiry` → Gemini (audio "coming soon"; job question deferred to Dr. Chinmay).
+
+## PDF-11 — Action buttons scroll away after general-enquiry Q&A
+
+**Status:** 🟢 done
+**Started:** 2026-06-06T23:28:00Z
+**Completed:** 2026-06-06T23:35:00Z
+**Priority:** P2 | **Batch:** 7
+**Change type:** Structural — WF-30 (`gGJBY5fJha0Let8I`) + WF-43 (`3va0M06kijgyLejf`), reply-payload nodes.
+**Workflows:** WF-30, WF-43
+**n8n IDs:** `gGJBY5fJha0Let8I`, `3va0M06kijgyLejf`
+**Depends on:** PDF-04/05 (soft — same reply nodes)
+**Design gate:** false
+
+After several general-enquiry replies, the original action button (sent once at form submission / consultation close) is scrolled far up. WF-50 already supports interactive sends (`messageType:'interactive'`, passthrough trigger); button taps match by reply id regardless of carrier message, so re-sending needs no router change.
+
+**Build summary:** WF-30 — `Extract Gemini Reply` (general-enquiry) and `Prepare Payment Reminder` (booking-intent) now send interactive messages re-attaching the `payment_completed` "Payment Completed ✓" button; `Send Payment Reminder via WF-50` switched to passthrough (`workflowInputs.value={}`) so interactivePayload flows through. WF-43 — `Build Reply Payload` converted Set→Code (typeVersion 2, floor), re-attaching the 3 post-consult buttons (`btn_feedback`/`btn_rebook`/`btn_done`). Backups `*-2026-06-06-23-28.json`. PUTs 200; JS-OK; verified live (WF-30 button on enquiry + reminder paths; WF-43 3 buttons on closed-state replies). Scope: WF-31 deliberately excluded (no user action in payment_submitted).
+
+## PDF-12 — Inconsistent payment instructions in payment_pending replies
+
+**Status:** 🟢 done
+**Started:** 2026-06-07T00:10:00Z
+**Completed:** 2026-06-07T00:21:00Z
+**Priority:** P2 | **Batch:** 7
+**Change type:** Structural — single workflow (WF-30 `gGJBY5fJha0Let8I`), reply nodes.
+**Workflows:** WF-30
+**n8n IDs:** `gGJBY5fJha0Let8I`
+**Depends on:** PDF-11 (soft — same WF-30 reply nodes)
+**Design gate:** false
+
+The general-enquiry path's payment CTA was Gemini-phrased — incomplete (no UPI handle/payee) and inconsistent ("via GPay" vs "via GPay/UPI"), while the reminder path had the full deterministic block. Fix (user chose deterministic-block option, 2026-06-07): one canonical `PAYMENT_DETAILS` block (full UPI handle + payee) appended in code to both `Extract Gemini Reply` and `Prepare Payment Reminder`; the Gemini prompt told to stop phrasing payment (may still state ₹500 price if asked) so it never improvises payment instructions.
+
+**Build summary:** edited 3 WF-30 nodes (`Prepare Gemini Response Prompt`, `Extract Gemini Reply`, `Prepare Payment Reminder`); identical `PAYMENT_DETAILS` literal in both reply nodes (single authored source). Defensive reply-length cap (800 chars) to stay under WhatsApp's 1024-char interactive body limit. Backup `archive/backups/gGJBY5fJha0Let8I-2026-06-06-23-28-pre-paymentconsistency.json`. PUT 200; JS-OK; verified live — every payment_pending reply ends with the identical full payment block + Payment Completed button.
