@@ -2,18 +2,21 @@ WF-31 — Payment Submitted Handler
 
 ## Summary
 
-- Purpose: Thin state handler for `payment_submitted` user text. Two parallel branches: Branch A classifies via WF-25 and replies (Gemini contextual reply for general enquiry, canned "under review" reassurance otherwise); Branch B unconditionally relays every inbound message into the user's consult Slack channel (tagged with time-since-paid). stop_intent needs no Branch-A extra (WF-25 sent the clarifier); garbage / abuse terminate inside WF-25.
+- Purpose: Thin state handler for `payment_submitted` user text. Two parallel branches: Branch A classifies via WF-25 and replies (a grounded, topic-gated Gemini answer for general enquiry, or the canned "under review" reassurance otherwise) — both paths END WITH THE SAME canonical "under review" status block, so the style is consistent regardless of question type; Branch B unconditionally relays every inbound message into the user's consult Slack channel (tagged with time-since-paid). stop_intent needs no Branch-A extra (WF-25 sent the clarifier); garbage / abuse terminate inside WF-25.
 - Inputs (WF-01 canonical envelope §2.1, received via trigger passthrough): `phoneNumber` (top-level), `messageContent`, `user.{id, name, status, slack_channel_id}`. (The envelope carries no `messageText`/top-level `userId`/`userStatus` — those are read off `user.*` and `messageContent`.) `user.slack_channel_id` drives the Branch-B relay (no DB re-fetch).
-- Outputs: Branch A — a Gemini reply or canned "under review" reassurance via WF-50. Branch B — a Slack relay of the user message into the consult channel (always).
+- Outputs: Branch A — a grounded Gemini answer or the canned reassurance via WF-50, each ending with the canonical "under review" status block (text-only; NO button and NO payment block — payment is already made). Branch B — a Slack relay of the user message into the consult channel (always).
 - State Transitions: none.
 - Calls Sub-Workflows: WF-25 (Intent Classifier + Safety-Net Hub), WF-53 (U1 — on the local Gemini reply's failure), WF-50 (Send WhatsApp), WF-51 (Send Slack — Branch B relay).
 - **Deltas vs the prior WF-31 (safety-net §6):**
   - REMOVED the inline Gemini-error halt-and-notify chain → on Branch-A Gemini failure, call U1.
   - REMOVED the in-handler stop_intent clarifier (now in WF-25).
   - Branch B (unconditional Slack relay) is UNCHANGED — it relays every inbound (incl. stop_intent / garbage), independent of Branch A.
+  - **PDF-04/05 (2026-06-06):** the general-enquiry Gemini reply is now grounded in the fixed business-facts KB with the topic-gated defer rule (same KB as WF-30/43; no improvised services/pricing; personal astrology deferred to Dr. Chinmay). See Step 6.
+  - **Style consistency (2026-06-07, mirrors PDF-12):** both Branch-A reply paths now end with ONE canonical "under review" status block; Gemini no longer phrases the review status itself. This removes the two-different-styles inconsistency (conversational Gemini "being reviewed" vs the templated canned message).
 - **Notes:**
   - Branches A and B run in parallel from the trigger; Branch B fires regardless of intent (and regardless of any Branch-A halt).
   - **Branch A on garbage/abuse (BUG-06c, safety-net §13):** WF-25 emits **0 items** (its Step 13 `Return Nothing`); Branch A's `Call WF-25` has `alwaysOutputData=false`, so 0 items → Branch A's reply nodes skip. A dead-end inside WF-25 alone does NOT stop Branch A — before BUG-06c it returned 1 item and Branch A wrongly sent the canned "under review" reassurance on garbage. Do not remove WF-25's `Return Nothing`. (Branch B relay is independent and still fires.)
+  - **Canonical "under review" block (single source):** one canonical status line — "⏳ *Your payment is under review.* Dr. Chinmay will confirm it shortly — you don't need to do anything else for now." — is appended to the Gemini reply AND used as the canned reply, byte-identical, so every payment_submitted reply ends consistently. The Gemini prompt is told NOT to phrase the review status itself.
   - Copy reuse-existing — verify verbatim at build.
 
 ---
@@ -29,9 +32,9 @@ Step 4: Check: `intentResult == 'stop_intent'`?
 Step 5: Check: `intentResult == 'general_enquiry'`?
   - If YES → go to Step 6.
   - If NO → go to Step 8.
-Step 6: Build a Gemini prompt for a brief, warm, greeting-or-question-aware reply (if a greeting, warmly acknowledge; if a question, answer briefly) with the payment-submitted stage cue ("payment is being reviewed by Dr. Chinmay") + an email callout, append the user's message, then POST to Gemini (gemini-2.5-flash-lite, temperature=0.3). On Gemini failure → go to Step 7. On success → extract the reply (fallback default), call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <reply> }`. End of Branch A.
+Step 6: Build a grounded Gemini prompt (gemini-2.5-flash-lite) bounded by the same fixed business-facts KB and topic-gated defer rule as WF-30 Step 5 (offering/price/one-question/audio-video-coming-soon/REBOOK facts; greeting → warm; KB question → answer from KB; generic astrology → may answer; personal astrology → defer with "That's something Dr. Chinmay will look into for you during your consultation."; off-topic → brief redirect). The prompt MUST NOT phrase the payment-review status — the canonical "under review" block is appended after. Append the user's message, POST to Gemini. On Gemini failure → go to Step 7. On success → extract the reply (fallback default), APPEND the canonical "under review" block (see Notes), and call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <reply + block> }`. End of Branch A.
 Step 7: Gemini failure — call U1 with `{ phoneNumber, userFacing: true, consultChannelId: user.slack_channel_id, context: { source: 'WF-31', userName: user.name, userStateText: 'payment under review', userMessage: messageContent, errorDetail: <summary> } }`. End of Branch A.
-Step 8: Build the canned "under review" reassurance (verbatim live copy — bold first line, blank-line paragraph breaks): "⏳ *Your payment is currently under review.*\n\nChinmay will verify it and get back to you shortly (usually within a few hours). You don't need to do anything else right now.\n\nIf you have any questions, feel free to ask!" Call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <message> }`. End of Branch A.
+Step 8: Send the canned reassurance = the canonical "under review" block (identical to the text appended in Step 6): "⏳ *Your payment is under review.* Dr. Chinmay will confirm it shortly — you don't need to do anything else for now." Call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <block> }`. End of Branch A.
 
 Step 9: SELECT created_at FROM chinmay_astro.payments WHERE user_id = user.id ORDER BY id DESC LIMIT 1 (most recent payment). If no row, treat elapsed as `?`. [Branch B — Slack relay]
 Step 10: Compute elapsed-since-paid as a human string: `< 60 min` → "{n} min ago"; `< 24 h` → "{n} h ago"; else "{n} d ago".

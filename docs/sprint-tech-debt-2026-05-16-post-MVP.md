@@ -348,6 +348,20 @@ Improvements that should follow real-usage signal — pick up when actual data s
 
 ---
 
+### TD-NEW-042 · Post-consultation "Welcome back" should be gap-aware (DB last-contact lookup)
+
+**Source:** Sprint `pre-demo-minor-fixes-31May26` (2026-06-07) — deferred **Option A** from the WF-43 welcome-back fix. Option B (time-neutral copy, no "welcome back") shipped this sprint; Option A deferred here.
+
+**Finding:** WF-43 post-consultation Gemini replies can't tell whether the user is returning minutes or days after their consultation closed, so a static "Welcome back" reads incoherently right after a just-completed consult. The shipped fix (Option B) makes the copy time-neutral.
+
+**Enhancement (Option A):** add a DB lookup of the user's last contact — `gap = current message time − previous message time` from `chinmay_astro.messages` (exclude the current inbound; compute in UTC). Set `shouldWelcome = gap > 12h` **deterministically in code**, then feed Gemini an explicit directive (welcome-back vs not). Keeps the decision deterministic (consistent); Gemini only phrases warmly. Default `shouldWelcome=false` if no prior message.
+
+**Bundle hint:** best done **alongside PDF-02 / PDF-03** (deferred this sprint). Those add DB-context-injection into a Gemini prompt (WF-10 admin assistant: user-state + message/consultation history lookup). Same technique — DB lookup → inject context block → Gemini — so the lookup helper + prompt-injection pattern can be shared. (PDF-02/03 are WF-10 admin-side; this is WF-43 customer-side — different workflows, same pattern.)
+
+**Priority:** 🟢 P3 — functional polish, behind real-usage signal.
+
+---
+
 ### TD-NEW-031 · State-filter workflows treat any non-{garbage,abusive,inappropriate,stop} intent as a single "passthrough" bucket
 
 **Source:** Sprint `inline-20260522-102910` SP-04 (2026-05-23) — surfaced during the silent-drop IF FALSE branch audit when the WF-25 contract was reconciled against the upstream `Is Pass-Through Intent?` condition.

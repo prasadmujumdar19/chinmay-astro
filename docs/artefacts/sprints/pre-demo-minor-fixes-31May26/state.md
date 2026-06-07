@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/sprints/pre-demo-minor-fixes-31May26/tasks.md
 **Input hash:** 6044e408324887164d261c2b46ed0e97048e19e54e40d185ea868637bbf7d3a6
 **Planned at:** 2026-05-31T11:19:25Z
-**Last updated:** 2026-06-07T07:18:01Z
+**Last updated:** 2026-06-07T09:22:37Z
 **Planning complete:** true
 **Rolling sprint:** TRUE — `_active` marker is USER-CONTROLLED. build-sprint MUST NOT remove `_active` on batch/queue exhaustion; report "current queue done, sprint still open (rolling)" and stop. Re-invocations of plan-sprint must be ADDITIVE (plan only new PDF-NN items into this file; never destructive full-replan). input_hash mismatch is EXPECTED and is NOT a replan signal. See tasks.md "ROLLING SPRINT" header for full lifecycle/concurrency rules.
 **Discover-current-state:** ran at 2026-05-31T11:19:25Z against live WF-10 (`wMh0oBRtJbvhLgOf`, 42 nodes). Result: PDF-01 condition CONFIRMED PRESENT — `Build Help Prompt` + `Call WF-51 (Help Prompt)` nodes and hardcoded "Type `HELP` to see available commands" line both still on the `free_text` branch; ZERO Gemini calls in WF-10. PDF-01 is genuinely pending, not obsolete. PDF-02/PDF-03 extend the not-yet-built PDF-01 → pending. No obsoletes detected.
@@ -38,6 +38,8 @@
 | PDF-10 | 🟢 done | 7 | P1 | WF-25 | PDF-04/05 (emerged in validation) |
 | PDF-11 | 🟢 done | 7 | P2 | WF-30/43 | PDF-04/05 (soft) |
 | PDF-12 | 🟢 done | 7 | P2 | WF-30 | PDF-11 (soft) |
+| PDF-13 | 🟢 done | 8 | P2 | WF-31 | PDF-12 (soft — same canonical-block pattern) |
+| PDF-14 | 🟢 done | 8 | P2 | WF-43 | PDF-11 (soft — same WF-43 reply path) |
 
 ## Batch 1 — P0
 
@@ -308,6 +310,38 @@ P0 but sequenced LAST of the new items per user directive (admin-side noise firs
 **Estimated tokens:** ~8K (incremental share)
 
 Symptom of PDF-05: with no grounded KB the assistant asserted a non-existent video offering. Resolved by the same fix — the `KNOWN FACTS` "audio/video … NOT available yet — coming soon" entry + the "never invent beyond KNOWN FACTS" rule replace the old narrow "don't invent prices" guard, across all 4 nodes (incl. WF-43 opted-out). See PDF-05 build summary. Acceptance (no "yes, we offer it" for video/audio) to confirm at demo/smoke.
+
+## Batch 8 — reply-style consistency (emerged during PDF-11/12 live validation, 2026-06-07) — DONE
+
+- **Items:** 2 (PDF-13 WF-31 under-review consistency · PDF-14 WF-43 welcome/REBOOK UX). Built pseudo-first (WF-31/43 `.pseudo` revised before live), validated live on user 61466927921.
+
+## PDF-13 — WF-31 payment_submitted replies had two different styles
+
+**Status:** 🟢 done
+**Started:** 2026-06-07T08:00:00Z
+**Completed:** 2026-06-07T09:22:37Z
+**Priority:** P2 | **Batch:** 8
+**Change type:** Structural — single workflow (WF-31 `HB8nXudAtk9iXz7C`), reply nodes.
+**Workflows:** WF-31
+**n8n IDs:** `HB8nXudAtk9iXz7C`
+**Depends on:** PDF-12 (soft — mirrors the canonical-block pattern)
+**Design gate:** false
+
+The general-enquiry path (Gemini, conversational "being reviewed") and the canned wants_consultation path (templated "⏳ under review") gave two different styles. Fix (mirrors PDF-12): one canonical "⏳ *Your payment is under review.* Dr. Chinmay will confirm it shortly — you don't need to do anything else for now." block, appended to the Gemini reply AND used as the canned reply (byte-identical); Gemini told not to phrase the review status. Text-only (no button/payment block — payment already made). Pseudo-first (`WF-31.pseudo` Steps 6/8). Backup `archive/backups/HB8nXudAtk9iXz7C-2026-06-07-08-00-pre-consistency.json`. PUT 200; JS-OK; verified live (both paths end with the identical block).
+
+## PDF-14 — WF-43 post-consult "Welcome back" incoherence + REBOOK-only CTA
+
+**Status:** 🟢 done
+**Started:** 2026-06-07T08:00:00Z
+**Completed:** 2026-06-07T09:22:37Z
+**Priority:** P2 | **Batch:** 8
+**Change type:** Structural — single workflow (WF-43 `3va0M06kijgyLejf`), two Gemini prompt nodes.
+**Workflows:** WF-43
+**n8n IDs:** `3va0M06kijgyLejf`
+**Depends on:** PDF-11 (soft — same WF-43 reply path)
+**Design gate:** false
+
+Two UX issues from PDF-11/12 validation: (a) the reply told users to "reply REBOOK" while sending a Book Again button (mentioned only the keyword); (b) the standard returning-user prompt said "welcome back" — incoherent right after a just-closed consultation. Fix: both prompts now offer "tap Book Again below OR reply REBOOK" (both valid); the STANDARD prompt is time-neutral (no "welcome back" — can't know elapsed time); the OPTED-OUT prompt KEEPS welcome-back (a re-engaging opted-out user genuinely returned). Decision (2026-06-07): Option B (time-neutral copy) now; gap-aware welcome via DB last-contact lookup deferred to post-MVP TD-NEW-042 (bundles with PDF-02/03). Pseudo-first (`WF-43.pseudo` Steps 15/16). Backup `archive/backups/3va0M06kijgyLejf-2026-06-07-08-00-pre-rebook-welcome.json`. PUT 200; JS-OK; verified live (time-neutral standard, welcome-back retained for opted-out, both CTAs).
 
 Acceptance: asking about a service that isn't offered never yields a "yes, we offer it" answer; the bot states the actual offering plainly or defers to the astrologer. No fabricated services/capabilities in any automated customer reply.
 

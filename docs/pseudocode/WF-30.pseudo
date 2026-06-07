@@ -2,16 +2,21 @@ WF-30 — Payment Pending Handler
 
 ## Summary
 
-- Purpose: Thin state handler for `payment_pending` user text. Classifies via WF-25 (which owns all safety actions), then does its one stage-specific job: a Gemini contextual reply for general enquiries, or a canned payment reminder for other pass-through intents. stop_intent needs no extra action (WF-25 already sent the clarifier); garbage / abuse terminate inside WF-25.
+- Purpose: Thin state handler for `payment_pending` user text. Classifies via WF-25 (which owns all safety actions), then does its one stage-specific job: a grounded Gemini reply (KB-bounded, topic-gated defer) for general enquiries, or a contextual payment reminder for other pass-through intents. Both customer replies are sent as INTERACTIVE messages that append a single canonical payment-details block and re-attach the [Payment Completed ✓] button. stop_intent needs no extra action (WF-25 already sent the clarifier); garbage / abuse terminate inside WF-25.
 - Inputs (WF-01 canonical envelope §2.1, received via trigger passthrough): `phoneNumber` (top-level), `messageContent`, `user.{id, name, status, slack_channel_id}`. (The envelope carries no `messageText`/top-level `userId`/`userStatus` — those are read off `user.*` and `messageContent`.)
-- Outputs: a Gemini-generated WhatsApp reply (general_enquiry) or a canned payment reminder (other pass-through). No output for stop_intent / garbage / abuse (handled in WF-25).
+- Outputs: an interactive WhatsApp reply — for general_enquiry a grounded Gemini answer, for other pass-through a contextual reminder — each ending with the canonical payment-details block + a [Payment Completed ✓] button. No output for stop_intent / garbage / abuse (handled in WF-25).
 - State Transitions: none.
 - Calls Sub-Workflows: WF-25 (Intent Classifier + Safety-Net Hub), WF-53 (U1 — on the local Gemini reply's failure), WF-50 (Send WhatsApp).
 - **Deltas vs the prior WF-30 (safety-net §6):**
   - REMOVED the inline Gemini-error halt-and-notify chain (~12 nodes) → on the general-reply Gemini failure, call U1 instead.
   - REMOVED the in-handler stop_intent clarifier (now sent by WF-25).
+  - **PDF-04/05 (2026-06-06):** the general-enquiry Gemini reply is now grounded in a fixed business-facts KB with a topic-gated defer rule (no improvised services/pricing; personal astrology deferred to Dr. Chinmay). See Step 5.
+  - **PDF-12 (2026-06-07):** payment instructions are a single CANONICAL block appended in code to BOTH the general-enquiry reply and the reminder; Gemini no longer phrases payment. Every payment_pending reply now shows identical, complete payment details.
+  - **PDF-11 (2026-06-06):** both reply paths re-attach the [Payment Completed ✓] button (interactive message) so the user never scrolls back to the original payment message.
 - **Notes:**
   - WF-25 returns `intentResult` only for pass-through and stop_intent; garbage / abuse do not continue here. **Mechanism (BUG-06c, safety-net §13):** on garbage/abuse WF-25 emits **0 items** (its Step 13 `Return Nothing`); this handler's `Call WF-25` has `alwaysOutputData=false`, so 0 items → Step 3 onward skip. A dead-end inside WF-25 alone does NOT stop this handler — before BUG-06c it returned 1 item and this handler wrongly sent the canned payment reminder on garbage. Do not remove WF-25's `Return Nothing`.
+  - **Canonical payment block (single source):** the payment-details text (₹500 via GPay/PhonePe/UPI to the UPI payee, then "tap the button below to confirm") is one canonical block, byte-identical in the general-enquiry reply and the reminder, so payment instructions are consistent and complete on every reply. Gemini is explicitly told NOT to phrase payment (it may still state the ₹500 price if asked).
+  - **Button re-attach:** the [Payment Completed ✓] reply button (stable id `payment_completed`) is re-sent on every reply; the id is unchanged so tapping it transitions payment_pending → payment_submitted exactly as the original button did (no router change).
   - Copy reuse-existing — verify verbatim at build.
 
 ---
@@ -26,11 +31,15 @@ Step 3: Check: `intentResult == 'stop_intent'`?
 Step 4: Check: `intentResult == 'general_enquiry'`?
   - If YES → go to Step 5.
   - If NO → go to Step 7.
-Step 5: Build a Gemini prompt for a brief, warm, greeting-or-question-aware reply (if a greeting, warmly acknowledge; if a question, answer briefly) with the payment-pending stage cue (gentle nudge to complete the ₹500 payment) + an email callout (chinmay_astro@gmail.com), append the user's message, then POST to Gemini (gemini-2.5-flash-lite, temperature=0.3). On Gemini failure → go to Step 6 (U1). On success → extract the reply (fallback: "Thank you for your message! For questions about our Vedic astrology consultation, feel free to ask."), call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <reply> }`. End.
+Step 5: Build a grounded Gemini prompt (gemini-2.5-flash-lite) for a brief, warm reply, bounded by a fixed business-facts KB and a topic-gated defer rule:
+  - KB facts (the ONLY facts it may state): offering = a text-based Vedic astrology consultation over WhatsApp; ₹500 per consultation; each consultation covers ONE question/topic (may span several back-and-forth messages, Dr. Chinmay decides when answered); audio/video/automatic-payment are NOT available yet (coming soon); after a consultation closes, a new one is booked via REBOOK.
+  - Response rule (pick one): greeting → warm reply; a question answerable from KB (price, what's offered, audio/video availability, how to book) → answer from KB only (audio/video → "coming soon, text-only for now"); a GENERIC/educational astrology question → may answer briefly; a question about THIS person (their chart/predictions/life questions, or remedies/gemstones/mantras for them) → do NOT answer, defer with exactly "That's something Dr. Chinmay will look into for you during your consultation."; off-topic → brief polite redirect.
+  - The prompt MUST NOT phrase payment instructions or tell the user where/how to pay or to tap a button (it MAY state the ₹500 price) — payment details are appended deterministically in the next step.
+  Append the user's message, then POST to Gemini. On Gemini failure → go to Step 6 (U1). On success → extract the reply (fallback: "Thank you for your message! For questions about our Vedic astrology consultation, feel free to ask."), then APPEND the canonical payment-details block (see Notes), and send via WF-50 as an INTERACTIVE message: body = reply + payment block, with one reply button [Payment Completed ✓] (id `payment_completed`). End.
 Step 6: Gemini failure — call U1 with `{ phoneNumber, userFacing: true, consultChannelId: user.slack_channel_id, context: { source: 'WF-30', userName: user.name, userStateText: 'awaiting payment', userMessage: messageContent, errorDetail: <summary> } }` (apologise + alert + halt). End.
 Step 7: Build a contextual payment reminder:
   - wants_consultation → prefix "Great! You're almost there. To confirm your consultation, please complete the payment below."
   - rebook_intent → prefix "For rebooking, please complete the pending payment first."
-  - otherwise → prefix "Happy to help! Once your payment is confirmed, Chinmay will be ready for your consultation."
-  - append the UPI block: ₹500 to +91-9653240263 (Chinmay Mujumdar), then "tap the Payment Completed button you received earlier."
-  Call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <assembled reminder> }`. End.
+  - otherwise → prefix "Happy to help! Once your payment is confirmed, Dr. Chinmay will be ready for your consultation."
+  - append the SAME canonical payment-details block used in Step 5: ₹500 via GPay/PhonePe/UPI to +91-9653240263 (Chinmay Mujumdar — the UPI payee/bank name), then "Once you've paid, tap the button below to confirm." (Note: the verbatim no longer says "the button you received earlier" — the button is re-sent on this message.)
+  Send via WF-50 as an INTERACTIVE message: body = prefix + payment block, with one reply button [Payment Completed ✓] (id `payment_completed`). End.
