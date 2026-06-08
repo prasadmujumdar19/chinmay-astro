@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/sprints/pre-demo-minor-fixes-31May26/tasks.md
 **Input hash:** 633b9b258285df5821dbe3f1cff90cce62b268b5ae5d3c6efe33fc281579052c
 **Planned at:** 2026-05-31T11:19:25Z
-**Last updated:** 2026-06-08T03:08:50Z
+**Last updated:** 2026-06-08T07:52:58Z
 **Planning complete:** true
 **Rolling sprint:** TRUE — `_active` marker is USER-CONTROLLED. build-sprint MUST NOT remove `_active` on batch/queue exhaustion; report "current queue done, sprint still open (rolling)" and stop. Re-invocations of plan-sprint must be ADDITIVE (plan only new PDF-NN items into this file; never destructive full-replan). input_hash mismatch is EXPECTED and is NOT a replan signal. See tasks.md "ROLLING SPRINT" header for full lifecycle/concurrency rules.
 **Discover-current-state:** ran at 2026-05-31T11:19:25Z against live WF-10 (`wMh0oBRtJbvhLgOf`, 42 nodes). Result: PDF-01 condition CONFIRMED PRESENT — `Build Help Prompt` + `Call WF-51 (Help Prompt)` nodes and hardcoded "Type `HELP` to see available commands" line both still on the `free_text` branch; ZERO Gemini calls in WF-10. PDF-01 is genuinely pending, not obsolete. PDF-02/PDF-03 extend the not-yet-built PDF-01 → pending. No obsoletes detected.
@@ -24,6 +24,22 @@
 
 **tasks.md reconciliation pass — 2026-06-08T03:08:50Z (rolling sprint, bookkeeping only — NOT a replan).** PDF-10..PDF-14 emerged ad-hoc during live build/validation sessions (Batch 7 + Batch 8) and were planned+built+verified directly into this `state.md`, but were never recorded in the source list `tasks.md`. Backfilled them into `tasks.md` now (5 Summary rows + 5 H3 blocks, marked "emerged during implementation"); also synced the stale `🆕 triaged` statuses of PDF-01..09 in `tasks.md` to match their real state here (done / ⚪ obsolete / planned-pending-build). **No item renumbered** — every `PDF-NN` keeps its ID. `tasks.md` SHA recomputed after the edits and recorded above as the new `Input hash` (`633b9b25…`, was `e575e0ef…` after the PDF-04..09 pass and `6044e408…` at original plan). This file's item set (PDF-01..14) now exactly matches the planned/built history; **PDF-15..PDF-19 are present in `tasks.md` but intentionally NOT yet in this `state.md`** — they are the next additive plan-sprint bunch (the 24h-window deliverability cluster, brainstormed 2026-06-08). Next plan-sprint should plan PDF-15 onward additively and find no orphaned/unaccounted items.
 
+**Additive planning pass — 2026-06-08T06:51:00Z (rolling sprint, append-only).** Planned the 24h-window deliverability cluster **PDF-15..PDF-19** (Batches 9–12) into this `state.md`; existing PDF-01..14 history untouched per rolling-sprint rule 2. `tasks.md` hash unchanged (`633b9b25…`) — PDF-15..19 were already present in the source from the 2026-06-08 brainstorm; this pass only adds them to `state.md`. Grounding spec: `docs/artefacts/specs/2026-06-08-24h-window-deliverability-design.md`.
+
+- **Discover-current-state basis:** the SSH tunnel was DOWN this session, so no fresh live grep was run. The 2026-06-08 brainstorm session verified all five conditions against live n8n with fresh `.md` projections (pseudo==live) earlier the same day — that verification is the discover-current-state basis. No obsoletes detected. If a fresh re-grep is wanted, reopen the tunnel before build-sprint Batch 9.
+- **Fix-location map (from registry, confirmed live by the brainstorm):** PDF-15/16 → relay path **WF-41 Admin→User Relay** (`6PzJRZsF7k2d9hV7`) → **WF-50 Send WhatsApp** (`BUVun38WEKb12zg9`), in-channel notice via **WF-51** (`wlZRK0YxnhP0b2RL`); window-state from `chinmay_astro.messages` `MAX(created_at) WHERE direction='inbound'`. PDF-17 → **WF-34 Payment Rejection Processor** (`se82n3MUQ9xE5aEr`). PDF-18 → **NEW WF-7x** scheduled job (project's first background workflow). PDF-19 → **WF-42 Consultation Closer** (`fx70vqyJtRdF2DgR`) + the post-close button-tap handler.
+- **Design decisions LOCKED this session (no design-gates remain — build-sprint implements directly).** All grounded in Meta docs (citations embedded per item). DD-A: relay stays **window-conditional** — free-form in-window (full fidelity, no constraint, free per M2), template only out-of-window. DD-B window source = `messages` table (no new write on relay path). DD-C out-window path = **pre-process to template-safe** (collapse newlines→spaces per M4 ban, collapse 4+ spaces, split >~900 chars into "(1/N)" parts) then deliver via the relay-reply template — **no bounce-back/retype path**; any residual Meta send failure is surfaced by PDF-16 (the failure backstop). DD-D relay-reply template body = *"Sorry for the delayed response to your message. Here's the response from Dr. Chinmay: {{1}}"* (apology/service framing chosen over a bare `{{1}}` to reduce Meta utility-approval rejection risk + correct customer tone after a gap). DD-E fixed-content messages (rejection PDF-17, close PDF-19) = **always a template** (DD-1), no window logic. DD-F nudge (PDF-18) = threshold **18h**, poll **every 2h**, repeat ~3–4× across the 18→24h stretch, gated on `unanswered` (`last_inbound > last_outbound`), self-terminating at 24h (window closed → relay goes template/charged → nudge has no purpose).
+- **Meta grounding records (verified 2026-06-08):** M1 non-template only in-window ([pricing](https://developers.facebook.com/docs/whatsapp/pricing)); M2 utility templates free in-window, charged outside ([July 2025 pricing](https://developers.facebook.com/docs/whatsapp/pricing/updates-to-pricing/)); **M4 template parameters cannot contain newlines / tabs / 4+ consecutive spaces, body ≤1024 chars** ([guidelines](https://developers.facebook.com/docs/whatsapp/message-templates/guidelines/), [error-code ref](https://www.heltar.com/blogs/all-meta-error-codes-explained-along-with-complete-troubleshooting-guide-2025-cm69x5e0k000710xtwup66500)); M5 template quick-reply tap arrives in a different webhook shape than an interactive `button_reply` ([template components](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/components)); unused templates are NOT deleted but may need **re-approval after ~90 days inactivity**, and quality-pausing is driven by negative feedback/low engagement, not non-use ([template statuses](https://help.gohighlevel.com/support/solutions/articles/155000001623-whatsapp-template-statuses-and-best-practice), [pacing & pausing](https://academy.insiderone.com/docs/whatsapp-template-pacing-and-pausing)).
+- **External prerequisite (gates build, async Meta approval):** 3 templates must be submitted+approved before their builds — **relay-reply** (new, PDF-15 — submit EARLIEST; thin-content utility templates carry elevated rejection risk), **payment-rejection** (new, PDF-17), **consultation_closed_feedback** (existing, PDF-19 — rewrite body to match current close copy + carry all 3 quick-reply buttons). PDF-16 and PDF-18 have NO template dependency.
+
+**Template provisioning update — 2026-06-08T07:45:22Z.** User created the templates in Meta; all **Active** (= approved/sendable; "Quality pending" is just the un-rated new-template state, not a blocker). **Final approved names (supersede the planning-time names above — build MUST target these exact names + language code):**
+- **`astrology_service_update`** (Utility) = the relay-reply template for **PDF-15** (renamed from `relay-reply` to read as a genuine utility template). Body retains the apology framing + `{{1}}`.
+- **`payment_rejection`** (Utility) = **PDF-17**. Body trimmed by user at creation (starts *"Sorry, but we couldn't verify your pa…"*) — build uses the APPROVED template body verbatim, not the old WF-34 interactive copy.
+- **`consultation_closed`** (Utility) = **PDF-19** — NEW template replacing `consultation_closed_feedback`. The original `consultation_closed_feedback`, when its body was edited, was **reclassified by Meta to Marketing** (unusable here — Marketing is also window-gated). User created `consultation_closed` fresh with trimmed body to keep it Utility. **PDF-19 must reference `consultation_closed`, NOT `consultation_closed_feedback`.**
+- **`consultation_activated`** (Utility, existing) — payment approval, untouched.
+- **OPEN before build (list view hides these; trimmed bodies may have dropped them):** confirm `consultation_closed` still carries all 3 quick-reply buttons (Leave Feedback / Book Again / Done, thanks) + whether it kept a `{{1}}` name var; confirm `payment_rejection` still carries the retry button (Payment Completed ✓) + var count; confirm `astrology_service_update` has exactly one `{{1}}`; confirm the language code matches `consultation_activated` for all sends. Build-sprint Batch 9/10/12 entry must verify the exact approved template structure (name, language, body params, button params) before authoring the WF-50 template send — a mismatch fails the send (Meta error 132000/132001).
+- **Dependency conflicts found (PDF-15..19):** none. PDF-16(P1)→PDF-15(P0) and PDF-18(P1)→PDF-15(P0) both point at a higher-priority item that runs first; PDF-19(P2) sibling of PDF-17(P1) runs later — priority order and dependency order agree. Not a single-root cluster (each is a distinct fix in a distinct workflow) → standard priority-tier batches, no mixed-priority collapse.
+
 ## Items
 
 | ID | Status | Batch | Pri | Workflows | Depends On |
@@ -42,6 +58,11 @@
 | PDF-12 | 🟢 done | 7 | P2 | WF-30 | PDF-11 (soft) |
 | PDF-13 | 🟢 done | 8 | P2 | WF-31 | PDF-12 (soft — same canonical-block pattern) |
 | PDF-14 | 🟢 done | 8 | P2 | WF-43 | PDF-11 (soft — same WF-43 reply path) |
+| PDF-15 | 🟢 done | 9 | P0 | WF-41/50/51 | template:`astrology_service_update` ✅ Active · PDF-18 (soft — shared window source) |
+| PDF-16 | ⬜ pending | 10 | P1 | WF-41/34/42 | PDF-15 (soft — backstop for its residual send failures) |
+| PDF-17 | ⬜ pending | 10 | P1 | WF-34 | template:`payment_rejection` ✅ Active · PDF-16 (soft — same WF-34) · PDF-19 (soft sibling) |
+| PDF-18 | ⬜ pending | 11 | P1 | WF-7x (new) | PDF-15 (soft — shared `messages` window source) |
+| PDF-19 | ⬜ pending | 12 | P2 | WF-42 + button handler | template:`consultation_closed` ✅ Active (NOT `consultation_closed_feedback` — that one Meta reclassified to Marketing) · PDF-17 (soft sibling) |
 
 ## Batch 1 — P0
 
@@ -399,3 +420,184 @@ After several general-enquiry replies, the original action button (sent once at 
 The general-enquiry path's payment CTA was Gemini-phrased — incomplete (no UPI handle/payee) and inconsistent ("via GPay" vs "via GPay/UPI"), while the reminder path had the full deterministic block. Fix (user chose deterministic-block option, 2026-06-07): one canonical `PAYMENT_DETAILS` block (full UPI handle + payee) appended in code to both `Extract Gemini Reply` and `Prepare Payment Reminder`; the Gemini prompt told to stop phrasing payment (may still state ₹500 price if asked) so it never improvises payment instructions.
 
 **Build summary:** edited 3 WF-30 nodes (`Prepare Gemini Response Prompt`, `Extract Gemini Reply`, `Prepare Payment Reminder`); identical `PAYMENT_DETAILS` literal in both reply nodes (single authored source). Defensive reply-length cap (800 chars) to stay under WhatsApp's 1024-char interactive body limit. Backup `archive/backups/gGJBY5fJha0Let8I-2026-06-06-23-28-pre-paymentconsistency.json`. PUT 200; JS-OK; verified live — every payment_pending reply ends with the identical full payment block + Payment Completed button.
+
+## Batch 9 — PDF-15 relay 24h-window deliverability gate (WF-41) — NEXT ACTIONABLE (P0)
+
+- **Items:** 1 (PDF-15)
+- **Description:** Make Dr. Chinmay's relay replies deliverable when the customer's 24h WhatsApp service window has closed. **Window-conditional** (DD-A): read the customer's last inbound from `chinmay_astro.messages` (`MAX(created_at) WHERE direction='inbound'`, DD-B); if <24h → send free-form as today (unchanged, full fidelity, free per M2); if ≥24h → **pre-process to template-safe** (DD-C: newlines→spaces per M4, collapse 4+ spaces, split >~900 chars into "(1/N)" parts) and deliver via the **relay-reply** utility template (DD-D body). No bounce-back/retype path; residual Meta send failures are caught by PDF-16.
+- **External prerequisite:** the **relay-reply** template must be approved in Meta first (submit earliest — elevated rejection risk for thin-content utility templates).
+- **Change type:** Structural — WF-41 (+ WF-50 send mode), new DB-read for window state.
+- **Pseudo-impact:** yes (new branch + send logic on the relay path → revise `WF-41.pseudo` before build).
+- **Estimated size:** L
+- **Estimated tokens:** ~60K
+
+## Batch 10 — PDF-16 failure-visibility + PDF-17 rejection→template (P1)
+
+- **Items:** 2 (PDF-16 cross-cutting send-failure visibility · PDF-17 WF-34 rejection always-template)
+- **Description:** PDF-16 — customer-bound callers stop ignoring WF-50's `success=false` and post a plain-language in-channel notice to Dr. Chinmay (primary surface WF-41 relay; also WF-34/WF-42); this is the backstop beneath PDF-15's app-side gate (DD-4). PDF-17 — convert the WF-34 payment-rejection message from an interactive button message to an **always-template** send (DD-E/DD-1), mirroring how approval already uses `consultation_activated`; no window logic. PDF-16 and PDF-17 overlap on WF-34 (soft same-workflow sibling) → execute sequentially, re-fetch live WF-34 at each pickup.
+- **External prerequisite (PDF-17 only):** **payment-rejection** template approved in Meta. PDF-16 has no template dependency.
+- **Change type:** Structural — WF-41/34/42 (PDF-16) + WF-34 (PDF-17).
+- **Pseudo-impact:** yes (both — new failure-notice branch; send-mechanism swap on rejection).
+- **Estimated size:** M
+- **Estimated tokens:** ~60K
+
+## Batch 11 — PDF-18 passive window-closing nudge — NEW WF-7x scheduled workflow (P1)
+
+- **Items:** 1 (PDF-18) — project's FIRST scheduled/background workflow (WF-7x range, pulled forward from post-go-live)
+- **Description:** Hourly-class scheduled job (poll every 2h) that posts an advisory, non-blocking reminder into the consult channel when a customer's free-reply window is 18–24h old and the last inbound is **unanswered** (`last_inbound > last_outbound`). Repeats ~3–4× across 18→24h (DD-F), self-terminates at 24h or the moment Dr. Chinmay replies. Never contacts the customer, never auto-replies, writes no state.
+- **Greenfield note:** author `WF-7x.pseudo` **in this batch** (co-located pseudo-first per plan-sprint §3d greenfield rule — do NOT defer pseudo to a later batch). Live is built from the pseudo in the same session.
+- **Change type:** Structural — new workflow (Schedule trigger + Postgres query + WF-51 send).
+- **Pseudo-impact:** yes (greenfield — pseudo authored in-batch).
+- **Estimated size:** M
+- **Estimated tokens:** ~40K
+
+## Batch 12 — PDF-19 close prompt → always-template (P2)
+
+- **Items:** 1 (PDF-19)
+- **Description:** Convert the WF-42 consultation-close prompt from an interactive 3-button message to an **always-template** send (DD-E/DD-1) so it always reaches the customer regardless of the 24h window. Two constraints: (a) the template carries all **3** quick-reply buttons with the same ids/wording as today, and a *template* quick-reply tap arrives in a **different webhook shape** than the current interactive `button_reply` (M5) — so the post-close button-tap handler must accept **both shapes**; (b) the post-close experience fixed earlier this sprint (PDF-11 button re-attach, PDF-14 time-neutral copy) must still hold — only the close prompt itself becomes a template. Review/rewrite the existing unused `consultation_closed_feedback` template body to match the current close copy + buttons.
+- **External prerequisite:** `consultation_closed_feedback` reviewed/rewritten + approved in Meta.
+- **Change type:** Structural — WF-42 (send) + post-close button-tap handler (dual-shape parse).
+- **Pseudo-impact:** yes (send-mechanism swap + new inbound tap shape).
+- **Estimated size:** M
+- **Estimated tokens:** ~35K
+
+## PDF-15 — Astrologer's relay reply silently never reaches the customer if their window is >24h closed
+
+**Status:** 🟢 done
+**Started:** 2026-06-08T08:00:24Z
+**Completed:** 2026-06-08T08:17:50Z
+**Owner session:** build-pre-demo-minor-fixes-8Jun26
+**Actual tokens:** ~75K (spec + WF-41/50/10 pseudo+md reads dominated; WF-50.md grep was the largest single input)
+**Actual effort:** ~17 min
+**Estimate delta:** on-bucket (planned L ~60K, actual ~75K — within L band)
+**Priority:** P0 | **Batch:** 9
+**Change type:** Structural — WF-41 Admin→User Relay (`6PzJRZsF7k2d9hV7`) + WF-50 send mode; new `messages`-table window-state read; relay-reply template send; out-window pre-process.
+**Workflows:** WF-41, WF-50, WF-51
+**n8n IDs:** `6PzJRZsF7k2d9hV7` (WF-41) · `BUVun38WEKb12zg9` (WF-50) · `wlZRK0YxnhP0b2RL` (WF-51)
+**Depends on:** relay-reply template approval (external, Meta) · PDF-18 (soft — shares the `messages` window-state source) · PDF-16 (soft — PDF-16 is the residual-failure backstop; build close together)
+**Design gate:** false (locked this session)
+**Size:** L
+**Estimated tokens:** ~60K
+**Pseudo-impact:** yes — revise `WF-41.pseudo` (new in-window/out-window branch) before build.
+
+**Decisions locked (2026-06-08, grounded in Meta docs):**
+- **DD-A window-conditional, NOT always-template.** In-window → free-form unchanged (full fidelity, no M4 constraint, free per **M2**). Out-window → relay-reply template. Rationale: M4 bans newlines / 4+ spaces in template parameters and caps body at 1024 — so *always*-template would strip formatting, force a "Dr. Chinmay:" prefix, and split EVERY reply including the common in-window live exchange, for no cost saving (Meta meters window-state itself). The window check is one cheap SQL + IF; keeping it preserves in-window fidelity.
+- **DD-B window source = `chinmay_astro.messages`**, `MAX(created_at) WHERE user_id=X AND direction='inbound'`. The relay path does no `users` write, so `users.last_message_at` is stale — not usable (spec §4).
+- **DD-C out-window = pre-process to template-safe + deliver (no bounce-back).** Collapse newlines→spaces (M4), collapse 4+ spaces, split >~900 chars into "(1/N)" parts (≤1024 body incl. fixed prefix), then send via relay-reply template. NO "retype it" path back to Dr. Chinmay. If a send still fails at Meta (paused template, rate limit) → **PDF-16** surfaces it.
+- **DD-D relay-reply template body:** *"Sorry for the delayed response to your message. Here's the response from Dr. Chinmay: {{1}}"* — apology/service framing chosen over bare `{{1}}` to (a) reduce Meta utility-approval rejection risk (thin-content templates get flagged) and (b) give correct customer tone after a >24h gap. `{{1}}` budget ≈960 chars after the ~60-char prefix; split at ~900 for margin. Multi-part: the fixed prefix repeats per part; "(1/N)" label rides inside `{{1}}` (build detail).
+
+**Meta grounding:** M1 ([pricing](https://developers.facebook.com/docs/whatsapp/pricing)) · M2 ([July 2025 pricing](https://developers.facebook.com/docs/whatsapp/pricing/updates-to-pricing/)) · M4 ([guidelines](https://developers.facebook.com/docs/whatsapp/message-templates/guidelines/), [error-code ref — "parameters cannot include newline characters or more than 4 consecutive spaces"](https://www.heltar.com/blogs/all-meta-error-codes-explained-along-with-complete-troubleshooting-guide-2025-cm69x5e0k000710xtwup66500)) · unused-template re-approval ([template statuses](https://help.gohighlevel.com/support/solutions/articles/155000001623-whatsapp-template-statuses-and-best-practice)).
+
+**Acceptance:** a relay reply sent after the customer's window has closed reaches the customer as the window-safe template (their reply re-opens the window → normal free-form resumes); in-window replies are unchanged free-form; a previously-undeliverable message never alters handling of later messages (stateless gate). Spec DD-2/DD-3.
+
+**Approved template structure — `astrology_service_update` (verified live 2026-06-08T07:52:58Z, lang `en`):**
+- Header: TEXT (fixed, no var) — *"Follow-up on your astrology consultation"*.
+- Body (134 chars): *"\*Sorry for the delayed response to your message. Here's the response from Dr. Chinmay:\n\*\n{{1}}\n\n\*Please respond at your convenience.\*"* — **one positional var `{{1}}` = the DD-C-sanitized reply** (single-line, ≤~900 chars).
+- No footer, no buttons.
+- **Send payload:** `components:[{type:"body",parameters:[{type:"text",text:<sanitized reply>}]}]`, `language:{code:"en"}`.
+- ℹ️ **Known cosmetic quirk — ACCEPTED, do NOT re-flag or attempt to fix.** The split `*` on lines 1–2 (→ literal asterisks in WhatsApp) is a **Meta template-UI bug**: the editor's Bold control forces the closing `*` onto the next line, so it cannot be authored correctly from the UI (user confirmed 2026-06-08). Not an authoring error, not build-fixable. Left as-is by user decision; build does not touch the template body.
+
+**Build prerequisite:** `astrology_service_update` template APPROVED in Meta ✅ (Active 2026-06-08).
+
+**Build notes (2026-06-08, build-pre-demo-minor-fixes-8Jun26):**
+- Implemented in WF-41 only (3→4 nodes); WF-50 and the template untouched. jq-on-disk + curl PUT. Backup `archive/backups/6PzJRZsF7k2d9hV7-2026-06-08-18-10.json`.
+- **`Load Last Inbound` Postgres node** (v2.6 = project floor, executeQuery, alwaysOutputData=true, cred `Zomqv5wsowQAhdGl`): `SELECT MAX(created_at) AS last_inbound, (MAX(created_at) > NOW() - INTERVAL '24 hours') AS in_window FROM chinmay_astro.messages WHERE user_id=$1 AND direction='inbound'`, queryReplacement `={{ [$json.user.id] }}`. **24h boolean computed in SQL** (timestamptz vs NOW()) → TZ-correct, no n8n-runtime-TZ dependency. 0-row aggregate → NULL → treated as window-CLOSED.
+- **`Prepare WhatsApp Message` Code rewrite:** reads window state from `$input.first()` (Postgres) + envelope from the always-run trigger `$('When Executed by Another Workflow')` (post-Postgres `$json` is the query row, not the envelope). in-window → `{messageType:'text', messageContent}` (byte-identical to prior behaviour). out-window → M4-safe sanitize (newlines/tabs→space, collapse 2+ spaces, trim) then ≤850→one template item / >850→`(i/N)` word-boundary split (hard-split giant words) → N items `{messageType:'template', templateName:'astrology_service_update', templateParams:[part], userId, consultationId}`. Defensive `in_window` read (`=== true || === 'true'`) so any non-true → safe template path.
+- **DECISION — WF-50 `mode` `once`→`each` (overrode the user's initial mode-'once' pick after verification).** WF-50's entry guard + every internal Code node use `$input.first()` / `return [{json}]`, collapsing N items to the first. A single mode-'once' call passing N parts would have **silently sent only part (1/N)**. mode-'each' runs WF-50 once per item → all N parts delivered in order; in-window (1 item) → one run, identical to before. User flagged this exact risk; verification confirmed it and the override honours their actual requirement (all parts delivered).
+- **Verification:** lint hook exit 0; MCP `n8n_validate_workflow` strict `valid:true` 0 errors; Postgres node strict-validate 0 errors; typeVersion floor held (only new type = pg 2.6); window query run against live data (user 40 `consultation_active` @54.4h out-window → routes to template — the exact PDF-15 failure case); sanitize/split logic unit-tested in node (M4-safe, multi-part labels, hard-split, edge cases). Pseudo revised first + stamped `live_reconciled_at=2026-06-08T08:13:51.036Z` (assert-pseudo-fresh FRESH).
+- **DEFERRED — live WhatsApp send smoke** (in-window text + out-window template to a real number) NOT run unilaterally (side-effecting external send to a real customer). Recommend running as a coordinated smoke with the user, ideally alongside PDF-16 (failure backstop) so any residual Meta send error is visible.
+
+## PDF-16 — Failed customer-bound sends are invisible to the astrologer
+
+**Status:** ⬜ pending
+**Priority:** P1 | **Batch:** 10
+**Change type:** Structural — customer-bound callers read WF-50 `success=false` and post an in-channel notice; primary surface WF-41, also WF-34/WF-42.
+**Workflows:** WF-41, WF-34, WF-42 (callers) · WF-50 (already returns the failure) · WF-51 (notice)
+**n8n IDs:** `6PzJRZsF7k2d9hV7` (WF-41) · `se82n3MUQ9xE5aEr` (WF-34) · `fx70vqyJtRdF2DgR` (WF-42) · `BUVun38WEKb12zg9` (WF-50) · `wlZRK0YxnhP0b2RL` (WF-51)
+**Depends on:** PDF-15 (soft — this is the backstop for PDF-15's residual send failures; build close together) · PDF-17 (soft — same WF-34, sequence within Batch 10)
+**Design gate:** false
+**Size:** M
+**Estimated tokens:** ~35K (incremental share within Batch 10)
+**Pseudo-impact:** yes — add the failure-notice branch to each caller's `.pseudo`.
+
+**Decision (DD-4):** the WF-50 sender already detects Meta failure (`success=false` + error); the customer-bound callers currently ignore it. Each must, on `success=false`, post a clear plain-language notice to Dr. Chinmay in the relevant consult channel via WF-51 — no silent drops. Cross-cutting safety net beneath PDF-15's app-side gate (catches even failures the gate didn't predict). Admin-tone rule applies: business language, no WF-XX/field jargon ([[feedback_admin_message_tone]]).
+
+**Acceptance:** any customer-bound message WhatsApp rejects produces a clear in-channel notice to Dr. Chinmay; no customer-bound send fails silently. Spec DD-4.
+
+## PDF-17 — Payment-rejection message unreachable after a long gap
+
+**Status:** ⬜ pending
+**Priority:** P1 | **Batch:** 10
+**Change type:** Structural — WF-34 Payment Rejection Processor (`se82n3MUQ9xE5aEr`): interactive button message → always-template send.
+**Workflows:** WF-34
+**n8n IDs:** `se82n3MUQ9xE5aEr`
+**Depends on:** payment-rejection template approval (external, Meta) · PDF-16 (soft — same WF-34, sequence within Batch 10) · PDF-19 (soft sibling — same always-template DD-1 pattern; PDF-17 lands first, PDF-19 reuses the shape)
+**Design gate:** false
+**Size:** S
+**Estimated tokens:** ~25K (incremental share within Batch 10)
+**Pseudo-impact:** yes — `WF-34.pseudo` send step changes from interactive to template.
+
+**Decision (DD-E / DD-1):** fixed-content message → **always a template**, one code path, no window branching. Free in-window (M2), cheap outside, always deliverable — exactly how payment **approval** already works (`consultation_activated`). The new **payment-rejection** utility template carries the fixed rejection copy + retry affordance. The retry button becomes a template quick-reply → its tap arrives in the M5 template shape (the inbound handler that processes the retry must accept it — verify at build whether this reuses PDF-19's dual-shape handling or is a separate tap).
+
+**Meta grounding:** M2 (free in-window) · M5 (template quick-reply tap shape). See header grounding block for URLs.
+
+**Approved template structure — `payment_rejection` (verified live 2026-06-08T07:52:58Z, lang `en`):**
+- No header, no body vars (fully fixed). Body: *"Sorry, but we couldn't verify your payment. Please check the details and try again.\n\nPayment Instructions:\n- Amount: ₹500\n- Please send via GPay / PhonePe / any UPI app to +91-9653240263 (Chinmay Mujumdar)\n\nAfter payment, tap the button below."*
+- 1 quick-reply button (title *"Payment Completed"*, index 0).
+- **Send payload:** `components:[{type:"button",sub_type:"quick_reply",index:"0",parameters:[{type:"payload",payload:"payment_completed"}]}]`, `language:{code:"en"}`. **Set payload = `payment_completed`** so the existing handler matches (button title "Payment Completed" — no ✓ — is cosmetic; match on payload, not title). The retry tap now arrives in the **M5 template-tap shape** — verify the payment_completed inbound handler accepts it (same dual-shape concern as PDF-19).
+
+**Acceptance:** a payment rejection always reaches the customer with a way to retry, regardless of their 24h window; behaviour consistent every time. Requires the approved payment-rejection template. Spec DD-1.
+
+## PDF-18 — Passive, non-blocking window-closing nudge (first scheduled job)
+
+**Status:** ⬜ pending
+**Priority:** P1 | **Batch:** 11
+**Change type:** Structural — NEW workflow WF-7x (project's first scheduled/background job): Schedule trigger → Postgres query → WF-51 send.
+**Workflows:** WF-7x (new) · WF-51 (`wlZRK0YxnhP0b2RL`)
+**n8n IDs:** WF-7x to be created · `wlZRK0YxnhP0b2RL` (WF-51)
+**Depends on:** PDF-15 (soft — shares the `messages` `MAX(inbound)` window-state source; lock the source once, reuse)
+**Design gate:** false
+**Size:** M
+**Estimated tokens:** ~40K
+**Pseudo-impact:** yes — greenfield; author `WF-7x.pseudo` IN this batch (co-located pseudo-first, not deferred).
+
+**Decision (DD-F) — locked algorithm:**
+1. Schedule trigger — **every 2h**.
+2. Postgres: `status='consultation_active'` AND customer's last inbound (`MAX(created_at) WHERE direction='inbound'`) is **18–24h old** (`<= now−18h AND >= now−24h`) AND **unanswered** (`last_inbound > last_outbound`).
+3. Each match → advisory to `slack_channel_id` via WF-51: *"⏳ Heads-up: [Customer]'s free-reply window closes in ~Nh (last message [time]). Reply within the window to answer for free in plain text — after it closes, replies go out as a template. Ignore this if you're done."*
+4. No customer contact, no auto-reply, no state write, never blocks.
+
+**Why repeat 18→24h (not single-fire):** user wants a persistent reminder that doesn't get lost (~3–4 nudges at 2h cadence across the 18→24h stretch). Self-terminates two ways: the moment Dr. Chinmay replies (`unanswered` clause flips false) and at 24h (window closed → relay goes template/charged → nudge has no purpose; confirmed it must stop there).
+**Build dependency to verify live:** the `unanswered` check needs Dr. Chinmay's outbound relay logged to `messages` with `direction='outbound'` (WF-60 logs Slack-inbound = astrologer→customer, so expected to hold — confirm at build).
+
+**Acceptance:** when a customer's window is close to expiring during an open consultation and Dr. Chinmay hasn't replied, a clear advisory appears in that consult channel; it never blocks, never auto-replies, harmless to ignore, stops at 24h or on reply. Spec DD-5.
+
+## PDF-19 — Consultation-close prompt unreachable after a long gap
+
+**Status:** ⬜ pending
+**Priority:** P2 | **Batch:** 12
+**Change type:** Structural — WF-42 Consultation Closer (`fx70vqyJtRdF2DgR`) interactive 3-button → always-template; post-close button-tap handler accepts both webhook shapes.
+**Workflows:** WF-42 · post-close button-tap handler (pinpoint live at build — WF-43 / inbound router area)
+**n8n IDs:** `fx70vqyJtRdF2DgR` (WF-42)
+**Depends on:** `consultation_closed_feedback` template review/rewrite + approval (external, Meta) · PDF-17 (soft sibling — reuses PDF-17's always-template send shape) · constraint: must preserve PDF-11 (button re-attach) + PDF-14 (time-neutral copy), both done
+**Design gate:** false
+**Size:** M
+**Estimated tokens:** ~35K
+**Pseudo-impact:** yes — `WF-42.pseudo` send step + the button-tap handler's `.pseudo` (new template-tap shape).
+
+**Decision (DD-E / DD-1 + M5):** close prompt → **always a template** so it always arrives regardless of the 24h window (same single-path approach as PDF-17). Two locked constraints:
+- **(a) Dual button-shape (M5), NOT two sets of buttons.** All **3** quick-reply buttons stay (Leave Feedback / Book Again / Done) with the same ids/wording. A *template* quick-reply tap arrives in a different webhook shape than the current interactive `button_reply` — so the post-close handler must parse **both** the template-tap shape (new close prompts) and the interactive shape (other flows still send interactive buttons: payment-completed, REBOOK).
+- **(b) Preserve the post-close experience** fixed earlier this sprint — only the close prompt itself becomes a template; everything after the customer's first tap is the normal in-window flow (PDF-11 buttons stay available, PDF-14 time-neutral copy), unchanged.
+- Rewrite the existing **unused** `consultation_closed_feedback` template (0 sends, body mismatched) to match the current close copy + carry all 3 quick-reply buttons.
+
+**Meta grounding:** M5 template quick-reply tap shape ([template components](https://developers.facebook.com/documentation/business-messaging/whatsapp/templates/components)) · M2 free in-window.
+
+**Approved template structure — `consultation_closed` (verified live 2026-06-08T07:52:58Z, lang `en`):**
+- Header: TEXT (fixed, no var) — *"Your consultation is closed now."*
+- Body (`{{1}}`=name): *"✨ Your consultation with Dr. Chinmay is complete, {{1}}!\n\nFor any follow-ups, either choose below or email chinmay_astro@gmail.com if you need anything we can't help with right now."*
+- Footer (fixed): *"Regards, Chinmay Astro"*
+- 3 quick-reply buttons: index 0 *"Leave Feedback"*, index 1 *"Book Again"*, index 2 *"Done, Thanks."*
+- **Send payload:** body param `{{1}}`=user name; buttons `[{type:"button",sub_type:"quick_reply",index:"0",parameters:[{type:"payload",payload:"btn_feedback"}]},{…index:"1"…payload:"btn_rebook"},{…index:"2"…payload:"btn_done"}]`, `language:{code:"en"}`. **Set payloads `btn_feedback`/`btn_rebook`/`btn_done`** so the existing post-close handler matches (button titles are cosmetic; "Done, Thanks." vs old "Done, thanks" is irrelevant — match on payload). The 3 taps now arrive in the **M5 template shape** → that is exactly the dual-shape parse this item adds.
+- Note: the template ADDS a header + footer the current interactive close message doesn't have — accepted (user-authored, trimmed for Utility approval); PDF-11/PDF-14 post-tap experience is unchanged.
+
+**Acceptance:** closing a consultation always delivers the wrap-up prompt with all 3 options working, regardless of the 24h window; the existing post-close experience (buttons available, time-neutral copy) is unchanged. Spec DD-1 §5.

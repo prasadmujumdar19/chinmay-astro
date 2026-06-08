@@ -101,7 +101,7 @@ once.** There is no locking. To avoid clobbering each other:
 | PDF-12 | 🟡 P2 | Inconsistent payment instructions in payment_pending replies | ✅ done | — |
 | PDF-13 | 🟡 P2 | WF-31 payment_submitted replies had two different styles | ✅ done | — |
 | PDF-14 | 🟡 P2 | WF-43 post-consult "Welcome back" incoherence + REBOOK-only CTA | ✅ done | — |
-| PDF-15 | 🔴 P0 | Astrologer's reply silently never reaches the customer if their last message was >24h ago | 🆕 triaged | — |
+| PDF-15 | 🔴 P0 | Astrologer's reply silently never reaches the customer if their last message was >24h ago | ✅ done | — |
 | PDF-16 | 🟠 P1 | When a message to the customer fails to send, the astrologer is never told | 🆕 triaged | — |
 | PDF-17 | 🟠 P1 | Payment-rejection message can't reach the customer if rejected after a long gap | 🆕 triaged | — |
 | PDF-18 | 🟠 P1 | No reminder to the astrologer that the free-reply window is about to close | 🆕 triaged | — |
@@ -218,7 +218,7 @@ customer; only deliberate astrologer messages reach WhatsApp.
 
 ### PDF-15 · Astrologer's reply unreachable when the customer's 24h window has closed
 
-**Status:** 🆕 triaged
+**Status:** ✅ done (Batch 9 — WF-41 window gate; in-window free-form / out-window `astrology_service_update` template; see state.md)
 **Priority:** 🔴 P0 | **Owner session:** —
 **Change type:** TBD — determine fix location in plan/brainstorm.
 **Related:** PDF-16 (failure visibility — backstop), PDF-18 (passive nudge — prevention). PDF-17/PDF-19 share the same root (24h window) but are the fixed-content variants.

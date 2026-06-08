@@ -1,25 +1,71 @@
+---
+wf_id: WF-41
+live_reconciled_at: 2026-06-08T08:13:51.036Z
+---
+
 WF-41 — Admin → User Relay
 
 ## Summary
 
 - Inputs: WF-10 Relay Envelope (design.md §2.2): { phoneNumber, messageText, user:{id,name,phone_number,status,slack_channel_id,current_consultation_id}, adminUserId, channelId, channelName } — carried verbatim from WF-10's `Build WF-10 Relay Envelope` Code node (Step 23 in WF-10.pseudo). No re-derivation needed.
-- Outputs: WhatsApp text to user via WF-50
+- Outputs: WhatsApp text (in-window) OR utility-template (out-window) to user via WF-50
 - State Transitions: none
 - Calls Sub-Workflows: WF-50 (Send WhatsApp)
 - **Notes:**
   - WF-41 is intentionally single-direction (admin → user). The reverse direction (user's WhatsApp message → admin's Slack channel) is handled by **WF-40 User → Admin Relay** (called from WF-02 via the `RELAY` route). Do not re-introduce WA→Slack handling here.
   - Caller contract: WF-10 has already (a) looked up the user by `slack_channel_id`, (b) verified `status == 'consultation_active'`, and (c) shaped the canonical Relay Envelope via the `Build WF-10 Relay Envelope` Code node (design.md §2.2). WF-41 does NOT re-query users or re-derive phone — that would be redundant work and a duplicated state-precondition surface.
   - **Field name:** the admin's message body arrives as `messageText` in the Relay Envelope (canonical per §2.2). WF-41 maps it to `messageContent` when calling WF-50 (canonical WF-50 text variant per design.md §2.3).
+  - **24h-window deliverability (PDF-15, spec 2026-06-08-24h-window-deliverability-design.md, DD-A/B/C/D):** Meta only permits free-form (non-template) messages inside the customer's open 24h service window (M1); outside it, free-form is silently rejected. WF-41 therefore reads the customer's window state and routes the relay reply accordingly — in-window free-form (unchanged), out-window via the `astrology_service_update` utility template.
+  - **Window source (DD-B):** `chinmay_astro.messages` — `MAX(created_at) WHERE user_id=<envelope user.id> AND direction='inbound'`. The relay path does no `users` write, so `users.last_message_at` is stale during a consultation and is NOT used. The 24h comparison is computed in SQL (timestamptz vs `NOW()`) so it is timezone-correct and does not depend on n8n's runtime TZ.
+  - **Stateless gate (DD-2/DD-3):** each relay message is evaluated fresh against the current window state. A message that was sent as a template (or that later fails at Meta) has NO effect on how the next message is processed — there is no rejection memory, no per-customer "blocked relay" state.
+  - **No bounce-back (DD-C):** out-window replies are pre-processed to template-safe form and delivered. There is no "shorten and resend" path back to Dr. Chinmay; any residual Meta send failure (paused template, rate limit) is surfaced separately by PDF-16 (the failure-visibility backstop).
+  - **Read-source convention:** after the Postgres window read, `$json` is the query result (last_inbound / in_window), NOT the relay envelope. The payload-build step reads window state from `$json` and reads the envelope fields from the always-run trigger node `$('When Executed by Another Workflow')` — never from the Postgres output.
 
 ---
 
 ## Algorithm
 
 Step 1: Start — triggered by WF-10 (`Call WF-41 (Admin->User Relay)`) with the canonical Relay Envelope: { phoneNumber, messageText, user, adminUserId, channelId, channelName }.
-Step 2: Build WhatsApp payload (Code or Set node "Prepare WhatsApp Message"):
-        phoneNumber    = $json.phoneNumber
-        messageType    = "text"
-        messageContent = $json.messageText
-        (Caller has already verified the user is in consultation_active; no DB lookup required here.)
-Step 3: Call WF-50 (Send WhatsApp) with the payload. WF-50 calls WF-60 internally to log the outbound message.
-Step 4: End.
+
+Step 2: Load customer window state (Postgres node "Load Last Inbound", alwaysOutputData=true):
+        SELECT MAX(created_at) AS last_inbound,
+               (MAX(created_at) > NOW() - INTERVAL '24 hours') AS in_window
+          FROM chinmay_astro.messages
+         WHERE user_id = <envelope user.id> AND direction = 'inbound';
+        - in_window = TRUE  → customer's 24h service window is open.
+        - in_window = FALSE → window closed.
+        - 0 inbound rows → last_inbound = NULL, in_window = NULL → treated as window-CLOSED in Step 3
+          (a customer with no logged inbound never opened a window; the template path always delivers).
+
+Step 3: Build WhatsApp payload(s) (Code node "Prepare WhatsApp Message").
+        Reads window state from $json (Step 2 result) and the envelope from $('When Executed by Another Workflow').
+        → IF in_window === true:  (window OPEN — unchanged free-form behaviour, free per M1/M2)
+            emit ONE item:
+              { phoneNumber, messageType: "text", messageContent: <envelope messageText> }
+        → ELSE: (window CLOSED or unknown — out-window template path, DD-C)
+            sanitize = template-safe transform of <envelope messageText> per M4:
+              replace newlines/tabs with a single space; collapse runs of 2+ spaces to one; trim.
+            IF sanitize.length <= 900:
+              emit ONE template item (below) with templateParams = [sanitize].
+            ELSE:
+              split `sanitize` into N parts of <= ~880 chars on word boundaries; prefix each part with
+              "(i/N) "; emit N template items, one per part, templateParams = [<labelled part>].
+            each template item:
+              { phoneNumber,
+                messageType:  "template",
+                templateName: "astrology_service_update",
+                templateParams: [ <sanitized reply, or labelled part> ],
+                userId:         <envelope user.id>,            // logging context (WF-60)
+                consultationId: <envelope user.current_consultation_id> }
+
+Step 4: Call WF-50 (Send WhatsApp) with the payload item(s), executeWorkflow mode='each' (run WF-50
+        once per input item). WF-50's entry guard validates the discriminated union (design.md §2.3),
+        routes on messageType (text → send free-form; template → POST a `astrology_service_update`
+        template with components built from templateParams, language en), and logs each send via WF-60
+        (direction='outbound'). mode='each' is REQUIRED for the out-window multi-part case: WF-50's
+        internal nodes all read `$input.first()` / `return [{json}]`, so a single mode='once' call passing
+        N items would collapse to the FIRST item only and silently drop parts 2..N. mode='each' runs WF-50
+        once per part → N template sends, N log rows, parts delivered in (1/N) order. In-window emits a
+        single item → one run, identical to prior behaviour. WF-41 does not consume the return.
+
+Step 5: End.
