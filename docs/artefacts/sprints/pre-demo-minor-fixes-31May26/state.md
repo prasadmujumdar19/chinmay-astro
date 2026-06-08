@@ -1,9 +1,9 @@
 # Sprint: pre-demo-minor-fixes-31May26
 
 **Input source:** docs/artefacts/sprints/pre-demo-minor-fixes-31May26/tasks.md
-**Input hash:** 6044e408324887164d261c2b46ed0e97048e19e54e40d185ea868637bbf7d3a6
+**Input hash:** 633b9b258285df5821dbe3f1cff90cce62b268b5ae5d3c6efe33fc281579052c
 **Planned at:** 2026-05-31T11:19:25Z
-**Last updated:** 2026-06-07T09:22:37Z
+**Last updated:** 2026-06-08T03:08:50Z
 **Planning complete:** true
 **Rolling sprint:** TRUE — `_active` marker is USER-CONTROLLED. build-sprint MUST NOT remove `_active` on batch/queue exhaustion; report "current queue done, sprint still open (rolling)" and stop. Re-invocations of plan-sprint must be ADDITIVE (plan only new PDF-NN items into this file; never destructive full-replan). input_hash mismatch is EXPECTED and is NOT a replan signal. See tasks.md "ROLLING SPRINT" header for full lifecycle/concurrency rules.
 **Discover-current-state:** ran at 2026-05-31T11:19:25Z against live WF-10 (`wMh0oBRtJbvhLgOf`, 42 nodes). Result: PDF-01 condition CONFIRMED PRESENT — `Build Help Prompt` + `Call WF-51 (Help Prompt)` nodes and hardcoded "Type `HELP` to see available commands" line both still on the `free_text` branch; ZERO Gemini calls in WF-10. PDF-01 is genuinely pending, not obsolete. PDF-02/PDF-03 extend the not-yet-built PDF-01 → pending. No obsoletes detected.
@@ -21,6 +21,8 @@
 **Dependency conflicts found (PDF-04..09):** none blocking. Two contract/same-root couplings recorded as deps (PDF-07/08 → PDF-06 hard same-fix; PDF-04 → PDF-05 hard same-fix; PDF-04/05 → PDF-09 soft same-workflow WF-30/31/43). WF-10 is also touched by pending PDF-02/03 (admin free_text branch) vs PDF-06/07/08 (relay branch) — different branches, soft sibling; sequential batch execution avoids the concurrent-PUT race (re-fetch live WF-10 at each pickup).
 
 **Priority adjustments confirmed (PDF-04..09):** User directive (2026-06-04) — **execute admin-side noise / low-hanging fruit FIRST**, ahead of the P0 customer-facing items. So the next ACTIONABLE batch is **Batch 4 (WF-10 event filter — PDF-06/07/08)**; the P0 grounded-KB work (PDF-04/05, Batch 6) is deliberately sequenced LAST of the new items and is design-gated. The design-gated P2 batches 2/3 (PDF-02/03) remain deferred. **Batch 4 intentionally mixes P0/P1/P2** because PDF-06 (P1) + PDF-07 (P0) + PDF-08 (P2) are three symptoms of one inseparable WF-10 fix — splitting by priority would mean authoring the same filter three times; collapse authorised by the brainstorm note ("plan-sprint can collapse them into a single change if cleaner") and the user's same-session directive.
+
+**tasks.md reconciliation pass — 2026-06-08T03:08:50Z (rolling sprint, bookkeeping only — NOT a replan).** PDF-10..PDF-14 emerged ad-hoc during live build/validation sessions (Batch 7 + Batch 8) and were planned+built+verified directly into this `state.md`, but were never recorded in the source list `tasks.md`. Backfilled them into `tasks.md` now (5 Summary rows + 5 H3 blocks, marked "emerged during implementation"); also synced the stale `🆕 triaged` statuses of PDF-01..09 in `tasks.md` to match their real state here (done / ⚪ obsolete / planned-pending-build). **No item renumbered** — every `PDF-NN` keeps its ID. `tasks.md` SHA recomputed after the edits and recorded above as the new `Input hash` (`633b9b25…`, was `e575e0ef…` after the PDF-04..09 pass and `6044e408…` at original plan). This file's item set (PDF-01..14) now exactly matches the planned/built history; **PDF-15..PDF-19 are present in `tasks.md` but intentionally NOT yet in this `state.md`** — they are the next additive plan-sprint bunch (the 24h-window deliverability cluster, brainstormed 2026-06-08). Next plan-sprint should plan PDF-15 onward additively and find no orphaned/unaccounted items.
 
 ## Items
 
