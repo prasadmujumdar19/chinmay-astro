@@ -1,0 +1,106 @@
+---
+wf_id: WF-75
+live_reconciled_at: 2026-06-09T11:49:38.147Z
+---
+
+WF-75 — Window-Closing Nudge (scheduled)
+
+## Summary
+
+- Trigger: Schedule — every 2 hours. Project's first scheduled/background workflow (WF-7x range,
+  pulled forward from post-go-live per user decision 2026-06-08).
+- Purpose (admin-facing, advisory-only): when a customer is mid-consultation and their 24h WhatsApp
+  free-reply window is nearing close (last customer inbound 18–24h ago) AND Dr. Chinmay has not yet
+  replied to that inbound, post a non-blocking heads-up into the consult channel so he can answer
+  inside the window (free, full-fidelity text) before the relay falls back to a charged template
+  (PDF-15 / DD-2 is the backstop if he chooses to ignore it).
+- Outputs: 0..N advisory Slack messages (one per matching consultation), each via WF-51 to the
+  customer's consult channel. No customer contact, no auto-reply, no DB write, never blocks.
+- State Transitions: none.
+- Calls Sub-Workflows: WF-51 (Send Slack Message).
+- Design source: DD-5 / DD-F (`docs/artefacts/specs/2026-06-08-24h-window-deliverability-design.md`
+  + `state.md` PDF-18). Window source per DD-B = `chinmay_astro.messages` (NOT `users.last_message_at`,
+  which the relay path never writes → stale).
+
+## Inputs
+
+### Canonical (required)
+- none — Schedule trigger fires on a fixed cadence (every 2h); the workflow reads all state from the DB.
+
+## Notes
+
+- **Window-state source = `chinmay_astro.messages`, WhatsApp-scoped (DD-B + build correction 2026-06-09).**
+  The `messages` log mixes transports: a customer's WhatsApp message is `direction='inbound'` with
+  `message_type IN ('text','interactive')` (`metadata.transport='wa'`); Dr. Chinmay's own typing in Slack
+  is logged `direction='inbound'` `message_type='slack_text'`; this workflow's own nudge is logged
+  `direction='outbound'` `message_type='slack_text'`. So both halves of the "unanswered" test MUST be
+  WhatsApp-scoped:
+    - customer's last inbound = `MAX(created_at) WHERE direction='inbound' AND message_type IN ('text','interactive')`
+    - Dr. Chinmay answered = a WhatsApp send to the customer = `direction='outbound' AND message_type IN ('text','interactive','template')`
+  Excluding `slack_text` on the outbound side is what lets the nudge REPEAT (~3–4× across the 18→24h
+  stretch) instead of self-disabling the moment its own Slack post lands. Excluding `slack_text` on the
+  inbound side keeps the astrologer's Slack typing from masquerading as a fresh customer message.
+- **Divergence from PDF-15 (WF-41 `Load Last Inbound`):** PDF-15 reads window state with a looser
+  `direction='inbound'` (no transport scope). That is acceptable for its single-user relay-time read but
+  is a latent skew (a Slack-inbound row could read as the customer's last inbound). Logged as an adjacent
+  finding in this sprint's `followups.md` for separate triage — NOT changed by this item.
+- **24h boundary computed in SQL** (timestamptz vs `NOW()`), TZ-correct, no dependency on n8n runtime TZ —
+  same discipline as PDF-15's WF-41 query.
+- **Repeat + self-termination (DD-F):** every 2h poll re-evaluates; a user keeps matching (and re-nudging)
+  while last-inbound is 18–24h old and unanswered. Self-terminates two ways: (1) Dr. Chinmay replies on
+  WhatsApp → `last_outbound_wa > last_inbound` → unanswered clause false; (2) last-inbound passes 24h →
+  out of the 18–24h band → no longer selected (window already closed; relay now goes template/charged, so
+  the nudge has no purpose).
+
+## Algorithm
+
+Step 1: Schedule Trigger — fires every 2 hours. No input payload.
+
+Step 2: Load Window-Closing Consults (Postgres, executeQuery, alwaysOutputData=true). Single scan
+  returning one row per customer who needs a nudge this cycle:
+
+      SELECT u.id                AS user_id,
+             u.name              AS user_name,
+             u.slack_channel_id  AS slack_channel_id,
+             u.current_consultation_id AS consultation_id,
+             agg.last_inbound    AS last_inbound,
+             GREATEST(0, CEIL(EXTRACT(EPOCH FROM (agg.last_inbound + INTERVAL '24 hours' - NOW())) / 3600))::int AS hours_until_close
+      FROM chinmay_astro.users u
+      JOIN LATERAL (
+        SELECT
+          MAX(created_at) FILTER (WHERE direction='inbound'  AND message_type IN ('text','interactive'))            AS last_inbound,
+          MAX(created_at) FILTER (WHERE direction='outbound' AND message_type IN ('text','interactive','template')) AS last_outbound_wa
+        FROM chinmay_astro.messages m
+        WHERE m.user_id = u.id
+      ) agg ON true
+      WHERE u.status = 'consultation_active'
+        AND u.slack_channel_id IS NOT NULL
+        AND agg.last_inbound IS NOT NULL
+        AND agg.last_inbound <= NOW() - INTERVAL '18 hours'
+        AND agg.last_inbound >= NOW() - INTERVAL '24 hours'
+        AND (agg.last_outbound_wa IS NULL OR agg.last_inbound > agg.last_outbound_wa)
+
+  → 0 rows: alwaysOutputData=true emits an empty item; downstream Code emits nothing → no nudges. Go Step 3.
+  → N rows: N items, one per matching consultation. Go Step 3.
+
+Step 3: Build Nudge Payload (Code, runs over all input items). For each row that carries a real
+  `slack_channel_id`, emit one WF-51 contract item:
+      { channelId: <slack_channel_id>,
+        messageText: "⏳ Heads-up: <user_name>'s free-reply window closes in ~<hours_until_close>h. "
+                   + "Reply on WhatsApp within the window to answer for free in plain text — after it "
+                   + "closes, your reply goes out as a template. Ignore this if you're done.",
+        userId: <user_id>,            // forwarded to WF-51 → WF-60 for clean attribution
+        consultationId: <consultation_id> }
+  Rows with no `slack_channel_id` or no `user_id` are skipped (defensive — the SQL already filters
+  channel-null, so this is belt-and-braces). If the input is the single empty 0-row item, return []
+  (no items) so Step 4 does not fire. Go Step 4.
+
+Step 4: Call WF-51 (Send Slack Message), mode=each — fires once per payload item (one Slack post per
+  consultation). WF-51's entry guard requires `{channelId, messageText}`; both are always present on
+  every emitted item. No output consumed. End.
+
+## Outputs
+
+- 0..N advisory Slack messages posted to consult channels (one per matching open consultation this cycle).
+- No customer-facing message, no DB write, no state transition. Harmless to ignore; safe to run on an
+  empty match set.

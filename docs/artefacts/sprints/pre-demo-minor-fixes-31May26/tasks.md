@@ -104,7 +104,7 @@ once.** There is no locking. To avoid clobbering each other:
 | PDF-15 | 🔴 P0 | Astrologer's reply silently never reaches the customer if their last message was >24h ago | ✅ done | — |
 | PDF-16 | 🟠 P1 | When a message to the customer fails to send, the astrologer is never told | 🟢 done | re-homed to WF-50 chokepoint; see state.md |
 | PDF-17 | 🟠 P1 | Payment-rejection message can't reach the customer if rejected after a long gap | 🟢 done | — |
-| PDF-18 | 🟠 P1 | No reminder to the astrologer that the free-reply window is about to close | 🆕 triaged | — |
+| PDF-18 | 🟠 P1 | No reminder to the astrologer that the free-reply window is about to close | 🟢 done | WF-75 |
 | PDF-19 | 🟡 P2 | Consultation-close prompt can't reach the customer if closed after a long gap | 🟢 done | WF-42 send→consultation_closed template; receiving side pre-built by PDF-17 |
 
 ---
@@ -328,10 +328,10 @@ service template for the rejection message.
 
 ### PDF-18 · No reminder when a customer's free-reply window is about to close
 
-**Status:** 🆕 triaged
-**Priority:** 🟠 P1 | **Owner session:** —
-**Change type:** TBD — determine fix location in plan/brainstorm. (First scheduled/background job — the
-`WF-7x` range, pulled forward from "post-go-live" per user decision 2026-06-08.)
+**Status:** 🟢 done (WF-75 built 2026-06-09, INACTIVE pending coordinated smoke — see state.md)
+**Priority:** 🟠 P1 | **Owner session:** build-pre-demo-minor-fixes-8Jun26-4
+**Change type:** Workflow-Create — new WF-75 scheduled job (first scheduled/background workflow, `WF-7x`
+range, pulled forward from "post-go-live" per user decision 2026-06-08). Build detail in `state.md`.
 **Related:** PDF-15 (prevention layer in front of the relay gate).
 
 **What (admin-facing):** There's currently nothing that warns Dr. Chinmay that a customer's 24-hour

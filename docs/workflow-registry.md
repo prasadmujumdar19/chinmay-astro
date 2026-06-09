@@ -252,6 +252,7 @@ payment_submitted →(admin REJECT)→ payment_pending [retry]
 | WF-72 | Inactive User Scanner | 🔵 Build Fresh | ⚪ P4 | Daily. consultation_closed with no activity >90 days → mark inactive. Post go-live. |
 | WF-73 | Stale Form Cleanup | 🔵 Build Fresh | ⚪ P4 | Daily. Delete records for users who never submitted form after 7 days. Post go-live. Note: since DB write only happens on form submission, this may clean up any partial records. |
 | WF-74 | Data Retention Cleanup | 🔵 Build Fresh | ⚪ P4 | Monthly. Anonymise/delete records beyond retention period. Post go-live. |
+| WF-75 | Window-Closing Nudge | 🟡 Built (inactive) | 🟠 P1 | n8n: "WF-75 Window-Closing Nudge" (YnxDRcnCugnpGY0n). **Built 2026-06-09 (PDF-18, pre-demo-minor-fixes sprint).** Project's FIRST scheduled/background workflow (WF-7x range, pulled forward from post-go-live). Schedule trigger every 2h → `Load Window-Closing Consults` (Postgres v2.6, aod=true, retry×3) scans `consultation_active` users whose last WhatsApp inbound is 18–24h old AND unanswered (no WA outbound since) → `Build Nudge Payload` (Code) → `Call WF-51 (Send Nudge)` (mode=each) posts an advisory heads-up to each consult channel. **WA-scoped window read** on `chinmay_astro.messages` (`message_type IN ('text','interactive')` for customer inbound vs `slack_text`) so Dr. Chinmay's Slack typing and the nudge's own Slack post don't skew the unanswered test — lets it repeat ~3–4× across 18→24h, self-terminating on his reply or at 24h. No customer contact, no DB write, non-blocking. Pseudo `docs/pseudocode/WF-75.pseudo`. strict valid:true 0 err; 1 advisory (Contract-First Code→executeWorkflow, accepted — per-item interpolation + 0-row→`[]` need JS; WF-50/WF-51 precedent). **INACTIVE — activation + live match-path smoke (synthetic 18–24h inbound → real Slack nudge) bundled with the deferred PDF-15/16/17/19 coordinated smoke.** |
 
 ---
 
@@ -385,6 +386,7 @@ All 25 workflows now present in Mumbai VPS n8n (20 existing + 5 placeholders cre
 | WF-61 U2 Silent-Drop & Escalate | 9Zt23yt8k8PQSgji | 🟢 Yes | WF-61 | ✅ Built + activated 2026-05-29 (BMX-P0-U2) |
 | WF-62 U3 New-Contact Intent Classifier | tJknCwk2PzLpEwTX | 🟢 Yes | WF-62 | ✅ Built + activated 2026-05-29 (BMX-P0-U3) |
 | WF-60 Message Logger | 6H75p935FpBVBQtV | 🟢 Yes | WF-60 | ✅ No changes needed |
+| WF-75 Window-Closing Nudge | YnxDRcnCugnpGY0n | 🟡 Built (inactive) | WF-75 | ✅ Built 2026-06-09 (PDF-18); activation pending coordinated smoke |
 
 ---
 

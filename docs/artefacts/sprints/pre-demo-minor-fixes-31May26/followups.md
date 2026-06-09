@@ -1,5 +1,14 @@
 # Follow-ups — pre-demo-minor-fixes-31May26
 
+## [2026-06-09] — PDF-18 build finding: PDF-15 window read is not WhatsApp-scoped (adjacent)
+
+- **WF-41 Admin→User Relay** (`6PzJRZsF7k2d9hV7`), `Load Last Inbound` Postgres node: the PDF-15 window-state read is `SELECT MAX(created_at) … WHERE user_id=$1 AND direction='inbound'` — **no transport scope**. The `chinmay_astro.messages` log records Dr. Chinmay's own Slack typing as `direction='inbound'` with `message_type='slack_text'` (verified: 14 such rows live), tied to the customer's `user_id` via WF-10's slack_channel_id resolution.
+  - **Latent skew:** a Slack-inbound row (the astrologer, not the customer) can become the `MAX(inbound)` the relay uses to judge the 24h window — making the window read "fresh" off the astrologer's message rather than the customer's last WhatsApp inbound. In the worst case (WF-10 logs the very message being relayed as inbound/slack before/parallel to WF-41's read) the out-window template path could be under-triggered.
+  - **Why PDF-18 doesn't share it:** PDF-18 (WF-75) deliberately scopes both halves of its window test to WhatsApp rows (`message_type IN ('text','interactive')` for customer inbound; `IN ('text','interactive','template')` for "answered"), excluding `slack_text`. The correct, WA-scoped form lives in `docs/pseudocode/WF-75.pseudo` Step 2 and can be ported to WF-41 if this is actioned.
+  - **Classification:** adjacent to PDF-18 (PDF-15 is shipped + was verified for its test user, which had no interfering Slack-inbound rows). Does NOT block PDF-18 done. Surfaced and confirmed live during the PDF-18 build (user approved logging it, 2026-06-09).
+  - **Proposed fix (if actioned):** tighten WF-41 `Load Last Inbound` to `direction='inbound' AND message_type IN ('text','interactive')`. Same single-node SQL edit; pseudo-first on WF-41.pseudo. Low blast radius (one read node), but it IS a functional change to the in-window/out-window branch decision → impact-check + a coordinated re-smoke of PDF-15.
+  - **Decision:** OPEN — for user triage (could fold into the deferred PDF-15/16/17/19 coordinated smoke).
+
 ## [2026-06-06] — PDF-04/05 validation finding (adjacent)
 
 - **WF-25 Intent Classifier** (`eTV1lUcYrXBg2q2T`): service/offering/pricing questions phrased with booking language are mis-classified `wants_consultation` instead of `general_enquiry`, so they bypass the grounded-KB Gemini reply (the PDF-04/05 fix) and get the bare payment-reminder fallback.

@@ -61,7 +61,7 @@
 | PDF-15 | 🟢 done | 9 | P0 | WF-41/50/51 | template:`astrology_service_update` ✅ Active · PDF-18 (soft — shared window source) |
 | PDF-16 | 🟢 done | 10 | P1 | WF-50/51 | PDF-15 (soft — backstop for its residual send failures) |
 | PDF-17 | 🟢 done | 10 | P1 | WF-34/02/00 | template:`payment_rejection` ✅ Active · PDF-16 (soft — same WF-34) · PDF-19 (soft sibling) |
-| PDF-18 | ⬜ pending | 11 | P1 | WF-7x (new) | PDF-15 (soft — shared `messages` window source) |
+| PDF-18 | 🟢 done | 11 | P1 | WF-75 (new) | PDF-15 (soft — shared `messages` window source) |
 | PDF-19 | 🟢 done | 12 | P2 | WF-42 (button handler pre-done by PDF-17) | template:`consultation_closed` ✅ Active (NOT `consultation_closed_feedback` — that one Meta reclassified to Marketing) · PDF-17 (soft sibling — delivered PDF-19's receiving side) |
 
 ## Batch 1 — P0
@@ -596,11 +596,17 @@ The general-enquiry path's payment CTA was Gemini-phrased — incomplete (no UPI
 
 ## PDF-18 — Passive, non-blocking window-closing nudge (first scheduled job)
 
-**Status:** ⬜ pending
+**Status:** 🟢 done
+**Started:** 2026-06-09T11:45:25Z
+**Completed:** 2026-06-09T11:52:17Z
+**Owner session:** build-pre-demo-minor-fixes-8Jun26-4
+**Actual tokens:** ~75K (greenfield design + `messages`/`users` schema discovery + transport-scoping investigation + SQL dry-run + MCP strict/per-node validates dominated; the 4-node build itself was ~M)
+**Actual effort:** ~7 min (build, after the design Q&A + context-gathering that preceded the in-progress stamp)
+**Estimate delta:** on-bucket (planned M ~40K; ~75K actual — schema discovery + the WA-scoping correctness investigation + MCP validate payloads inflated the raw count; the build was M-band)
 **Priority:** P1 | **Batch:** 11
-**Change type:** Structural — NEW workflow WF-7x (project's first scheduled/background job): Schedule trigger → Postgres query → WF-51 send.
-**Workflows:** WF-7x (new) · WF-51 (`wlZRK0YxnhP0b2RL`)
-**n8n IDs:** WF-7x to be created · `wlZRK0YxnhP0b2RL` (WF-51)
+**Change type:** Workflow-Create — NEW workflow **WF-75** (`YnxDRcnCugnpGY0n`), project's first scheduled/background job: Schedule trigger (every 2h) → Postgres scan → WF-51 advisory. Greenfield, pseudo authored in-batch.
+**Workflows:** WF-75 (new) · WF-51 (`wlZRK0YxnhP0b2RL`)
+**n8n IDs:** `YnxDRcnCugnpGY0n` (WF-75, created 2026-06-09) · `wlZRK0YxnhP0b2RL` (WF-51)
 **Depends on:** PDF-15 (soft — shares the `messages` `MAX(inbound)` window-state source; lock the source once, reuse)
 **Design gate:** false
 **Size:** M
@@ -617,6 +623,15 @@ The general-enquiry path's payment CTA was Gemini-phrased — incomplete (no UPI
 **Build dependency to verify live:** the `unanswered` check needs Dr. Chinmay's outbound relay logged to `messages` with `direction='outbound'` (WF-60 logs Slack-inbound = astrologer→customer, so expected to hold — confirm at build).
 
 **Acceptance:** when a customer's window is close to expiring during an open consultation and Dr. Chinmay hasn't replied, a clear advisory appears in that consult channel; it never blocks, never auto-replies, harmless to ignore, stops at 24h or on reply. Spec DD-5.
+
+**Build summary (2026-06-09, build-pre-demo-minor-fixes-8Jun26-4):**
+- **NEW workflow WF-75 `YnxDRcnCugnpGY0n`, 4 nodes, created via n8n API (POST) — INACTIVE.** Greenfield pseudo-first: `docs/pseudocode/WF-75.pseudo` authored before the JSON, stamped `live_reconciled_at=2026-06-09T11:49:38.147Z` (assert-pseudo-fresh FRESH). Registered in `workflow-registry.md` (WF-7x table + id-map). Create body authored on disk (SQL + Code never through a shell var).
+- **Topology:** `Every 2 Hours` (scheduleTrigger v1.3 — project's FIRST schedule trigger; tV floored to 1.3 per user sign-off, no prior precedent) → `Load Window-Closing Consults` (Postgres v2.6, executeQuery, alwaysOutputData=true, retryOnFail×3, cred `Zomqv5wsowQAhdGl`) → `Build Nudge Payload` (Code v2) → `Call WF-51 (Send Nudge)` (executeWorkflow v1.2, mode=**each**, canonical __rl shape + cachedResultName).
+- **WA-scoped window query (build correction, user-approved 2026-06-09):** one scan, `JOIN LATERAL` aggregate per user — `last_inbound = MAX(created_at) FILTER (direction='inbound' AND message_type IN ('text','interactive'))`, `last_outbound_wa = MAX(... direction='outbound' AND message_type IN ('text','interactive','template'))`. WHERE `status='consultation_active' AND slack_channel_id IS NOT NULL AND last_inbound BETWEEN now-24h AND now-18h AND (last_outbound_wa IS NULL OR last_inbound > last_outbound_wa)`. 24h/18h boundaries in SQL (TZ-correct). **WA-scoping is the key fix vs the planned naive `direction='inbound'`:** the `messages` log records Dr. Chinmay's Slack typing as `inbound/slack_text` and this workflow's own nudge as `outbound/slack_text` — scoping to WhatsApp message_types keeps the astrologer's Slack typing from masquerading as customer inbound AND stops the nudge self-disabling after one fire (so it repeats ~3–4× across 18→24h per DD-F). `hours_until_close` computed for the message copy.
+- **Code node** maps each row → `{channelId, messageText, userId, consultationId}`; returns `[]` on the empty 0-row aggregate so Call WF-51 fires 0 times (no spurious nudge). Message copy per DD-F, admin-tone, business language.
+- **Verify:** SQL dry-run against live (parses; returns `[]` now — user 40's last WA inbound is ~81h ago, correctly outside the 18–24h band; band logic confirmed). MCP `n8n_validate_workflow` strict `valid:true` 0 errors (3 advisory: Code-can-throw generic, executeWorkflow tV-1.2-floor intentional, generic add-error-handling). Per-node strict on Postgres + executeWorkflow `valid:true` 0 errors/0 warnings. `node --check` on the Code node OK. lint-workflows.py: 1 advisory (Contract-First Code→executeWorkflow upstream — ACCEPTED: per-item interpolation + 0-row→`[]` need real JS; identical to WF-50 `Build Failure Notice`→Call WF-51 and WF-51 `Build WF-60 Payload`→Call WF-60 precedent). Secrets scan 0. Exported `workflows/YnxDRcnCugnpGY0n.json`.
+- **Adjacent finding logged (followups.md):** PDF-15's WF-41 `Load Last Inbound` uses the looser, non-WA-scoped `direction='inbound'` — latent window-skew from Slack-inbound rows. NOT changed here (PDF-15 shipped + verified); OPEN for user triage, candidate to fold into the deferred coordinated smoke.
+- **DEFERRED (needs user):** (1) **Activation** — WF-75 left INACTIVE; activating a never-smoked scheduled job + the (2) **live match-path smoke** (synthetic 18–24h-old WA inbound → real Slack nudge delivered to a consult channel, then verify repeat + self-terminate on reply/at-24h) are side-effecting and to be run coordinated with the user — bundle with the deferred PDF-15/16/17/19 smoke. The 0-match (no-spurious-nudge) path is proven by the live SQL dry-run.
 
 ## PDF-19 — Consultation-close prompt unreachable after a long gap
 
