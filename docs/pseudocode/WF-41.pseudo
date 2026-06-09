@@ -1,6 +1,6 @@
 ---
 wf_id: WF-41
-live_reconciled_at: 2026-06-08T08:13:51.036Z
+live_reconciled_at: 2026-06-09T20:59:50.788Z
 ---
 
 WF-41 — Admin → User Relay
@@ -16,7 +16,8 @@ WF-41 — Admin → User Relay
   - Caller contract: WF-10 has already (a) looked up the user by `slack_channel_id`, (b) verified `status == 'consultation_active'`, and (c) shaped the canonical Relay Envelope via the `Build WF-10 Relay Envelope` Code node (design.md §2.2). WF-41 does NOT re-query users or re-derive phone — that would be redundant work and a duplicated state-precondition surface.
   - **Field name:** the admin's message body arrives as `messageText` in the Relay Envelope (canonical per §2.2). WF-41 maps it to `messageContent` when calling WF-50 (canonical WF-50 text variant per design.md §2.3).
   - **24h-window deliverability (PDF-15, spec 2026-06-08-24h-window-deliverability-design.md, DD-A/B/C/D):** Meta only permits free-form (non-template) messages inside the customer's open 24h service window (M1); outside it, free-form is silently rejected. WF-41 therefore reads the customer's window state and routes the relay reply accordingly — in-window free-form (unchanged), out-window via the `astrology_service_update` utility template.
-  - **Window source (DD-B):** `chinmay_astro.messages` — `MAX(created_at) WHERE user_id=<envelope user.id> AND direction='inbound'`. The relay path does no `users` write, so `users.last_message_at` is stale during a consultation and is NOT used. The 24h comparison is computed in SQL (timestamptz vs `NOW()`) so it is timezone-correct and does not depend on n8n's runtime TZ.
+  - **Window source (DD-B):** `chinmay_astro.messages` — `MAX(created_at) WHERE user_id=<envelope user.id> AND direction='inbound' AND metadata->>'transport'='wa'`. The relay path does no `users` write, so `users.last_message_at` is stale during a consultation and is NOT used. The 24h comparison is computed in SQL (timestamptz vs `NOW()`) so it is timezone-correct and does not depend on n8n's runtime TZ.
+  - **Transport scope (PDF-20, 2026-06-09):** the window read MUST filter `metadata->>'transport'='wa'`. `messages` logs Dr. Chinmay's own Slack typing as `direction='inbound'` `message_type='slack_text'` (`transport='slack'`); without the transport filter a Slack-inbound row can become the `MAX(inbound)` the gate keys on, so the window reads freshly-open off the astrologer's message while the customer has actually been silent >24h → relay wrongly sends free-form → Meta rejects out-of-window → silent non-delivery (the exact failure PDF-15 was built to prevent). `transport='wa'` is the correct discriminator (NOT a `message_type` allow-list): the 24h window re-opens on ANY customer WhatsApp inbound — text, interactive, OR media — so filtering by transport counts them all, whereas a `message_type IN ('text','interactive')` proxy would under-count a future media inbound. Mirrors WF-75's window read.
   - **Stateless gate (DD-2/DD-3):** each relay message is evaluated fresh against the current window state. A message that was sent as a template (or that later fails at Meta) has NO effect on how the next message is processed — there is no rejection memory, no per-customer "blocked relay" state.
   - **No bounce-back (DD-C):** out-window replies are pre-processed to template-safe form and delivered. There is no "shorten and resend" path back to Dr. Chinmay; any residual Meta send failure (paused template, rate limit) is surfaced separately by PDF-16 (the failure-visibility backstop).
   - **Read-source convention:** after the Postgres window read, `$json` is the query result (last_inbound / in_window), NOT the relay envelope. The payload-build step reads window state from `$json` and reads the envelope fields from the always-run trigger node `$('When Executed by Another Workflow')` — never from the Postgres output.
@@ -31,7 +32,8 @@ Step 2: Load customer window state (Postgres node "Load Last Inbound", alwaysOut
         SELECT MAX(created_at) AS last_inbound,
                (MAX(created_at) > NOW() - INTERVAL '24 hours') AS in_window
           FROM chinmay_astro.messages
-         WHERE user_id = <envelope user.id> AND direction = 'inbound';
+         WHERE user_id = <envelope user.id> AND direction = 'inbound'
+           AND metadata->>'transport' = 'wa';   -- PDF-20: WhatsApp inbound only; excludes Slack-inbound (astrologer typing) skew
         - in_window = TRUE  → customer's 24h service window is open.
         - in_window = FALSE → window closed.
         - 0 inbound rows → last_inbound = NULL, in_window = NULL → treated as window-CLOSED in Step 3

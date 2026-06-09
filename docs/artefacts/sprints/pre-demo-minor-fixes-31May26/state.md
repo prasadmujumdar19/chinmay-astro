@@ -63,6 +63,7 @@
 | PDF-17 | 🟢 done | 10 | P1 | WF-34/02/00 | template:`payment_rejection` ✅ Active · PDF-16 (soft — same WF-34) · PDF-19 (soft sibling) |
 | PDF-18 | 🟢 done | 11 | P1 | WF-75 (new) | PDF-15 (soft — shared `messages` window source) |
 | PDF-19 | 🟢 done | 12 | P2 | WF-42 (button handler pre-done by PDF-17) | template:`consultation_closed` ✅ Active (NOT `consultation_closed_feedback` — that one Meta reclassified to Marketing) · PDF-17 (soft sibling — delivered PDF-19's receiving side) |
+| PDF-20 | 🟢 done | 13 | P1 | WF-41/75 | resolves followups adjacent finding (PDF-15 window read not WA-scoped); emerged during PDF-18 build |
 
 ## Batch 1 — P0
 
@@ -680,3 +681,32 @@ The general-enquiry path's payment CTA was Gemini-phrased — incomplete (no UPI
 - **WF-50 unchanged** — `Prepare Template Message` sends body-only (`templateParams`→{{1}} body var = customer name); the template self-renders its baked quick-reply buttons (same pattern as PDF-17's payment_rejection). M4-safe (the only param is a name).
 - **Verify:** lint hook exit 0; MCP strict `valid:true` 0 errors (11 warnings all pre-existing/advisory — typeVersion floor holds, cachedResultName cosmetic, DB-error-handling advisories on the pre-existing Close/Update UPDATEs which should halt on failure). Consumer-contract (6c): WF-50 template-variant entry guard satisfied (templateName string + templateParams array). `node --check` OK. Caught + fixed mid-build: the MCP `{{...}}`-in-Code-node validator hard-flagged a literal `{{1}}` in a *code comment* → reworded the comment, re-PUT clean. `WF-42.pseudo` revised pseudo-first (Steps 4–5 + Outputs; also corrected two pre-existing pseudo drifts — "two buttons"→three, "Chinmay"→"Dr. Chinmay") and stamped `live_reconciled_at=2026-06-09T11:17:01.248Z` (assert-pseudo-fresh FRESH).
 - **DEFERRED — live close→template-tap smoke:** an actual CLOSE → `consultation_closed` template delivery + a real button tap end-to-end (confirms the M5 inbound label value the WF-02 map keys on). Side-effecting external send — bundle with the deferred PDF-15 + PDF-16 + PDF-17 coordinated smoke.
+
+## PDF-20 — Relay/nudge window read must be WhatsApp-scoped (transport), not all-inbound
+
+**Status:** 🟢 done
+**Started:** 2026-06-09T20:57:24Z
+**Completed:** 2026-06-09T21:00:02Z
+**Owner session:** build-pre-demo-minor-fixes-8Jun26-4
+**Actual tokens:** ~55K (live data cross-tab + transport-vs-message_type discriminator analysis + 2 jq+PUT + strict/per-node validates)
+**Actual effort:** ~10 min
+**Estimate delta:** n/a (emergent — not pre-sized)
+**Priority:** P1 | **Batch:** 13
+**Change type:** Structural / non-parametric — single-node SQL on WF-41 (`6PzJRZsF7k2d9hV7`) + WF-75 (`YnxDRcnCugnpGY0n`); alters the in-window/out-window branch decision (window data contract) → pseudo-first. **Emerged during PDF-18 build** (resolves the adjacent finding logged in followups.md 2026-06-09). Built **Mode B** (inline build-workflow discipline — the WA-scoping pattern just executed in PDF-18, no Skill reload).
+**Workflows:** WF-41, WF-75
+**n8n IDs:** `6PzJRZsF7k2d9hV7` (WF-41) · `YnxDRcnCugnpGY0n` (WF-75)
+**Depends on:** PDF-15 (the WF-41 node this corrects) · PDF-18 (the WF-75 node; both made consistent)
+**Design gate:** false
+**Pseudo-impact:** yes — `WF-41.pseudo` (window-source note + Step 2 query) + `WF-75.pseudo` (Notes + Step 2 query) revised + re-stamped FRESH.
+
+**Root cause (verified live 2026-06-09):** `chinmay_astro.messages` logs Dr. Chinmay's own Slack typing as `direction='inbound'` `message_type='slack_text'` (`metadata.transport='slack'`), and this workflow's own nudge / relay-side as `direction='outbound'` `slack_text`. WF-41's `Load Last Inbound` (built by PDF-15) read `MAX(created_at) WHERE direction='inbound'` with **no transport filter** → a Slack-inbound row can become the customer's apparent last inbound → window reads freshly-open off the astrologer's message while the customer has actually been silent >24h → relay sends free-form → Meta rejects out-of-window → silent non-delivery (the exact failure PDF-15 exists to prevent). Live proof: user 42 (`consultation_active`) had `MAX(inbound any)=2026-06-09T20:16` (Slack) vs `MAX(inbound wa)=2026-06-09T08:59` — an ~11h skew; as the WA inbound ages past 24h before the Slack row, user 42 enters the failure zone.
+
+**Fix:** scope the window read to WhatsApp via `metadata->>'transport'='wa'` (NOT a `message_type IN (...)` allow-list — `transport` is the correct discriminator because the 24h window re-opens on ANY customer WhatsApp inbound incl. media, which a message_type allow-list would under-count). Applied to BOTH:
+- **WF-41 `Load Last Inbound`:** `… AND direction='inbound' AND metadata->>'transport'='wa'`. Verified live: user 42 now reads `last_inbound=08:59` (the real WA message), not the 20:16 Slack row.
+- **WF-75 `Load Window-Closing Consults`:** both FILTER halves switched from `message_type IN (…)` to `metadata->>'transport'='wa'` (inbound + outbound), making it identical to WF-41's discriminator and robust to future media inbound. Functionally identical on current data (transport↔message_type is a verified 1:1, `transport` non-null on all rows — WF-60 defaults it 'wa').
+
+**Build:** jq-on-disk + curl PUT ×2 (new query strings spliced via `jq --rawfile` from disk — never through a shell var). Backups `archive/backups/6PzJRZsF7k2d9hV7-2026-06-10-06-57.json` + `archive/backups/YnxDRcnCugnpGY0n-2026-06-10-06-57.json`. Both new queries dry-run against live before PUT (parse + correct behaviour confirmed).
+
+**Verify:** WF-41 updatedAt=2026-06-09T20:59:50.788Z, WF-75 updatedAt=2026-06-09T21:00:02.547Z. MCP strict `valid:true` 0 errors both (warnings all pre-existing/advisory — WF-50/Call-WF-51 tV-1.2 floor, cosmetic cachedResultName, pre-existing Code-node + DB-retry advisories; none introduced). Per-node strict on the WF-41 Postgres node `valid:true` 0 err/0 warn. lint: 1 advisory each (pre-existing/accepted Contract-First Code→executeWorkflow — out of this change's scope). Both `.pseudo` re-stamped + assert-pseudo-fresh FRESH. Secrets clean.
+
+**Acceptance:** the relay in/out-window decision (WF-41) and the nudge window scan (WF-75) key only on the customer's WhatsApp messages; the astrologer's Slack typing and the nudge's own Slack post never skew either read. **Live confirmation that the skew is gone for an at-risk user (42) bundled with the deferred PDF-15/16/17/18/19 coordinated smoke** (which will now exercise the corrected WF-41/WF-75).

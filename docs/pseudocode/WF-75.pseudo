@@ -1,6 +1,6 @@
 ---
 wf_id: WF-75
-live_reconciled_at: 2026-06-09T11:49:38.147Z
+live_reconciled_at: 2026-06-09T21:00:02.547Z
 ---
 
 WF-75 — Window-Closing Nudge (scheduled)
@@ -29,17 +29,22 @@ WF-75 — Window-Closing Nudge (scheduled)
 
 ## Notes
 
-- **Window-state source = `chinmay_astro.messages`, WhatsApp-scoped (DD-B + build correction 2026-06-09).**
-  The `messages` log mixes transports: a customer's WhatsApp message is `direction='inbound'` with
-  `message_type IN ('text','interactive')` (`metadata.transport='wa'`); Dr. Chinmay's own typing in Slack
-  is logged `direction='inbound'` `message_type='slack_text'`; this workflow's own nudge is logged
-  `direction='outbound'` `message_type='slack_text'`. So both halves of the "unanswered" test MUST be
-  WhatsApp-scoped:
-    - customer's last inbound = `MAX(created_at) WHERE direction='inbound' AND message_type IN ('text','interactive')`
-    - Dr. Chinmay answered = a WhatsApp send to the customer = `direction='outbound' AND message_type IN ('text','interactive','template')`
-  Excluding `slack_text` on the outbound side is what lets the nudge REPEAT (~3–4× across the 18→24h
-  stretch) instead of self-disabling the moment its own Slack post lands. Excluding `slack_text` on the
+- **Window-state source = `chinmay_astro.messages`, WhatsApp-scoped via `metadata->>'transport'='wa'`
+  (DD-B + build correction 2026-06-09; transport discriminator adopted PDF-20 2026-06-09).**
+  The `messages` log mixes transports: a customer's WhatsApp message is `direction='inbound'`
+  `metadata.transport='wa'`; Dr. Chinmay's own typing in Slack is logged `direction='inbound'`
+  `transport='slack'` (`message_type='slack_text'`); this workflow's own nudge is logged
+  `direction='outbound'` `transport='slack'`. So both halves of the "unanswered" test MUST be
+  WhatsApp-scoped on transport:
+    - customer's last inbound = `MAX(created_at) WHERE direction='inbound' AND metadata->>'transport'='wa'`
+    - Dr. Chinmay answered = a WhatsApp send to the customer = `direction='outbound' AND metadata->>'transport'='wa'`
+  Filtering on `transport='wa'` (NOT a `message_type` allow-list) is the correct discriminator: the 24h
+  window re-opens on ANY customer WhatsApp inbound — text, interactive, OR media — so `transport='wa'`
+  counts them all, whereas `message_type IN ('text','interactive')` would under-count a future media
+  inbound. Excluding `transport='slack'` on the outbound side is what lets the nudge REPEAT (~3–4× across
+  the 18→24h stretch) instead of self-disabling the moment its own Slack post lands; excluding it on the
   inbound side keeps the astrologer's Slack typing from masquerading as a fresh customer message.
+  `transport` is non-null on every row (WF-60 defaults it to 'wa'), verified live 2026-06-09.
 - **Divergence from PDF-15 (WF-41 `Load Last Inbound`):** PDF-15 reads window state with a looser
   `direction='inbound'` (no transport scope). That is acceptable for its single-user relay-time read but
   is a latent skew (a Slack-inbound row could read as the customer's last inbound). Logged as an adjacent
@@ -68,8 +73,8 @@ Step 2: Load Window-Closing Consults (Postgres, executeQuery, alwaysOutputData=t
       FROM chinmay_astro.users u
       JOIN LATERAL (
         SELECT
-          MAX(created_at) FILTER (WHERE direction='inbound'  AND message_type IN ('text','interactive'))            AS last_inbound,
-          MAX(created_at) FILTER (WHERE direction='outbound' AND message_type IN ('text','interactive','template')) AS last_outbound_wa
+          MAX(created_at) FILTER (WHERE direction='inbound'  AND metadata->>'transport'='wa') AS last_inbound,
+          MAX(created_at) FILTER (WHERE direction='outbound' AND metadata->>'transport'='wa') AS last_outbound_wa
         FROM chinmay_astro.messages m
         WHERE m.user_id = u.id
       ) agg ON true

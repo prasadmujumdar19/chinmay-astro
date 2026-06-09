@@ -7,7 +7,7 @@
   - **Why PDF-18 doesn't share it:** PDF-18 (WF-75) deliberately scopes both halves of its window test to WhatsApp rows (`message_type IN ('text','interactive')` for customer inbound; `IN ('text','interactive','template')` for "answered"), excluding `slack_text`. The correct, WA-scoped form lives in `docs/pseudocode/WF-75.pseudo` Step 2 and can be ported to WF-41 if this is actioned.
   - **Classification:** adjacent to PDF-18 (PDF-15 is shipped + was verified for its test user, which had no interfering Slack-inbound rows). Does NOT block PDF-18 done. Surfaced and confirmed live during the PDF-18 build (user approved logging it, 2026-06-09).
   - **Proposed fix (if actioned):** tighten WF-41 `Load Last Inbound` to `direction='inbound' AND message_type IN ('text','interactive')`. Same single-node SQL edit; pseudo-first on WF-41.pseudo. Low blast radius (one read node), but it IS a functional change to the in-window/out-window branch decision → impact-check + a coordinated re-smoke of PDF-15.
-  - **Decision:** OPEN — for user triage (could fold into the deferred PDF-15/16/17/19 coordinated smoke).
+  - **Decision:** RESOLVED 2026-06-09 — user directed the fix. Tracked as sprint item **PDF-20** (done): WF-41 `Load Last Inbound` scoped to `metadata->>'transport'='wa'`; WF-75 switched from the `message_type` proxy to the same `transport='wa'` discriminator for consistency + media-inbound robustness. Both pseudo-first + re-stamped. Live skew confirmed gone for user 42. Live end-to-end folds into the deferred PDF-15/16/17/18/19 coordinated smoke.
 
 ## [2026-06-06] — PDF-04/05 validation finding (adjacent)
 

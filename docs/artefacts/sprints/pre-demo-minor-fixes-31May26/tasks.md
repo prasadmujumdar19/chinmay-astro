@@ -106,6 +106,7 @@ once.** There is no locking. To avoid clobbering each other:
 | PDF-17 | 🟠 P1 | Payment-rejection message can't reach the customer if rejected after a long gap | 🟢 done | — |
 | PDF-18 | 🟠 P1 | No reminder to the astrologer that the free-reply window is about to close | 🟢 done | WF-75 |
 | PDF-19 | 🟡 P2 | Consultation-close prompt can't reach the customer if closed after a long gap | 🟢 done | WF-42 send→consultation_closed template; receiving side pre-built by PDF-17 |
+| PDF-20 | 🟠 P1 | Relay/nudge window read counted Slack rows, skewing the 24h decision (emerged during PDF-18) | 🟢 done | WF-41 + WF-75 window read scoped to metadata->>'transport'='wa' |
 
 ---
 
@@ -561,6 +562,26 @@ lookup deferred to post-MVP (TD-NEW-042).
 
 **Acceptance:** post-close replies present both rebook options consistently; copy is coherent regardless
 of how long since the consultation closed.
+
+---
+
+### PDF-20 · Relay/nudge window read counted Slack rows (emerged during implementation)
+
+**Status:** 🟢 done (WF-41 + WF-75, 2026-06-09 — see state.md for build detail)
+**Priority:** 🟠 P1 | **Owner session:** build-pre-demo-minor-fixes-8Jun26-4
+**Change type:** Structural — single-node SQL on WF-41 + WF-75. Emerged during the PDF-18 build; resolves
+the followups.md adjacent finding (PDF-15's WF-41 window read was not WhatsApp-scoped).
+
+**What:** `chinmay_astro.messages` logs the astrologer's Slack typing as `direction='inbound'` and the
+nudge's own Slack post as `direction='outbound'`. WF-41's relay in/out-window read counted those Slack
+rows, so a Slack message could masquerade as the customer's last inbound → window reads open while the
+customer has been silent >24h → free-form relay → Meta out-of-window rejection (silent non-delivery).
+Fix: scope both WF-41's `Load Last Inbound` and WF-75's scan to `metadata->>'transport'='wa'` (the correct
+WhatsApp discriminator, not a `message_type` allow-list). Verified live: at-risk user 42's read corrected
+from the 20:16 Slack row to the real 08:59 WhatsApp inbound.
+
+**Acceptance:** both window reads key only on the customer's WhatsApp messages; Slack rows never skew them.
+Live end-to-end folds into the deferred PDF-15/16/17/18/19 coordinated smoke.
 
 ---
 
