@@ -1,3 +1,8 @@
+---
+wf_id: WF-02
+live_reconciled_at: 2026-06-08T23:47:24.058Z
+---
+
 WF-02 — User State Router
 
 ## Summary
@@ -11,13 +16,18 @@ WF-02 — User State Router
   - NEW existing-user non-text branch — WF-01 no longer drops non-text, so an existing user's non-text message now reaches WF-02 → escalate via U2 (thr=10) → if not blocked, send the "email us" deflection.
   - NEW `nfm_reply` stage guard (decision #10) — a form submission is valid ONLY pre-form; a non-pre-form `nfm_reply` routes to UNHANDLED.
   - WF-20 is now gated to existing-user (`has_user`) text only — pre-form text skips WF-20 and goes straight to WF-23 (so a pre-form STOP is a clarifier in WF-23, not a real unsubscribe via WF-47).
+  - NEW template-button-tap normalization (PDF-17 / PDF-19) — a tap on a *template* quick-reply button reaches WF-02 from WF-00 as `messageType='button'` with `rawMessage.button.{text,payload}` (a different webhook shape, M5, than an interactive `button_reply`). A new step immediately after Validate Inputs converts the button label to the internal action id (`payment_completed` / `btn_feedback` / `btn_rebook` / `btn_done`) and reshapes the payload into the interactive `button_reply` form, so Detect Route + every downstream handler stay UNCHANGED. This sits POST-FILTER (WF-01 already applied the country / blocked / opted-out gates), so the conversion never runs for red-flagged-country or blocked traffic. Non-button messages pass through untouched. The same step serves PDF-17 (`payment_completed`) now and PDF-19 (the three close buttons) once its close template ships.
 
 ---
 
 ## Algorithm
 
-Step 1: Validate Inputs (entry guard — defense-in-depth per §2.1 + §2.7). Hard-fail on a malformed envelope: `phoneNumber` missing/not a string; `messageType` not text/interactive/a known non-text type; `messageContent` key absent; `user` present but missing required fields or carrying an invalid status; `pendingUser` key undefined (must be explicit null or object). Pass through on success.
-Step 2: Detect Route from `messageType`, `rawMessage.interactive.type`, `user`, `user.status`, and `pendingUser`:
+Step 1: Validate Inputs (entry guard — defense-in-depth per §2.1 + §2.7). Hard-fail on a malformed envelope: `phoneNumber` missing/not a string; `messageType` not a non-empty string; `messageContent` key absent; `user` present but missing required fields or carrying an invalid status; `pendingUser` key undefined (must be explicit null or object). Pass through on success.
+Step 2: Normalize Template-Button Tap (POST-FILTER — WF-01 already applied country / blocked / opted-out gates, so this never runs for red-flagged or blocked traffic). If this is a template quick-reply tap (`messageType='button'` AND `rawMessage.type='button'` AND `rawMessage.button` present):
+  - map the button label (`rawMessage.button.text`, fallback `.payload`) to the internal action id via BUTTON_MAP { "Payment Completed"→payment_completed (PDF-17); "Leave Feedback"→btn_feedback, "Book Again"→btn_rebook, "Done, Thanks."→btn_done (PDF-19) }; if unmapped, fall back to `rawMessage.button.payload` (or the label) so it routes by status like any button_reply.
+  - set messageType='interactive', messageContent=actionId, messageContentUpper=upper(actionId), interactiveLabel=button.text, and synthesize `rawMessage.interactive = { type:'button_reply', button_reply:{ id:actionId, title:button.text } }`.
+  - Else (not a template-button tap): pass the envelope through unchanged.
+Step 3: Detect Route from `messageType`, `rawMessage.interactive.type`, `user`, `user.status`, and `pendingUser`:
   - messageType='interactive' AND interactive.type='nfm_reply' → route = (user IS null AND pendingUser IS NOT null) ? 'DETAILS_FORM' : 'UNHANDLED'.  [NEW nfm_reply stage guard — form submit valid only pre-form, DR-1]
   - Else if messageType='interactive' AND interactive.type='button_reply' AND user IS NOT null AND user.status='payment_pending' → route='PAYMENT_CONFIRM'.
   - Else if messageType='interactive' AND interactive.type='button_reply' AND user IS NOT null AND user.status='consultation_closed' → route='POST_CONSULT_TEXT'.
@@ -28,21 +38,21 @@ Step 2: Detect Route from `messageType`, `rawMessage.interactive.type`, `user`, 
   - Else if user IS NOT null AND user.status='consultation_active' → route='RELAY'.
   - Else if user IS NOT null AND user.status='consultation_closed' → route='POST_CONSULT_TEXT'.
   - Else → route='UNHANDLED'.
-Step 3: Check: route == 'EXISTING_NON_TEXT'?
-  - If YES → go to Step 4 (escalate + deflect).
-  - If NO → go to Step 6.
-Step 4: Call U2 (Silent-Drop & Escalate) with `{ phoneNumber, messageType, reason: 'non_text', messageContent, blockThreshold: 10, blockReason: 'threshold_non_text' }`. Receive `{ blocked }`.
-Step 5: Check: `blocked == false`?
+Step 4: Check: route == 'EXISTING_NON_TEXT'?
+  - If YES → go to Step 5 (escalate + deflect).
+  - If NO → go to Step 7.
+Step 5: Call U2 (Silent-Drop & Escalate) with `{ phoneNumber, messageType, reason: 'non_text', messageContent, blockThreshold: 10, blockReason: 'threshold_non_text' }`. Receive `{ blocked }`.
+Step 6: Check: `blocked == false`?
   - If YES → send the "email us" deflection — call WF-50 with `{ phoneNumber, messageType: 'text', messageContent: <existing-user non-text deflection copy — reuse live verbatim> }`. End.
   - If NO → End (blocked; U2 already sent the block alert, no reply).
-Step 6: Check: messageType == 'text' AND route is an existing-user text route (user IS NOT null)?
-  - If YES → go to Step 7 (keyword interception first).
-  - If NO → go to Step 9 (skip WF-20; pre-form text and interactive routes go straight to the switch).
-Step 7: Call WF-20 (Keyword Handler) to intercept hard keywords (STOP and its aliases / HELP / REBOOK).
-Step 8: Check: WF-20 returned action == 'passthrough'?
-  - If YES (no keyword matched) → go to Step 9 (continue routing).
+Step 7: Check: messageType == 'text' AND route is an existing-user text route (user IS NOT null)?
+  - If YES → go to Step 8 (keyword interception first).
+  - If NO → go to Step 10 (skip WF-20; pre-form text and interactive routes go straight to the switch).
+Step 8: Call WF-20 (Keyword Handler) to intercept hard keywords (STOP and its aliases / HELP / REBOOK).
+Step 9: Check: WF-20 returned action == 'passthrough'?
+  - If YES (no keyword matched) → go to Step 10 (continue routing).
   - If NO (WF-20 already handled the message) → End.
-Step 9: Route Switch on `route`:
+Step 10: Route Switch on `route`:
   - 'PRE_FORM_TEXT' → call WF-23 (Pre-Form Owner). End.
   - 'DETAILS_FORM' → call WF-22 (Details Form Processor). End.
   - 'PAYMENT_CONFIRM' → call WF-32 (Payment Confirmation Receiver). End.
@@ -51,4 +61,4 @@ Step 9: Route Switch on `route`:
   - 'RELAY' → call WF-40 (User → Admin Relay). End.
   - 'POST_CONSULT_TEXT' → call WF-43 (Post-Consultation Handler). End.
   - 'UNHANDLED' → call WF-51 with `channelId='C0A5B0ZE81E'` and a business-language admin alert summarizing the unroutable message (phone, message kind, interactive type, user status, onboarding-in-progress, truncated content). No further action. End.
-Step 10: End.
+Step 11: End.

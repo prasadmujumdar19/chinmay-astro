@@ -103,7 +103,7 @@ once.** There is no locking. To avoid clobbering each other:
 | PDF-14 | 🟡 P2 | WF-43 post-consult "Welcome back" incoherence + REBOOK-only CTA | ✅ done | — |
 | PDF-15 | 🔴 P0 | Astrologer's reply silently never reaches the customer if their last message was >24h ago | ✅ done | — |
 | PDF-16 | 🟠 P1 | When a message to the customer fails to send, the astrologer is never told | 🆕 triaged | — |
-| PDF-17 | 🟠 P1 | Payment-rejection message can't reach the customer if rejected after a long gap | 🆕 triaged | — |
+| PDF-17 | 🟠 P1 | Payment-rejection message can't reach the customer if rejected after a long gap | 🟢 done | — |
 | PDF-18 | 🟠 P1 | No reminder to the astrologer that the free-reply window is about to close | 🆕 triaged | — |
 | PDF-19 | 🟡 P2 | Consultation-close prompt can't reach the customer if closed after a long gap | 🆕 triaged | — |
 
@@ -301,9 +301,9 @@ notice to Dr. Chinmay in the relevant channel; no customer-bound send fails sile
 
 ### PDF-17 · Payment-rejection message unreachable after a long gap
 
-**Status:** 🆕 triaged
-**Priority:** 🟠 P1 | **Owner session:** —
-**Change type:** TBD — determine fix location in plan/brainstorm.
+**Status:** 🟢 done (2026-06-09; build detail in state.md)
+**Priority:** 🟠 P1 | **Owner session:** build-pre-demo-minor-fixes-8Jun26-2
+**Change type:** Structural — scope expanded S→M at build (receiving-side): WF-34 send interactive→`payment_rejection` template + WF-02 post-filter template-button normalizer + WF-00 log nicety; WF-50 unchanged. Also pre-delivered PDF-19's receiving side.
 **Related:** PDF-19 (sibling fixed-content "always template" conversion); PDF-15 (same 24h-window root).
 
 **What (customer-facing):** When Dr. Chinmay rejects a payment, the customer gets a "we couldn't verify

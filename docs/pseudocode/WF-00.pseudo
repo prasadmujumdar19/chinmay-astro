@@ -1,3 +1,8 @@
+---
+wf_id: WF-00
+live_reconciled_at: 2026-06-08T23:43:33.512Z
+---
+
 WF-00 — Webhook Receiver
 
 ## Summary
@@ -7,8 +12,8 @@ WF-00 — Webhook Receiver
   - `timestamp` — string, **required**. Meta message timestamp (epoch seconds, as string).
   - `phoneNumber` — string, **required**. Sender MSISDN, digits only (no `+`).
   - `phoneNumberFormatted` — string, **required**. `+`-prefixed E.164 (`'+' + phoneNumber`).
-  - `messageType` — string, **required**. `text` | `interactive` | other (`image` / `audio` / …).
-  - `messageContent` — string, **required**. Text body, or interactive id (`button_reply.id` / `list_reply.id` / `nfm_reply.response_json`), or a `[TYPE]` bracket for other media.
+  - `messageType` — string, **required**. `text` | `interactive` | `button` (template quick-reply tap, M5) | other (`image` / `audio` / …).
+  - `messageContent` — string, **required**. Text body, or interactive id (`button_reply.id` / `list_reply.id` / `nfm_reply.response_json`), or for a template quick-reply tap the button label (`button.text`), or a `[TYPE]` bracket for other media.
   - `messageContentUpper` — string, **required**. `messageContent.toUpperCase().trim()` (downstream keyword matching).
   - `interactiveLabel` — string, *optional*. Display title for interactive button/list replies; `null` for `nfm_reply` and non-interactive types.
   - `contactName` — string, *optional*. WhatsApp profile name; `null` if absent.
@@ -23,6 +28,7 @@ WF-00 — Webhook Receiver
   - Bot-echo guard (live verified 2026-05-17): comparison is `message.from === value.metadata.display_phone_number.replace(/\D/g, '')` — strips non-digit characters from the WABA display phone and compares to the inbound sender. Meta does deliver outbound message echoes via the `messages` array in some scenarios; this guard is intentional (TD-030).
   - Whitespace-only guard (TD-034) applies to text messages only.
   - Interactive label extraction (TD-F, 2026-05-21): for `interactive` button_reply / list_reply, the parser captures BOTH the routable id (into `messageContent`, preserving WF-01 routing semantics) AND the display title (into `interactiveLabel`). `Build WF-60 Payload (Inbound)` writes `interactiveLabel || messageContent` into `messages.content` so the persisted audit row is human-readable; the id remains available downstream for routing.
+  - Template quick-reply tap (M5; PDF-17 / PDF-19): a tap on a *template* quick-reply button arrives as `message.type='button'` with `message.button.{text,payload}` — a DIFFERENT webhook shape than an interactive `button_reply`. WF-00 logs it by its label (`button.text`) for a readable audit row and keeps `messageType='button'` on the forwarded payload. The conversion of the button label to the internal action id (`payment_completed` / `btn_feedback` / `btn_rebook` / `btn_done`) and the reshape into the interactive `button_reply` form happen POST-FILTER in WF-02 (after WF-01's country / blocked / opted-out filters), never here — so the conversion never runs for red-flagged-country or blocked traffic.
 
 ---
 
@@ -33,7 +39,7 @@ Step 2: Parse the webhook payload (extract body.entry[0].changes[0].value).
   - If payload has no entry, changes, or messages → mark skip=true, go to Step 3.
   - botPhone = value.metadata.display_phone_number with non-digit characters stripped (`replace(/\D/g, '')`). If message.from === botPhone (bot echo) → mark skip=true, go to Step 3. (TD-030)
   - If type='text' and content is empty/whitespace → mark skip=true, go to Step 3. (TD-034)
-  - Otherwise extract: messageId, timestamp, phoneNumber, contactName, messageType, messageContent (text body, or for interactive: button_reply.id / list_reply.id / nfm_reply.response_json (cleartext form payload — Flow is in send-only mode, no encryption-svc needed)), interactiveLabel (for interactive button_reply.title / list_reply.title; null for nfm_reply and non-interactive types), metadata (phone_number_id, display_phone_number). Set skip=false.
+  - Otherwise extract: messageId, timestamp, phoneNumber, contactName, messageType, messageContent (text body, or for interactive: button_reply.id / list_reply.id / nfm_reply.response_json (cleartext form payload — Flow is in send-only mode, no encryption-svc needed); or for type='button' (template quick-reply tap, M5): button.text with button.payload as fallback), interactiveLabel (for interactive button_reply.title / list_reply.title, or for type='button' the button.text; null for nfm_reply and non-interactive types), metadata (phone_number_id, display_phone_number). Set skip=false. (A template-button tap keeps messageType='button' here; WF-02 normalizes it post-filter.)
 Step 3: Check: skip == true?
   - If YES → go to Step 11 (return skipped).
   - If NO → go to Step 4.

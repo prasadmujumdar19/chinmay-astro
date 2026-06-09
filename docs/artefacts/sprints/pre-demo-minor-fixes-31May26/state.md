@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/sprints/pre-demo-minor-fixes-31May26/tasks.md
 **Input hash:** 633b9b258285df5821dbe3f1cff90cce62b268b5ae5d3c6efe33fc281579052c
 **Planned at:** 2026-05-31T11:19:25Z
-**Last updated:** 2026-06-08T07:52:58Z
+**Last updated:** 2026-06-09T10:22:14Z
 **Planning complete:** true
 **Rolling sprint:** TRUE — `_active` marker is USER-CONTROLLED. build-sprint MUST NOT remove `_active` on batch/queue exhaustion; report "current queue done, sprint still open (rolling)" and stop. Re-invocations of plan-sprint must be ADDITIVE (plan only new PDF-NN items into this file; never destructive full-replan). input_hash mismatch is EXPECTED and is NOT a replan signal. See tasks.md "ROLLING SPRINT" header for full lifecycle/concurrency rules.
 **Discover-current-state:** ran at 2026-05-31T11:19:25Z against live WF-10 (`wMh0oBRtJbvhLgOf`, 42 nodes). Result: PDF-01 condition CONFIRMED PRESENT — `Build Help Prompt` + `Call WF-51 (Help Prompt)` nodes and hardcoded "Type `HELP` to see available commands" line both still on the `free_text` branch; ZERO Gemini calls in WF-10. PDF-01 is genuinely pending, not obsolete. PDF-02/PDF-03 extend the not-yet-built PDF-01 → pending. No obsoletes detected.
@@ -60,9 +60,9 @@
 | PDF-14 | 🟢 done | 8 | P2 | WF-43 | PDF-11 (soft — same WF-43 reply path) |
 | PDF-15 | 🟢 done | 9 | P0 | WF-41/50/51 | template:`astrology_service_update` ✅ Active · PDF-18 (soft — shared window source) |
 | PDF-16 | ⬜ pending | 10 | P1 | WF-41/34/42 | PDF-15 (soft — backstop for its residual send failures) |
-| PDF-17 | ⬜ pending | 10 | P1 | WF-34 | template:`payment_rejection` ✅ Active · PDF-16 (soft — same WF-34) · PDF-19 (soft sibling) |
+| PDF-17 | 🟢 done | 10 | P1 | WF-34/02/00 | template:`payment_rejection` ✅ Active · PDF-16 (soft — same WF-34) · PDF-19 (soft sibling) |
 | PDF-18 | ⬜ pending | 11 | P1 | WF-7x (new) | PDF-15 (soft — shared `messages` window source) |
-| PDF-19 | ⬜ pending | 12 | P2 | WF-42 + button handler | template:`consultation_closed` ✅ Active (NOT `consultation_closed_feedback` — that one Meta reclassified to Marketing) · PDF-17 (soft sibling) |
+| PDF-19 | ⬜ pending | 12 | P2 | WF-42 (button handler pre-done by PDF-17) | template:`consultation_closed` ✅ Active (NOT `consultation_closed_feedback` — that one Meta reclassified to Marketing) · PDF-17 (soft sibling — delivered PDF-19's receiving side) |
 
 ## Batch 1 — P0
 
@@ -433,7 +433,8 @@ The general-enquiry path's payment CTA was Gemini-phrased — incomplete (no UPI
 
 ## Batch 10 — PDF-16 failure-visibility + PDF-17 rejection→template (P1)
 
-- **Items:** 2 (PDF-16 cross-cutting send-failure visibility · PDF-17 WF-34 rejection always-template)
+- **Items:** 2 (PDF-16 cross-cutting send-failure visibility ⬜ · PDF-17 WF-34 rejection always-template ✅ done 2026-06-09)
+- **PDF-17 build note (2026-06-09):** scope expanded S→M at build time (user-steered) — fix is receiving-side, touched WF-34 (send) + WF-02 (new post-filter template-button normalizer) + WF-00 (log nicety); WF-50 UNCHANGED. Also pre-delivered PDF-19's receiving side. See PDF-17 item for full build summary. Live WhatsApp smoke deferred (bundle with PDF-15/PDF-16).
 - **Description:** PDF-16 — customer-bound callers stop ignoring WF-50's `success=false` and post a plain-language in-channel notice to Dr. Chinmay (primary surface WF-41 relay; also WF-34/WF-42); this is the backstop beneath PDF-15's app-side gate (DD-4). PDF-17 — convert the WF-34 payment-rejection message from an interactive button message to an **always-template** send (DD-E/DD-1), mirroring how approval already uses `consultation_activated`; no window logic. PDF-16 and PDF-17 overlap on WF-34 (soft same-workflow sibling) → execute sequentially, re-fetch live WF-34 at each pickup.
 - **External prerequisite (PDF-17 only):** **payment-rejection** template approved in Meta. PDF-16 has no template dependency.
 - **Change type:** Structural — WF-41/34/42 (PDF-16) + WF-34 (PDF-17).
@@ -526,16 +527,33 @@ The general-enquiry path's payment CTA was Gemini-phrased — incomplete (no UPI
 
 ## PDF-17 — Payment-rejection message unreachable after a long gap
 
-**Status:** ⬜ pending
+**Status:** 🟢 done
+**Started:** 2026-06-09T09:30:00Z
+**Completed:** 2026-06-09T10:22:14Z
+**Owner session:** build-pre-demo-minor-fixes-8Jun26-2
 **Priority:** P1 | **Batch:** 10
-**Change type:** Structural — WF-34 Payment Rejection Processor (`se82n3MUQ9xE5aEr`): interactive button message → always-template send.
-**Workflows:** WF-34
-**n8n IDs:** `se82n3MUQ9xE5aEr`
-**Depends on:** payment-rejection template approval (external, Meta) · PDF-16 (soft — same WF-34, sequence within Batch 10) · PDF-19 (soft sibling — same always-template DD-1 pattern; PDF-17 lands first, PDF-19 reuses the shape)
+**Change type:** Structural — 3 workflows (scope expanded from WF-34-only at build time; see "Scope correction" below). WF-34 send interactive→template; WF-02 new template-button-tap normalizer; WF-00 log-nicety for template taps.
+**Workflows:** WF-34, WF-02, WF-00
+**n8n IDs:** `se82n3MUQ9xE5aEr` (WF-34) · `PubCsNTOspF3xqXZ` (WF-02) · `JQu1MkK5vgtUCeNO` (WF-00)
+**Depends on:** payment-rejection template approval (external, Meta) ✅ · PDF-16 (soft — same WF-34, sequence within Batch 10) · PDF-19 (soft sibling — PDF-17 delivers the shared receiving-side mechanism PDF-19 reuses)
 **Design gate:** false
-**Size:** S
-**Estimated tokens:** ~25K (incremental share within Batch 10)
-**Pseudo-impact:** yes — `WF-34.pseudo` send step changes from interactive to template.
+**Size:** S planned → M actual (audit-driven scope expansion to the receiving side)
+**Estimated tokens:** ~25K (planned) / ~140K actual (deep live-trace of the inbound filter chain WF-00→WF-01→WF-02 + 3-workflow build + design sign-off rounds)
+**Pseudo-impact:** yes — `WF-34.pseudo` (send step interactive→template), `WF-02.pseudo` (new Step 2 normalizer + renumber), `WF-00.pseudo` (button-type parse note). All three stamped FRESH.
+
+**Scope correction (build-time audit, user-steered 2026-06-09):** Plan sized this WF-34-only. Live trace showed the fix is fundamentally a **receiving-side** change, not just a send swap:
+- A template quick-reply tap arrives in a DIFFERENT webhook shape (M5) than an interactive `button_reply` — `message.type='button'` with `message.button.{text,payload}`, no `interactive` object. WF-02 `Detect Route` matches taps on `messageType='interactive' && rawMessage.interactive.type='button_reply'`, so an un-normalized template tap would mis-route as unexpected media (`EXISTING_NON_TEXT`).
+- **User steer (do NOT attach a button component to the outgoing template call):** the approved template self-renders its button, so WF-50 stays UNCHANGED. The "template-button → internal-action-id" conversion is a receive-side map keyed on the button label.
+- **Filter-placement constraint (user):** the conversion must NOT run for red-flagged-country / blocked traffic. WF-01 applies country (+91/+61 only) + blocked + opted-out filters BEFORE WF-02, so the normalizer was placed in WF-02 (post-filter), between `Validate Inputs` and `Detect Route`.
+
+**Build summary (2026-06-09):**
+- **WF-34** `Prepare Rejection Message` (Code) — rewritten to emit `{messageType:'template', templateName:'payment_rejection', templateParams:[], userId, consultationId}`. No button component (template self-renders it). Fixed-body template ⇒ no params. Backup `archive/backups/se82n3MUQ9xE5aEr-2026-06-09-09-49.json`. MCP strict valid:true 0 errors. JS-OK.
+- **WF-02** new `Normalize Template-Button Tap` Code node (tv2, floor) inserted `Validate Inputs → Normalize → Detect Route` (23→24 nodes). POST-FILTER. Maps approved button labels → internal ids via BUTTON_MAP {"Payment Completed"→payment_completed (PDF-17); "Leave Feedback"→btn_feedback, "Book Again"→btn_rebook, "Done, Thanks."→btn_done (PDF-19, pre-loaded/inert)}; sets messageType='interactive', messageContent=id, synthesizes `rawMessage.interactive.button_reply` so Detect Route + all downstream are UNCHANGED. Non-button msgs pass through. Backup `archive/backups/PubCsNTOspF3xqXZ-2026-06-09-09-46.json`. MCP strict valid:true 0 errors. Consumer-contract (Step 6c): Route Switch → Call WF-32/WF-43 are direct + passthrough trigger ⇒ normalized envelope reaches the handlers verbatim. JS-OK.
+- **WF-00** `Parse WhatsApp Message` (Code) — added `case 'button'` so a template tap is logged by its label (button.text) not `[BUTTON]`; keeps messageType='button' (WF-02 normalizes post-filter). Backup `archive/backups/JQu1MkK5vgtUCeNO-2026-06-09-09-42.json`. Lint advisory-only (Step 5g false-positives on internal code comments). JS-OK.
+- **WF-50:** UNCHANGED (template self-renders its button — confirmed `Prepare Template Message` already supports body-only templates; no button-component support needed).
+- Lint clean (advisory-only across all three); typeVersion floor held (only new node = Code tv2). All three `.pseudo` revised pseudo-first + stamped `live_reconciled_at` = post-PUT updatedAt (assert-pseudo-fresh FRESH).
+
+**DEFERRED — live WhatsApp smoke:** an actual out-of-window rejection send + a real "Payment Completed" template tap (to confirm the exact Meta inbound field/value the label-map keys on, and end-to-end retry routing). NOT run unilaterally (side-effecting external send). Run coordinated with the user, bundled with the PDF-15 + PDF-16 smoke.
 
 **Decision (DD-E / DD-1):** fixed-content message → **always a template**, one code path, no window branching. Free in-window (M2), cheap outside, always deliverable — exactly how payment **approval** already works (`consultation_activated`). The new **payment-rejection** utility template carries the fixed rejection copy + retry affordance. The retry button becomes a template quick-reply → its tap arrives in the M5 template shape (the inbound handler that processes the retry must accept it — verify at build whether this reuses PDF-19's dual-shape handling or is a separate tap).
 
@@ -585,8 +603,13 @@ The general-enquiry path's payment CTA was Gemini-phrased — incomplete (no UPI
 **Estimated tokens:** ~35K
 **Pseudo-impact:** yes — `WF-42.pseudo` send step + the button-tap handler's `.pseudo` (new template-tap shape).
 
+**⚡ Receiving side PRE-DELIVERED by PDF-17 (2026-06-09) — PDF-19 reduced to the WF-42 send swap.** PDF-17 built the shared template-button-tap handling that PDF-19's constraint (a) needs, and pre-loaded PDF-19's three button labels:
+- **WF-00** (`Parse WhatsApp Message`) already recognises the `button` (template quick-reply) inbound type.
+- **WF-02** (`Normalize Template-Button Tap`, post-filter) already maps `"Leave Feedback"→btn_feedback`, `"Book Again"→btn_rebook`, `"Done, Thanks."→btn_done` and reshapes the tap to the interactive `button_reply` form → routes to POST_CONSULT_TEXT (WF-43) exactly like today's interactive close buttons. These map entries are LIVE but inert until WF-42 sends the close as a template.
+- **So PDF-19's remaining work = WF-42 send (interactive 3-button → `consultation_closed` template) ONLY.** No separate post-close dual-shape handler is needed (it's done); just verify the 3 labels in the approved `consultation_closed` template EXACTLY match the WF-02 BUTTON_MAP keys (`"Leave Feedback"` / `"Book Again"` / `"Done, Thanks."`) — a label mismatch is the one thing that would break the map. Confirm at the deferred live smoke.
+
 **Decision (DD-E / DD-1 + M5):** close prompt → **always a template** so it always arrives regardless of the 24h window (same single-path approach as PDF-17). Two locked constraints:
-- **(a) Dual button-shape (M5), NOT two sets of buttons.** All **3** quick-reply buttons stay (Leave Feedback / Book Again / Done) with the same ids/wording. A *template* quick-reply tap arrives in a different webhook shape than the current interactive `button_reply` — so the post-close handler must parse **both** the template-tap shape (new close prompts) and the interactive shape (other flows still send interactive buttons: payment-completed, REBOOK).
+- **(a) Dual button-shape (M5), NOT two sets of buttons.** All **3** quick-reply buttons stay (Leave Feedback / Book Again / Done) with the same ids/wording. A *template* quick-reply tap arrives in a different webhook shape than the current interactive `button_reply` — **handled by the shared WF-02 normalizer PDF-17 added** (see the PRE-DELIVERED note above): the normalizer converts the template tap to the interactive `button_reply` form so the existing post-close handler (WF-43) needs no change, and the interactive shape (payment-completed, REBOOK from other flows) is untouched.
 - **(b) Preserve the post-close experience** fixed earlier this sprint — only the close prompt itself becomes a template; everything after the customer's first tap is the normal in-window flow (PDF-11 buttons stay available, PDF-14 time-neutral copy), unchanged.
 - Rewrite the existing **unused** `consultation_closed_feedback` template (0 sends, body mismatched) to match the current close copy + carry all 3 quick-reply buttons.
 
