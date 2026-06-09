@@ -1,5 +1,5 @@
 # Workflow Dependency Map
-Generated: 2026-06-05 16:32
+Generated: 2026-06-09 21:21
 
 ## Diagram
 ```mermaid
@@ -16,6 +16,7 @@ graph TD
   6PzJRZsF7k2d9hV7["WF-41 Admin -> User Relay"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   9Zt23yt8k8PQSgji["WF-61 U2 Silent-Drop & Escalate"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   BUVun38WEKb12zg9["WF-50 Send WhatsApp"] --> 6H75p935FpBVBQtV["WF-60 Message Logger"]
+  BUVun38WEKb12zg9["WF-50 Send WhatsApp"] --> wlZRK0YxnhP0b2RL["WF-51 Send Slack Message"]
   Du2CJ3OTohRFZYoA["WF-44 Feedback Recorder"] --> BUVun38WEKb12zg9["WF-50 Send WhatsApp"]
   GoTYo0GS2y8qjjkw["WF-11 Command Parser"] --> NcHZedq9ycnAQ9SW["WF-33 Payment Approval Processor"]
   GoTYo0GS2y8qjjkw["WF-11 Command Parser"] --> fx70vqyJtRdF2DgR["WF-42 Consultation Closer"]
@@ -92,7 +93,7 @@ graph TD
   "3va0M06kijgyLejf": { "name": "WF-43 Post-Consultation Handler", "calls": ["eTV1lUcYrXBg2q2T", "MUG7rPgSHc7UtAE9", "Du2CJ3OTohRFZYoA", "BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL", "ONzUJ1Lj9hIbUYT0", "9Zt23yt8k8PQSgji"] },
   "6PzJRZsF7k2d9hV7": { "name": "WF-41 Admin -> User Relay", "calls": ["BUVun38WEKb12zg9"] },
   "9Zt23yt8k8PQSgji": { "name": "WF-61 U2 Silent-Drop & Escalate", "calls": ["wlZRK0YxnhP0b2RL"] },
-  "BUVun38WEKb12zg9": { "name": "WF-50 Send WhatsApp", "calls": ["6H75p935FpBVBQtV"] },
+  "BUVun38WEKb12zg9": { "name": "WF-50 Send WhatsApp", "calls": ["6H75p935FpBVBQtV", "wlZRK0YxnhP0b2RL"] },
   "Du2CJ3OTohRFZYoA": { "name": "WF-44 Feedback Recorder", "calls": ["BUVun38WEKb12zg9"] },
   "GoTYo0GS2y8qjjkw": { "name": "WF-11 Command Parser", "calls": ["NcHZedq9ycnAQ9SW", "fx70vqyJtRdF2DgR", "wlZRK0YxnhP0b2RL", "se82n3MUQ9xE5aEr", "UV62An60fzflU0uD"] },
   "HB8nXudAtk9iXz7C": { "name": "WF-31 Payment Submitted Handler", "calls": ["eTV1lUcYrXBg2q2T", "BUVun38WEKb12zg9", "wlZRK0YxnhP0b2RL", "ONzUJ1Lj9hIbUYT0"] },

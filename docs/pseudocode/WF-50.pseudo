@@ -1,3 +1,7 @@
+---
+wf_id: WF-50
+live_reconciled_at: 2026-06-09T11:08:46.493Z
+---
 WF-50 — Send WhatsApp
 
 ## Summary
@@ -9,13 +13,15 @@ WF-50 — Send WhatsApp
     - template: `templateName` (string, required when messageType='template'), `templateParams` (array, required when messageType='template')
   Optional logging context (pass-through to WF-60): `userId`, `consultationId`, `inboundMessageId`, `userMessage`.
   **Removed from contract:** `message`, `messageBody` fallback keys — the entry guard at Step 2 throws on any caller still using these.
-- Outputs: WhatsApp message delivered via Meta Graph API; message logged via WF-60 (direction='outbound'); return { success, messageId, error, phoneNumber, sentAt } to caller. On null/empty body drop: also logs to WF-60 with success=false, error='empty_body_dropped', and returns the same structured error to the caller.
+- Outputs: WhatsApp message delivered via Meta Graph API; message logged via WF-60 (direction='outbound'); return { success, messageId, error, phoneNumber, sentAt } to caller. On null/empty body drop: also logs to WF-60 with success=false, error='empty_body_dropped', and returns the same structured error to the caller. **On a Meta send REJECTION (a real send that Meta refused → success=false): additionally posts a plain-language delivery-failure notice to Dr. Chinmay via WF-51 (PDF-16) — to the customer's consult channel (resolved phone→`users.slack_channel_id`), or the admin channel `C0A5B0ZE81E` when no consult channel exists. The notice fires on Meta rejections only, never on the internal empty_body drop. The caller still receives the same structured `success=false` return — WF-50 no longer throws on a Meta rejection.**
 - State Transitions: none
-- Calls Sub-Workflows: WF-60 (Message Logger)
+- Calls Sub-Workflows: WF-60 (Message Logger) · WF-51 (Slack sender — failure-notice branch only, PDF-16)
 - **Notes:**
   - Null/empty body guard (TD-033) applies to all three messageType paths: text body, interactive payload, and templateName.
   - The guard always logs the drop attempt (success=false, error='empty_body_dropped') and returns a structured error to the caller — no silent drops.
   - Content extraction for WF-60 logging (TD-F, 2026-05-21): the messageContent field passed to WF-60 must be human-readable for all three messageType paths so `messages.content` is non-NULL and useful in audit. The per-type extraction described in Step 11 below is canonical; both the success path (`Build WF-60 Payload (Outbound)`) and the drop path (`Build WF-60 Drop Payload`) must implement it. Metadata is enriched with `buttons` (interactive) or `templateParams` (template) so the original send payload remains inspectable.
+  - **Send-node error capture (PDF-16, 2026-06-09):** all three send nodes (`Send Text Message`, `Send Interactive Message`, `Send Template Message`) run `onError='continueRegularOutput'` with `retryOnFail` ×3. A transient error retries; a persistent Meta rejection (4xx — e.g. out-of-window 131047, paused template 132xxx, bad number) is then emitted as a data item carrying the Meta error rather than throwing, so `Process Result` (Step 12) detects `success=false`. Before PDF-16 these nodes had no `onError`, so a persistent rejection halted the whole workflow and `Process Result` never ran — the failure was invisible. The failure-notice branch (Steps 13–16) depends on this capture.
+  - **Failure-notice channel resolution (PDF-16):** the consult channel is resolved by `phone→users.slack_channel_id`; pre-form sends (WF-21 welcome / WF-23 pre-form) have no consult channel yet → the notice falls back to the admin channel `C0A5B0ZE81E` so nothing is silently dropped (DD-16a). Notice text follows the business-language rule (no WF-XX/field/DB jargon).
 
 ---
 
@@ -34,23 +40,29 @@ Step 4: Guard: detect missing/empty body per messageType (TD-033 finer-grained s
   - text → messageContent is whitespace-only after trimming.
   - interactive → interactivePayload.type is neither 'flow' nor 'button', OR for flow: flowId is empty, OR for button: action.buttons is empty/missing.
   - template → templateName resolves to empty after trimming.
-  If ANY of the above is true: set success=false, error='empty_body_dropped'. Go to Step 5 (log drop) → Step 14 (return structured error).
+  If ANY of the above is true: set success=false, error='empty_body_dropped'. Go to Step 5 (log drop) → Step 18 (return structured error). NOTE: the empty_body drop path does NOT trigger the Step 13 failure-notice (DD-16b — notice is for Meta rejections only; nothing was sent here).
   Else → go to Step 6.
-Step 5: Call WF-60 (Message Logger) with { userId, consultationId, phoneNumber, messageType, messageContent: '[empty_body_dropped]', messageId: null, direction='outbound', success: false, error: 'empty_body_dropped', metadata:{ drop:true, dropReason:'empty_body_dropped' } }. Go to Step 14.
+Step 5: Call WF-60 (Message Logger) with { userId, consultationId, phoneNumber, messageType, messageContent: '[empty_body_dropped]', messageId: null, direction='outbound', success: false, error: 'empty_body_dropped', metadata:{ drop:true, dropReason:'empty_body_dropped' } }. Go to Step 18.
 Step 6: Route on messageType:
   - 'text' → go to Step 7
   - 'interactive' → go to Step 8
   - 'template' → go to Step 10
-Step 7: Send text via WhatsApp node (operation=send, phoneNumberId=1104226366097236, recipient=phoneNumber, body=messageContent, timeout=10s). Go to Step 12.
+Step 7: Send text via WhatsApp node (operation=send, phoneNumberId=1104226366097236, recipient=phoneNumber, body=messageContent, timeout=10s; onError=continueRegularOutput + retryOnFail×3 per PDF-16 — a persistent Meta rejection is emitted as a `{error}` data item, not thrown). Go to Step 12.
 Step 8: Build interactive payload (Prepare Interactive Message code):
   - If interactivePayload.type=='flow': build { messaging_product:'whatsapp', to, type:'interactive', interactive:{ type:'flow', header.text, body.text, footer:'Tap below to continue', action:{ name:'flow', parameters:{ flow_message_version:'3', flow_token=<Date.now()>, flow_id=interactivePayload.flowId, flow_cta=interactivePayload.flowCta, flow_action:'navigate', flow_action_payload:{ screen = interactivePayload.flowScreen || 'DETAILS_SCREEN' } } } } }. (flow_action_payload.screen is REQUIRED by Meta for flow_action:'navigate' — without it the client throws "Something went wrong" on open even though the send API accepts the message. Screen defaults to the published flow's entry screen 'DETAILS_SCREEN'; overridable per-caller via interactivePayload.flowScreen.)
   - If interactivePayload.type=='button': build { messaging_product:'whatsapp', to, type:'interactive', interactive:{ type:'button', body.text, action.buttons=interactivePayload.action.buttons } }.
   Go to Step 9.
-Step 9: POST https://graph.facebook.com/v22.0/1104226366097236/messages with the interactive payload (auth = WhatsApp credential, timeout 10s). Go to Step 12.
+Step 9: POST https://graph.facebook.com/v22.0/1104226366097236/messages with the interactive payload (auth = WhatsApp credential, timeout 10s; onError=continueRegularOutput + retryOnFail×3 per PDF-16). Go to Step 12.
 Step 10: Build template payload (Prepare Template Message code): build components from templateParams (type:'body' with text parameters) and assemble { messaging_product:'whatsapp', to, type:'template', template:{ name=templateName, language.code='en', components } }. Go to Step 11.
-Step 11: POST https://graph.facebook.com/v22.0/1104226366097236/messages with the template payload (timeout 10s). Go to Step 12.
-Step 12: Process API response (Process Result code): if response.messages[0] present → success=true, messageId=response.messages[0].id; else if response.error → success=false, error=response.error.message; else fallback success=true, messageId='unknown'. Carry phoneNumber, messageType, messageContent, userId, inboundMessageId, userMessage, sentAt=now. Go to Step 13.
-Step 13: Call WF-60 (Message Logger) with the canonical WF-60 input shape (per §2.6, transport='wa' direction='outbound'):
+Step 11: POST https://graph.facebook.com/v22.0/1104226366097236/messages with the template payload (timeout 10s; onError=continueRegularOutput + retryOnFail×3 per PDF-16). Go to Step 12.
+Step 12: Process API response (Process Result code): if response.messages[0] present → success=true, messageId=response.messages[0].id; else if response.error → success=false, error=response.error.message; else fallback success=true, messageId='unknown'. (The onError-captured Meta-rejection item from Steps 7/9/11 carries `.error`, so it lands on the `success=false` branch here.) Carry phoneNumber, messageType, messageContent, userId, inboundMessageId, userMessage, sentAt=now. Go to Step 13.
+Step 13: Send Failed? (IF) — branch on `success`:
+  - success == false → go to Step 14 (Meta rejection → notify Dr. Chinmay).
+  - success == true  → go to Step 17 (normal logging path; no notice).
+Step 14: Lookup Consult Channel (Postgres, executeQuery, alwaysOutputData=true, case-1 guard): `SELECT slack_channel_id FROM chinmay_astro.users WHERE phone_number = $1 LIMIT 1`, queryReplacement `[phoneNumber]` (phoneNumber from Process Result). 0 rows (pre-form sender / unknown phone) → empty result → handled in Step 15 by falling back to the admin channel. Go to Step 15.
+Step 15: Build Failure Notice (Code): channelId = (lookup row's slack_channel_id, if present) ELSE admin channel `C0A5B0ZE81E` (DD-16a). messageText = business-language delivery-failure notice naming the customer's phone and a short reason from Process Result's `error` (no WF-XX / DB / field jargon, per Step 5g). Emit { channelId, messageText } — exactly the WF-51 contract. Go to Step 16.
+Step 16: Call WF-51 (Failure Notice) with { channelId, messageText } (defineBelow + value:{}, mode=once). WF-51 posts to Slack; no recursion through WF-50. Go to Step 17.
+Step 17: Call WF-60 (Message Logger) with the canonical WF-60 input shape (per §2.6, transport='wa' direction='outbound'):
    { transport:'wa', direction:'outbound', userId, consultationId, messageType, phoneNumber,
      whatsappMessageId: messageId,
      content:  (messageType=='text'        ? messageContent
@@ -66,8 +78,9 @@ Step 13: Call WF-60 (Message Logger) with the canonical WF-60 input shape (per �
             ? { templateParams }
             : {})
      }
-   }. Go to Step 14.
+   }. Go to Step 18.
    (Drop path Step 5 applies the same per-type content rule, with `metadata.drop=true` and `metadata.dropReason='empty_body_dropped'`.)
-Step 14: Build return object (Return Status code): { success, messageId, error, phoneNumber, sentAt }. Go to Step 15.
-Step 15: Return that object to the calling workflow.
-Step 16: End.
+   NOTE (PDF-16): Steps 13(FALSE) and 16 both converge here, so `Build WF-60 Payload (Outbound)` reads its send result from `$('Process Result')` (always-executed, upstream of the Step-13 fork) — NOT from `$input` — so it is correct on both the normal and failure-notice branches.
+Step 18: Build return object (Return Status code): read from `$('Process Result')` → { success, messageId, error, phoneNumber, sentAt }. (Always-executed source → returns the same structured success=false to the caller on the failure-notice branch; WF-50 no longer throws on a Meta rejection.) Go to Step 19.
+Step 19: Return that object to the calling workflow.
+Step 20: End.

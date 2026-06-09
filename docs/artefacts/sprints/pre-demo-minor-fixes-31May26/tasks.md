@@ -102,10 +102,10 @@ once.** There is no locking. To avoid clobbering each other:
 | PDF-13 | 🟡 P2 | WF-31 payment_submitted replies had two different styles | ✅ done | — |
 | PDF-14 | 🟡 P2 | WF-43 post-consult "Welcome back" incoherence + REBOOK-only CTA | ✅ done | — |
 | PDF-15 | 🔴 P0 | Astrologer's reply silently never reaches the customer if their last message was >24h ago | ✅ done | — |
-| PDF-16 | 🟠 P1 | When a message to the customer fails to send, the astrologer is never told | 🆕 triaged | — |
+| PDF-16 | 🟠 P1 | When a message to the customer fails to send, the astrologer is never told | 🟢 done | re-homed to WF-50 chokepoint; see state.md |
 | PDF-17 | 🟠 P1 | Payment-rejection message can't reach the customer if rejected after a long gap | 🟢 done | — |
 | PDF-18 | 🟠 P1 | No reminder to the astrologer that the free-reply window is about to close | 🆕 triaged | — |
-| PDF-19 | 🟡 P2 | Consultation-close prompt can't reach the customer if closed after a long gap | 🆕 triaged | — |
+| PDF-19 | 🟡 P2 | Consultation-close prompt can't reach the customer if closed after a long gap | 🟢 done | WF-42 send→consultation_closed template; receiving side pre-built by PDF-17 |
 
 ---
 
@@ -278,9 +278,9 @@ delivered.
 
 ### PDF-16 · Failed customer messages are invisible to the astrologer
 
-**Status:** 🆕 triaged
-**Priority:** 🟠 P1 | **Owner session:** —
-**Change type:** TBD — determine fix location in plan/brainstorm.
+**Status:** 🟢 done
+**Priority:** 🟠 P1 | **Owner session:** build-pre-demo-minor-fixes-8Jun26-3
+**Change type:** Structural — re-homed to WF-50 (outbound chokepoint): catch Meta rejection + report via WF-51. Build detail in state.md.
 **Related:** PDF-15 (this is the backstop beneath the relay gate); applies equally to PDF-17/PDF-19.
 
 **What (customer-facing / admin-facing):** When a message we try to send the customer is rejected by
@@ -446,9 +446,9 @@ every customer-facing message.
 
 ### PDF-19 · Consultation-close prompt unreachable after a long gap
 
-**Status:** 🆕 triaged
-**Priority:** 🟡 P2 | **Owner session:** —
-**Change type:** TBD — determine fix location in plan/brainstorm.
+**Status:** 🟢 done
+**Priority:** 🟡 P2 | **Owner session:** build-pre-demo-minor-fixes-8Jun26-3
+**Change type:** Structural — WF-42 single-node send swap (interactive 3-button → `consultation_closed` template); receiving side pre-built by PDF-17. Build detail in state.md.
 **Related:** PDF-17 (sibling fixed-content "always template" conversion); PDF-15 (same 24h-window root);
 PDF-11 / PDF-14 (the post-close experience this must preserve).
 

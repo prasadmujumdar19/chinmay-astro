@@ -1,9 +1,13 @@
+---
+wf_id: WF-42
+live_reconciled_at: 2026-06-09T11:17:01.248Z
+---
 WF-42 — Consultation Closer
 
 ## Summary
 
 - Inputs: WF-10 §2.2 Command Envelope — { commandType, phoneNumber, reason, adminUserId, channelId, channelName, messageText, user:{id, name, phone_number, status, slack_channel_id} } — triggered by WF-11 (admin CLOSE handler)
-- Outputs: consultations row closed, users row updated, WhatsApp feedback/rebook prompt sent (2 buttons), Slack confirmation in consult channel
+- Outputs: consultations row closed, users row updated, WhatsApp close prompt sent as the approved `consultation_closed` UTILITY TEMPLATE (PDF-19 — always-template, deliverable regardless of the 24h window; 3 self-rendered quick-reply buttons), Slack confirmation in consult channel
 - State Transitions: consultation_active → consultation_closed
 - Calls Sub-Workflows: WF-50 (Send WhatsApp), WF-51 (Send Slack via Notify Admin in Slack node)
 
@@ -19,11 +23,14 @@ WF-42 — Consultation Closer
 Step 1: Start — triggered by WF-11 (admin CLOSE handler) with §2.2 Command Envelope: { commandType, phoneNumber, reason, adminUserId, channelId, channelName, messageText, user:{id, name, phone_number, status, slack_channel_id} }.
 Step 2: UPDATE chinmay_astro.consultations SET status='closed', ended_at=NOW(), closed_by='admin' WHERE user_id = user.id AND status='active' RETURNING *. (user.id read from §2.2 envelope.)
 Step 3: UPDATE chinmay_astro.users SET status='consultation_closed', current_consultation_id=NULL, total_consultations = total_consultations + 1, updated_at=NOW() WHERE id = user.id RETURNING *. (user.id read from §2.2 envelope.)
-Step 4: Build interactive WhatsApp payload using envelope fields (two buttons):
+Step 4: Build the close prompt as the approved `consultation_closed` UTILITY TEMPLATE send (PDF-19 — DD-E/DD-1: always-template so it reaches the customer regardless of the 24h window), using envelope fields:
   - phoneNumber = user.phone_number (from §2.2 envelope)
-  - body.text = "✨ Your consultation with Chinmay is complete, <user.name>! We hope it was insightful.\n\nWould you like to share your experience or book another session?\n\nIn the meantime, you can ask any general questions here, or email chinmay_astro@gmail.com if you need anything we can't help with right now."
-  - buttons: [ {id: btn_feedback, title: "Leave Feedback"}, {id: btn_rebook, title: "Book Again"}, {id: btn_done, title: "Done, thanks"} ]
-Step 5: Call WF-50 with phoneNumber, messageType=interactive, interactivePayload=<payload above>.
+  - messageType = 'template'
+  - templateName = 'consultation_closed'
+  - templateParams = [ user.name ]   // body var {{1}} = customer name (M4-safe — a name carries no newline/tab/4+-space)
+  - userId = user.id ; consultationId = user.current_consultation_id   // passthrough for WF-60 logging
+  The template self-renders (Meta-side, fixed at creation): header "Your consultation is closed now."; body "✨ Your consultation with Dr. Chinmay is complete, {{1}}! For any follow-ups, either choose below or email chinmay_astro@gmail.com if you need anything we can't help with right now."; footer "Regards, Chinmay Astro"; and 3 quick-reply buttons — "Leave Feedback" / "Book Again" / "Done, Thanks." These labels EXACTLY match WF-02 `Normalize Template-Button Tap` BUTTON_MAP keys → a tap arrives in the M5 template-button shape, WF-00 logs by label, WF-02 maps label→internal id (btn_feedback/btn_rebook/btn_done) and reshapes to the interactive button_reply form, so WF-43 (post-consult) routes UNCHANGED (receiving side pre-delivered by PDF-17). WF-50 sends body-only — the template self-renders its baked quick-reply buttons, no button component.
+Step 5: Call WF-50 with { phoneNumber, messageType='template', templateName, templateParams, userId, consultationId }.
 Step 6: Post to Slack channel using envelope fields — channelId = user.slack_channel_id (from §2.2 envelope); messageText = "✅ Consultation closed for <user.name> (<user.phone_number>). Feedback prompt sent via WhatsApp; channel kept open for future rebook."
 Step 7: Call WF-51 with the Slack notification payload.
 Step 8: End.

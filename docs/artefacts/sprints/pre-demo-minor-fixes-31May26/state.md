@@ -59,10 +59,10 @@
 | PDF-13 | 🟢 done | 8 | P2 | WF-31 | PDF-12 (soft — same canonical-block pattern) |
 | PDF-14 | 🟢 done | 8 | P2 | WF-43 | PDF-11 (soft — same WF-43 reply path) |
 | PDF-15 | 🟢 done | 9 | P0 | WF-41/50/51 | template:`astrology_service_update` ✅ Active · PDF-18 (soft — shared window source) |
-| PDF-16 | ⬜ pending | 10 | P1 | WF-41/34/42 | PDF-15 (soft — backstop for its residual send failures) |
+| PDF-16 | 🟢 done | 10 | P1 | WF-50/51 | PDF-15 (soft — backstop for its residual send failures) |
 | PDF-17 | 🟢 done | 10 | P1 | WF-34/02/00 | template:`payment_rejection` ✅ Active · PDF-16 (soft — same WF-34) · PDF-19 (soft sibling) |
 | PDF-18 | ⬜ pending | 11 | P1 | WF-7x (new) | PDF-15 (soft — shared `messages` window source) |
-| PDF-19 | ⬜ pending | 12 | P2 | WF-42 (button handler pre-done by PDF-17) | template:`consultation_closed` ✅ Active (NOT `consultation_closed_feedback` — that one Meta reclassified to Marketing) · PDF-17 (soft sibling — delivered PDF-19's receiving side) |
+| PDF-19 | 🟢 done | 12 | P2 | WF-42 (button handler pre-done by PDF-17) | template:`consultation_closed` ✅ Active (NOT `consultation_closed_feedback` — that one Meta reclassified to Marketing) · PDF-17 (soft sibling — delivered PDF-19's receiving side) |
 
 ## Batch 1 — P0
 
@@ -510,20 +510,48 @@ The general-enquiry path's payment CTA was Gemini-phrased — incomplete (no UPI
 
 ## PDF-16 — Failed customer-bound sends are invisible to the astrologer
 
-**Status:** ⬜ pending
+**Status:** 🟢 done
+**Started:** 2026-06-09T10:56:19Z
+**Completed:** 2026-06-09T11:11:10Z
+**Actual tokens:** ~110K (WF-50 .md/.pseudo reads + 18-caller downstream audit + 2 PUTs + MCP strict/per-node validates)
+**Actual effort:** ~15 min
+**Estimate delta:** on-bucket (planned M ~35K reasoning; raw count inflated by the large WF-50.md read + MCP validate payloads; the build itself was M)
+**Owner session:** build-pre-demo-minor-fixes-8Jun26-3
 **Priority:** P1 | **Batch:** 10
-**Change type:** Structural — customer-bound callers read WF-50 `success=false` and post an in-channel notice; primary surface WF-41, also WF-34/WF-42.
-**Workflows:** WF-41, WF-34, WF-42 (callers) · WF-50 (already returns the failure) · WF-51 (notice)
-**n8n IDs:** `6PzJRZsF7k2d9hV7` (WF-41) · `se82n3MUQ9xE5aEr` (WF-34) · `fx70vqyJtRdF2DgR` (WF-42) · `BUVun38WEKb12zg9` (WF-50) · `wlZRK0YxnhP0b2RL` (WF-51)
-**Depends on:** PDF-15 (soft — this is the backstop for PDF-15's residual send failures; build close together) · PDF-17 (soft — same WF-34, sequence within Batch 10)
+**Change type:** Structural — single workflow WF-50 (the outbound chokepoint): catch the Meta rejection as data + post an in-channel failure notice via WF-51. (Re-homed from the planned per-caller scope — see Approach redesign below.)
+**Workflows:** WF-50 (catch + report) · WF-51 (notice)
+**n8n IDs:** `BUVun38WEKb12zg9` (WF-50) · `wlZRK0YxnhP0b2RL` (WF-51)
+**Depends on:** PDF-15 (soft — this is the backstop for PDF-15's residual send failures; build close together) · PDF-17 (soft — same WF-34, sequence within Batch 10) — NOTE both deps now moot: the redesign means PDF-16 no longer touches WF-34/WF-41/WF-42, so no same-workflow sibling coupling remains.
 **Design gate:** false
 **Size:** M
 **Estimated tokens:** ~35K (incremental share within Batch 10)
-**Pseudo-impact:** yes — add the failure-notice branch to each caller's `.pseudo`.
+**Pseudo-impact:** yes — revise `WF-50.pseudo` (catch-error + failure-notice branch). No per-caller `.pseudo` edits needed.
 
-**Decision (DD-4):** the WF-50 sender already detects Meta failure (`success=false` + error); the customer-bound callers currently ignore it. Each must, on `success=false`, post a clear plain-language notice to Dr. Chinmay in the relevant consult channel via WF-51 — no silent drops. Cross-cutting safety net beneath PDF-15's app-side gate (catches even failures the gate didn't predict). Admin-tone rule applies: business language, no WF-XX/field jargon ([[feedback_admin_message_tone]]).
+**Decision (DD-4):** any customer-bound send Meta rejects must be surfaced to Dr. Chinmay in the consult channel — no silent drops. Admin-tone rule applies: business language, no WF-XX/field jargon ([[feedback_admin_message_tone]]).
 
-**Acceptance:** any customer-bound message WhatsApp rejects produces a clear in-channel notice to Dr. Chinmay; no customer-bound send fails silently. Spec DD-4.
+**APPROACH REDESIGN — re-homed to WF-50 (2026-06-09, build-time cross-cutting audit + user steer).** The plan scoped this to 3 named callers (WF-41/34/42) on the premise *"WF-50 already returns `success=false`; the callers just ignore it."* Two build-time findings overturned that scope:
+- **Caller-count audit (fresh dependency-map):** WF-50 has **18 callers**, ~15 customer-bound (WF-21/22/30/31/32/33/41/42/34/43/44/45/47…). DD-4's literal principle ("*any* customer-bound send") spans all of them, not 3. Patching N receivers is the wrong shape — WF-50 is the single chokepoint every outbound WhatsApp send flows through, so the detect-and-report belongs there once.
+- **Audit-vs-reality drift (verified live):** the 3 send nodes (`Send Text/Interactive/Template`) have `onError:null` (default = stopWorkflow) + `retryOnFail:3`. On a real Meta rejection they retry 3× then **throw**, halting WF-50 — `Process Result` never runs, so WF-50 does **NOT** currently return the `success=false` the plan assumed. A caller-side fix would therefore require every one of ~15 callers to set `continueOnFail` on its WF-50 call AND parse a thrown error — strictly messier. The throw→catch→report has exactly one correct home: WF-50.
+
+**Locked design (user-approved 2026-06-09):**
+1. **Catch the Meta error** — make the 3 send nodes surface the rejection as data (so `Process Result` computes `success=false`) instead of throwing; keep `retryOnFail:3` for transient errors.
+2. **Report** — after `Process Result`, on `success=false`, post a plain-language notice to Dr. Chinmay via WF-51.
+3. **Resolve channel** — WF-50 has `phoneNumber` (always) + `userId` (usually), NOT `slack_channel_id`; failure path does `SELECT slack_channel_id FROM chinmay_astro.users WHERE phone_number=$1`.
+   - **DD-16a (locked):** no consult channel (pre-form sends — WF-21 welcome / WF-23 pre-form) → **fall back to admin channel `C0A5B0ZE81E`** (chinmay-admin-commands). No silent drops even pre-consult.
+   - **DD-16b (locked):** notice fires on **Meta rejections only** (a send Meta refused). The internal `empty_body_dropped` guard path is a caller-bug class, already logged to WF-60 success=false — left untouched (no Slack notice).
+- Notice goes via WF-51 (Slack) → no recursion through WF-50.
+
+**Acceptance:** any customer-bound message WhatsApp rejects produces a clear in-channel notice to Dr. Chinmay (consult channel, or admin channel if pre-form); no customer-bound send fails silently; happy-path sends unchanged. Spec DD-4.
+
+**Build summary (2026-06-09, build-pre-demo-minor-fixes-8Jun26-3):**
+- **WF-50 only, 18→22 nodes.** jq-on-disk + curl PUT (2 PUTs). Backup `archive/backups/BUVun38WEKb12zg9-2026-06-09-20-59.json`.
+- **Catch:** `Send Text/Interactive/Template` nodes set `onError=continueRegularOutput` (retryOnFail×3 preserved) → a persistent Meta 4xx is now emitted as a `{error}` data item, so `Process Result` computes `success=false` instead of the node throwing + halting the workflow (the root the plan missed).
+- **Branch:** new `Send Failed?` IF (v2, WF-50 floor) inserted after `Process Result`. TRUE (`success=false`) → `Lookup Consult Channel` (Postgres v2.6 = project floor from sibling WF-41; executeQuery, alwaysOutputData=true, `SELECT slack_channel_id … WHERE phone_number=$1`, queryReplacement reads `$('Process Result')…phoneNumber`; hardened with onError=continueRegularOutput + retry×3 so a DB hiccup still yields an admin-channel notice) → `Build Failure Notice` (Code v2; channelId = row.slack_channel_id ELSE `C0A5B0ZE81E`; business-tone text naming phone + Meta reason) → `Call WF-51 (Failure Notice)` (executeWorkflow v1.2, defineBelow+value:{}) → converge. FALSE → existing logging path.
+- **Convergence robustness:** `Build WF-60 Payload (Outbound)` re-pointed from `$input.first()` → `$('Process Result').first()` (always-executed, upstream of the fork) so the WF-60 log carries the real send result on BOTH branches; `Return Status` already read `$('Process Result')`. So the caller still gets the same `{success,messageId,error,phoneNumber,sentAt}` — WF-50 no longer throws on a Meta rejection.
+- **Impact analysis:** 18 WF-50 callers; 16 have downstream-of-send logic (admin-notify prep / control-return / 2nd-message). Behavioral delta (caller now continues past a failed send vs. erroring) is benign-to-beneficial in every case; no state-write gated on send success. Return contract unchanged → no caller edit needed.
+- **Verify:** lint hook exit 0; MCP strict `valid:true` 0 errors (35 warnings all advisory/pre-existing — typeVersion-floor holds, IF main[1] false-positive "error output", cachedResultName cosmetic); per-node strict on Postgres + executeWorkflow `valid:true` 0 errors/0 warnings; typeVersion diff = only +postgres 2.6 (new type at documented floor); bypass scan clean (no `$('<conditional-node>')` refs); both code nodes `node --check` OK; secrets clean. `WF-50.pseudo` revised pseudo-first (Steps 13–20 + onError notes), stamped `live_reconciled_at=2026-06-09T11:08:46.493Z` (assert-pseudo-fresh FRESH).
+- **Lint advisory accepted:** `Call WF-51 (Failure Notice)` upstream is a Code node (`Build Failure Notice`) not a Set v3.4 — consistent with the existing `Build WF-60 Payload`→`Call WF-60` Code→executeWorkflow pattern in this same workflow; Contract-First advisory only.
+- **DEFERRED — live Meta-rejection smoke:** forcing a real Meta 4xx (out-of-window / paused-template send to a real number) is a side-effecting external send — bundle with the deferred PDF-15 + PDF-17 coordinated smoke. Multi-part note: with PDF-15's WF-41 mode='each', a multi-part out-window relay that fails would fire one notice per failed part (acceptable; each part genuinely failed).
 
 ## PDF-17 — Payment-rejection message unreachable after a long gap
 
@@ -592,7 +620,13 @@ The general-enquiry path's payment CTA was Gemini-phrased — incomplete (no UPI
 
 ## PDF-19 — Consultation-close prompt unreachable after a long gap
 
-**Status:** ⬜ pending
+**Status:** 🟢 done
+**Started:** 2026-06-09T11:13:00Z
+**Completed:** 2026-06-09T11:18:57Z
+**Owner session:** build-pre-demo-minor-fixes-8Jun26-3
+**Actual tokens:** ~45K (WF-42 .md/.pseudo + WF-02/WF-00 normalizer verification reads + 2 PUTs)
+**Actual effort:** ~6 min
+**Estimate delta:** on-bucket (planned M ~35K; shrunk to single-node swap by PDF-17's pre-built receiving side, raw count near plan)
 **Priority:** P2 | **Batch:** 12
 **Change type:** Structural — WF-42 Consultation Closer (`fx70vqyJtRdF2DgR`) interactive 3-button → always-template; post-close button-tap handler accepts both webhook shapes.
 **Workflows:** WF-42 · post-close button-tap handler (pinpoint live at build — WF-43 / inbound router area)
@@ -624,3 +658,10 @@ The general-enquiry path's payment CTA was Gemini-phrased — incomplete (no UPI
 - Note: the template ADDS a header + footer the current interactive close message doesn't have — accepted (user-authored, trimmed for Utility approval); PDF-11/PDF-14 post-tap experience is unchanged.
 
 **Acceptance:** closing a consultation always delivers the wrap-up prompt with all 3 options working, regardless of the 24h window; the existing post-close experience (buttons available, time-neutral copy) is unchanged. Spec DD-1 §5.
+
+**Build summary (2026-06-09, build-pre-demo-minor-fixes-8Jun26-3):**
+- **WF-42 only, 7 nodes unchanged — single-node swap.** `Prepare Feedback Message` (Code) rewritten from the interactive 3-button payload to a template send: `{ phoneNumber, messageType:'template', templateName:'consultation_closed', templateParams:[user.name], userId:user.id, consultationId:user.current_consultation_id }`. jq-on-disk + curl PUT. Backup `archive/backups/fx70vqyJtRdF2DgR-2026-06-09-21-15.json`.
+- **Receiving side confirmed pre-built (the PDF-19 build pre-check, state.md line 609):** read live WF-02 `Normalize Template-Button Tap` — it keys on `raw.button.text` (label), and its `BUTTON_MAP` keys `'Leave Feedback'`/`'Book Again'`/`'Done, Thanks.'` EXACTLY match the approved `consultation_closed` template button labels. WF-00 `Parse WhatsApp Message` already logs the `button` (M5) shape by label. So a template tap → WF-00 (log by label) → WF-02 (label→btn_*, reshape to interactive button_reply) → WF-43 routes UNCHANGED. No WF-50 / WF-43 / WF-00 / WF-02 edit needed.
+- **WF-50 unchanged** — `Prepare Template Message` sends body-only (`templateParams`→{{1}} body var = customer name); the template self-renders its baked quick-reply buttons (same pattern as PDF-17's payment_rejection). M4-safe (the only param is a name).
+- **Verify:** lint hook exit 0; MCP strict `valid:true` 0 errors (11 warnings all pre-existing/advisory — typeVersion floor holds, cachedResultName cosmetic, DB-error-handling advisories on the pre-existing Close/Update UPDATEs which should halt on failure). Consumer-contract (6c): WF-50 template-variant entry guard satisfied (templateName string + templateParams array). `node --check` OK. Caught + fixed mid-build: the MCP `{{...}}`-in-Code-node validator hard-flagged a literal `{{1}}` in a *code comment* → reworded the comment, re-PUT clean. `WF-42.pseudo` revised pseudo-first (Steps 4–5 + Outputs; also corrected two pre-existing pseudo drifts — "two buttons"→three, "Chinmay"→"Dr. Chinmay") and stamped `live_reconciled_at=2026-06-09T11:17:01.248Z` (assert-pseudo-fresh FRESH).
+- **DEFERRED — live close→template-tap smoke:** an actual CLOSE → `consultation_closed` template delivery + a real button tap end-to-end (confirms the M5 inbound label value the WF-02 map keys on). Side-effecting external send — bundle with the deferred PDF-15 + PDF-16 + PDF-17 coordinated smoke.
