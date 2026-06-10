@@ -40,6 +40,16 @@
 - **OPEN before build (list view hides these; trimmed bodies may have dropped them):** confirm `consultation_closed` still carries all 3 quick-reply buttons (Leave Feedback / Book Again / Done, thanks) + whether it kept a `{{1}}` name var; confirm `payment_rejection` still carries the retry button (Payment Completed ✓) + var count; confirm `astrology_service_update` has exactly one `{{1}}`; confirm the language code matches `consultation_activated` for all sends. Build-sprint Batch 9/10/12 entry must verify the exact approved template structure (name, language, body params, button params) before authoring the WF-50 template send — a mismatch fails the send (Meta error 132000/132001).
 - **Dependency conflicts found (PDF-15..19):** none. PDF-16(P1)→PDF-15(P0) and PDF-18(P1)→PDF-15(P0) both point at a higher-priority item that runs first; PDF-19(P2) sibling of PDF-17(P1) runs later — priority order and dependency order agree. Not a single-root cluster (each is a distinct fix in a distinct workflow) → standard priority-tier batches, no mixed-priority collapse.
 
+**Coordinated live smoke COMPLETED — 2026-06-10T11:27:39Z.** The deferred 24h-window deliverability smoke (PDF-15/16/17/18/19 + emergent PDF-20/21) was run end-to-end against a real WhatsApp number (61466927921 / user 41) via the `monitor-test-run` skill. Full log + 3-layer HTML report: `docs/artefacts/tests/smoke-24h-window-deliverability-2026-06-10/report.html`. **Results — all happy paths GREEN:**
+- **PDF-17** ✅ payment REJECT → `payment_rejection` template delivered out-of-window; "Payment Completed" retry tap → WF-02 normalizer → re-submit (execs 4105/4118/4119).
+- **PDF-15** ✅ in-window relay → free-form text (exec 4141); out-window relay → template (exec 4149).
+- **PDF-20** ✅ DECISIVELY verified — WF-41 corrected `transport='wa'` query routed to template despite recent Slack inbound rows (a pre-PDF-20 query would have gone free-form → silent Meta reject). WF-75 side proven via repeat-readiness.
+- **PDF-21** ✅ `astrology_service_update_v2` send succeeded (no Meta 132xxx) → v2 name/lang/param match Meta's approved structure; v1 retired (exec 4234). Resolved BUG-01 (v1 buried message + literal `*` asterisks).
+- **PDF-19** ✅ CLOSE → `consultation_closed` template + 3 buttons out-of-window; "Done, Thanks." tap → WF-02 → WF-43 (execs 4242/4265/4266). Bonus: reaction handled by WF-61 "text-only" guard.
+- **PDF-18** ✅ WF-75 ACTIVATED + manual poll → single advisory nudge to consult channel (exec 4275 → WF-51 4276); repeat-readiness proven (nudge logged `transport=slack`, still matches → won't self-disable). No customer contact, no DB write.
+- **Remaining un-exercised (NOT blockers, logged in test followups + below):** PDF-16 failure-visibility notice (no send failed this session to trigger it); WF-75 self-termination (repeat proven, stop logic-proven not live-demoed); PDF-19 "Leave Feedback"/"Book Again" routes (only "Done" tapped).
+- **State changes from the smoke:** WF-75 left **ACTIVE** (user decision — keep on; registry needs 🟡→🟢 update). User 41 left fixtured `consultation_active` @ ~20h window. The per-item `DEFERRED — live smoke` notes below are superseded/resolved by this run for PDF-15/17/18/19/20/21.
+
 ## Items
 
 | ID | Status | Batch | Pri | Workflows | Depends On |
@@ -58,13 +68,13 @@
 | PDF-12 | 🟢 done | 7 | P2 | WF-30 | PDF-11 (soft) |
 | PDF-13 | 🟢 done | 8 | P2 | WF-31 | PDF-12 (soft — same canonical-block pattern) |
 | PDF-14 | 🟢 done | 8 | P2 | WF-43 | PDF-11 (soft — same WF-43 reply path) |
-| PDF-15 | 🟢 done | 9 | P0 | WF-41/50/51 | template:`astrology_service_update` ✅ Active · PDF-18 (soft — shared window source) |
-| PDF-16 | 🟢 done | 10 | P1 | WF-50/51 | PDF-15 (soft — backstop for its residual send failures) |
-| PDF-17 | 🟢 done | 10 | P1 | WF-34/02/00 | template:`payment_rejection` ✅ Active · PDF-16 (soft — same WF-34) · PDF-19 (soft sibling) |
-| PDF-18 | 🟢 done | 11 | P1 | WF-75 (new) | PDF-15 (soft — shared `messages` window source) |
-| PDF-19 | 🟢 done | 12 | P2 | WF-42 (button handler pre-done by PDF-17) | template:`consultation_closed` ✅ Active (NOT `consultation_closed_feedback` — that one Meta reclassified to Marketing) · PDF-17 (soft sibling — delivered PDF-19's receiving side) |
-| PDF-20 | 🟢 done | 13 | P1 | WF-41/75 | resolves followups adjacent finding (PDF-15 window read not WA-scoped); emerged during PDF-18 build |
-| PDF-21 | 🟢 done | 13 | P1 | WF-41 | out-window template repointed `astrology_service_update`→`astrology_service_update_v2` (user retired the old one for a Meta bold-render bug); emerged 2026-06-09 |
+| PDF-15 | 🟢 done · smoke ✅ | 9 | P0 | WF-41/50/51 | template:`astrology_service_update` ✅ Active · PDF-18 (soft — shared window source) · **live smoke ✅ 2026-06-10 (in+out window)** |
+| PDF-16 | 🟢 done · smoke ⏳ | 10 | P1 | WF-50/51 | PDF-15 (soft — backstop for its residual send failures) · **smoke NOT triggered 2026-06-10 (no send failed) — remaining** |
+| PDF-17 | 🟢 done · smoke ✅ | 10 | P1 | WF-34/02/00 | template:`payment_rejection` ✅ Active · PDF-16 (soft — same WF-34) · PDF-19 (soft sibling) · **live smoke ✅ 2026-06-10 (reject + retry tap)** |
+| PDF-18 | 🟢 done · smoke ✅ | 11 | P1 | WF-75 (new) | PDF-15 (soft — shared `messages` window source) · **live smoke ✅ 2026-06-10 (activated + match-path + repeat-readiness)** |
+| PDF-19 | 🟢 done · smoke ✅ | 12 | P2 | WF-42 (button handler pre-done by PDF-17) | template:`consultation_closed` ✅ Active (NOT `consultation_closed_feedback` — that one Meta reclassified to Marketing) · PDF-17 (soft sibling — delivered PDF-19's receiving side) · **live smoke ✅ 2026-06-10 (close + "Done" tap; other 2 buttons remaining)** |
+| PDF-20 | 🟢 done · smoke ✅ | 13 | P1 | WF-41/75 | resolves followups adjacent finding (PDF-15 window read not WA-scoped); emerged during PDF-18 build · **live smoke ✅ 2026-06-10 (decisive trap test)** |
+| PDF-21 | 🟢 done · smoke ✅ | 13 | P1 | WF-41 | out-window template repointed `astrology_service_update`→`astrology_service_update_v2` (user retired the old one for a Meta bold-render bug); emerged 2026-06-09 · **live smoke ✅ 2026-06-10 (v2 sends, no 132xxx)** |
 
 ## Batch 1 — P0
 

@@ -101,13 +101,13 @@ once.** There is no locking. To avoid clobbering each other:
 | PDF-12 | 🟡 P2 | Inconsistent payment instructions in payment_pending replies | ✅ done | — |
 | PDF-13 | 🟡 P2 | WF-31 payment_submitted replies had two different styles | ✅ done | — |
 | PDF-14 | 🟡 P2 | WF-43 post-consult "Welcome back" incoherence + REBOOK-only CTA | ✅ done | — |
-| PDF-15 | 🔴 P0 | Astrologer's reply silently never reaches the customer if their last message was >24h ago | ✅ done | — |
-| PDF-16 | 🟠 P1 | When a message to the customer fails to send, the astrologer is never told | 🟢 done | re-homed to WF-50 chokepoint; see state.md |
-| PDF-17 | 🟠 P1 | Payment-rejection message can't reach the customer if rejected after a long gap | 🟢 done | — |
-| PDF-18 | 🟠 P1 | No reminder to the astrologer that the free-reply window is about to close | 🟢 done | WF-75 |
-| PDF-19 | 🟡 P2 | Consultation-close prompt can't reach the customer if closed after a long gap | 🟢 done | WF-42 send→consultation_closed template; receiving side pre-built by PDF-17 |
-| PDF-20 | 🟠 P1 | Relay/nudge window read counted Slack rows, skewing the 24h decision (emerged during PDF-18) | 🟢 done | WF-41 + WF-75 window read scoped to metadata->>'transport'='wa' |
-| PDF-21 | 🟠 P1 | Out-window relay used a template Meta mis-rendered; user made a replacement (emerged) | 🟢 done | WF-41 repointed to astrology_service_update_v2 |
+| PDF-15 | 🔴 P0 | Astrologer's reply silently never reaches the customer if their last message was >24h ago | ✅ done · smoke ✅ | — · **live smoke ✅ 2026-06-10 (in+out window)** |
+| PDF-16 | 🟠 P1 | When a message to the customer fails to send, the astrologer is never told | 🟢 done · smoke ⏳ | re-homed to WF-50 chokepoint; see state.md · **smoke NOT triggered 2026-06-10 (no send failed) — remaining** |
+| PDF-17 | 🟠 P1 | Payment-rejection message can't reach the customer if rejected after a long gap | 🟢 done · smoke ✅ | — · **live smoke ✅ 2026-06-10 (reject + retry tap)** |
+| PDF-18 | 🟠 P1 | No reminder to the astrologer that the free-reply window is about to close | 🟢 done · smoke ✅ | WF-75 · **live smoke ✅ 2026-06-10 — ACTIVATED + match-path + repeat-readiness** |
+| PDF-19 | 🟡 P2 | Consultation-close prompt can't reach the customer if closed after a long gap | 🟢 done · smoke ✅ | WF-42 send→consultation_closed template; receiving side pre-built by PDF-17 · **live smoke ✅ 2026-06-10 (close + "Done" tap; other 2 buttons remaining)** |
+| PDF-20 | 🟠 P1 | Relay/nudge window read counted Slack rows, skewing the 24h decision (emerged during PDF-18) | 🟢 done · smoke ✅ | WF-41 + WF-75 window read scoped to metadata->>'transport'='wa' · **live smoke ✅ 2026-06-10 (decisive trap test)** |
+| PDF-21 | 🟠 P1 | Out-window relay used a template Meta mis-rendered; user made a replacement (emerged) | 🟢 done · smoke ✅ | WF-41 repointed to astrology_service_update_v2 · **live smoke ✅ 2026-06-10 (v2 sends, no 132xxx)** |
 
 ---
 
@@ -330,7 +330,7 @@ service template for the rejection message.
 
 ### PDF-18 · No reminder when a customer's free-reply window is about to close
 
-**Status:** 🟢 done (WF-75 built 2026-06-09, INACTIVE pending coordinated smoke — see state.md)
+**Status:** 🟢 done · live smoke ✅ 2026-06-10 (WF-75 built 2026-06-09; **ACTIVATED + match-path + repeat-readiness verified** in the coordinated smoke — kept active per user decision; see state.md + `docs/artefacts/tests/smoke-24h-window-deliverability-2026-06-10/`)
 **Priority:** 🟠 P1 | **Owner session:** build-pre-demo-minor-fixes-8Jun26-4
 **Change type:** Workflow-Create — new WF-75 scheduled job (first scheduled/background workflow, `WF-7x`
 range, pulled forward from "post-go-live" per user decision 2026-06-08). Build detail in `state.md`.

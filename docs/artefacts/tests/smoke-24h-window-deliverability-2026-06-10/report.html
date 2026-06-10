@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Test Report — smoke-24h-window-deliverability-2026-06-10</title>
+<style>
+:root {
+  --bg: #0d1117; --bg-card: #161b22; --bg-card-2: #1c2128;
+  --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --border: #30363d;
+  --critical: #ff4d4f; --major: #ff9f43; --minor: #f1c40f; --ok: #27ae60;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--bg); color: var(--fg); }
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+nav { background: #010409; border-right: 1px solid var(--border); padding: 20px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; font-size: 13px; }
+nav h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 20px 0 6px; font-weight: 600; }
+nav h2:first-child { margin-top: 0; }
+nav a { display: block; color: var(--fg); text-decoration: none; padding: 5px 8px; border-radius: 4px; margin: 1px 0; }
+nav a:hover { background: var(--bg-card); color: var(--accent); }
+nav a.depth-1 { padding-left: 18px; color: var(--muted); }
+main { padding: 28px 40px 80px; max-width: 1100px; }
+header.page { border-bottom: 1px solid var(--border); padding-bottom: 14px; margin-bottom: 28px; }
+header.page h1 { margin: 0 0 4px; font-size: 22px; }
+header.page .meta { color: var(--muted); font-size: 13px; }
+section.layer { margin: 40px 0; }
+section.layer > h1 { font-size: 24px; margin: 0 0 4px; padding-bottom: 10px; border-bottom: 2px solid var(--accent); }
+section.layer > .layer-blurb { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+h2 { margin-top: 28px; font-size: 18px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+h3 { margin-top: 22px; font-size: 15.5px; color: var(--accent); }
+h4 { margin-top: 16px; font-size: 14px; }
+code { background: var(--bg-card); padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+pre { background: var(--bg-card); padding: 14px 16px; border-radius: 6px; overflow-x: auto; border: 1px solid var(--border); }
+pre code { background: transparent; padding: 0; font-size: 13px; }
+table { border-collapse: collapse; margin: 14px 0; width: 100%; font-size: 13.5px; }
+th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: var(--bg-card); font-weight: 600; }
+tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+ul, ol { padding-left: 22px; }
+li { margin: 4px 0; }
+/* Story cards — each h3 in story section starts a card */
+#story h3 {
+  background: var(--bg-card-2); margin-top: 20px; padding: 12px 16px; border-radius: 6px 6px 0 0;
+  border: 1px solid var(--border); border-bottom: none; color: var(--fg); font-size: 15px;
+}
+#story h3 + p, #story h3 + p + p, #story h3 + p + p + p,
+#story h3 ~ p, #story h3 ~ pre, #story h3 ~ ul, #story h3 ~ ol {
+  /* default rendering — wrap will come from JS */
+}
+.story-card { background: var(--bg-card); border: 1px solid var(--border); border-top: none; padding: 14px 18px 4px; margin-bottom: 18px; border-radius: 0 0 6px 6px; }
+.story-card p:first-child { margin-top: 0; }
+/* Appendix collapsibles */
+details.appendix-item, details.appendix-section { border: 1px solid var(--border); border-radius: 6px; margin: 12px 0; background: var(--bg-card); }
+details summary { padding: 12px 16px; cursor: pointer; font-weight: 600; user-select: none; }
+details summary:hover { background: var(--bg-card-2); }
+details[open] summary { border-bottom: 1px solid var(--border); }
+details > *:not(summary) { padding: 0 18px; }
+details summary .src { color: var(--muted); font-weight: normal; font-size: 12px; margin-left: 6px; }
+/* Severity chips (applied via JS) */
+.sev-chip { display: inline-block; padding: 1px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #0d1117; margin: 0 2px; }
+.status-ok { color: var(--ok); }
+.status-warn { color: var(--major); }
+</style>
+</head><body>
+<div class="layout">
+  <nav>
+    <h2>Report layers</h2>
+    <a href="#tldr">1. TL;DR</a>
+    <a href="#story">2. The Story</a>
+    <a href="#appendix">3. Appendix</a>
+    <h2>Story scenarios</h2>
+    <div id="nav-scenarios"></div>
+    <h2>Appendix</h2>
+    <a href="#appendix-session" class="depth-1">session.md</a>
+    <a href="#appendix-followups-remaining-paths" class="depth-1">followups-remaining-paths.md</a>
+  </nav>
+  <main>
+    <header class="page">
+      <h1>Test Report — smoke-24h-window-deliverability-2026-06-10</h1>
+      <div class="meta">Generated 2026-06-10T11:26:38+00:00 · Folder <code>docs/artefacts/tests/smoke-24h-window-deliverability-2026-06-10/</code></div>
+    </header>
+
+    <section class="layer" id="tldr">
+      <h1>1. TL;DR</h1>
+      <div class="layer-blurb">Verdict, bugs at a glance, scope, and tomorrow's queue. Skim this; the rest is detail.</div>
+      <p><strong>Verdict:</strong> All 6 happy paths green end-to-end on a real WhatsApp number. 1 minor copy bug found mid-session and fixed (template v2). 2 paths logged un-exercised (no blocker). WF-75 (project's first scheduled job) activated and live-verified.</p>
+<h2>Bugs at a glance</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Sev</th>
+<th>Workflow / asset</th>
+<th>What broke</th>
+<th>Fix applied</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUG-01</td>
+<td>[minor]</td>
+<td><code>astrology_service_update</code> template (out-window relay)</td>
+<td>v1 buried Dr. Chinmay's reply under a heavy apology prefix/suffix; bold <code>*…*</code> rendered as <strong>literal asterisks</strong> (the bold span crossed a newline around <code>{{1}}</code>)</td>
+<td>New <strong><code>astrology_service_update_v2</code></strong> template (header kept, lighter copy, <code>{{1}}</code> inline so bold renders, "Thanks, Chinmay Astro" sign-off). WF-41 repointed to v2 — tracked as <strong>PDF-21</strong>. New template (not an edit) → avoided Meta reclassification risk.</td>
+<td>✅ Fixed &amp; live-verified (Phase D2, exec 4234)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Pre-smoke fix <strong>PDF-20</strong> (WF-41/WF-75 window read switched <code>message_type</code> proxy → <code>metadata-&gt;&gt;'transport'='wa'</code>) was not a bug found this session, but was <strong>decisively verified</strong> here (Phase D + Phase F repeat-readiness).</p>
+</blockquote>
+<h2>Test scope</h2>
+<ul>
+<li><strong>Subject:</strong> single real number <strong>61466927921</strong> (user 41, "Test User"), consult channel <code>C0B567A175W</code>. Walked forward through the whole lifecycle on one identity.</li>
+<li><strong>Scenarios exercised (all PASS):</strong></li>
+<li><strong>PDF-17</strong> — payment REJECT → <code>payment_rejection</code> template delivered out-of-window; "Payment Completed" retry tap → WF-02 normalizer → re-submit.</li>
+<li><strong>PDF-15</strong> — relay <strong>in-window</strong> → free-form text; relay <strong>out-window</strong> → template.</li>
+<li><strong>PDF-20</strong> — window read keys on the real WA inbound, ignores recent Slack rows (decisive trap test).</li>
+<li><strong>PDF-21</strong> — <code>astrology_service_update_v2</code> send succeeds (no Meta 132xxx) → approved &amp; wired.</li>
+<li><strong>PDF-19</strong> — CLOSE → <code>consultation_closed</code> template + 3 buttons; "Done, Thanks." tap routed via WF-02 → WF-43.</li>
+<li><strong>PDF-18</strong> — WF-75 activated + manual poll → single advisory nudge to consult channel; repeat-readiness proven.</li>
+<li><strong>Bonus observed:</strong> WhatsApp reaction handled gracefully by WF-61 ("text only" guard).</li>
+</ul>
+<h2>Remaining / deferred (no blocker)</h2>
+<ul>
+<li><strong>PDF-16 (failure visibility)</strong> — never triggered: every send this session succeeded, so the <code>success=false</code> in-channel notice path was not exercised. Needs a forced Meta failure (e.g. paused template). → <code>followups-remaining-paths.md</code>.</li>
+<li><strong>WF-75 self-termination</strong> — repeat proven; <em>stop</em> not live-demoed. Structurally enforced by the query (<code>last_inbound &gt; last_outbound_wa</code>; 18–24h band). → <code>followups-remaining-paths.md</code>.</li>
+<li><strong>PDF-19 buttons</strong> — only "Done, Thanks." tapped; "Leave Feedback" / "Book Again" routes not individually exercised (labels confirmed present; WF-02 BUTTON_MAP keys all 3).</li>
+</ul>
+<h2>State carry-forward</h2>
+<ul>
+<li><strong>WF-75 is ACTIVE</strong> (kept on per decision 2026-06-10) — its every-2h poll is now live in production. ⚠️ <strong><code>docs/workflow-registry.md</code> still shows WF-75 as 🟡 "Built (inactive)" — needs a 🟢 Active update</strong> to match reality.</li>
+<li><strong>User 41</strong> left <strong>fixtured</strong>: <code>consultation_active</code>, last WA inbound ~20h (unanswered), all other WA rows backdated to ~26h. Will keep matching/re-nudging WF-75 every 2h until it crosses 24h or receives a WA reply. Fixture timestamps were not reverted (audit log; harmless).</li>
+<li><strong>PDF-21 / v2 template</strong> is the live out-window relay template; v1 <code>astrology_service_update</code> retired (0 references).</li>
+</ul>
+    </section>
+
+    <section class="layer" id="story">
+      <h1>2. The Story</h1>
+      <div class="layer-blurb">Each scenario as a card with narrative + fix snippets. Tells you what happened without making you read raw logs.</div>
+      <h3>TC-PDF17 — Payment rejection reaches the customer after a long gap  ✅</h3>
+<p>With user 41 sitting in <code>payment_submitted</code> and ~59h out of window, the operator issued <code>REJECT</code>. WF-34 fired and the customer's phone received the <code>payment_rejection</code> <strong>template</strong> — not the old interactive message — proving the always-template design delivers even with the 24h window long closed (M2 utility-template-out-window). Three Meta status callbacks (sent/delivered/read) corroborated physical delivery, and the message log confirmed <code>message_type=template</code>. User dropped to <code>payment_pending</code>, payment #27 → rejected.</p>
+<hr />
+<h3>TC-PDF17b — Retry tap routes through the template-button normalizer  ✅</h3>
+<p>The operator tapped "Payment Completed" on the rejection template. The tap arrived in the M5 <em>template</em> shape (<code>message_type=button</code>, logged by label "Payment Completed"), and WF-02 — the shared normalizer — mapped the label to <code>payment_completed</code> and handed off to WF-32, which re-submitted the payment and sent the WA acknowledgement plus a Slack alert. This is the exact receiving-side mechanism PDF-19's close buttons reuse, so it de-risked that scenario in advance. A follow-up <code>APPROVE</code> then activated the consultation (<code>consultation_activated</code> template, channel reused — no new WF-52).</p>
+<hr />
+<h3>TC-PDF15-in — In-window relay sends free-form text  ✅</h3>
+<p>With the window freshly re-opened (~2h old WA inbound from the button tap), the operator relayed a plain reply from Slack. WF-41 read the window as OPEN and WF-50 delivered it as free-form WhatsApp <strong>text</strong> — logged <code>message_type=text</code>, not a template — exactly the in-window path. This phase alone doesn't isolate the PDF-20 fix (an open window satisfies both old and new query), which is why the out-window phase carried the decisive trap.</p>
+<hr />
+<h3>TC-PDF15-out / TC-PDF20 — Out-window relay templates, and ignores Slack rows  ✅</h3>
+<p>The window was backdated to 25h closed while recent Slack inbound rows (the astrologer's own typing, <code>transport=slack</code>) were left in place — the precise trap PDF-20 fixes. A pre-PDF-20 query would have latched onto the 0.0h Slack row, read the window OPEN, sent free-form, and had Meta silently reject it. Instead WF-41's corrected <code>transport='wa'</code> query read the real WA inbound (25h → CLOSED) and routed to the <code>astrology_service_update</code> template. One send proved both PDF-15 out-window deliverability and the PDF-20 WA-scoping in a single shot.</p>
+<hr />
+<h3>TC-PDF21 — v2 template renders correctly and is wired live  ✅</h3>
+<p>Mid-session the operator spotted the v1 template buried the reply and rendered literal <code>*</code> asterisks (bold span crossing a newline), and shipped <strong>PDF-21</strong>: a new <code>astrology_service_update_v2</code> (lighter copy, <code>{{1}}</code> inline so bold renders, "Thanks, Chinmay Astro" sign-off) with WF-41 repointed at a single call site. Re-firing the out-window relay (window 36.5h closed) sent v2 successfully — no Meta 132000/132001 — confirming v2's name, <code>en</code> language and single body param match Meta's approved structure. Logged as <code>template:astrology_service_update_v2</code>; v1 fully retired. Making it a <em>new</em> template rather than editing the approved one sidestepped the Meta-reclassification trap that previously hit <code>consultation_closed_feedback</code>.</p>
+<pre><code class="language-text">Was:  astrology_service_update      *…:* \n * \n {{1}}      → literal asterisks, message buried
+Now:  astrology_service_update_v2   *Dr. Chinmay has responded to your message:* {{1}}  +  Thanks, Chinmay Astro
+</code></pre>
+<hr />
+<h3>TC-PDF19 — Close prompt templates out-of-window, buttons route  ✅</h3>
+<p>With the window still closed, <code>CLOSE</code> produced the <code>consultation_closed</code> template carrying its three quick-reply buttons — delivered despite the closed window (always-template). User 41 → <code>consultation_closed</code>. The operator tapped "Done, Thanks."; the template tap arrived as a <code>button</code> shape, flowed through the WF-02 normalizer to WF-43, and produced the "Thank you for choosing Chinmay Astro" reply plus a Slack notice. Only one of the three buttons was tapped, so "Leave Feedback" / "Book Again" routing remains individually un-exercised (labels confirmed present; the map keys all three). A stray customer reaction in between was caught cleanly by WF-61's "text messages only" guard — an unplanned but reassuring observation.</p>
+<hr />
+<h3>TC-PDF18 — Window-closing nudge matches, posts, and will repeat  ✅</h3>
+<p>User 41 was fixtured back to <code>consultation_active</code> with a single unanswered WA inbound at ~20h (a pre-fixture dry-run of WF-75's exact query confirmed 0 baseline matches, so no other channel would get a surprise nudge). WF-75 was activated — the project's first scheduled workflow — and the operator ran one manual poll from the n8n UI. It matched exactly user 41 and posted a single advisory nudge ("…window closes in ~4h…") into the consult channel via WF-51, with no customer-facing send and no DB state write. The decisive detail: a post-nudge dry-run <em>still</em> matched, because the nudge is logged <code>transport=slack</code> and the WA-scoped query ignores it — so the nudge will correctly <strong>repeat</strong> each poll instead of self-disabling. Self-termination (on a WA reply, or at 24h) is structurally enforced by the query but was not live-demoed.</p>
+<hr />
+    </section>
+
+    <section class="layer" id="appendix">
+      <h1>3. Appendix</h1>
+      <div class="layer-blurb">Full raw artefacts. Click to expand. The session log is verbatim — use it to grep, re-trace, or audit.</div>
+      <details class="appendix-item" id="appendix-session">
+        <summary>Session log <span class="src">(session.md — raw chronological)</span></summary>
+        <h1>Smoke — 24h-Window Deliverability Cluster (PDF-15 → PDF-19)</h1>
+<p><strong>Test type:</strong> smoke (coordinated live, real external WhatsApp sends)
+<strong>Slug:</strong> 24h-window-deliverability
+<strong>Date:</strong> 2026-06-10
+<strong>Operator:</strong> prasadmujumdar.aws@gmail.com (acting as Dr. Chinmay in Slack)
+<strong>Sprint:</strong> pre-demo-minor-fixes-31May26 (rolling) — Batches 9–12 deferred live smokes</p>
+<h2>Design docs referenced</h2>
+<ul>
+<li><code>docs/artefacts/specs/2026-06-08-24h-window-deliverability-design.md</code> (DD-1..DD-5, Meta rules M1..M5)</li>
+<li><code>docs/artefacts/sprints/pre-demo-minor-fixes-31May26/state.md</code> (PDF-15..19 item blocks + Batches 9–12)</li>
+<li><code>docs/artefacts/sprints/pre-demo-minor-fixes-31May26/followups.md</code> (WF-41 WA-scope adjacent finding)</li>
+<li><code>docs/workflow-registry.md</code></li>
+</ul>
+<h2>Watch surface</h2>
+<p><strong>Workflows (chain order varies per scenario):</strong>
+- WF-00 Parse WhatsApp Message · WF-02 (post-filter template-button normalizer)
+- WF-41 Admin→User Relay (<code>6PzJRZsF7k2d9hV7</code>) → WF-50 Send WhatsApp (<code>BUVun38WEKb12zg9</code>) → WF-51 Send Slack (<code>wlZRK0YxnhP0b2RL</code>)
+- WF-34 Payment Rejection Processor (<code>se82n3MUQ9xE5aEr</code>)
+- WF-42 Consultation Closer (<code>fx70vqyJtRdF2DgR</code>)
+- WF-75 Window-Closing Nudge (<code>YnxDRcnCugnpGY0n</code>) — <strong>INACTIVE at baseline; to be activated in Phase F</strong></p>
+<p><strong>Postgres tables:</strong> <code>chinmay_astro.users</code>, <code>chinmay_astro.messages</code>, <code>chinmay_astro.payments</code>, <code>chinmay_astro.consultations</code>
+<strong>Slack channels:</strong> consult <code>C0B567A175W</code> (user 41 / 61466927921) + admin <code>C0A5B0ZE81E</code>
+<strong>Latency threshold:</strong> 5000 ms</p>
+<h2>Approved templates (Meta)</h2>
+<ul>
+<li><code>astrology_service_update</code> (utility, <code>{{1}}</code>) — PDF-15 out-window relay</li>
+<li><code>payment_rejection</code> (utility, fixed + retry quick-reply) — PDF-17</li>
+<li><code>consultation_closed</code> (utility, 3 quick-reply buttons: Leave Feedback / Book Again / Done, Thanks.) — PDF-19</li>
+<li><code>consultation_activated</code> — payment approval (pre-existing)</li>
+</ul>
+<h2>Test subject</h2>
+<p><strong>Single number: 61466927921 (user 41, "Test User"), slack channel C0B567A175W.</strong>
+Starting state: <code>payment_submitted</code>, last WA inbound ~59h ago (window CLOSED at baseline).
+Walk forward through the cluster; SQL window-fixtures (backdate <code>messages.created_at</code>) recreate a closed
+window between in-window and out-window halves (operator-approved 2026-06-10).</p>
+<h2>Coordination decisions (2026-06-10)</h2>
+<ul>
+<li>SQL window fixtures: <strong>APPROVED</strong> (docker-exec write path). NOTE: fixtures must target a
+  <code>metadata-&gt;&gt;'transport'='wa'</code> inbound row (WF-41/WF-75 now gate on transport, not message_type — see PDF-20).</li>
+<li>PDF-18 / WF-75: <strong>INCLUDE</strong> — activate + smoke this session (Phase F).</li>
+<li>WF-41 WA-scope finding: <strong>RESOLVED pre-smoke by PDF-20 (2026-06-09)</strong> — both WF-41 (<code>Load Last Inbound</code>)
+  and WF-75 now gate on <code>metadata-&gt;&gt;'transport'='wa'</code> instead of the <code>message_type</code> proxy. Reclassified
+  from observe-only to <strong>verify-the-fix</strong>: confirm the relay window read keys on the real WA inbound, not
+  the astrologer's Slack rows. (Skew confirmed gone live for user 42; user 41 inbound source = msg #443.)</li>
+</ul>
+<h2>Baselines (cursors)</h2>
+<ul>
+<li>n8n exec cursor: <strong>4102</strong> (<code>.cursors/exec-cursor</code>)</li>
+<li>time cursor: <strong>2026-06-09T20:40:22Z</strong> (<code>.cursors/time-cursor</code>)</li>
+<li><code>users</code>: 4 rows, max(updated_at)=2026-06-09 20:16:46Z</li>
+<li><code>messages</code>: 142 rows, max(created_at)=2026-06-09 20:16:49Z</li>
+<li><code>payments</code>: 5 rows, max(created_at)=2026-06-09 08:59:26Z</li>
+<li><code>consultations</code>: 4 rows, max(created_at)=2026-06-09 20:16:46Z</li>
+</ul>
+<h2>Scenario plan (user-paced)</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Action (operator drives)</th>
+<th>Item(s)</th>
+<th>Expected</th>
+<th>Window</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>Admin <code>REJECT</code> in consult channel</td>
+<td>PDF-17</td>
+<td><code>payment_rejection</code> template lands; user→payment_pending</td>
+<td>closed (59h, natural)</td>
+</tr>
+<tr>
+<td>B</td>
+<td>Tap "Payment Completed" template button → admin <code>APPROVE</code></td>
+<td>PDF-17 retry (WF-02 normalizer) + activation</td>
+<td>retry routes; user→consultation_active</td>
+<td>tap re-opens</td>
+</tr>
+<tr>
+<td>C</td>
+<td>Dr. Chinmay relays a reply in Slack</td>
+<td>PDF-15 in-window</td>
+<td>free-form text delivered (no template)</td>
+<td>open</td>
+</tr>
+<tr>
+<td>D</td>
+<td>SQL fixture: backdate inbound to 25h → relay again</td>
+<td>PDF-15 out-window + WF-41 WA-scope obs</td>
+<td><code>astrology_service_update</code> template delivered</td>
+<td>closed (fixture)</td>
+</tr>
+<tr>
+<td>E</td>
+<td>Admin <code>CLOSE</code> → tap a button</td>
+<td>PDF-19</td>
+<td><code>consultation_closed</code> template + 3 buttons; tap routes via WF-02</td>
+<td>closed</td>
+</tr>
+<tr>
+<td>F</td>
+<td>Activate WF-75 + 18–24h unanswered fixture</td>
+<td>PDF-18</td>
+<td>nudge posts to consult channel; repeats; self-terminates on reply/24h</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td>(opp.)</td>
+<td>Force a Meta send failure</td>
+<td>PDF-16</td>
+<td>failure surfaced as in-channel notice to Dr. Chinmay (no silent drop)</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Session log</h2>
+<h3>Action — 2026-06-09T20:49:17Z — Phase A (PDF-17 rejection → template)</h3>
+<p><strong>Operator to perform:</strong> issue admin <code>REJECT</code> for user 41 (61466927921) in consult channel <code>C0B567A175W</code>.
+<strong>Pre-state:</strong> user 41 <code>payment_submitted</code>, payment #27 <code>pending_verification</code>, window closed ~59h.
+<strong>Expected:</strong>
+- WF-34 Payment Rejection Processor fires.
+- Customer receives the <code>payment_rejection</code> <strong>template</strong> (NOT the old interactive button message) — proves DD-1/DD-E always-template, and that it lands despite the closed window (M2 utility template out-window).
+- The template carries a "Payment Completed" retry quick-reply button.
+- DB: user 41 → <code>payment_pending</code>; payment #27 → rejected/failed status.
+- Slack: in-channel confirmation to Dr. Chinmay.
+<strong>Cross-check targets:</strong> WF-34 exec success · <code>payment_rejection</code> send via WF-50 · user status transition · no silent failure.</p>
+<h3>Tick — 2026-06-09T21:15Z — Phase A result</h3>
+<p><strong>Trigger:</strong> operator issued <code>REJECT</code>, said "check" — message went through on phone.
+<strong>New executions:</strong> 12 (12 ok, 0 failed, 0 slow)
+<strong>Workflow chain:</strong> WF-10(4103) → WF-11(4104) → WF-34(4105) → WF-50(4106) → WF-60(4107) → WF-51(4108) → WF-60(4109,4110) → WF-10(4111) → WF-00(4112,4113,4114)
+- WF-34 Payment Rejection Processor (4105) — success
+- WF-50 Send WhatsApp (4106) — success — <code>payment_rejection</code> template send <strong>(window closed ~59h → still delivered, M2 utility-template out-window)</strong>
+- WF-51 Send Slack (4108) — success — in-channel confirm to Dr. Chinmay
+- WF-00 Webhook Receiver ×3 (4112–4114) — inbound Meta status callbacks (sent/delivered/read) → corroborates physical delivery
+<strong>DB deltas:</strong>
+- users: user 41 → <code>payment_pending</code> (was payment_submitted) ✅
+- payments: #27 → <code>rejected</code> ✅
+<strong>Cross-check vs expected:</strong>
+- ✅ WF-34 fired on REJECT
+- ✅ payment_rejection delivered as a <strong>template</strong> out-of-window (the PDF-17 core proof — DD-1/DD-E always-template)
+- ✅ user → payment_pending · payment #27 → rejected
+- ✅ Slack confirmation to Dr. Chinmay (WF-51)
+- ✅ physical arrival confirmed by operator + 3 Meta status callbacks
+- ✅ <strong>RESOLVED in Phase B tick:</strong> msg #457 logged <code>message_type=template, content=template:payment_rejection</code> → confirms it was the template, not the old interactive message. Operator confirmed retry button visible.</p>
+<h3>Action — 2026-06-09T21:17Z — Phase B (PDF-17 retry tap → WF-02 normalizer)</h3>
+<p><strong>Operator performed:</strong> tapped "Payment Completed" quick-reply on the rejection template (phone).
+<strong>Expected:</strong> template-button tap (M5 <code>button</code> shape) → WF-00 logs by label → WF-02 normalizes label→payment_completed → WF-32 re-submits → user→payment_submitted + WA ack + Slack alert. Window re-opens.</p>
+<h3>Tick — 2026-06-09T21:18Z — Phase B result</h3>
+<p><strong>Trigger:</strong> operator tapped "Payment Completed"; WA ack + Slack alert observed.
+<strong>New executions:</strong> 13 (13 ok, 0 failed, 0 slow)
+<strong>Workflow chain:</strong> WF-00(4115) → WF-60(4116) → WF-01(4117) → <strong>WF-02(4118)</strong> → WF-32(4119) → WF-50(4120) → WF-60(4121) → WF-51(4122) → WF-60(4123) → WF-00 status callbacks(4124,4126,4127) + WF-10 echo(4125)
+- WF-02 User State Router (4118) — success — <strong>the template-button normalizer fired</strong> (PDF-17 receiving side; shared mechanism PDF-19 reuses)
+- WF-32 Payment Confirmation Receiver (4119) — success — retry re-submission handled
+- WF-50 (4120) — WA ack ("we'll verify your payment") · WF-51 (4122) — "New Payment Submission" alert to admin
+<strong>DB deltas:</strong>
+- users: user 41 → <code>payment_submitted</code> (retry accepted) ✅
+- messages: #460 inbound <code>message_type=button, transport=wa, content="Payment Completed"</code> — <strong>M5 template-tap shape, logged by label</strong> ✅ · #461 outbound WA ack · #462 Slack alert
+- <strong>window RE-OPENED</strong> — fresh WA inbound #460 @ 21:17:24 (sets up Phase C in-window)
+<strong>Cross-check vs expected:</strong>
+- ✅ template tap arrived as <code>button</code> shape, logged by label "Payment Completed"
+- ✅ WF-02 normalizer routed it (label→payment_completed) → WF-32 handled — <strong>PDF-17 retry path end-to-end</strong>
+- ✅ user → payment_submitted · WA ack + Slack alert delivered
+- ✅ this validates the exact WF-02 receiving-side mechanism PDF-19's close buttons depend on</p>
+<h3>Tick — 2026-06-09T21:22Z — Phase B2 (APPROVE → activation, setup)</h3>
+<p><strong>Trigger:</strong> operator issued <code>APPROVE</code>, said "check".
+<strong>New executions:</strong> 11 (11 ok, 0 failed, 0 slow)
+<strong>Workflow chain:</strong> WF-10(4128) → WF-11(4129) → WF-33(4130) → WF-50(4131) → WF-60(4132) → WF-51(4133) → WF-60(4134,4135) → WF-10 echo(4136) → WF-00 status(4137,4138)
+- WF-33 Payment Approval Processor (4130) — success
+- WF-50 (4131) — <code>consultation_activated</code> template · WF-51 (4133) — "Consultation Activated" Slack confirm
+<strong>DB deltas:</strong>
+- users: user 41 → <code>consultation_active</code> ✅ · slack_channel_id <code>C0B567A175W</code> reused (no new WF-52 channel — Design Rule 2/10) ✅
+- messages: #463 outbound <code>template:consultation_activated</code> (wa)
+- <strong>window state for Phase C:</strong> last WA inbound = #460 @ 21:17:24 → OPEN (~5 min) ✅
+<strong>Cross-check:</strong> ✅ activation path nominal; user active; channel reused; window open for in-window relay.</p>
+<h3>Action — 2026-06-09T23:09Z — Phase C (PDF-15 in-window relay → free-form)</h3>
+<p><strong>Operator performed:</strong> typed a free-form reply as Dr. Chinmay in consult channel ("How can I help you Test User ?").
+<strong>Expected:</strong> WF-41 reads window via WA inbound #460 (~1h52m old) → OPEN → WF-50 sends free-form WA <strong>text</strong> (not template).</p>
+<h3>Tick — 2026-06-09T23:10Z — Phase C result</h3>
+<p><strong>Trigger:</strong> operator relayed from Slack; message arrived on WA.
+<strong>New executions:</strong> 9 (9 ok, 0 failed, 0 slow)
+<strong>Workflow chain:</strong> WF-00(4139 stray status cb) · WF-10(4140) → <strong>WF-41(4141)</strong> → WF-50(4142) → WF-60(4143,4144) → WF-00 status(4145,4146,4147)
+- WF-41 Admin→User Relay (4141) — success — window read OPEN → free-form path
+- WF-50 (4142) — free-form WA text send
+<strong>DB deltas:</strong>
+- messages: #466 outbound <strong><code>message_type=text, transport=wa</code></strong> content verbatim — <strong>free-form, NOT a template ✅ (PDF-15 in-window proof)</strong> · #467 slack echo
+<strong>Cross-check vs expected:</strong>
+- ✅ relay delivered as free-form text in-window (message_type=text, not template)
+- ✅ WF-41 window read resolved OPEN off the real WA inbound
+- ℹ️ Note: Phase C alone does NOT isolate PDF-20 (window genuinely open → both old &amp; new query agree). <strong>Phase D is the decisive PDF-20 test</strong> (old WA inbound + recent Slack rows → corrected query must still say CLOSED).</p>
+<h3>Fixture — 2026-06-09T23:11Z — Phase D window setup (PDF-20 trap)</h3>
+<p><strong>Write (docker-exec):</strong> <code>UPDATE chinmay_astro.messages SET created_at = now() - interval '25 hours' WHERE id=460;</code>
+<strong>Original ts (for restore):</strong> msg #460 = <code>2026-06-09 21:17:24.135305+00</code>.
+<strong>Result state — the PDF-20 trap armed:</strong>
+- WA inbound MAX (<code>transport='wa'</code>): #460 @ <strong>25.0h → CLOSED</strong> (corrected WF-41 query → template path)
+- Any inbound MAX (buggy, no transport): Slack #467 @ <strong>0.0h → OPEN</strong> (pre-PDF-20 bug would go free-form → silent fail)
+- Decisive: the corrected query must ignore the recent Slack rows and route to template.</p>
+<h3>Action — Phase D (PDF-15 out-window relay → template + PDF-20 verify)</h3>
+<p><strong>Operator to perform:</strong> type another free-form reply as Dr. Chinmay in the consult channel (plain, short — e.g. one sentence).
+<strong>Expected:</strong> WF-41 reads window CLOSED (25h, transport-scoped) → sanitize template-safe → send via <code>astrology_service_update</code> <strong>template</strong> (NOT free-form). msg logged <code>message_type=template, content=template:astrology_service_update</code>.</p>
+<h3>Tick — 2026-06-09T23:16Z — Phase D result (FLAGSHIP: PDF-15 out-window + PDF-20)</h3>
+<p><strong>Trigger:</strong> operator relayed "You need to believe in astrology…" from Slack; screenshot confirms template render on phone.
+<strong>New executions:</strong> 8 (8 ok, 0 failed, 0 slow)
+<strong>Workflow chain:</strong> WF-10(4148) → <strong>WF-41(4149)</strong> → WF-50(4150) → WF-60(4151,4152) → WF-00 status(4153,4154,4155)
+- WF-41 (4149) — success — window read CLOSED (transport-scoped) → template path
+- WF-50 (4150) — <code>astrology_service_update</code> template send
+<strong>DB deltas:</strong>
+- messages: #468 outbound <strong><code>message_type=template, content=template:astrology_service_update</code></strong> ✅ · #469 slack echo
+<strong>Cross-check vs expected:</strong>
+- ✅ <strong>PDF-15 out-window</strong> — relay delivered as <code>astrology_service_update</code> template (not free-form), window closed; screenshot confirms physical render (header + body + {{1}} + suffix)
+- ✅ <strong>PDF-20 DECISIVE</strong> — corrected <code>transport='wa'</code> query routed to template <em>despite</em> recent Slack inbound rows (#467/#469 @ ~0h). A pre-PDF-20 query would have read OPEN off the Slack row → free-form → silent Meta rejection. Template = correct = fix verified end-to-end.
+- 🟡 <strong>UX finding (BUG-01 [minor], copy):</strong> template prefix/suffix wrapping buries Dr. Chinmay's actual message; literal <code>*</code> asterisks render (bold not parsed across newline). Operator-raised. → resolved by PDF-21 (see below). NOT a delivery defect; deliverability is correct.</p>
+<h3>PDF-20 + PDF-21 (built between Phase D and D2, by operator)</h3>
+<ul>
+<li><strong>PDF-20</strong> — WF-41 + WF-75 window read switched from <code>message_type</code> proxy to <code>metadata-&gt;&gt;'transport'='wa'</code> (verified decisively in Phase D).</li>
+<li><strong>PDF-21</strong> — WF-41 out-window relay repointed <code>astrology_service_update</code> → <strong><code>astrology_service_update_v2</code></strong> (new template: header "Follow-up on your consultation", body <code>*Dr. Chinmay has responded to your message:* {{1}}</code> + "Thanks, Chinmay Astro"; bold renders because <code>{{1}}</code> is inline). Single-call-site change (const TEMPLATE in Prepare WhatsApp Message); payload contract unchanged (1 positional {{1}} text, en).</li>
+<li><strong>BUG-01 resolution:</strong> v2 is a NEW template (not an edit of the approved v1) → sidesteps Meta reclassification risk. v1 retired.</li>
+<li>Note: direct Meta template pre-check not possible — <code>WA_ACCESS_TOKEN</code> is send-scoped (Graph GET → 400 code 100/subcode 33). Verified instead by live send (below).</li>
+</ul>
+<h3>Tick — 2026-06-10T10:56Z — Phase D2 (PDF-21 v2 template live verify)</h3>
+<p><strong>Trigger:</strong> operator relayed "Your future is changing tomorrow." out-of-window (user 41, 36.5h closed); received on WA.
+<strong>New executions (this action):</strong> WF-10(4232) → <strong>WF-41(4233)</strong> → WF-50(4234) → WF-60(4235,4236) → WF-00 status(4237,4238,4239) — all success.
+<em>(4190–4231 = intervening build-sprint + unrelated traffic over the ~11h gap, incl. a CLOSE for a different user @09:39; not attributed to this smoke.)</em>
+<strong>DB deltas:</strong>
+- messages: #487 outbound <strong><code>message_type=template, content=template:astrology_service_update_v2</code></strong> ✅ · #488 slack echo
+<strong>Cross-check vs expected:</strong>
+- ✅ <strong>PDF-21 verified</strong> — WF-50 send succeeded (no Meta 132000/132001) → v2 name + en + single body param match Meta's approved structure
+- ✅ logged as <code>astrology_service_update_v2</code> (v1 fully retired, 0 references)
+- ✅ out-window template path still correct post-repoint (window 36.5h closed → template)
+- ✅ operator confirmed render: bold prefix + inline text + "Thanks, Chinmay Astro", no stray asterisks → <strong>BUG-01 fully resolved</strong></p>
+<h3>Tick — 2026-06-10T11:08Z — Phase E result (PDF-19 close → template + button)</h3>
+<p><strong>Trigger:</strong> operator issued <code>CLOSE</code> for user 41 (window still closed), said "check". Three sub-flows fired.
+<strong>Chain 1 — CLOSE → template:</strong> WF-10(4240) → WF-11(4241) → <strong>WF-42(4242)</strong> → WF-50(4243) → WF-60(4244) → WF-51(4245)
+<strong>Chain 2 — customer REACTION (bonus, non-PDF):</strong> WF-00(4252) → WF-01(4254) → WF-02(4255) → <strong>WF-61 Silent-Drop &amp; Escalate(4256)</strong> → WF-50(4257)
+<strong>Chain 3 — "Done, Thanks." button tap:</strong> WF-00(4262) → WF-01(4264) → <strong>WF-02 normalizer(4265)</strong> → <strong>WF-43 Post-Consultation Handler(4266)</strong> → WF-50(4267) → WF-51(4269)
+All execs success, none slow.
+<strong>DB deltas:</strong>
+- users: user 41 → <code>consultation_closed</code> ✅
+- messages: #489 outbound <strong><code>template:consultation_closed</code></strong> ✅ · #491 CLOSE cmd · #492 inbound <code>reaction</code> (wa) · #493 "text messages only" guard · #494 inbound <code>message_type=button, content="Done, Thanks."</code> (M5 shape) ✅ · #495 "Thank you for choosing Chinmay Astro" · #496 Slack "User tapped Done"
+<strong>Cross-check vs expected:</strong>
+- ✅ <strong>PDF-19 core</strong> — CLOSE → <code>consultation_closed</code> template delivered out-of-window (always-template, DD-1/M5)
+- ✅ user → consultation_closed · operator confirmed 3 quick-reply buttons on the template
+- ✅ <strong>PDF-19 button routing</strong> — "Done, Thanks." tap arrived as <code>button</code> shape → WF-02 normalizer → WF-43 → "Thank you" reply + Slack notice (reuses the exact mechanism proven in Phase B)
+- ⚠️ <strong>partial coverage:</strong> only "Done, Thanks." tapped; "Leave Feedback" + "Book Again" label→route not individually exercised (labels confirmed present in template). WF-02 BUTTON_MAP keys all 3 — the one tapped matched cleanly.
+- 🟢 <strong>bonus observation:</strong> a WhatsApp reaction (#492) was handled gracefully by WF-61 → "this service supports text messages only" guard (#493). Not a PDF item; nice-to-know the non-text path is covered.</p>
+<h3>Fixture + setup — 2026-06-10T11:2xZ — Phase F (PDF-18 / WF-75 nudge)</h3>
+<p><strong>WF-75 exact match (from WF-75.pseudo Step 2):</strong> status=consultation_active · slack_channel_id NOT NULL ·
+last wa inbound ∈ [NOW-24h, NOW-18h] · (last_outbound_wa IS NULL OR last_inbound &gt; last_outbound_wa).
+<strong>Baseline dry-run BEFORE fixture: 0 matches</strong> (no surprise nudges to other channels). ✅
+<strong>Writes (docker-exec):</strong>
+- <code>UPDATE messages SET created_at = NOW()-INTERVAL '26 hours' WHERE user_id=41 AND metadata-&gt;&gt;'transport'='wa';</code> (69 rows — reset WA timeline older than the unanswered inbound)
+- <code>UPDATE messages SET created_at = NOW()-INTERVAL '20 hours' WHERE id=494;</code> (the unanswered customer inbound, in-band)
+- <code>UPDATE users SET status='consultation_active' WHERE id=41;</code> (was consultation_closed from Phase E)
+<strong>Dry-run AFTER fixture: exactly 1 match — user 41</strong>, inbound 20.0h, outbound 26.0h (unanswered), hours_until_close=4. ✅
+<strong>WF-75 ACTIVATED</strong> via API (<code>active:true</code>). Project's first scheduled workflow now live.
+<strong>Trigger:</strong> schedule is interval "every 2h" — not API-triggerable; operator to <strong>Execute Workflow</strong> in n8n UI for an immediate poll.
+<strong>Expected:</strong> WF-75 scan → 1 row (user 41) → Build Nudge Payload → WF-51 → advisory Slack post to <code>C0B567A175W</code> ("⏳ Heads-up: Test User's free-reply window closes in ~4h…"). No customer contact, no DB write.</p>
+<h3>Tick — 2026-06-10T11:20Z — Phase F result (PDF-18 / WF-75 match-path)</h3>
+<p><strong>Trigger:</strong> operator clicked Execute Workflow on WF-75 in n8n UI; nudge received on Slack.
+<strong>Workflow chain:</strong> <strong>WF-75(4275, mode=manual)</strong> → WF-51(4276) → WF-60(4277) → WF-10 echo(4278) — all success.
+<strong>DB deltas:</strong>
+- messages: #497 outbound <strong><code>message_type=slack_text, transport=slack</code></strong> — the nudge, content "⏳ Heads-up: Test User's free-reply window closes in ~4h…" ✅
+- users: user 41 unchanged (<code>consultation_active</code>, updated_at = fixture time) → <strong>no state write</strong> ✅
+<strong>Cross-check vs expected:</strong>
+- ✅ <strong>PDF-18 match-path</strong> — exactly 1 match (user 41) → single advisory nudge to consult channel via WF-51 (operator confirmed Slack receipt)
+- ✅ correct copy incl. computed "~4h until close"
+- ✅ <strong>no customer-facing WA send, no DB state write</strong> (advisory/non-blocking per DD-5)
+- ✅ <strong>REPEAT-readiness proven</strong> — post-nudge dry-run STILL matches (nudge logged <code>transport=slack</code> → ignored by the WA-scoped query) → nudge repeats next poll instead of self-disabling. This is the decisive PDF-20 payoff on the WF-75 side.
+- ⏳ <strong>not yet exercised:</strong> self-termination (path 1: Dr. Chinmay WA reply → last_outbound_wa &gt; last_inbound → match drops; path 2: inbound crosses 24h → out of band) — both structurally enforced by the query; optional live demo via one more relay.</p>
+      </details>
+      <div id="appendix-followups-remaining-paths"><details class="appendix-item"><summary>Followup — Remaining Paths <span class="src">(followups-remaining-paths.md)</span></summary><h1>Follow-ups — remaining un-exercised paths</h1>
+<p>Logged 2026-06-10 at end of the 24h-window deliverability smoke. None are blockers; the core deliverability cluster (PDF-15/17/18/19/20/21) is fully green.</p>
+<h2>1. PDF-16 — failure-visibility notice [not exercised]</h2>
+<ul>
+<li><strong>Why un-smoked:</strong> every customer-bound send this session <strong>succeeded</strong>, so WF-50's <code>success=false</code> branch never fired and the in-channel "could not deliver" notice to Dr. Chinmay was never produced.</li>
+<li><strong>What it should do (DD-4):</strong> any customer-bound send Meta rejects — for any reason — must surface as a plain-language notice in the consult channel. No silent drops.</li>
+<li><strong>To exercise:</strong> force a genuine Meta failure on a customer-bound send, e.g.</li>
+<li>a paused/disabled template send, or</li>
+<li>a malformed/over-length template param that Meta rejects (132xxx), or</li>
+<li>a send to a number outside the window with no template (if any such path remains).</li>
+<li><strong>Verify:</strong> the failing exec shows <code>success=false</code> with the Meta error, AND a Slack notice lands in the consult channel naming the customer + that delivery failed. Confirm across WF-41 (relay), WF-34 (reject), WF-42 (close) callers.</li>
+</ul>
+<h2>2. WF-75 self-termination [logic-proven, not live-demoed]</h2>
+<ul>
+<li><strong>Proven this session:</strong> the nudge <strong>repeats</strong> (post-nudge dry-run still matched — nudge logged <code>transport=slack</code>, ignored by the WA-scoped query).</li>
+<li><strong>Not live-demoed:</strong> the nudge <strong>stops</strong>. Two structural termination paths in WF-75.pseudo Step 2:</li>
+<li>Dr. Chinmay replies on WhatsApp → <code>last_outbound_wa &gt; last_inbound</code> → unanswered clause false → no match.</li>
+<li>Last inbound crosses 24h → outside the 18–24h band → no match.</li>
+<li><strong>To exercise (cheap):</strong> with user 41 still fixtured active @ ~20h, relay one WA reply as Dr. Chinmay → re-run the WF-75 dry-run → user 41 should drop out of the match set. (Path 2 will also occur naturally as user 41's fixtured inbound ages past 24h.)</li>
+</ul>
+<h2>3. PDF-19 — remaining close-template buttons [partial]</h2>
+<ul>
+<li>Only <strong>"Done, Thanks."</strong> was tapped and routed (WF-02 → WF-43). </li>
+<li><strong>"Leave Feedback"</strong> and <strong>"Book Again"</strong> routes were <strong>not individually exercised</strong>. Labels confirmed present on the <code>consultation_closed</code> template; WF-02 <code>BUTTON_MAP</code> keys all three (<code>'Leave Feedback'</code> / <code>'Book Again'</code> / <code>'Done, Thanks.'</code>).</li>
+<li><strong>To exercise:</strong> tap each remaining button on a close template and confirm it routes to the feedback and rebook handlers respectively.</li>
+</ul>
+<h2>Carry-forward action (not a test gap)</h2>
+<ul>
+<li><strong><code>docs/workflow-registry.md</code></strong> — WF-75 row still reads 🟡 "Built (inactive)". WF-75 was activated and verified this session and is being <strong>kept active</strong> (operator decision 2026-06-10). Update the row to 🟢 Active to remove the doc/reality drift.</li>
+</ul></details></div>
+    </section>
+
+  </main>
+</div>
+<script>
+// 1) Severity chip styling for [critical] / [major] / [minor]
+const sevColors = { critical: "#ff4d4f", major: "#ff9f43", minor: "#f1c40f", slow: "#e67e22" };
+function chipifySeverity(root) {
+  root.querySelectorAll("td, p, li, h3, h4").forEach(el => {
+    const html = el.innerHTML;
+    const newHtml = html.replace(/`?\[(critical|major|minor|slow)\]`?/gi, (s, k) => {
+      const key = k.toLowerCase();
+      return `<span class="sev-chip" style="background:${sevColors[key]}">${k}</span>`;
+    });
+    if (newHtml !== html) el.innerHTML = newHtml;
+  });
+}
+chipifySeverity(document);
+
+// 2) Wrap story h3 + following content into card containers
+(function wrapStoryCards() {
+  const story = document.getElementById("story");
+  if (!story) return;
+  const h3s = Array.from(story.querySelectorAll("h3"));
+  h3s.forEach(h3 => {
+    const card = document.createElement("div");
+    card.className = "story-card";
+    let next = h3.nextSibling;
+    while (next && !(next.nodeType === 1 && (next.tagName === "H3" || next.tagName === "HR" || next.tagName === "H2"))) {
+      const cur = next;
+      next = next.nextSibling;
+      card.appendChild(cur);
+    }
+    h3.after(card);
+  });
+  // remove <hr> separators since cards already provide separation
+  story.querySelectorAll("hr").forEach(hr => hr.remove());
+})();
+
+// 3) Build scenario nav from h3s in story section
+(function buildScenarioNav() {
+  const nav = document.getElementById("nav-scenarios");
+  if (!nav) return;
+  document.querySelectorAll("#story h3").forEach((h3, i) => {
+    const id = "scenario-" + (h3.textContent.match(/TC-\d+/)?.[0] || ("sc" + i)).toLowerCase();
+    h3.id = id;
+    const a = document.createElement("a");
+    a.href = "#" + id;
+    a.className = "depth-1";
+    a.textContent = h3.textContent.replace(/\s*[✅❌→].*/g, "").trim();
+    nav.appendChild(a);
+  });
+})();
+
+// 4) Color ✅ / ❌ in story headings
+document.querySelectorAll("#story h3").forEach(h3 => {
+  h3.innerHTML = h3.innerHTML
+    .replace(/✅/g, '<span class="status-ok">✅</span>')
+    .replace(/❌/g, '<span class="status-warn">❌</span>');
+});
+</script>
+</body></html>
