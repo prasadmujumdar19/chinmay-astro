@@ -1,6 +1,6 @@
 ---
 wf_id: WF-41
-live_reconciled_at: 2026-06-09T20:59:50.788Z
+live_reconciled_at: 2026-06-10T10:31:36.587Z
 ---
 
 WF-41 — Admin → User Relay
@@ -15,7 +15,8 @@ WF-41 — Admin → User Relay
   - WF-41 is intentionally single-direction (admin → user). The reverse direction (user's WhatsApp message → admin's Slack channel) is handled by **WF-40 User → Admin Relay** (called from WF-02 via the `RELAY` route). Do not re-introduce WA→Slack handling here.
   - Caller contract: WF-10 has already (a) looked up the user by `slack_channel_id`, (b) verified `status == 'consultation_active'`, and (c) shaped the canonical Relay Envelope via the `Build WF-10 Relay Envelope` Code node (design.md §2.2). WF-41 does NOT re-query users or re-derive phone — that would be redundant work and a duplicated state-precondition surface.
   - **Field name:** the admin's message body arrives as `messageText` in the Relay Envelope (canonical per §2.2). WF-41 maps it to `messageContent` when calling WF-50 (canonical WF-50 text variant per design.md §2.3).
-  - **24h-window deliverability (PDF-15, spec 2026-06-08-24h-window-deliverability-design.md, DD-A/B/C/D):** Meta only permits free-form (non-template) messages inside the customer's open 24h service window (M1); outside it, free-form is silently rejected. WF-41 therefore reads the customer's window state and routes the relay reply accordingly — in-window free-form (unchanged), out-window via the `astrology_service_update` utility template.
+  - **24h-window deliverability (PDF-15, spec 2026-06-08-24h-window-deliverability-design.md, DD-A/B/C/D):** Meta only permits free-form (non-template) messages inside the customer's open 24h service window (M1); outside it, free-form is silently rejected. WF-41 therefore reads the customer's window state and routes the relay reply accordingly — in-window free-form (unchanged), out-window via the `astrology_service_update_v2` utility template.
+  - **Out-window template (PDF-21, 2026-06-09): `astrology_service_update_v2`** (replaced `astrology_service_update`, retired by the user for a Meta-UI bold-rendering bug — the old body's split `*` rendered literal asterisks). v2 structure (lang `en`): Header TEXT fixed *"Follow-up on your consultation"*; Body *"\*Dr. Chinmay has responded to your message:\* {{1}}\n\nThanks, Chinmay Astro"* — **one positional body var `{{1}}` = the DD-C-sanitized reply**; no footer var, no buttons. Send-payload contract is UNCHANGED from the old template (single body text param), so only the template NAME moved in `Prepare WhatsApp Message` (`const TEMPLATE`).
   - **Window source (DD-B):** `chinmay_astro.messages` — `MAX(created_at) WHERE user_id=<envelope user.id> AND direction='inbound' AND metadata->>'transport'='wa'`. The relay path does no `users` write, so `users.last_message_at` is stale during a consultation and is NOT used. The 24h comparison is computed in SQL (timestamptz vs `NOW()`) so it is timezone-correct and does not depend on n8n's runtime TZ.
   - **Transport scope (PDF-20, 2026-06-09):** the window read MUST filter `metadata->>'transport'='wa'`. `messages` logs Dr. Chinmay's own Slack typing as `direction='inbound'` `message_type='slack_text'` (`transport='slack'`); without the transport filter a Slack-inbound row can become the `MAX(inbound)` the gate keys on, so the window reads freshly-open off the astrologer's message while the customer has actually been silent >24h → relay wrongly sends free-form → Meta rejects out-of-window → silent non-delivery (the exact failure PDF-15 was built to prevent). `transport='wa'` is the correct discriminator (NOT a `message_type` allow-list): the 24h window re-opens on ANY customer WhatsApp inbound — text, interactive, OR media — so filtering by transport counts them all, whereas a `message_type IN ('text','interactive')` proxy would under-count a future media inbound. Mirrors WF-75's window read.
   - **Stateless gate (DD-2/DD-3):** each relay message is evaluated fresh against the current window state. A message that was sent as a template (or that later fails at Meta) has NO effect on how the next message is processed — there is no rejection memory, no per-customer "blocked relay" state.
@@ -55,14 +56,14 @@ Step 3: Build WhatsApp payload(s) (Code node "Prepare WhatsApp Message").
             each template item:
               { phoneNumber,
                 messageType:  "template",
-                templateName: "astrology_service_update",
+                templateName: "astrology_service_update_v2",
                 templateParams: [ <sanitized reply, or labelled part> ],
                 userId:         <envelope user.id>,            // logging context (WF-60)
                 consultationId: <envelope user.current_consultation_id> }
 
 Step 4: Call WF-50 (Send WhatsApp) with the payload item(s), executeWorkflow mode='each' (run WF-50
         once per input item). WF-50's entry guard validates the discriminated union (design.md §2.3),
-        routes on messageType (text → send free-form; template → POST a `astrology_service_update`
+        routes on messageType (text → send free-form; template → POST a `astrology_service_update_v2`
         template with components built from templateParams, language en), and logs each send via WF-60
         (direction='outbound'). mode='each' is REQUIRED for the out-window multi-part case: WF-50's
         internal nodes all read `$input.first()` / `return [{json}]`, so a single mode='once' call passing

@@ -64,6 +64,7 @@
 | PDF-18 | 🟢 done | 11 | P1 | WF-75 (new) | PDF-15 (soft — shared `messages` window source) |
 | PDF-19 | 🟢 done | 12 | P2 | WF-42 (button handler pre-done by PDF-17) | template:`consultation_closed` ✅ Active (NOT `consultation_closed_feedback` — that one Meta reclassified to Marketing) · PDF-17 (soft sibling — delivered PDF-19's receiving side) |
 | PDF-20 | 🟢 done | 13 | P1 | WF-41/75 | resolves followups adjacent finding (PDF-15 window read not WA-scoped); emerged during PDF-18 build |
+| PDF-21 | 🟢 done | 13 | P1 | WF-41 | out-window template repointed `astrology_service_update`→`astrology_service_update_v2` (user retired the old one for a Meta bold-render bug); emerged 2026-06-09 |
 
 ## Batch 1 — P0
 
@@ -710,3 +711,29 @@ The general-enquiry path's payment CTA was Gemini-phrased — incomplete (no UPI
 **Verify:** WF-41 updatedAt=2026-06-09T20:59:50.788Z, WF-75 updatedAt=2026-06-09T21:00:02.547Z. MCP strict `valid:true` 0 errors both (warnings all pre-existing/advisory — WF-50/Call-WF-51 tV-1.2 floor, cosmetic cachedResultName, pre-existing Code-node + DB-retry advisories; none introduced). Per-node strict on the WF-41 Postgres node `valid:true` 0 err/0 warn. lint: 1 advisory each (pre-existing/accepted Contract-First Code→executeWorkflow — out of this change's scope). Both `.pseudo` re-stamped + assert-pseudo-fresh FRESH. Secrets clean.
 
 **Acceptance:** the relay in/out-window decision (WF-41) and the nudge window scan (WF-75) key only on the customer's WhatsApp messages; the astrologer's Slack typing and the nudge's own Slack post never skew either read. **Live confirmation that the skew is gone for an at-risk user (42) bundled with the deferred PDF-15/16/17/18/19 coordinated smoke** (which will now exercise the corrected WF-41/WF-75).
+
+## PDF-21 — Out-window relay template repointed to `astrology_service_update_v2`
+
+**Status:** 🟢 done
+**Started:** 2026-06-10T10:30:00Z
+**Completed:** 2026-06-10T10:32:29Z
+**Owner session:** build-pre-demo-minor-fixes-8Jun26-4
+**Actual tokens:** ~25K (single-constant swap + grep-all-callsites + strict/node-check verify)
+**Actual effort:** ~3 min
+**Estimate delta:** n/a (emergent — not pre-sized)
+**Priority:** P1 | **Batch:** 13
+**Change type:** Surgical — single named constant in WF-41 (`6PzJRZsF7k2d9hV7`) `Prepare WhatsApp Message` Code node. **Pseudo-impact: yes** (the template's documented external interface/copy changed) — `WF-41.pseudo` references + structure note revised + re-stamped FRESH. Built Mode B (inline).
+**Workflows:** WF-41
+**n8n IDs:** `6PzJRZsF7k2d9hV7`
+**Depends on:** PDF-15 / PDF-20 (same out-window relay path) · external: `astrology_service_update_v2` approved in Meta
+**Design gate:** false
+
+**Reason (user, 2026-06-09):** the original `astrology_service_update` had a Meta **bold-rendering bug** (the split `*` on the body's lines 1–2 rendered as literal asterisks — the known Meta-UI authoring quirk noted at PDF-15 build). User retired it and created a **new** template `astrology_service_update_v2` with corrected copy. WF-41's out-window send must point at the new name.
+
+**`astrology_service_update_v2` structure (from user screenshot, lang `en`):** Header TEXT fixed *"Follow-up on your consultation"*; Body *"\*Dr. Chinmay has responded to your message:\* {{1}}"* + blank line + *"Thanks, Chinmay Astro"* — **one positional body var `{{1}}` = the sanitized reply** (variable type "Number" = positional `{{1}}`, not a numeric value); no footer var, no buttons. The bold now renders correctly (preview confirms). **Send-payload contract is identical to the old template** (single body text param, lang `en`) → only the template NAME moved.
+
+**Build:** grep confirmed `astrology_service_update` had exactly one functional call site (WF-41 `Prepare WhatsApp Message`, the `const TEMPLATE` constant — the `.md` is a regenerable projection). jq `gsub` swap of the constant → curl PUT. Backup is the PDF-20 backup taken minutes earlier (`archive/backups/6PzJRZsF7k2d9hV7-2026-06-10-06-57.json`, pre-PDF-20/21).
+
+**Verify:** WF-41 updatedAt=2026-06-10T10:31:36.587Z; constant now `'astrology_service_update_v2'` (1 occurrence). MCP strict `valid:true` 0 errors (7 warnings all pre-existing/advisory). `node --check` OK. lint 1 advisory (pre-existing Contract-First). `WF-41.pseudo` re-stamped `live_reconciled_at=2026-06-10T10:31:36.587Z` (FRESH). Secrets clean.
+
+**Acceptance:** an out-window relay reply is delivered via `astrology_service_update_v2` (correct bold rendering, new copy), `{{1}}` = the sanitized reply. **External prerequisite:** `astrology_service_update_v2` must be APPROVED/Active in Meta before the send works (Meta 132000/132001 on a name/lang/param mismatch). Live confirmation bundled with the deferred PDF-15/16/17/18/19 coordinated smoke — the smoke MUST verify the v2 name + `en` lang + single body param against Meta's approved structure before the out-window send.

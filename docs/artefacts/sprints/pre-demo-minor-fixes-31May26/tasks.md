@@ -107,6 +107,7 @@ once.** There is no locking. To avoid clobbering each other:
 | PDF-18 | 🟠 P1 | No reminder to the astrologer that the free-reply window is about to close | 🟢 done | WF-75 |
 | PDF-19 | 🟡 P2 | Consultation-close prompt can't reach the customer if closed after a long gap | 🟢 done | WF-42 send→consultation_closed template; receiving side pre-built by PDF-17 |
 | PDF-20 | 🟠 P1 | Relay/nudge window read counted Slack rows, skewing the 24h decision (emerged during PDF-18) | 🟢 done | WF-41 + WF-75 window read scoped to metadata->>'transport'='wa' |
+| PDF-21 | 🟠 P1 | Out-window relay used a template Meta mis-rendered; user made a replacement (emerged) | 🟢 done | WF-41 repointed to astrology_service_update_v2 |
 
 ---
 
@@ -582,6 +583,23 @@ from the 20:16 Slack row to the real 08:59 WhatsApp inbound.
 
 **Acceptance:** both window reads key only on the customer's WhatsApp messages; Slack rows never skew them.
 Live end-to-end folds into the deferred PDF-15/16/17/18/19 coordinated smoke.
+
+---
+
+### PDF-21 · Out-window relay template repointed to a corrected version (emerged during implementation)
+
+**Status:** 🟢 done (WF-41, 2026-06-10 — see state.md for build detail)
+**Priority:** 🟠 P1 | **Owner session:** build-pre-demo-minor-fixes-8Jun26-4
+**Change type:** Surgical — single template-name constant in WF-41 `Prepare WhatsApp Message`.
+
+**What:** the out-window relay template `astrology_service_update` had a Meta bold-rendering bug (split `*`
+→ literal asterisks). The user retired it and created `astrology_service_update_v2` (header "Follow-up on
+your consultation", body "*Dr. Chinmay has responded to your message:* {{1}}" + "Thanks, Chinmay Astro",
+one `{{1}}`, correct bold). WF-41 repointed to the new name; send-payload contract unchanged (single body
+text param, `en`).
+
+**Acceptance:** out-window relay delivers via `astrology_service_update_v2`. External prerequisite: the v2
+template must be Approved/Active in Meta — verified at the deferred PDF-15/16/17/18/19 coordinated smoke.
 
 ---
 
