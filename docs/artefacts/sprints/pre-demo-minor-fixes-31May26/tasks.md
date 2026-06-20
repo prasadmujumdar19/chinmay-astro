@@ -108,6 +108,11 @@ once.** There is no locking. To avoid clobbering each other:
 | PDF-19 | 🟡 P2 | Consultation-close prompt can't reach the customer if closed after a long gap | 🟢 done · smoke ✅ | WF-42 send→consultation_closed template; receiving side pre-built by PDF-17 · **live smoke ✅ 2026-06-10 (close + "Done" tap; other 2 buttons remaining)** |
 | PDF-20 | 🟠 P1 | Relay/nudge window read counted Slack rows, skewing the 24h decision (emerged during PDF-18) | 🟢 done · smoke ✅ | WF-41 + WF-75 window read scoped to metadata->>'transport'='wa' · **live smoke ✅ 2026-06-10 (decisive trap test)** |
 | PDF-21 | 🟠 P1 | Out-window relay used a template Meta mis-rendered; user made a replacement (emerged) | 🟢 done · smoke ✅ | WF-41 repointed to astrology_service_update_v2 · **live smoke ✅ 2026-06-10 (v2 sends, no 132xxx)** |
+| PDF-22 | 🟡 P2 | Outside-in uptime check — nothing off the VPS reports when the whole service is unreachable | 🆕 triaged | — |
+| PDF-23 | 🟠 P1 | No alert when a server container, the database, the disk, or the tunnel fails | ✅ done | — |
+| PDF-24 | 🟠 P1 | Expired API credentials surface only via a customer's failed message (the Gemini-key incident) | ✅ done | — |
+| PDF-25 | 🟡 P2 | No in-service health / execution-failure-rate monitoring (WF-70 never built) | 🆕 triaged | — |
+| PDF-26 | 🟠 P1 | No automated database backups — data loss is currently unrecoverable | 🆕 triaged | — |
 
 ---
 
@@ -378,6 +383,87 @@ reply. Impact-checked across all 4 WF-25 callers before change.
 
 ---
 
+### PDF-23 · Server-side infrastructure health checks (containers, database, disk, tunnel)
+
+**Status:** ✅ done (2026-06-20 — VPS cron, hourly; build detail in state.md)
+**Priority:** 🟠 P1 | **Owner session:** —
+**Change type:** TBD — determine in plan/build (VPS-local; not an n8n workflow).
+**Related:** PDF-22 (outside-in counterpart), PDF-25 (in-service counterpart)
+
+**What:** Nothing watches the machine the service runs on. If a container stops (n8n / database /
+encryption helper), the database becomes unresponsive, the disk fills up (which silently kills the
+database), or the Cloudflare tunnel drops, no one is told — today the first signal would be customers
+failing to get replies. A lightweight check should run on the server every few minutes and alert the
+admin when any of these is unhealthy. It must repeat-suppress (alert once, then re-alert only after a
+sustained-failure interval) so a multi-hour outage doesn't flood the admin, and it must deliver its
+alert by a path that does NOT depend on n8n — because n8n may itself be the thing that is down.
+
+**Why it matters:** This is the most reliable internal safety net and the cheapest to run. It catches
+failure classes that in-service (n8n) checks structurally cannot — if n8n is down, an n8n-based check
+can't fire.
+
+**Acceptance:** within minutes of any of {a core container down, database unresponsive, disk past a
+threshold, tunnel service inactive}, the admin receives one alert (not a flood) over a channel that keeps
+working even when n8n is down.
+
+---
+
+### PDF-24 · Scheduled credential-validity checks (Gemini + WhatsApp)
+
+**Status:** ✅ done (2026-06-20 — VPS cron, reuses PDF-23 helper; build detail in state.md)
+**Priority:** 🟠 P1 | **Owner session:** —
+**Change type:** TBD — determine in plan/build (VPS-local; not an n8n workflow).
+
+**What:** API credentials can expire or hit quota with no warning. Today the only signal is a customer's
+message visibly failing and landing in the admin channel — the admin finds out *after* a customer is
+hurt. A scheduled job should proactively test the credentials and alert the admin the moment one stops
+working:
+- **WhatsApp token** — checked once daily. (It is also continuously exercised by normal traffic: every
+  outbound message uses it, so passive coverage is already strong; the daily check covers quiet periods.)
+- **Gemini key** — checked twice daily, at 00:00 and 12:00 IST. Gemini is only exercised when a customer
+  sends free-form text (intent classification, mainly during an active consultation); on a quiet day with
+  only button/form taps it may not be called at all, so it needs an active scheduled probe. Frequency is
+  kept deliberately low — frequent probes add API cost for no extra detection benefit.
+
+**Evidence:** the Gemini API key recently went bust and was discovered only when a customer's failed
+message surfaced in the Slack admin channel — exactly the silent failure this prevents.
+
+**Why it matters:** "Chinmay finds out before the customer does." Directly closes the incident class that
+triggered this monitoring effort.
+
+**Acceptance:** when a credential is invalid / expired / over-quota, the admin is alerted by the next
+scheduled check (≤12h for Gemini, ≤24h for WhatsApp) — before, not after, a customer hits a failed
+interaction. Alert delivery does not depend on n8n.
+
+---
+
+### PDF-26 · Automated PostgreSQL backups (hourly always-latest on-VPS + daily offsite)
+
+**Status:** 🆕 triaged
+**Priority:** 🟠 P1 | **Owner session:** —
+**Change type:** TBD — determine in plan/build (VPS cron; retention policy + offsite destination wiring
+decided in plan).
+
+**What:** There is no automated database backup today, so any data loss (disk failure, corruption, bad
+write) is currently unrecoverable. Add a scheduled dump:
+- **Hourly** dump to the VPS's mounted storage, kept always-latest (each successful dump supersedes the
+  previous) → ~1-hour recovery point for hardware loss.
+- **Daily** copy (the 00:00 dump) pushed offsite to a designated Google Drive location → survives total
+  VPS loss.
+
+**Design note for planning:** an "always-latest single copy" protects against hardware loss but NOT
+logical corruption — a corrupted state dumped hourly would overwrite the last good copy within the hour.
+Plan should set retention so a clean restore point survives corruption (e.g. always-latest hourly on-VPS
+PLUS a rolling set of the last N daily snapshots offsite), not just a single newest file.
+
+**Why it matters:** data-loss risk is non-negotiable once real customers are on the system.
+
+**Acceptance:** an up-to-date database backup always exists on mounted VPS storage (≤1h old) and a daily
+copy exists offsite on Google Drive; a documented restore path recovers the database from either; backup
+failures themselves raise an alert.
+
+---
+
 ## 🟡 P2 — Minor / polish
 
 ### PDF-02 · Admin assistant — add current user-state context
@@ -600,6 +686,59 @@ text param, `en`).
 
 **Acceptance:** out-window relay delivers via `astrology_service_update_v2`. External prerequisite: the v2
 template must be Approved/Active in Meta — verified at the deferred PDF-15/16/17/18/19 coordinated smoke.
+
+---
+
+### PDF-22 · Outside-in reachability check (Claude routine)
+
+**Status:** 🆕 triaged
+**Priority:** 🟡 P2 | **Owner session:** —
+**Change type:** TBD — determine in plan/build (Claude Cloud routine; the only check that runs off the VPS).
+**Related:** PDF-23 (server-side counterpart)
+
+**What:** Every other health check runs on the VPS itself, so none of them can report "the whole VPS /
+tunnel / n8n is down" — a dead host can't alert on its own death. A single check running OUTSIDE our
+infrastructure should reach the public service URL on a schedule and alert the admin if it is
+unreachable. This runs as a Claude Cloud routine (keeps working with the laptop off, independent of the
+VPS). Cadence: every 2 hours. Scope is deliberately minimal — just an outside-in "is it alive?" ping; all
+other checks stay on the VPS.
+
+**Why it matters:** complements the server-side checks by covering the one case they cannot — the host
+being completely dead. Kept low-frequency to stay well within routine usage limits and cost.
+
+**Constraints (for planning):** Claude routines run in Anthropic's cloud, cannot SSH into the VPS, and
+reach it only over the public URL; minimum schedule interval is 1 hour (2h chosen); routine runs draw on
+the same Claude subscription budget, and there is a per-account daily cap on routine runs (visible at
+claude.ai/code/routines). Alert delivery should use a swappable webhook destination, not be hard-wired to
+a specific messaging connector.
+
+**Acceptance:** if the public service URL is unreachable, the admin is alerted within one 2-hour cycle,
+even when the VPS is fully down.
+
+---
+
+### PDF-25 · Build WF-70 — in-service health + execution failure-rate monitor
+
+**Status:** 🆕 triaged
+**Priority:** 🟡 P2 | **Owner session:** —
+**Change type:** TBD — determine in plan/build (new n8n workflow; WF-70 is currently a planned, unbuilt
+shell in the registry).
+**Related:** PDF-23 (server-side counterpart), PDF-24 (credential counterpart)
+
+**What:** Build the long-planned in-service health workflow (WF-70). It complements the server-side and
+credential checks with business-level signals only n8n can see from the inside:
+- a real database query succeeds (not just "the port answers"),
+- the WhatsApp API responds to a status call,
+- workflow executions are not silently failing at a higher-than-baseline rate (catches a broken node that
+  swallows errors rather than crashing loudly).
+By design it cannot detect n8n being down (it runs inside n8n) — so it complements PDF-22/23, not
+replaces them.
+
+**Why it matters:** catches slow / silent degradation (rising error rate, a flaky dependency) that
+up/down checks miss. Lower urgency than the up/down and credential checks, hence P2.
+
+**Acceptance:** WF-70 runs on a schedule, verifies DB + WhatsApp API responsiveness with real calls, and
+raises an admin alert when execution failure-rate exceeds a baseline threshold.
 
 ---
 

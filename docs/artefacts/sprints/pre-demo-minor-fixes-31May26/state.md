@@ -3,7 +3,7 @@
 **Input source:** docs/artefacts/sprints/pre-demo-minor-fixes-31May26/tasks.md
 **Input hash:** 633b9b258285df5821dbe3f1cff90cce62b268b5ae5d3c6efe33fc281579052c
 **Planned at:** 2026-05-31T11:19:25Z
-**Last updated:** 2026-06-09T10:22:14Z
+**Last updated:** 2026-06-16T08:56:57Z
 **Planning complete:** true
 **Rolling sprint:** TRUE — `_active` marker is USER-CONTROLLED. build-sprint MUST NOT remove `_active` on batch/queue exhaustion; report "current queue done, sprint still open (rolling)" and stop. Re-invocations of plan-sprint must be ADDITIVE (plan only new PDF-NN items into this file; never destructive full-replan). input_hash mismatch is EXPECTED and is NOT a replan signal. See tasks.md "ROLLING SPRINT" header for full lifecycle/concurrency rules.
 **Discover-current-state:** ran at 2026-05-31T11:19:25Z against live WF-10 (`wMh0oBRtJbvhLgOf`, 42 nodes). Result: PDF-01 condition CONFIRMED PRESENT — `Build Help Prompt` + `Call WF-51 (Help Prompt)` nodes and hardcoded "Type `HELP` to see available commands" line both still on the `free_text` branch; ZERO Gemini calls in WF-10. PDF-01 is genuinely pending, not obsolete. PDF-02/PDF-03 extend the not-yet-built PDF-01 → pending. No obsoletes detected.
@@ -50,6 +50,20 @@
 - **Remaining un-exercised (NOT blockers, logged in test followups + below):** PDF-16 failure-visibility notice (no send failed this session to trigger it); WF-75 self-termination (repeat proven, stop logic-proven not live-demoed); PDF-19 "Leave Feedback"/"Book Again" routes (only "Done" tapped).
 - **State changes from the smoke:** WF-75 left **ACTIVE** (user decision — keep on; registry needs 🟡→🟢 update). User 41 left fixtured `consultation_active` @ ~20h window. The per-item `DEFERRED — live smoke` notes below are superseded/resolved by this run for PDF-15/17/18/19/20/21.
 
+**Additive planning pass — 2026-06-16T08:56:57Z (rolling sprint, append-only).** Planned the monitoring / observability + DB-backup cluster **PDF-22..PDF-26** (Batches 14–17) into this `state.md`; existing PDF-01..21 history untouched per rolling-sprint rule 2. These five are post-go-live safety nets ("Chinmay finds out before the customer does") that crystallised from the Gemini-key silent-failure incident, brainstormed/appended to `tasks.md` 2026-06-14. `tasks.md` hash mismatch is EXPECTED and is NOT a replan signal.
+
+- **Discover-current-state basis:** Only **PDF-25** references an n8n workflow — **WF-70**, which `docs/workflow-registry.md` lists as `🔵 Build Fresh` (planned, unbuilt shell). The other four are NOT n8n workflows (PDF-22 = off-VPS Claude routine; PDF-23/24/26 = VPS-local cron/scripts), so no live n8n grep applies. No obsoletes detected. **Live re-confirm 2026-06-19 (tunnel reopened by user):** n8n reachable, 33 workflows; **zero `WF-70`/health/monitor workflow exists live → PDF-25 = build-it CONFIRMED, not obsolete.** Build precedent **WF-75** (`YnxDRcnCugnpGY0n`, active) and alert sender **WF-51** (`wlZRK0YxnhP0b2RL`, active) both present, so the PDF-25 build pattern is intact.
+
+- **Decisions locked this session (per [[feedback_lock_decisions_in_plan]]):**
+  - **DD-G — shared n8n-independent alert channel = direct Slack incoming-webhook.** PDF-23/24/26 (VPS cron) and PDF-22 (Claude routine) all alert by curl-POSTing a **Slack incoming-webhook URL**, NOT via n8n (n8n may itself be the thing that is down). Keeps Chinmay's single existing surface (Slack); no second app to watch. The webhook URL is a **swappable destination** (one config value, reused by all four). **PDF-23 is the carrier** — it establishes the shared alert helper (curl wrapper + repeat-suppress / alert-once-then-re-alert-after-interval state); PDF-24/26 reuse it; PDF-22 shares the same URL from the cloud side.
+  - **DD-H — PDF-26 backup policy (corruption-survivable, validate-before-rotate).** Hourly `pg_dump | gzip` to VPS mounted storage. **Before rotating** (deleting the previous hour's good copy) the new dump is VALIDATED restorable: gunzip to a temp path, restore into a throwaway temp database (or sample-read), verify expected tables + a few sample rows / row counts look sane; **only on success** does it supersede the previous copy. On validation failure → KEEP the previous good copy AND raise a backup-failure alert (never overwrite good-with-bad). Offsite to **Google Drive twice daily (00:00 + 12:00 IST)** via rclone (tiny payload even at ~1k users), rolling **7-day** snapshot retention offsite. Documented restore path from on-VPS-latest OR an offsite snapshot. Any failure (dump / validation / offsite push) alerts via the DD-G helper. *(Validate-before-rotate is the user's 2026-06-16 refinement of the task's "always-latest could overwrite a good copy with a corrupt one" concern.)*
+
+- **Dependencies (PDF-22..26):** no hard deps; three soft deps onto **PDF-23** capturing the shared-alert-helper coupling — PDF-24 (reuse helper + same VPS probe family), PDF-26 (reuse helper for backup-failure alerts), PDF-22 (reuse the same swappable webhook URL from off-VPS, non-blocking). **PDF-25 has no deps** (in-service n8n monitor — alerts via n8n's own Slack path, since n8n is up by definition when WF-70 runs). No same-n8n-workflow siblings (only PDF-25 touches n8n, and it is a brand-new workflow).
+
+- **Priority adjustments confirmed:** none. The only deps point onto PDF-23 (P1) from equal-or-lower-priority items (PDF-24 P1, PDF-26 P1, PDF-22 P2) → priority order and dependency order agree. Within Batch 14, build PDF-23 first (it creates the helper PDF-24 reuses).
+
+- **External prerequisites:** PDF-22 — the routine must reach the DD-G webhook (confirm Claude routines permit outbound HTTP to it; else wire a Slack/webhook connector at claude.ai/customize/connectors, currently none attached). PDF-23/24/26 — a Slack incoming-webhook URL provisioned (separate from the n8n Slack app). PDF-26 — rclone configured on the VPS with a Google-Drive remote. PDF-25 — SSH tunnel open for the build.
+
 ## Items
 
 | ID | Status | Batch | Pri | Workflows | Depends On |
@@ -68,13 +82,18 @@
 | PDF-12 | 🟢 done | 7 | P2 | WF-30 | PDF-11 (soft) |
 | PDF-13 | 🟢 done | 8 | P2 | WF-31 | PDF-12 (soft — same canonical-block pattern) |
 | PDF-14 | 🟢 done | 8 | P2 | WF-43 | PDF-11 (soft — same WF-43 reply path) |
-| PDF-15 | 🟢 done · smoke ✅ | 9 | P0 | WF-41/50/51 | template:`astrology_service_update` ✅ Active · PDF-18 (soft — shared window source) · **live smoke ✅ 2026-06-10 (in+out window)** |
-| PDF-16 | 🟢 done · smoke ⏳ | 10 | P1 | WF-50/51 | PDF-15 (soft — backstop for its residual send failures) · **smoke NOT triggered 2026-06-10 (no send failed) — remaining** |
-| PDF-17 | 🟢 done · smoke ✅ | 10 | P1 | WF-34/02/00 | template:`payment_rejection` ✅ Active · PDF-16 (soft — same WF-34) · PDF-19 (soft sibling) · **live smoke ✅ 2026-06-10 (reject + retry tap)** |
-| PDF-18 | 🟢 done · smoke ✅ | 11 | P1 | WF-75 (new) | PDF-15 (soft — shared `messages` window source) · **live smoke ✅ 2026-06-10 (activated + match-path + repeat-readiness)** |
-| PDF-19 | 🟢 done · smoke ✅ | 12 | P2 | WF-42 (button handler pre-done by PDF-17) | template:`consultation_closed` ✅ Active (NOT `consultation_closed_feedback` — that one Meta reclassified to Marketing) · PDF-17 (soft sibling — delivered PDF-19's receiving side) · **live smoke ✅ 2026-06-10 (close + "Done" tap; other 2 buttons remaining)** |
-| PDF-20 | 🟢 done · smoke ✅ | 13 | P1 | WF-41/75 | resolves followups adjacent finding (PDF-15 window read not WA-scoped); emerged during PDF-18 build · **live smoke ✅ 2026-06-10 (decisive trap test)** |
-| PDF-21 | 🟢 done · smoke ✅ | 13 | P1 | WF-41 | out-window template repointed `astrology_service_update`→`astrology_service_update_v2` (user retired the old one for a Meta bold-render bug); emerged 2026-06-09 · **live smoke ✅ 2026-06-10 (v2 sends, no 132xxx)** |
+| PDF-15 | 🟢 done | 9 | P0 | WF-41/50/51 | template:`astrology_service_update` ✅ Active · PDF-18 (soft — shared window source) · **live smoke ✅ 2026-06-10 (in+out window)** |
+| PDF-16 | 🟢 done | 10 | P1 | WF-50/51 | PDF-15 (soft — backstop for its residual send failures) · **smoke NOT triggered 2026-06-10 (no send failed) — remaining** |
+| PDF-17 | 🟢 done | 10 | P1 | WF-34/02/00 | template:`payment_rejection` ✅ Active · PDF-16 (soft — same WF-34) · PDF-19 (soft sibling) · **live smoke ✅ 2026-06-10 (reject + retry tap)** |
+| PDF-18 | 🟢 done | 11 | P1 | WF-75 (new) | PDF-15 (soft — shared `messages` window source) · **live smoke ✅ 2026-06-10 (activated + match-path + repeat-readiness)** |
+| PDF-19 | 🟢 done | 12 | P2 | WF-42 (button handler pre-done by PDF-17) | template:`consultation_closed` ✅ Active (NOT `consultation_closed_feedback` — that one Meta reclassified to Marketing) · PDF-17 (soft sibling — delivered PDF-19's receiving side) · **live smoke ✅ 2026-06-10 (close + "Done" tap; other 2 buttons remaining)** |
+| PDF-20 | 🟢 done | 13 | P1 | WF-41/75 | resolves followups adjacent finding (PDF-15 window read not WA-scoped); emerged during PDF-18 build · **live smoke ✅ 2026-06-10 (decisive trap test)** |
+| PDF-21 | 🟢 done | 13 | P1 | WF-41 | out-window template repointed `astrology_service_update`→`astrology_service_update_v2` (user retired the old one for a Meta bold-render bug); emerged 2026-06-09 · **live smoke ✅ 2026-06-10 (v2 sends, no 132xxx)** |
+| PDF-22 | ⬜ pending | 17 | P2 | — (Claude Cloud routine, off-VPS) | PDF-23 (soft — same swappable Slack-webhook destination, DD-G; non-blocking) |
+| PDF-23 | 🟢 done | 14 | P1 | — (VPS cron/script, not an n8n WF) | — (CARRIER — established shared n8n-independent Slack alert + repeat-suppress helper, DD-G; alert via existing bot token) |
+| PDF-24 | 🟢 done | 14 | P1 | — (VPS cron/script) | PDF-23 (soft — reuse shared alert helper; same VPS probe family) |
+| PDF-25 | ⬜ pending | 16 | P2 | WF-70 (new) | — (in-service; alerts via n8n's own Slack path) |
+| PDF-26 | ⬜ pending | 15 | P1 | — (VPS cron, not an n8n WF) | PDF-23 (soft — reuse shared alert helper for backup-failure alerts) |
 
 ## Batch 1 — P0
 
@@ -747,3 +766,165 @@ The general-enquiry path's payment CTA was Gemini-phrased — incomplete (no UPI
 **Verify:** WF-41 updatedAt=2026-06-10T10:31:36.587Z; constant now `'astrology_service_update_v2'` (1 occurrence). MCP strict `valid:true` 0 errors (7 warnings all pre-existing/advisory). `node --check` OK. lint 1 advisory (pre-existing Contract-First). `WF-41.pseudo` re-stamped `live_reconciled_at=2026-06-10T10:31:36.587Z` (FRESH). Secrets clean.
 
 **Acceptance:** an out-window relay reply is delivered via `astrology_service_update_v2` (correct bold rendering, new copy), `{{1}}` = the sanitized reply. **External prerequisite:** `astrology_service_update_v2` must be APPROVED/Active in Meta before the send works (Meta 132000/132001 on a name/lang/param mismatch). Live confirmation bundled with the deferred PDF-15/16/17/18/19 coordinated smoke — the smoke MUST verify the v2 name + `en` lang + single body param against Meta's approved structure before the out-window send.
+
+## Batch 14 — PDF-23 + PDF-24 server-side monitoring + shared alert helper (P1) — NEXT ACTIONABLE
+
+- **Items:** 2 (PDF-23 infra health — CARRIER of the shared alert helper · PDF-24 credential probes)
+- **Description:** VPS-local cron-driven safety nets, n8n-independent. **PDF-23** (build first — carrier): a check every few minutes for {core container down, DB unresponsive, disk past threshold, `cloudflared` inactive}; establishes the shared **Slack-incoming-webhook alert helper** (DD-G) with **repeat-suppress** (alert once, re-alert only after a sustained-failure interval) so a multi-hour outage doesn't flood. **PDF-24** reuses that helper: scheduled credential probes — WhatsApp token once daily, Gemini key twice daily (00:00 + 12:00 IST) — alerting the moment a credential is invalid/expired/over-quota (closes the Gemini-key silent-failure incident class). Build PDF-23 first so PDF-24 inherits the helper.
+- **Change type:** Infra — VPS cron + shell/script (NOT n8n workflows); shared Slack-webhook alert helper.
+- **Pseudo-impact:** no (both) — VPS-local scripts, not n8n workflows; record `pseudo: N/A — VPS-local, not an n8n workflow` at build.
+- **External prerequisite:** a Slack incoming-webhook URL provisioned (separate from the n8n Slack app) for DD-G.
+- **Estimated size:** M
+- **Estimated tokens:** ~55K (PDF-23 ~35K incl. shared-helper + repeat-suppress design; PDF-24 ~20K reusing the helper)
+
+## Batch 15 — PDF-26 automated PostgreSQL backups, validate-before-rotate + offsite (P1)
+
+- **Items:** 1 (PDF-26)
+- **Description:** VPS cron backups per DD-H. Hourly `pg_dump | gzip` to mounted storage with **validate-before-rotate** (gunzip → temp restore / sample-row check → supersede previous good copy only on success; on failure keep prior good + alert). Offsite to Google Drive **twice daily (00:00 + 12:00 IST)** via rclone, rolling **7-day** retention. Documented restore path (on-VPS-latest or offsite snapshot). All failures (dump / validate / push) alert via the DD-G Slack-webhook helper (reuses PDF-23's helper).
+- **Change type:** Infra — VPS cron + pg_dump/gzip + rclone (NOT an n8n workflow).
+- **Pseudo-impact:** no — VPS-local, not an n8n workflow.
+- **External prerequisite:** rclone configured on the VPS with a Google-Drive remote; PDF-23's alert helper available (soft).
+- **Estimated size:** M
+- **Estimated tokens:** ~40K (validate-before-rotate temp-restore logic + retention + restore-doc → top-of-M)
+
+## Batch 16 — PDF-25 build WF-70 in-service health + failure-rate monitor (P2)
+
+- **Items:** 1 (PDF-25) — builds the long-planned WF-70 (registry `🔵 Build Fresh`, currently unbuilt)
+- **Description:** New scheduled n8n workflow (WF-70) for business-level signals only n8n can see from the inside: a real DB query succeeds (not just "port answers"), the WhatsApp API responds to a status call, and executions are not silently failing above a baseline rate (catches an error-swallowing node). Alerts via n8n's own Slack path (acceptable — WF-70 only runs when n8n is up; up/down coverage is PDF-22/23's job). Complements, does not replace, PDF-22/23.
+- **Greenfield note:** author `WF-70.pseudo` **in this batch** (co-located pseudo-first per plan-sprint §3d greenfield rule — do NOT defer pseudo to a later batch). Mirror the WF-75 build pattern (PDF-18): scheduleTrigger → Postgres + HTTP probes → failure-rate query → conditional WF-51 alert.
+- **Change type:** Workflow-Create — NEW WF-70 (Schedule trigger + Postgres query + WhatsApp status HTTP call + execution failure-rate query + alert).
+- **Pseudo-impact:** yes (greenfield — pseudo authored in-batch).
+- **External prerequisite:** SSH tunnel open for the n8n build.
+- **Estimated size:** M
+- **Estimated tokens:** ~35K
+
+## Batch 17 — PDF-22 outside-in reachability ping — Claude Cloud routine (P2)
+
+- **Items:** 1 (PDF-22) — the ONLY check that runs OFF the VPS
+- **Description:** A minimal Claude Cloud routine, every 2h, that reaches the public service URL and alerts the admin if unreachable — covering the one case all VPS-local checks structurally cannot (the host being completely dead). Scope deliberately minimal: an outside-in "is it alive?" ping. Alert via the same swappable Slack-incoming-webhook destination (DD-G). Low cadence keeps it well within routine usage limits / cost.
+- **Constraints:** Claude routines run in Anthropic's cloud, cannot SSH, reach the VPS only over the public URL; min interval 1h (2h chosen); runs draw on the Claude subscription budget with a per-account daily cap (claude.ai/code/routines).
+- **Change type:** Infra — Claude Cloud routine config (NOT an n8n workflow, NOT VPS).
+- **Pseudo-impact:** no — Claude routine config.
+- **External prerequisite:** the routine must deliver to the DD-G Slack webhook — confirm routines permit outbound HTTP; otherwise attach a Slack/webhook connector at claude.ai/customize/connectors (none attached today).
+- **Estimated size:** XS
+- **Estimated tokens:** ~12K
+
+## PDF-22 — Outside-in reachability check (Claude Cloud routine)
+
+**Status:** ⬜ pending
+**Owner session:** —
+**Priority:** P2 | **Batch:** 17
+**Change type:** Infra — Claude Cloud routine (off-VPS); the only check not on the VPS. Not an n8n workflow.
+**Workflows:** — (none; Claude Cloud routine)
+**Depends on:** PDF-23 (soft — reuses the same swappable Slack incoming-webhook destination, DD-G; independent execution surface, non-blocking)
+**Design gate:** false
+**Size:** XS
+**Estimated tokens:** ~12K
+**Pseudo-impact:** no — Claude routine config, not an n8n workflow.
+
+Every other health check runs on the VPS, so none can report "the whole VPS / tunnel / n8n is down" — a dead host can't alert on its own death. This routine runs every 2h in Anthropic's cloud, hits the public service URL, and alerts via the DD-G Slack webhook if unreachable. Minimal by design — just an "is it alive?" ping; all other checks stay on the VPS.
+
+**Constraints:** cloud-only (no SSH; public URL only); min interval 1h (2h chosen); draws on the Claude subscription budget; per-account daily routine-run cap (claude.ai/code/routines).
+**External prerequisite:** routine must reach the DD-G webhook (confirm outbound HTTP allowed; else wire a connector at claude.ai/customize/connectors — none attached today).
+**Acceptance:** if the public service URL is unreachable, the admin is alerted within one 2-hour cycle, even when the VPS is fully down.
+
+## PDF-23 — Server-side infrastructure health checks (carrier of shared alert helper)
+
+**Status:** 🟢 done
+**Started:** 2026-06-20T05:59:50Z
+**Completed:** 2026-06-20T06:11:42Z
+**Actual tokens:** ~40K (VPS recon + script authoring + live alert-cycle verification)
+**Actual effort:** ~12 min
+**Estimate delta:** on-bucket (planned M ~35K, actual ~40K)
+**Pseudo:** N/A — VPS-local scripts, not an n8n workflow
+**Owner session:** build-pre-demo-minor-fixes-20Jun26
+**Priority:** P1 | **Batch:** 14
+
+**Build summary (2026-06-20):** VPS-local cron monitor, n8n-independent. Authored `scripts/monitoring/{alert.sh,health-check.sh,extract-secrets.sh,README.md}` (committed, secret-free); deployed to `/mnt/chinmay-astro-data/monitoring/`. `alert.sh` = shared DD-G helper: `send_alert`/`clear_alert` POST to Slack `chat.postMessage` (channel C0A5B0ZE81E) with the existing n8n Slack bot token (extracted once by `extract-secrets.sh` → root-600 `secrets.env`, read independently of n8n). Repeat-suppress 6h (`state/<key>.alerted`). `health-check.sh` checks: 4 core containers running, Postgres `SELECT 1`, root disk <85%, `cloudflared` systemd active. **Cron: `0 * * * *` (hourly, per user choice — note: detection latency up to ~1h, a deliberate trade-off vs the task's "within minutes" wording).** Host is UTC. **Live-verified:** Slack post `ok:true`; healthy run silent + no state; ghost-container negative test → alert fired once → 2nd run suppressed (timestamp unchanged) → `clear_alert` posted recovery + removed state. jq/curl/docker/systemctl all present on host.
+**Acceptance:** ✅ {container down / Postgres unresponsive / disk ≥85% / cloudflared inactive} → ONE repeat-suppressed alert to chinmay-admin-commands over an n8n-independent path; detection cadence hourly (user-chosen).
+
+**DD-G refinement (2026-06-20, user-directed):** alert channel = **reuse the existing n8n Slack bot token via `chat.postMessage`** (NOT a new incoming-webhook). Token extracted ONCE from n8n's encrypted credential store (n8n CLI `export:credentials --decrypted`) into a root-600 `/mnt/chinmay-astro-data/monitoring/secrets.env`, read independently of n8n at alert time (so the alert path still fires when n8n itself is down — confirmed `.env.production` holds only DB creds + `N8N_ENCRYPTION_KEY`, no Slack/Gemini/WA tokens). Alerts post to `chinmay-admin-commands` (C0A5B0ZE81E). The "swappable destination" is now the channel id + token in secrets.env. Locked params: health-check **hourly**, disk threshold **85%**, repeat-suppress **6h**.
+**Layout:** `/mnt/chinmay-astro-data/monitoring/` (root-only, mounted storage) — `secrets.env` (600, VPS-only, never committed), `alert.sh` (shared DD-G helper), `health-check.sh` (PDF-23), `cred-check.sh` (PDF-24), `state/` (repeat-suppress). Committed copies (secrets stripped) → repo `scripts/monitoring/`.
+**Change type:** Infra — VPS cron + shell/script; establishes the shared n8n-independent Slack-webhook alert helper. Not an n8n workflow.
+**Workflows:** — (VPS-local; no n8n workflow)
+**Depends on:** — (CARRIER — DD-G: this item creates the shared alert helper that PDF-24/26 reuse and PDF-22 shares the URL with)
+**Design gate:** false
+**Size:** M
+**Estimated tokens:** ~35K
+**Pseudo-impact:** no — VPS-local script, not an n8n workflow (record `pseudo: N/A` at build).
+
+Watches the host every few minutes: a core container down (n8n / postgres / encryption-svc), DB unresponsive, disk past a threshold, `cloudflared` service inactive. Alerts the admin over a path that does NOT depend on n8n (DD-G Slack incoming-webhook, curl'd from cron — because n8n may itself be the thing that is down). Repeat-suppress: alert once, re-alert only after a sustained-failure interval so a multi-hour outage doesn't flood.
+
+**Establishes (shared, DD-G):** the alert helper = a small curl wrapper POSTing the swappable Slack-webhook URL + the repeat-suppress state file. PDF-24 and PDF-26 reuse it.
+**External prerequisite:** a Slack incoming-webhook URL (separate from the n8n Slack app).
+**Why it matters:** the most reliable internal safety net and the cheapest to run; catches failure classes that in-service (n8n) checks structurally cannot.
+**Acceptance:** within minutes of {core container down, DB unresponsive, disk past threshold, tunnel inactive}, the admin gets ONE alert (not a flood) over a channel that works even when n8n is down.
+
+## PDF-24 — Scheduled credential-validity checks (Gemini + WhatsApp)
+
+**Status:** 🟢 done
+**Started:** 2026-06-20T06:11:42Z
+**Completed:** 2026-06-20T06:16:18Z
+**Actual tokens:** ~25K (probe authoring + live IP-restriction debug)
+**Actual effort:** ~5 min
+**Estimate delta:** on-bucket (planned S ~20K, actual ~25K)
+**Pseudo:** N/A — VPS-local scripts, not an n8n workflow
+**Owner session:** build-pre-demo-minor-fixes-20Jun26
+**Priority:** P1 | **Batch:** 14
+**Change type:** Infra — VPS cron + shell/script; reuses PDF-23's alert helper. Not an n8n workflow.
+
+**Build summary (2026-06-20):** `scripts/monitoring/cred-check.sh` (committed; deployed to VPS), reuses PDF-23's `alert.sh`. Two probes: Gemini key → `GET generativelanguage…/v1beta/models?key=…` (200=ok); WhatsApp token → `GET graph.facebook.com/v21.0/<WABA_ID>?access_token=…` (200=ok). Both read `secrets.env`; failures alert via DD-G with the failing HTTP code + error message; recover via `clear_alert`. **Cron (UTC host): Gemini `30 6,18 * * *` (=00:00+12:00 IST); WhatsApp `0 7 * * *` (daily ≈12:30 IST).** **Live-verified:** initial Gemini probe returned 403 "API key has IP restriction" — the key (`googlePalmApi`, the one all 14 live Gemini nodes use; `httpQueryAuth` is unused legacy) is **IP-allowlisted to the VPS IPv4**, and the probe had egressed IPv6 → false negative. Fixed with `curl -4` (matches n8n's egress); re-run → Gemini 200 + WhatsApp 200, stale false alert auto-cleared via the recovery path (demonstrated the cred alert+recover cycle live). See [[project_gemini_key_ipv4_restriction]].
+**Acceptance:** ✅ an invalid/expired/over-quota Gemini or WhatsApp credential is detected by the next scheduled probe (≤12h Gemini, ≤24h WhatsApp) and alerted to chinmay-admin-commands over an n8n-independent path, before a customer hits a failure.
+**Workflows:** — (VPS-local; no n8n workflow)
+**Depends on:** PDF-23 (soft — reuse shared DD-G alert helper; same VPS probe family → build after PDF-23)
+**Design gate:** false
+**Size:** S
+**Estimated tokens:** ~20K
+**Pseudo-impact:** no — VPS-local script, not an n8n workflow.
+
+Proactively probes API credentials and alerts the moment one stops working — before a customer hits a failed interaction. WhatsApp token: once daily (also passively exercised by every outbound message, so quiet-period coverage is the gap it closes). Gemini key: twice daily at 00:00 + 12:00 IST (Gemini is only exercised on free-form text, mainly during active consultations; on a button-only day it may never be called — hence an active probe; low frequency keeps API cost down). Alerts via the DD-G helper.
+
+**Evidence:** the Gemini key recently went bust and was discovered only when a customer's failed message surfaced in Slack — exactly this silent-failure class. "Chinmay finds out before the customer does."
+**Acceptance:** when a credential is invalid/expired/over-quota, the admin is alerted by the next scheduled check (≤12h Gemini, ≤24h WhatsApp), before a customer is hurt; delivery does not depend on n8n.
+
+## PDF-25 — Build WF-70 in-service health + execution failure-rate monitor
+
+**Status:** ⬜ pending
+**Owner session:** —
+**Priority:** P2 | **Batch:** 16
+**Change type:** Workflow-Create — NEW n8n workflow WF-70 (registry `🔵 Build Fresh`, unbuilt). Schedule trigger + real DB query + WhatsApp status HTTP call + execution failure-rate query + conditional alert.
+**Workflows:** WF-70 (new) · WF-51 (alert send, expected)
+**Depends on:** — (in-service; alerts via n8n's own Slack path — n8n is up by definition when WF-70 runs)
+**Design gate:** false
+**Size:** M
+**Estimated tokens:** ~35K
+**Pseudo-impact:** yes — greenfield; author `WF-70.pseudo` IN this batch (co-located pseudo-first, not deferred).
+
+Business-level signals only n8n can see from the inside: a real DB query succeeds (not just "port answers"), the WhatsApp API responds to a status call, and executions are not silently failing above a baseline rate (catches an error-swallowing node). By design it cannot detect n8n being down (it runs inside n8n) — so it complements PDF-22/23, not replaces them. Lower urgency than the up/down + credential checks, hence P2. Mirror the WF-75 build pattern (PDF-18).
+
+**External prerequisite:** SSH tunnel open for the build.
+**Acceptance:** WF-70 runs on a schedule, verifies DB + WhatsApp API responsiveness with real calls, and raises an admin alert when execution failure-rate exceeds a baseline threshold.
+
+## PDF-26 — Automated PostgreSQL backups (validate-before-rotate + offsite)
+
+**Status:** ⬜ pending
+**Owner session:** —
+**Priority:** P1 | **Batch:** 15
+**Change type:** Infra — VPS cron + pg_dump/gzip + rclone offsite; reuses PDF-23's alert helper. Not an n8n workflow.
+**Workflows:** — (VPS-local; no n8n workflow)
+**Depends on:** PDF-23 (soft — reuse shared DD-G alert helper for backup-failure alerts)
+**Design gate:** false
+**Size:** M
+**Estimated tokens:** ~40K
+**Pseudo-impact:** no — VPS-local, not an n8n workflow.
+
+**Locked policy (DD-H):**
+1. **Hourly** `pg_dump | gzip` to VPS mounted storage.
+2. **Validate-before-rotate** — before deleting the previous hour's good copy: gunzip the new dump to a temp path, restore into a throwaway temp database (or sample-read), verify expected tables exist + sample rows / row counts are sane. **Only on success** supersede the previous copy. On validation failure → KEEP the previous good copy AND alert (never overwrite good-with-bad). → corruption-survivable ~1h RPO.
+3. **Offsite** to Google Drive **twice daily (00:00 + 12:00 IST)** via rclone (tiny even at ~1k users), rolling **7-day** snapshot retention → survives total VPS loss + logical corruption.
+4. **Documented restore path** from on-VPS-latest OR an offsite snapshot.
+5. Any failure (dump / validation / offsite push) raises an alert via the DD-G Slack-webhook helper.
+
+**Design origin:** the task flagged that an "always-latest single copy" would let a corrupt hourly dump overwrite the last good copy within the hour. The user's 2026-06-16 refinement (validate-before-rotate + twice-daily offsite) resolves it on-VPS (a bad dump never supersedes a good one) and offsite (rolling snapshots).
+**External prerequisite:** rclone configured on the VPS with a Google-Drive remote.
+**Acceptance:** an up-to-date, **validated-restorable** backup always exists on VPS storage (≤1h old) and offsite copies exist on Google Drive (twice daily, 7-day rolling); a documented restore path recovers from either; backup failures themselves raise an alert.
