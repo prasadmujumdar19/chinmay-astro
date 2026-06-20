@@ -11,9 +11,13 @@ is down). "Chinmay finds out before the customer does."
   alert.sh           # shared DD-G alert helper (source-able): send_alert / clear_alert
   health-check.sh    # PDF-23 — containers / Postgres / disk / cloudflared
   cred-check.sh      # PDF-24 — Gemini + WhatsApp credential probes
+  backup-db.sh       # PDF-26 — Postgres backup, validate-before-rotate
   extract-secrets.sh # (re)generate secrets.env from n8n's credential store
   secrets.env        # chmod 600, VPS-ONLY, NEVER committed (Slack token + channel + Gemini/WA creds)
   state/             # repeat-suppress state (one file per alert key)
+/mnt/chinmay-astro-data/backups/
+  n8n-latest.sql.gz  # most recent VALIDATED dump
+  n8n-prev.sql.gz    # previous validated dump (kept for one-step rollback)
 ```
 
 Committed (secret-free) copies live in repo `scripts/monitoring/`.
@@ -42,12 +46,43 @@ of these credentials in n8n.**
 ```
 0 * * * *    /mnt/chinmay-astro-data/monitoring/health-check.sh        # PDF-23 hourly
 30 6,18 * * * /mnt/chinmay-astro-data/monitoring/cred-check.sh gemini   # PDF-24 Gemini 06:30+18:30 UTC = 12:00+00:00 IST
+15 * * * *   /mnt/chinmay-astro-data/monitoring/backup-db.sh           # PDF-26 hourly DB backup (validate-before-rotate)
 0 7 * * *    /mnt/chinmay-astro-data/monitoring/cred-check.sh whatsapp # PDF-24 WhatsApp daily (07:00 UTC ≈ 12:30 IST)
 ```
 
 **IPv4 note:** the Gemini API key is IP-restricted to the VPS IPv4. `cred-check.sh`
 forces `curl -4` so probes egress over the allowlisted IPv4 path (an IPv6 call
 returns HTTP 403 "IP restriction" — a false negative).
+
+## Backups (PDF-26)
+
+`backup-db.sh` (hourly, cron `15 * * * *`) does `pg_dump | gzip` of the n8n
+database to `backups/.staging.sql.gz`, then **validates before rotating**:
+restores the staging dump into a throwaway DB (`n8n_backup_validate`) and
+confirms `chinmay_astro.users` is queryable. **Only on success** does it rotate
+(`n8n-latest.sql.gz` → `n8n-prev.sql.gz`, staging → `n8n-latest.sql.gz`). On any
+failure (dump, restore, or validation) it KEEPS the previous good copy and
+raises a `db_backup` alert via the DD-G helper — a corrupt dump never overwrites
+a good one.
+
+**Offsite (DD-H step 3) — DEFERRED.** The twice-daily (00:00 + 12:00 IST) push
+to Google Drive with 7-day rolling retention is not yet wired: rclone is not
+installed and no GDrive remote is configured. Stub + intended command are in
+`backup-db.sh`. Until then, backups are on-VPS only (survives disk/logical
+corruption, NOT total VPS loss).
+
+### Restore
+
+```bash
+# Inspect:  gunzip -c /mnt/chinmay-astro-data/backups/n8n-latest.sql.gz | less
+# Restore the latest backup into a fresh database to verify, then cut over:
+docker exec postgres-prod psql -U n8n -d postgres -c 'CREATE DATABASE n8n_restore;'
+gunzip -c /mnt/chinmay-astro-data/backups/n8n-latest.sql.gz \
+  | docker exec -i postgres-prod psql -U n8n -d n8n_restore
+docker exec postgres-prod psql -U n8n -d n8n_restore -c 'SELECT count(*) FROM chinmay_astro.users;'
+# To restore in place: stop n8n, drop/recreate n8n, pipe the dump into -d n8n, restart n8n.
+# n8n-prev.sql.gz is the one-step-older copy if the latest is suspect.
+```
 
 ## Deploy / update
 

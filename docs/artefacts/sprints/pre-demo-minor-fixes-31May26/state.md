@@ -93,7 +93,7 @@
 | PDF-23 | 🟢 done | 14 | P1 | — (VPS cron/script, not an n8n WF) | — (CARRIER — established shared n8n-independent Slack alert + repeat-suppress helper, DD-G; alert via existing bot token) |
 | PDF-24 | 🟢 done | 14 | P1 | — (VPS cron/script) | PDF-23 (soft — reuse shared alert helper; same VPS probe family) |
 | PDF-25 | ⬜ pending | 16 | P2 | WF-70 (new) | — (in-service; alerts via n8n's own Slack path) |
-| PDF-26 | ⬜ pending | 15 | P1 | — (VPS cron, not an n8n WF) | PDF-23 (soft — reuse shared alert helper for backup-failure alerts) |
+| PDF-26 | 🔴 blocked | 15 | P1 | — (VPS cron, not an n8n WF) | PDF-23 (soft — reuse shared alert helper) · on-VPS done; OFFSITE blocked on rclone/GDrive remote |
 
 ## Batch 1 — P0
 
@@ -907,10 +907,18 @@ Business-level signals only n8n can see from the inside: a real DB query succeed
 
 ## PDF-26 — Automated PostgreSQL backups (validate-before-rotate + offsite)
 
-**Status:** ⬜ pending
-**Owner session:** —
+**Status:** 🔴 blocked
+**Started:** 2026-06-20T06:20:00Z
+**Blocked at:** 2026-06-20T06:27:43Z
+**Blocked reason:** ON-VPS PART DONE & LIVE-VERIFIED (hourly `pg_dump|gzip` + validate-before-rotate + restore-doc, cron `15 * * * *`). The OFFSITE GDrive push (DD-H step 3: twice-daily 00:00+12:00 IST, 7-day rolling retention) is deferred per user decision (2026-06-20) pending the external prereq — **rclone is not installed on the VPS and no Google-Drive remote is configured.** Resume: install rclone, configure a GDrive remote, then wire the offsite cron (stub + intended command already in `backup-db.sh`) + 7-day prune + offsite-failure alert. Then PDF-26 → done.
+**Actual tokens:** ~35K (so far — DB recon + script + both validate paths verified)
+**Actual effort:** ~8 min (on-VPS part)
+**Pseudo:** N/A — VPS-local scripts, not an n8n workflow
+**Owner session:** build-pre-demo-minor-fixes-20Jun26
 **Priority:** P1 | **Batch:** 15
 **Change type:** Infra — VPS cron + pg_dump/gzip + rclone offsite; reuses PDF-23's alert helper. Not an n8n workflow.
+
+**Build summary (2026-06-20, on-VPS part):** `scripts/monitoring/backup-db.sh` (committed; deployed), reuses PDF-23's `alert.sh`. DD-H: hourly `pg_dump n8n | gzip` → `backups/.staging.sql.gz`; **validate-before-rotate** = restore staging into throwaway `n8n_backup_validate` DB + confirm `chinmay_astro.users` queryable; only on success rotate (`n8n-latest.sql.gz`→`n8n-prev.sql.gz`, staging→latest); on any failure keep prior good copy + `send_alert db_backup`. DB is 31 MB, /mnt has 9.3 G free, run ~4 s. **Live-verified all paths:** clean run rotates (latest+prev present); independent restore of `n8n-latest.sql.gz` into a scratch DB → 4 users; **negative test (forced validation failure) → exit 1, good copies UNCHANGED, db_backup alert raised**; clean re-run → recovery posted + state cleared. Restore path documented in `scripts/monitoring/README.md`. **Offsite = remaining (blocked, see above).**
 **Workflows:** — (VPS-local; no n8n workflow)
 **Depends on:** PDF-23 (soft — reuse shared DD-G alert helper for backup-failure alerts)
 **Design gate:** false

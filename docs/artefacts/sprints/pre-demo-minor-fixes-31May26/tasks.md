@@ -112,7 +112,7 @@ once.** There is no locking. To avoid clobbering each other:
 | PDF-23 | 🟠 P1 | No alert when a server container, the database, the disk, or the tunnel fails | ✅ done | — |
 | PDF-24 | 🟠 P1 | Expired API credentials surface only via a customer's failed message (the Gemini-key incident) | ✅ done | — |
 | PDF-25 | 🟡 P2 | No in-service health / execution-failure-rate monitoring (WF-70 never built) | 🆕 triaged | — |
-| PDF-26 | 🟠 P1 | No automated database backups — data loss is currently unrecoverable | 🆕 triaged | — |
+| PDF-26 | 🟠 P1 | No automated database backups — data loss is currently unrecoverable | 🔴 blocked (on-VPS done & live; offsite deferred to rclone) | — |
 
 ---
 
@@ -439,7 +439,7 @@ interaction. Alert delivery does not depend on n8n.
 
 ### PDF-26 · Automated PostgreSQL backups (hourly always-latest on-VPS + daily offsite)
 
-**Status:** 🆕 triaged
+**Status:** 🔴 blocked (2026-06-20 — on-VPS hourly+validate-rotate live & verified; offsite GDrive push blocked on rclone/GDrive remote; build detail in state.md)
 **Priority:** 🟠 P1 | **Owner session:** —
 **Change type:** TBD — determine in plan/build (VPS cron; retention policy + offsite destination wiring
 decided in plan).
