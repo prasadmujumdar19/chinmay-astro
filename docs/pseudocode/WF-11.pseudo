@@ -48,7 +48,7 @@ Step 6: Call WF-42 (Consultation Closer) passing through the parsed command. End
 Step 7: Call WF-46 (User Blocker) passing through the parsed command. End. (Single-owner principle: WF-46 owns the post-block Slack confirmation — text includes customer name + reason + status. WF-11 used to post a phone+reason duplicate; removed 2026-05-23 BUG-05 sibling fix.)
 Step 8: SELECT u.id, u.name, u.phone_number, u.status, c.id, c.started_at, EXTRACT(EPOCH FROM (NOW() - c.started_at))/3600 AS hours_active FROM chinmay_astro.users u LEFT JOIN chinmay_astro.consultations c ON u.id=c.user_id AND c.status='active' WHERE u.status IN ('payment_submitted','consultation_active') ORDER BY u.status DESC, c.started_at DESC. (alwaysOutputData=true so a zero-row quiet system still emits one item and Step 9's empty-state branch fires.)
 Step 9: Format the list into a Slack mrkdwn message (Pending Payment Verifications + Active Consultations; empty result → "No pending payments or active consultations."). Post to Slack channel (channelName). End.
-Step 10: SELECT counts from chinmay_astro tables: total_users, active_consultations, pending_payments (status='pending_verification'), completed_today, revenue_today (sum of approved payment amounts dated today), blocked_users.
+Step 10: SELECT counts from chinmay_astro tables: total_users, active_consultations, pending_payments (status='payment_submitted'), completed_today, revenue_today (sum of approved payment amounts dated today), blocked_users.
 Step 11: Format stats message and post to Slack channel (channelName). End.
 Step 12: Build HELP text (list of all available commands and examples).
 Step 13: Post HELP text to Slack channel (channelName). End.

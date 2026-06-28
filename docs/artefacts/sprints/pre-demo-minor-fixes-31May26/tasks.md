@@ -111,7 +111,7 @@ once.** There is no locking. To avoid clobbering each other:
 | PDF-22 | 🟡 P2 | Outside-in uptime check — nothing off the VPS reports when the whole service is unreachable | 🆕 triaged | — |
 | PDF-23 | 🟠 P1 | No alert when a server container, the database, the disk, or the tunnel fails | ✅ done | — |
 | PDF-24 | 🟠 P1 | Expired API credentials surface only via a customer's failed message (the Gemini-key incident) | ✅ done | — |
-| PDF-25 | 🟡 P2 | No in-service health / execution-failure-rate monitoring (WF-70 never built) | 🆕 triaged | — |
+| PDF-25 | 🟡 P2 | No in-service health / execution-failure-rate monitoring (WF-70 never built) | 🔨 building (design locked 2026-06-28) | — |
 | PDF-26 | 🟠 P1 | No automated database backups — data loss is currently unrecoverable | 🔴 blocked (on-VPS done & live; offsite deferred to rclone) | — |
 
 ---
@@ -719,7 +719,7 @@ even when the VPS is fully down.
 
 ### PDF-25 · Build WF-70 — in-service health + execution failure-rate monitor
 
-**Status:** 🆕 triaged
+**Status:** 🔨 building (design LOCKED 2026-06-28; build pending — full locked design in state.md PDF-25 block)
 **Priority:** 🟡 P2 | **Owner session:** —
 **Change type:** TBD — determine in plan/build (new n8n workflow; WF-70 is currently a planned, unbuilt
 shell in the registry).

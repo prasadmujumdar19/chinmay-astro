@@ -93,7 +93,7 @@ Step 3: Build Nudge Payload (Code, runs over all input items). For each row that
       { channelId: <slack_channel_id>,
         messageText: "⏳ Heads-up: <user_name>'s free-reply window closes in ~<hours_until_close>h. "
                    + "Reply on WhatsApp within the window to answer for free in plain text — after it "
-                   + "closes, your reply goes out as a template. Ignore this if you're done.",
+                   + "closes, your reply goes out as a template. Ignore this if you are done.",
         userId: <user_id>,            // forwarded to WF-51 → WF-60 for clean attribution
         consultationId: <consultation_id> }
   Rows with no `slack_channel_id` or no `user_id` are skipped (defensive — the SQL already filters

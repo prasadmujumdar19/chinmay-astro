@@ -1,11 +1,11 @@
-last_run_at: 2026-05-29T08:23:43Z
+last_run_at: 2026-06-28T19:25:57Z
 status: CLEAN
-pairs_checked: 28
+pairs_checked: 32
 drift_count: 0
-triaged_count: 28
+triaged_count: 0
 minor_count: 0
-clean_count: 0
-dispatch_mode: fast-enumeration-haiku
-note: deliberate fast-enumeration pass; all 28 pairs TRIAGED with remediation tracked in behavior-matrix-fixes-2026-05-27 sprint (pseudo-first per touched WF; untouched WFs get Sonnet D1-D9 sync at TD-BMX-07 exit). .md regenerated fresh from live immediately before run.
-tracker_path: docs/artefacts/drift-checks/2026-05-29/tracker.md
-report_path:  docs/artefacts/drift-checks/2026-05-29/report.html
+clean_count: 32
+dispatch_mode: parallel-haiku-fanout-11agents
+note: 14 DRIFT found, all pseudo-lagging-live (zero live bugs). Resolved this run — 8 reconciled pseudo→live (WF-10/11/23/31/32/44/51/75); 9 D8/D9 dismissed as not-drift (intermediate workflows deliberately deferred from data-contract/envelope uplift — see 2026-06-28/deferred-envelope-uplift.md); 1 D6 deferred-to-tech (WF-26 onError mechanism). Parent live-verified all functional-looking findings. .md regenerated fresh from live before run.
+tracker_path: docs/artefacts/drift-checks/2026-06-28/tracker.md
+report_path: docs/artefacts/drift-checks/2026-06-28/report.html

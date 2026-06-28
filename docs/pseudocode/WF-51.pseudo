@@ -24,4 +24,4 @@ Step 2: Validate Inputs (entry guard per design.md §2.4) — assert `channelId`
 Step 3: Post to Slack via Slack API (chat.postMessage) using the Slack credential — channel=<channelId>, text=<messageText>. Slack response carries { ok, channel, ts, message:{ ts, text } }. Go to Step 4.
 Step 4: Build WF-60 canonical payload (Code node) — read the trigger input for channelId/messageText/userId/consultationId and the Slack response for ts; emit { transport:'slack', direction:'outbound', messageType:'slack_text', content:messageText, slackChannelId, slackMessageTs, userId, consultationId, metadata:{ transport, slackChannelId, slackMessageTs, slackApiOk, timestamp } }. Go to Step 5.
 Step 5: Call WF-60 (Message Logger) in passthrough mode with the prepared payload. WF-60 inserts into chinmay_astro.messages or returns { logged:false, reason } if its filters/guards prevent insert. Go to Step 6.
-Step 6: End (Slack response returned to caller; WF-60 result not propagated upstream).
+Step 6: End. Call WF-60 Message Logger is the terminal node, so WF-60's logger result is what propagates to the caller. Callers are fire-and-forget and do not consume WF-51's return value.

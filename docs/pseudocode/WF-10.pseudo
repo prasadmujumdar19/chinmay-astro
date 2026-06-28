@@ -156,7 +156,7 @@ Step 24: Call WF-41 (Admin → User Relay). End.
 
 Step 25: `Build Wrong-Channel Alert (User)` (Set node — canonical WF-51 shape per design.md §2.4): {
     channelId: $('Extract Required Fields').item.json.channel_id,
-    messageText: "⚠️ `<commandType>` is an admin command. Please type it in the `chinmay-admin-commands` channel."
+    messageText: "⚠️ `<commandHint>` is an admin command. Please type it in the `chinmay-admin-commands` channel."
   }. Call WF-51 (`Call WF-51 (Wrong Channel User)`). End.
 
 Step 26: `Build Orphan Channel Alert` (Set node — canonical WF-51 shape per design.md §2.4): {
@@ -166,17 +166,17 @@ Step 26: `Build Orphan Channel Alert` (Set node — canonical WF-51 shape per de
 
 Step 27: `Build Phone-Absent Alert` (Set node — canonical WF-51 shape per design.md §2.4): {
     channelId: $('Extract Required Fields').item.json.channel_id,
-    messageText: "⚠️ `<commandType>` needs the user's phone number. Example: `APPROVE PAYMENT 614914...`. No action taken."
+    messageText: "⚠️ `<commandHint>` needs the user's phone number. Example: `APPROVE PAYMENT 614914...`. No action taken."
   }. Call WF-51 (`Call WF-51 (Phone Absent)`). End.
 
 Step 28: `Build Phone-Mismatch Alert` (Set node — canonical WF-51 shape per design.md §2.4): {
     channelId: $('Extract Required Fields').item.json.channel_id,
-    messageText: "⚠️ `<commandType> <typedPhone>` ignored — this channel belongs to `<channelDerivedPhone>`. Please re-check the phone you typed. No action taken."
+    messageText: "⚠️ `<commandHint> <typedPhone>` ignored — this channel belongs to `<channelDerivedPhone>`. Please re-check the phone you typed. No action taken."
   }. Call WF-51 (`Call WF-51 (Phone Mismatch)`). End.
 
 Step 29: `Build Wrong-State Alert` (Set node — canonical WF-51 shape per design.md §2.4): {
     channelId: $('Extract Required Fields').item.json.channel_id,
-    messageText: "⚠️ `<commandType>` ignored — user is currently in `<user.status>`, expected `<expectedState>`. No action taken."
+    messageText: "⚠️ `<commandHint>` ignored — user is currently in `<user.status>`, expected `<expectedState>`. No action taken."
   }. Call WF-51 (`Call WF-51 (Wrong State)`). End. (For relay_text: messageText = "⚠️ Message not relayed — user is currently in `<user.status>`, expected `consultation_active`. WhatsApp send skipped.")
 
 Step 30: Respond 200 fallback for unknown body types. End.

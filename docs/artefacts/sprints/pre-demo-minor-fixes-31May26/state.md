@@ -92,7 +92,7 @@
 | PDF-22 | ⬜ pending | 17 | P2 | — (Claude Cloud routine, off-VPS) | PDF-23 (soft — same swappable Slack-webhook destination, DD-G; non-blocking) |
 | PDF-23 | 🟢 done | 14 | P1 | — (VPS cron/script, not an n8n WF) | — (CARRIER — established shared n8n-independent Slack alert + repeat-suppress helper, DD-G; alert via existing bot token) |
 | PDF-24 | 🟢 done | 14 | P1 | — (VPS cron/script) | PDF-23 (soft — reuse shared alert helper; same VPS probe family) |
-| PDF-25 | ⬜ pending | 16 | P2 | WF-70 (new) | — (in-service; alerts via n8n's own Slack path) |
+| PDF-25 | 🔵 in-progress | 16 | P2 | WF-70 (new) + health_check_log table | — (design LOCKED 2026-06-28; build pending — see PDF-25 block) |
 | PDF-26 | 🔴 blocked | 15 | P1 | — (VPS cron, not an n8n WF) | PDF-23 (soft — reuse shared alert helper) · on-VPS done; OFFSITE blocked on rclone/GDrive remote |
 
 ## Batch 1 — P0
@@ -889,10 +889,11 @@ Proactively probes API credentials and alerts the moment one stops working — b
 
 ## PDF-25 — Build WF-70 in-service health + execution failure-rate monitor
 
-**Status:** ⬜ pending
-**Owner session:** —
+**Status:** 🔵 in-progress
+**Started:** 2026-06-28T19:25:57Z (design locked this session; build not yet started — author pseudo first)
+**Owner session:** (design-lock session 2026-06-28; build to be picked up by a fresh build-sprint session)
 **Priority:** P2 | **Batch:** 16
-**Change type:** Workflow-Create — NEW n8n workflow WF-70 (registry `🔵 Build Fresh`, unbuilt). Schedule trigger + real DB query + WhatsApp status HTTP call + execution failure-rate query + conditional alert.
+**Change type:** Workflow-Create — NEW n8n workflow WF-70 + NEW append-only audit table `chinmay_astro.health_check_log`. Schedule trigger + real DB query + WhatsApp status HTTP call + execution failure-rate query + edge-triggered conditional alert + audit-log insert.
 **Workflows:** WF-70 (new) · WF-51 (alert send, expected)
 **Depends on:** — (in-service; alerts via n8n's own Slack path — n8n is up by definition when WF-70 runs)
 **Design gate:** false
@@ -903,7 +904,25 @@ Proactively probes API credentials and alerts the moment one stops working — b
 Business-level signals only n8n can see from the inside: a real DB query succeeds (not just "port answers"), the WhatsApp API responds to a status call, and executions are not silently failing above a baseline rate (catches an error-swallowing node). By design it cannot detect n8n being down (it runs inside n8n) — so it complements PDF-22/23, not replaces them. Lower urgency than the up/down + credential checks, hence P2. Mirror the WF-75 build pattern (PDF-18).
 
 **External prerequisite:** SSH tunnel open for the build.
-**Acceptance:** WF-70 runs on a schedule, verifies DB + WhatsApp API responsiveness with real calls, and raises an admin alert when execution failure-rate exceeds a baseline threshold.
+**Acceptance:** WF-70 runs on a schedule, verifies DB + WhatsApp API responsiveness with real calls, and raises an admin alert when any check (incl. execution errors) fails — edge-triggered per the locked design below.
+
+**Design decisions (LOCKED 2026-06-28 with user — build against THESE verbatim):**
+- **Cadence:** hourly Schedule Trigger. **Silent when all healthy.** Mirror the WF-75 scheduled-job build pattern.
+- **Three checks; overall health = ALL must pass (any one failing → `unhealthy`):**
+  1. **DB reachable** — `SELECT 1 FROM chinmay_astro.users LIMIT 1` (real read, not just port).
+  2. **WhatsApp API up** — lightweight GET to the WABA/phone-number endpoint using the existing WhatsApp credential (Graph API answers).
+  3. **Execution errors** — **ANY** `execution_entity.status = 'error'` in the trailing 60 min → unhealthy. NO percentage threshold, NO volume floor (user decision: notify even a single/transient failure; the edge-triggered + recovery model below makes transients self-documenting so no login needed). Baseline confirmed ~0.3% (30d: 312 success / 1 error). `execution_entity` cols available: `status` ('success'|'error'), `startedAt`, `stoppedAt`, `workflowId`, `finished`.
+- **Notifications — EDGE-TRIGGERED on state change** (via WF-51 → `chinmay-admin-commands` C0A5B0ZE81E; n8n's own Slack path, up by definition):
+  - `healthy → unhealthy`: alert immediately — "⚠️ health check failed: <which check(s) + detail>".
+  - `unhealthy → healthy`: alert — "✅ recovered".
+  - **persistent `unhealthy`:** re-remind at most **every 12h** (user's "twice a day max") — "still failing since <failing_since>" — keeps nagging until resolved, no hourly spam.
+  - persistent `healthy`: silent.
+  - Worked example (user's): `W,F,F,W,W` (hourly) → exactly **2 alerts** (onset at 1st F; recovery at 1st W; 2nd F is <12h after onset so silent).
+- **State / audit store — APPEND-ONLY table `chinmay_astro.health_check_log` (NOT single-row overwrite — user wants a full audit trail):**
+  - Each hourly run INSERTs one row. Proposed columns (finalise exact DDL in `WF-70.pseudo`): `id` serial PK, `checked_at` timestamptz, `overall_state` text ('healthy'|'unhealthy'), `failed_checks` jsonb (which of db/whatsapp/exec failed + per-check detail/error text — what/where), `notification_sent` boolean, `notification_type` text ('onset'|'reminder'|'recovery'|null), `failing_since` timestamptz (start of the current unhealthy episode), `resolution` text (set on recovery: `'transient_auto'` if the episode lasted only ~1 check, else `'manual'` — human/claude can't be auto-distinguished; column is manually annotatable later), `resolution_note` text nullable.
+  - Edge logic each run reads the **most recent prior row** to get last `overall_state` + `failing_since` + `last notification time`; the append-only history also makes the 12h-reminder query and the "how did it resolve" attribution straightforward, and gives Chinmay/Claude an inspectable record.
+- **Build order:** pseudo-first → author `WF-70.pseudo` (greenfield, `pseudo-impact: yes`); create the `health_check_log` table (DDL via docker-exec write path); build WF-70 JSON inline on main thread (Opus — user chose inline authoring for visibility, NOT a generation subagent); typeVersion floor to WF-75's live node versions; backup N/A (new); MCP lint/validate + live activation check + export; regen WF-70.md; re-stamp `WF-70.pseudo` live_reconciled_at (5f.0).
+- **Inline vs subagent for the build:** user approved using subagents for read-heavy/research/pure-generation, but chose **inline (main-thread Opus)** for the WF-70 JSON authoring (workflow JSON authoring is the riskiest to delegate; wants visibility). A read-only reference-gathering subagent to distill WF-75's schedule-trigger node shapes + WF-51 call contract is OPTIONAL and fine (keeps WF-75's big JSON out of context) — see handoff + subagent-discipline-notes.md.
 
 ## PDF-26 — Automated PostgreSQL backups (validate-before-rotate + offsite)
 

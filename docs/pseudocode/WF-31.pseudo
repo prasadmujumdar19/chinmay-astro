@@ -26,9 +26,9 @@ WF-31 — Payment Submitted Handler
 Step 1: Start — triggered by WF-02 with the WF-01 canonical envelope (trigger passthrough). Read `phoneNumber` and `user.slack_channel_id` from the envelope.
 Step 2: Fan out in parallel from the trigger: Branch A → Step 3 (intent + reply); Branch B → Step 9 (Slack relay).
 Step 3: Call WF-25 with `{ phoneNumber, userId: user.id, messageContent, userStatus: user.status, userName: user.name, slackChannelId: user.slack_channel_id }`. Receive `intentResult`. (Garbage / abuse / Gemini-failure terminate inside WF-25; control does not return for those.) [Branch A — user reply]
-Step 4: Check: `intentResult == 'stop_intent'`?
-  - If YES → End of Branch A (WF-25 already sent the clarifier; no extra).
-  - If NO → go to Step 5.
+Step 4: Is Pass-Through Intent? — proceed only if `intentResult` is NONE of `garbage` / `malicious_abusive` / `inappropriate` / `stop_intent` (the live node is a 4-way AND guard; defensive belt-and-braces over WF-25 already returning 0 items for garbage/abuse and already sending the stop_intent clarifier).
+  - If pass-through (none of the four) → go to Step 5.
+  - If NOT (stop_intent, or the defensive garbage / malicious_abusive / inappropriate cases) → End of Branch A (no extra reply).
 Step 5: Check: `intentResult == 'general_enquiry'`?
   - If YES → go to Step 6.
   - If NO → go to Step 8.

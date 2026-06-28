@@ -1,0 +1,79 @@
+<!doctype html><meta charset='utf-8'>
+<title>Drift Check — 2026-06-28</title>
+<style>
+body{font-family:system-ui;margin:2rem;max-width:1100px}
+.header{background:#16a34a;color:white;padding:1rem 1.5rem;border-radius:6px;margin-bottom:1.5rem}
+table{width:100%;border-collapse:collapse}
+td,th{padding:.4rem .75rem;border-bottom:1px solid #e5e7eb;text-align:left;font-size:14px}
+pre{background:#f9fafb;padding:1rem;border-radius:4px;white-space:pre-wrap;font-size:13px}
+</style>
+<div class='header'><h1>Pseudo-vs-MD Drift Check — 2026-06-28</h1>
+<p>Overall: <strong>CLEAN</strong> · 33 pairs checked · 🔴 0 drift · ⚠️ 0 minor · ✅ 32 clean</p>
+<p>Method: parallel Haiku subagent fan-out (11 agents) + parent live-verification + pseudo→live reconciliation</p></div>
+<table><thead><tr><th>WF</th><th>Status</th><th>Findings</th><th>Notes</th></tr></thead>
+<tbody><tr><td>WF-ID</td><td>Status</td><td>Findings</td><td>Notes</td></tr>
+<tr><td>WF-00</td><td>✅ CLEAN</td><td>0</td><td></td></tr>
+<tr><td>WF-01</td><td>✅ CLEAN</td><td>0</td><td></td></tr>
+<tr><td>WF-02</td><td>✅ CLEAN</td><td>0</td><td></td></tr>
+<tr><td>WF-10</td><td>✅ CLEAN</td><td>0</td><td>RECONCILED: D1 alert wording `&lt;commandType&gt;`→`&lt;commandHint&gt;` (Steps 25/27/28/29) to match live</td></tr>
+<tr><td>WF-11</td><td>✅ CLEAN</td><td>0</td><td>RECONCILED: D5 STATS count state `pending_verification`→`payment_submitted` to match live</td></tr>
+<tr><td>WF-20</td><td>✅ CLEAN</td><td>0</td><td></td></tr>
+<tr><td>WF-21</td><td>✅ CLEAN</td><td>0</td><td></td></tr>
+<tr><td>WF-22</td><td>✅ CLEAN</td><td>0</td><td></td></tr>
+<tr><td>WF-23</td><td>✅ CLEAN</td><td>0</td><td>RECONCILED: D1 welcome + help copy (added &quot;with your Vedic astrology consultation&quot;, &quot;below&quot;, 🙏)</td></tr>
+<tr><td>WF-25</td><td>✅ CLEAN</td><td>0</td><td></td></tr>
+<tr><td>WF-26</td><td>✅ CLEAN</td><td>0</td><td>D6 &quot;halts on 0 rows&quot; = n8n onError MECHANISM → deferred-to-tech-sprint, not drift</td></tr>
+<tr><td>WF-30</td><td>✅ CLEAN</td><td>0</td><td></td></tr>
+<tr><td>WF-31</td><td>✅ CLEAN</td><td>0</td><td>RECONCILED: D3 Step 4 rewritten to the live 4-way pass-through guard. D9 dismissed (not uplifted)</td></tr>
+<tr><td>WF-32</td><td>✅ CLEAN</td><td>0</td><td>RECONCILED: D1 &quot;Dr. Chinmay&quot; + admin-notif Slack-mrkdwn format. D9 dismissed (not uplifted)</td></tr>
+<tr><td>WF-33</td><td>✅ CLEAN</td><td>0</td><td>D9 dismissed — intermediate workflow, not yet envelope-uplifted (no first-step envelope guard)</td></tr>
+<tr><td>WF-34</td><td>✅ CLEAN</td><td>0</td><td>D9 dismissed — intermediate workflow, not yet envelope-uplifted</td></tr>
+<tr><td>WF-40</td><td>✅ CLEAN</td><td>0</td><td>D9 dismissed — intermediate workflow, not yet envelope-uplifted</td></tr>
+<tr><td>WF-41</td><td>✅ CLEAN</td><td>0</td><td>D9 dismissed — intermediate workflow, not yet envelope-uplifted</td></tr>
+<tr><td>WF-42</td><td>✅ CLEAN</td><td>0</td><td>D8 dismissed — intermediate workflow, not yet envelope-uplifted</td></tr>
+<tr><td>WF-43</td><td>✅ CLEAN</td><td>0</td><td>D8 dismissed — intermediate workflow, not yet envelope-uplifted</td></tr>
+<tr><td>WF-44</td><td>✅ CLEAN</td><td>0</td><td>RECONCILED: D1 &quot;Dr. Chinmay&#x27;s consultation service&quot;. D8 dismissed (not uplifted)</td></tr>
+<tr><td>WF-45</td><td>✅ CLEAN</td><td>0</td><td></td></tr>
+<tr><td>WF-46</td><td>✅ CLEAN</td><td>0</td><td></td></tr>
+<tr><td>WF-47</td><td>✅ CLEAN</td><td>0</td><td></td></tr>
+<tr><td>WF-50</td><td>✅ CLEAN</td><td>0</td><td></td></tr>
+<tr><td>WF-51</td><td>✅ CLEAN</td><td>0</td><td>RECONCILED: D7 return-contract note → live returns WF-60 logger result (terminal node); fire-and-forget callers</td></tr>
+<tr><td>WF-52</td><td>✅ CLEAN</td><td>0</td><td></td></tr>
+<tr><td>WF-53</td><td>✅ CLEAN</td><td>0</td><td>(genuinely envelope-uplifted — Entry Guard + explicit Inputs block; CLEAN as found)</td></tr>
+<tr><td>WF-60</td><td>✅ CLEAN</td><td>0</td><td>(genuinely envelope-uplifted — Validate Inputs + explicit Inputs block; CLEAN as found)</td></tr>
+<tr><td>WF-61</td><td>✅ CLEAN</td><td>0</td><td>(genuinely envelope-uplifted — Entry Guard + explicit Inputs block; CLEAN as found)</td></tr>
+<tr><td>WF-62</td><td>✅ CLEAN</td><td>0</td><td></td></tr>
+<tr><td>WF-75</td><td>✅ CLEAN</td><td>0</td><td>RECONCILED: D1 nudge copy &quot;you&#x27;re done&quot;→&quot;you are done&quot;</td></tr></tbody></table>
+<h2>Resolution</h2><pre>
+
+**A. Reconciled pseudo→live (8 WFs) — genuine pseudo-lag, mechanical sync (live was correct):**
+WF-10 (D1 alert var), WF-11 (D5 state name), WF-23 (D1 copy ×2), WF-31 (D3 guard description),
+WF-32 (D1 copy + admin-notif mrkdwn), WF-44 (D1 copy), WF-51 (D7 return note), WF-75 (D1 copy).
+These accumulated since the last drift check (2026-05-29) through PDF-04/05/09/15-21 copy + logic changes
+where `.pseudo` was not restamped.
+
+**B. Dismissed D8/D9 (9 WFs) — NOT drift, by the data-contract scope rule (user direction 2026-06-29):**
+WF-31/32/33/34/40/41 (D9 &quot;no dedicated Inputs block / references canonical envelope&quot;) + WF-42/43/44
+(D8 &quot;Inputs list ≠ fields read&quot;). The data-contract/envelope uplift was a DEDICATED, SCOPED effort that
+covered ONLY (1) the inbound entry workflows (WhatsApp/Slack) + their immediate downstreams that validate
+the core envelope, and (2) the outbound utility workflows that validate a fixed contract as their FIRST
+step. INTERMEDIATE workflows were intentionally deferred from the uplift. Objective discriminator applied:
+a live first-step envelope-validation guard (e.g. &quot;Validate Inputs&quot;/&quot;Entry Guard&quot;/&quot;contract violation&quot;).
+All 9 above have NONE (first node is business logic) → not yet uplifted → their `.pseudo` does not need
+the new Inputs-spec format yet → finding is expected, not drift. The genuinely-uplifted utilities
+(WF-51/53/60/61) DO carry the guard + an explicit Inputs block and came back CLEAN. See
+`deferred-envelope-uplift.md` for the tracked list.
+
+**C. Deferred to tech sprint (1):** WF-26 D6 (UPDATE 0-row &quot;halt&quot;) — n8n onError mechanism, not a pseudo
+concern (pseudo-vs-tech-separation rule). Recorded in `deferred-to-tech-sprint.md`.
+
+## Parent live-verification log (Include C pt4)
+- WF-11 D5 — live `.md`: `status=&#x27;payment_submitted&#x27;`. Pseudo stale. (`pending_verification` is a valid PAYMENTS-table status, not users.)
+- WF-10 D1 — live `.md`: alert Set nodes use `commandHint` (always populated in both classifiers). Pseudo named wrong var.
+- WF-31 D3 — live `.md`: 4-condition AND guard present. Live more defensive than pseudo described.
+- WF-51 D7 — live `.md`: `Call WF-60 Message Logger` is terminal node → returns logger result. Harmless for fire-and-forget callers.
+- Bucket B uplift status — verified via first-step guard grep: 0/9 have an envelope-validation entry guard → all not-yet-uplifted → D8/D9 not applicable.
+
+## Relevance to PDF-25 (WF-70 build)
+WF-75 (precedent) &amp; WF-51 (alert sender WF-70 will call) both CLEAN/reconciled and safe to build against.
+</pre>
